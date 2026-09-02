@@ -493,7 +493,15 @@ export class OpeningScene extends Phaser.Scene {
     const flash = this.add.circle(heroX, POUCH_Y - 16, 82, color, 0.18).setScale(0.25);
     root.add(flash);
     const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.55).setAlpha(0);
-    const visual = createCollectibleVisual(this, root, pending.standard.familyId, pending.standard.rarity, heroX, POUCH_Y + 52);
+    const visual = createCollectibleVisual(
+      this,
+      root,
+      pending.standard.familyId,
+      pending.standard.rarity,
+      heroX,
+      POUCH_Y + 52,
+      pending.standard.collectibleId,
+    );
     visual.group.setScale(0.24).setAlpha(0);
 
     this.spawnSparkles(heroX, heroY, color, pending.standard.rarity === 'legendary' ? 10 : 7);
@@ -701,6 +709,7 @@ export class OpeningScene extends Phaser.Scene {
       'secret',
       metrics.centerX + 72,
       POUCH_Y + 42,
+      pending.hiddenPocket.collectibleId,
     );
     secret.group.setScale(0.26).setAlpha(0);
     this.spawnSparkles(metrics.centerX + 72, 318, SECRET_REVEAL_COLOR, 11);
@@ -883,6 +892,7 @@ export class OpeningScene extends Phaser.Scene {
         pending.standard.rarity,
         metrics.centerX - 188,
         344,
+        pending.standard.collectibleId,
       );
       standard.group.setScale(0.52).setAlpha(0.62);
       const standardFamily = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
@@ -901,7 +911,15 @@ export class OpeningScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setAlpha(0.72),
       );
-      const secret = createCollectibleVisual(this, root, pending.hiddenPocket.familyId, 'secret', metrics.centerX + 72, 314);
+      const secret = createCollectibleVisual(
+        this,
+        root,
+        pending.hiddenPocket.familyId,
+        'secret',
+        metrics.centerX + 72,
+        314,
+        pending.hiddenPocket.collectibleId,
+      );
       secret.group.setScale(1);
       root.add(
         this.add
@@ -942,6 +960,7 @@ export class OpeningScene extends Phaser.Scene {
         pending.standard.rarity,
         metrics.centerX,
         316,
+        pending.standard.collectibleId,
       );
       standard.group.setScale(1);
       this.addStandardResultLabels(pending, metrics.centerX, 492);

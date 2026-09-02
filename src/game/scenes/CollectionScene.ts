@@ -225,7 +225,7 @@ export class CollectionScene extends Phaser.Scene {
 
       const best = highestOwnedRarity(familySnapshot);
       if (best) {
-        const visual = createCollectibleVisual(this, root, family.id, best, x, 365);
+        const visual = createCollectibleVisual(this, root, family.id, best, x, 365, family.standard[best].id);
         visual.group.setScale(0.78);
         root.add(
           this.add
@@ -336,7 +336,7 @@ export class CollectionScene extends Phaser.Scene {
             .setStrokeStyle(2, borderColor, entry.owned ? 0.75 : 0.25),
         );
         if (entry.owned) {
-          const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8);
+          const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8, entry.id);
           visual.group.setScale(entry.secret ? 0.29 : 0.27);
         } else {
           root.add(
