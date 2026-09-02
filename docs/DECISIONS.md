@@ -28,11 +28,13 @@ Status meanings:
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | LOCKED | tear package → anticipation/reveal → rarity → new/duplicate progression → collection → repeat |
 | Internal slice purpose | LOCKED | private hands-on vertical slice for the user: validate feel, UX, correctness, SDK/ads integration and art pipeline; **do not publish it** |
+| Internal slice package model | LOCKED FOR SLICE | one unlimited free Mystery Pouch; no package currency/energy/tier friction while judging the core interaction |
 | Internal slice content | LOCKED FOR SLICE | Digital Camera + Flip Phone; 4 standard rarities each + 2 Secrets = 10 collectible assets |
 | Public content direction | LOCKED | materially expand beyond two families before release; Camera/Flip Phone are only the first production batch |
 | Public family count | OPEN FOR RELEASE | choose after the slice proves the production/art pipeline; previous ~24+ scale may be reconsidered, and a larger set is allowed if quality/throughput support it |
 | Candidate expansion families | OPEN FOR RELEASE | MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics, plus additional suitable Y2K gadget archetypes |
-| Public balance | OPEN FOR RELEASE | slice odds/Signal/Hidden Pocket values must be re-simulated and rebalanced after final launch content count is chosen |
+| Public package/economy model | OPEN FOR RELEASE | unlimited free vs light soft-currency/access model, package pools/tiers and acquisition pacing are decided together with final content + monetization; do not assume slice unlimited-free rules are final |
+| Public balance | OPEN FOR RELEASE | slice odds/Signal/Hidden Pocket values must be re-simulated and rebalanced after final launch content count/package model is chosen |
 | Public Collection structure | OPEN FOR RELEASE | scale Shelf/Library for many families; exact grouping/pages/themed shelves depend on launch roster |
 | Production philosophy | LOCKED | low production burden per family; scale through a repeatable asset factory rather than feature-heavy gameplay |
 
@@ -68,7 +70,7 @@ Status meanings:
 | Hidden Pocket | LOCKED FOR SLICE | disabled openings 1–3; 3% from #4 while an undiscovered Secret remains |
 | Secret behavior | LOCKED FOR SLICE | exactly one Camera Secret + one Flip Phone Secret; Hidden Pocket awards an undiscovered Secret; no Secret duplicates |
 | Slice completion | LOCKED FOR SLICE | standard 8/8; Secrets 0/2 separately |
-| Release rebalance | LOCKED | rerun probability/simulation work when the expanded content roster and progression systems are known |
+| Release rebalance | LOCKED | rerun probability/simulation work when the expanded content roster, package model and progression systems are known |
 
 ---
 
@@ -120,7 +122,7 @@ Status meanings:
 These are **not permanently rejected** just because they are absent from the internal slice:
 
 - Tech Parts / Mod Bench;
-- package tiers;
+- package tiers / other light acquisition economy;
 - Daily Spotlight;
 - shelf/environment progression;
 - additional retention systems.
