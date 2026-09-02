@@ -27,6 +27,8 @@ Status meanings:
 | Package presence during reveal | LOCKED | pouch remains visible for the first ~0.3–0.4 s as the physical source of the item; gadget visibly emerges from it, then the pouch slides down / scales slightly down / fades so the collectible becomes the sole visual hero |
 | Reveal FX | LOCKED | runtime-only, cheap Phaser effects: soft radial flash, small sparkle burst, one ring/outline pulse and rarity-tinted glow; Epic/Legendary may add a tiny camera bump and denser particles; no expensive shaders or baked effect-heavy item art |
 | Reveal skip in first probe | LOCKED OUT | full reveal always plays; tap/click does not skip or accelerate it in the first probe |
+| Primary screen architecture | LOCKED | Opening is the clean primary scene; Collection and Mod Bench are separate scenes/surfaces rather than permanent opener UI |
+| Scene transition UX | LOCKED | transitions between Opening, Collection and Mod Bench must feel effectively instant; no blocking asset load, network wait, or long transition animation on navigation |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
@@ -115,6 +117,8 @@ Status meanings:
 | Save | LOCKED | local-first save is enough for probe |
 | Backend/login | LOCKED OUT FOR PROBE | no backend and no required login |
 | Anti-reroll | LOCKED | persist `pendingReveal` before reveal animation, then commit inventory and clear it |
+| Scene loading policy | LOCKED | preload/shared-load assets needed by Opening, Collection and Mod Bench before normal navigation; scene changes must not trigger user-visible asset loading |
+| Scene transition budget | LOCKED TARGET | target transition response ~100–200 ms plus only a very short cosmetic fade/slide if used; if navigation feels like a page load, implementation is wrong |
 
 ---
 
