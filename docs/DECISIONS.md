@@ -22,6 +22,8 @@ Status meanings:
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | LOCKED | package → short open interaction → anticipation → reveal → rarity → collection/duplicate resolution → repeat |
 | Package form | LOCKED | stylized silver/translucent-lavender anti-static / foil mystery pouch |
+| Probe package model | LOCKED | exactly one Mystery Pouch type; it is always available and can be opened indefinitely without spending a package currency |
+| Probe package economy | LOCKED OUT | no package tiers, package prices, energy, store gating or consumable package inventory in the first behavioral probe |
 | Tear interaction | LOCKED | one short left-to-right drag using a large star-shaped tear-tab along a horizontal tear line; no physics or multi-stage unpacking |
 | Reveal choreography after tear | LOCKED | tear strip detaches → pouch gives a tiny recoil/twitch → short rarity-tinted flash from inside → gadget rises/scales into center → pouch drops/fades backward → gadget overshoots slightly and settles → rarity + NEW/duplicate state appears; target ~1.0–1.4 s after drag |
 | Package presence during reveal | LOCKED | pouch remains visible for the first ~0.3–0.4 s as the physical source of the item; gadget visibly emerges from it, then the pouch slides down / scales slightly down / fades so the collectible becomes the sole visual hero |
@@ -117,7 +119,7 @@ Status meanings:
 | Library / Catalog | LOCKED | separate collection sub-surface shows all 8 standard Camera/Flip Phone rarity variants plus Secret discovery state; this is the exhaustive completionist/checklist view |
 | Shelf vs Library purpose | LOCKED | Shelf is the attractive display of the player's best Camera and Flip Phone finds; Library is the exhaustive record of all rarity variants and Secrets |
 | Probe grouping | LOCKED | `Camera` and `Flip Phone` are the two entire probe collections; do not reinterpret this as two six-item collections |
-| Package tiers | OPEN | old research assumed ~3, but exact structure must be re-evaluated against the now very small two-gadget probe |
+| Package tiers | LOCKED OUT FOR PROBE | exactly one unlimited free Mystery Pouch; multiple package tiers may only be reconsidered after the core loop validates and a larger content/economy model gives them a real purpose |
 
 ---
 
