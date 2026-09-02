@@ -75,10 +75,13 @@ class GameAudioController {
 
   public setMuted(muted: boolean): void {
     this.muted = muted;
+    if (muted && this.context?.state === 'running') {
+      void this.context.suspend();
+    }
   }
 
   public toggleMuted(): boolean {
-    this.muted = !this.muted;
+    this.setMuted(!this.muted);
     return this.muted;
   }
 
