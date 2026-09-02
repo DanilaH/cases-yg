@@ -2,235 +2,215 @@
 
 ## 1. Core visual thesis
 
-The collectible assets should feel like:
+Collectibles should feel like:
 
 > **real Y2K device archetypes turned into highly desirable blind-box mini collectibles**
 
-The target is **stylized 2D / painted 2.5D**, not photoreal product rendering and not generic glossy mobile-game 3D.
+Target: **stylized 2D / painted 2.5D**, not photoreal product rendering and not generic glossy mobile-game 3D.
 
-The gadget identity comes first. Cute/kawaii decoration is a controlled accent, not the entire art direction.
+Priority:
+
+> **gadget identity first → collectible desirability second → kawaii garnish third**
 
 ---
 
-## 2. What the accepted examples established
+## 2. Shared visual language — LOCKED
 
-Generated digicam and flip-phone explorations established a viable shared language:
+Camera and flip-phone explorations established the probe language:
 
-- recognizable early-2000s device silhouettes;
+- recognizable early-2000s silhouettes;
 - front-facing or very soft 3/4 presentation;
 - rounded/chunky proportions;
 - large readable controls;
 - simplified hardware cues;
-- candy plastic / translucent shells;
+- candy/translucent plastics;
 - soft illustrated highlights;
-- charms/lanyards used sparingly;
-- enough tactility to feel collectible without looking photoreal.
+- restrained charms/lanyards;
+- enough tactility to feel collectible without photorealism.
 
-Important correction: **one fixed camera angle is not mandatory for every category**. A camera can read best almost front-on, while a flip phone may benefit from a slight 3/4 angle that shows hinge, thickness, antenna, or clear shell. The rule is consistency and readability, not forced orthographic sameness.
+One fixed camera angle is not mandatory across different families. Within a single family, all rarity variants must preserve the same angle and core geometry.
 
 ---
 
-## 3. Perspective and composition
+## 3. Perspective / shape
 
 Preferred:
 
-- almost front-facing;
-- or a very soft 3/4 angle where it better communicates the device;
+- almost front-facing or soft 3/4;
 - clean isolated silhouette;
-- enough negative space around the asset;
-- no dramatic lens distortion.
+- enough transparent negative space around asset;
+- compact/chunky/softened proportions;
+- roughly 3–6 iconic hardware cues per archetype.
 
 Avoid:
 
 - deep perspective;
-- inconsistent camera angles across rarity variants of the same base item;
-- cinematic product-shot views that reduce small-size readability.
+- dramatic lens distortion;
+- micro-detail that disappears at shelf size;
+- inconsistent angle across rarity variants;
+- 1:1 branded product copying.
+
+Useful cues include lens ring, viewfinder, flash, hinge, antenna nub, outer display, speaker grille, strap loop and large navigation controls.
 
 ---
 
-## 4. Shape language
-
-Preferred:
-
-- compact;
-- rounded;
-- softened corners;
-- slightly toyified proportions;
-- chunky buttons / lens rings / hinges;
-- strong readable silhouette.
-
-The art should not reproduce all real-world hardware complexity. Select roughly **3–6 iconic cues** that make the archetype recognizable.
-
-Useful cues include:
-
-- viewfinder;
-- flash;
-- hinge;
-- antenna nub;
-- outer screen;
-- speaker grille;
-- battery seam;
-- visible screw points;
-- strap loop;
-- indicator light;
-- large navigation wheel.
-
----
-
-## 5. Material language
+## 4. Material language
 
 Core materials:
 
 - solid candy plastic;
 - frosted plastic;
 - translucent jelly plastic;
-- crystal-clear shell;
 - pearlescent / iridescent faceplates;
+- crystal-clear shell;
 - controlled chrome / metallic trim;
-- stylized fake internals for the highest standard rarity.
+- stylized fake internals for highest standard rarity.
 
-Lighting/rendering:
+Lighting:
 
 - soft illustrated highlights;
-- clean separation between materials;
-- polished but painted feel;
-- no realistic studio reflections;
-- avoid hard CGI look.
+- clear material separation;
+- polished painted feel;
+- no hard CGI/studio-render look.
 
 ---
 
-## 6. Decoration
+## 5. Decoration
 
-Allowed in moderation:
+Allowed sparingly:
 
 - charm;
 - strap/lanyard;
 - bead;
 - tiny sticker/decal;
-- one star/heart/planet/music motif where thematically appropriate.
+- star/heart/planet/music motif where appropriate.
 
-Do not automatically put the same star charm on every item. Accessories should help distinguish models and special editions, not make the whole collection feel like one repeated AI template.
-
-Target balance:
-
-> **gadget first → collectible second → kawaii garnish third**
+Do not repeat the same star/charm template across every item.
 
 ---
 
-# 7. Standard rarity grammar — LOCKED
-
-The standard ladder is:
+# 6. Standard rarity grammar — LOCKED
 
 > **Common → Rare → Epic → Legendary**
 
-Do not expand this to 6–7 normal rarities merely because competitors do so. The visual ladder is intentionally compact and legible.
-
 ## Common
 
-- solid or mostly solid candy plastic;
-- clean simple colorway;
-- restrained accessory/decor;
+- solid/mostly solid candy plastic;
+- simple attractive colorway;
+- restrained accessory;
 - no magical baked glow;
-- must already be attractive and collectible.
-
-A Common is not trash.
+- must already be desirable.
 
 ## Rare
 
-- material upgrade is obvious;
-- translucent or frosted shell is a strong default;
-- one restrained premium accent;
-- nicer charm/trim is acceptable.
+- clearly upgraded material;
+- translucent/frosted shell default;
+- one restrained premium accent.
 
 ## Epic
 
-- pearlescent / iridescent / more premium surface treatment;
+- pearlescent/iridescent premium surface;
 - richer trim/accessory;
-- more expressive color/material combination;
-- clearly more desirable without turning into visual noise.
+- more expressive material/color combination.
 
 ## Legendary
 
-- clear or near-clear shell;
-- stylized visible internals / circuitry;
+- clear/near-clear shell;
+- stylized visible internals/circuitry;
 - premium metallic treatment;
-- unique lens/screen/trim treatment;
-- instantly reads as jackpot-tier among the four normal rarities.
+- distinctive lens/screen/trim treatment;
+- instantly jackpot-tier among standard variants.
 
-Legendary internals should be **decorative readable circuitry**, not a dense realistic PCB that becomes noise at shelf size.
+Legendary internals should be readable decoration, not realistic PCB noise.
 
 ---
 
-# 8. Item art vs reveal FX — LOCKED
+# 7. Runtime reveal vs item art — LOCKED
 
-Do not bake all reward presentation into the item itself.
-
-### Item-level rarity changes
-
-May include:
+Item-level rarity may change:
 
 - body material;
 - transparency;
-- faceplate treatment;
+- faceplate;
 - colorway;
 - accessory;
 - visible internals;
 - lens/screen treatment;
 - metallic trim.
 
-### Reveal-only presentation
-
-Prefer to add at runtime:
+Keep these primarily runtime-only:
 
 - glow;
 - particles;
-- flash;
+- radial flash;
 - sparkle burst;
-- outline pulse;
-- scale bounce;
-- rarity badge/frame.
+- outline/ring pulse;
+- camera bump;
+- NEW/duplicate labels;
+- Signal effects.
 
-This keeps collection/shelf view readable and preserves room for reveal escalation.
+The same collectible asset must work in reveal, Shelf and Library.
 
 ---
 
-# 9. Secret / Chase editions — LOCKED
+# 8. Probe content — LOCKED
 
-Secrets are **not a fifth normal rarity**.
+Only two standard families:
 
-They sit outside the standard ladder:
+1. **Digital Camera**;
+2. **Flip Phone**.
 
-> Common → Rare → Epic → Legendary  
-> **+ Secret / Chase special editions**
+Each receives four standard rarity variants: **8 standard assets total**.
 
-Launch target: **2–3 total Secrets** across the whole starting collection.
+Do not validate/generate MP3 players, pagers, handhelds, camcorders or other families before the behavioral probe proves the loop. Those are post-validation candidates, not required art-system tests anymore.
 
-Rules:
+Production workflow is defined in `ART_PRODUCTION.md`.
 
-- not required for main collection completion;
-- not one Secret per gadget family;
-- should feel like a special edition / prototype / strange limited run;
-- can change roughly **15–25%** of design details or geometry;
-- may use a unique theme, dial, lens ring, LCD motif, charm, faceplate, antenna, or other signature feature;
-- must remain visibly part of the same overall collection.
+---
 
-A Secret should trigger:
+# 9. Secret / Chase editions — LOCKED FOR PROBE
 
-> “What the hell is THAT?”
+Secrets are outside the standard ladder and do not count toward 8/8 standard completion.
 
-not:
+Exactly two probe Secrets:
 
-> “Legendary, but cyan.”
+## Secret Camera
 
-A cold translucent/cosmic camera direction with a special planet charm was identified as a useful Secret-style seed because it changes the theme/desirability rather than merely adding more gold.
+Direction:
+
+- cold cyan/cosmic translucent body;
+- distinctive Saturn/planet charm;
+- altered lens ring/face detail;
+- unusual limited-edition feeling;
+- not simply a cyan Legendary.
+
+## Secret Flip Phone
+
+Direction:
+
+- purple/music-edition theme;
+- altered faceplate/controls/accessory language;
+- recognizable as the same flip-phone family;
+- not simply a purple Legendary.
+
+Secret rules:
+
+- roughly 15–25% geometry/detail change allowed;
+- same overall product-line style;
+- stronger bespoke identity than standard rarity variants;
+- special reveal treatment allowed.
+
+Desired reaction:
+
+> **“What the hell is THAT?”**
 
 ---
 
 # 10. Palette
 
-Do not make all items pink/violet.
+Do not make the whole product pink/violet.
 
-Useful collection-level directions:
+Useful directions:
 
 - transparent violet;
 - ice blue + silver;
@@ -244,82 +224,106 @@ Useful collection-level directions:
 - lavender + pearl;
 - clear shell + colored internals.
 
-The shelf should become visually richer as it fills.
+Camera and Flip Phone should feel related but not like identical recolored shells.
 
 ---
 
-# 11. Canonical family validation
+# 11. Mystery Pouch — LOCKED
 
-Initial art-system test families:
-
-1. digicam;
-2. flip phone;
-3. MP3 player;
-4. pager;
-5. handheld console;
-6. mini camcorder.
-
-Camera and flip-phone explorations already indicate that the language transfers across silhouettes.
-
-Before mass-producing the full content set, validate at least one more strongly different category (MP3 player is a good next test).
-
-Reject/iterate if:
-
-- one family becomes photoreal while another is illustrative;
-- Common looks like generic boring hardware;
-- Legendary becomes unreadable effect/detail soup;
-- perspective/detail density vary wildly;
-- items feel like unrelated AI generations;
-- all accessories/motifs repeat mechanically.
-
----
-
-# 12. Mystery pouch art direction — LOCKED
-
-The opener package is a stylized **anti-static / foil mystery pouch** designed as part of the same Y2K collectible product language.
-
-Canonical reference asset:
+Canonical reference:
 
 ![Locked mystery pouch reference](assets/package-mystery-pouch-v1.webp)
 
 Repository path: `docs/assets/package-mystery-pouch-v1.webp`
 
-## Package visual grammar
+Visual grammar:
 
-- silver foil / anti-static base material;
-- translucent lavender accent areas;
-- large circular mystery badge with a `?` as the dominant central cue;
-- three small gadget silhouettes below the mystery badge;
-- restrained circuit-trace graphics around the edges;
-- a large star-shaped tear-tab that reads as a functional interaction target;
-- a horizontal dashed tear line leading left-to-right;
-- minimal or no baked product-name text so the asset stays language-agnostic and title-agnostic.
+- silver foil / anti-static base;
+- translucent lavender accents;
+- large circular `?` mystery badge;
+- three small gadget silhouettes;
+- restrained circuit traces;
+- large star-shaped functional tear-tab;
+- horizontal dashed tear line, left-to-right;
+- minimal/no baked title text.
 
-The package should feel like **collectible Y2K tech packaging**, not a dark cyber loot crate and not a generic pink toy bag.
+Interaction:
 
-## Opening interaction
+> **grab star tear-tab → drag left-to-right → deterministic opening completes**
 
-The player performs one short deterministic drag:
+Reveal continuity:
 
-> **grab star tear-tab → drag left-to-right along the top seam → package opens automatically**
+- pouch remains visible as the physical source for ~0.3–0.4 s;
+- collectible visibly emerges;
+- pouch then slides/scales/fades away;
+- final reward state belongs to the collectible.
 
-No physics simulation, repeated tearing, or multi-step unpacking is required.
-
-The exact post-tear reveal choreography is still open and should be specified separately.
+Hidden Pocket reuses this same pouch language rather than introducing another container.
 
 ---
 
-# 13. Collection scene
+# 12. Collection environment — LOCKED
 
-Preferred collection environment:
+Default Collection view is a cozy illustrated **Y2K shelf / desk / display**.
 
-> **cozy illustrated Y2K shelf / desk / display case**
+Probe composition:
 
-Use fixed slots. Avoid free placement.
+- one Camera hero position;
+- one Flip Phone hero position;
+- enough decorative desk/shelf context that two items feel intentional rather than empty;
+- fixed positions, no free placement.
 
-The environment may be calmer/warmer than reveal art, but all item sprites must still sit naturally in it rather than looking pasted on.
+Each position shows best owned visual with priority:
 
-Potential later progression: one scene gradually gains decor at collection milestones instead of building seven different biomes/worlds.
+> Secret → Legendary → Epic → Rare → Common
+
+Missing family uses a tasteful silhouette/empty stand.
+
+The scene can use small environmental props (CDs, beads, tiny stickers, cables, lamp glow) as atmosphere, but they must not look like additional collectible slots.
+
+Library is a cleaner catalog subview of the same Collection scene.
+
+---
+
+# 13. Store visual materials — LOCKED DIRECTION
+
+Current Yandex Games draft requirements to design for:
+
+- icon: **512×512 PNG**;
+- cover: **800×470 PNG**;
+- optional hero image: **1560×520 PNG/JPG**;
+- required landscape screenshots: **16:9**, long side 1280–2560 px, with at least two per selected platform.
+
+Do not use a raw gameplay screenshot as icon/cover.
+
+## Icon composition
+
+Use one immediately legible object hook:
+
+> **partly torn silver/lavender Mystery Pouch + one bright retro gadget emerging + large `?` cue**
+
+Prefer Camera as the hero for the first icon because lens silhouette reads better at tiny size. Keep Flip Phone for cover/supporting composition.
+
+No small text.
+
+## Cover composition
+
+- torn Mystery Pouch near center;
+- Camera and Flip Phone emerging/hovering as the two recognizable rewards;
+- material contrast that hints at rarity (e.g. translucent/pearl) without showing every tier;
+- cozy Y2K background language;
+- no fake platform badges/UI;
+- title only if it remains readable and does not crowd the object hook.
+
+## Screenshot set
+
+Minimum first set should demonstrate:
+
+1. active pouch tear/reveal;
+2. Collection Shelf with Camera + Flip Phone;
+3. Library/rarity progress if a third screenshot is cheap.
+
+Use actual gameplay screenshots for screenshots; do not substitute promotional illustrations.
 
 ---
 
