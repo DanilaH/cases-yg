@@ -2,12 +2,7 @@ import type { SDK } from 'ysdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GameplayActivityCoordinator } from '../src/platform/activity';
-import {
-  AD_CALLBACK_TIMEOUT,
-  REWARD_GRANT_TIMEOUT,
-  YandexAdsAdapter,
-  type AdsAdapterOptions,
-} from '../src/platform/ads';
+import { AD_CALLBACK_TIMEOUT, YandexAdsAdapter, type AdsAdapterOptions } from '../src/platform/ads';
 
 interface RewardedCallbacks {
   onOpen?: () => void;
@@ -48,7 +43,6 @@ const createSdk = (handlers: {
 
 const options: AdsAdapterOptions = {
   fullscreenTimeoutMs: 30,
-  rewardGrantTimeoutMs: 30,
 };
 
 describe('YandexAdsAdapter', () => {
@@ -111,23 +105,30 @@ describe('YandexAdsAdapter', () => {
     expect(blocked).toEqual([true, false]);
   });
 
-  it('times out a hung rewarded grant instead of leaving the game blocked', async () => {
+  it('releases gameplay/audio as soon as the ad closes while reward persistence finishes safely', async () => {
     const { activity, blocked } = createActivity();
+    let resolveReward: (() => void) | undefined;
+    const rewardGate = new Promise<void>((resolve) => {
+      resolveReward = resolve;
+    });
     const sdk = createSdk({
       rewarded: (callbacks) => {
         callbacks.onRewarded?.();
         callbacks.onClose?.(true);
       },
     });
-    const adapter = new YandexAdsAdapter(sdk, activity, { ...options, rewardGrantTimeoutMs: 10 });
+    const adapter = new YandexAdsAdapter(sdk, activity, options);
 
-    const result = await adapter.showRewarded({
-      rewardId: 'hung-grant',
-      onReward: () => new Promise<void>(() => undefined),
+    const resultPromise = adapter.showRewarded({
+      rewardId: 'slow-save',
+      onReward: () => rewardGate,
     });
 
-    expect(result).toEqual({ status: 'error', rewardEarned: false, error: REWARD_GRANT_TIMEOUT });
     expect(blocked).toEqual([true, false]);
+    resolveReward?.();
+    const result = await resultPromise;
+
+    expect(result).toEqual({ status: 'closed', rewardEarned: true });
   });
 
   it('times out a missing SDK callback instead of deadlocking the game', async () => {
