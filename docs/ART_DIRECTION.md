@@ -274,7 +274,42 @@ Reject/iterate if:
 
 ---
 
-# 12. Collection scene
+# 12. Mystery pouch art direction — LOCKED
+
+The opener package is a stylized **anti-static / foil mystery pouch** designed as part of the same Y2K collectible product language.
+
+Canonical reference asset:
+
+![Locked mystery pouch reference](assets/package-mystery-pouch-v1.webp)
+
+Repository path: `docs/assets/package-mystery-pouch-v1.webp`
+
+## Package visual grammar
+
+- silver foil / anti-static base material;
+- translucent lavender accent areas;
+- large circular mystery badge with a `?` as the dominant central cue;
+- three small gadget silhouettes below the mystery badge;
+- restrained circuit-trace graphics around the edges;
+- a large star-shaped tear-tab that reads as a functional interaction target;
+- a horizontal dashed tear line leading left-to-right;
+- minimal or no baked product-name text so the asset stays language-agnostic and title-agnostic.
+
+The package should feel like **collectible Y2K tech packaging**, not a dark cyber loot crate and not a generic pink toy bag.
+
+## Opening interaction
+
+The player performs one short deterministic drag:
+
+> **grab star tear-tab → drag left-to-right along the top seam → package opens automatically**
+
+No physics simulation, repeated tearing, or multi-step unpacking is required.
+
+The exact post-tear reveal choreography is still open and should be specified separately.
+
+---
+
+# 13. Collection scene
 
 Preferred collection environment:
 
@@ -288,6 +323,6 @@ Potential later progression: one scene gradually gains decor at collection miles
 
 ---
 
-# 13. Generator-facing prompt seed
+# 14. Generator-facing prompt seed
 
 > Generate a stylized collectible mini Y2K gadget inspired by real early-2000s pocket electronics. Use a front-facing or very soft 3/4 presentation, chunky simplified forms, soft painted 2.5D shading, large readable controls, and a cute but tasteful collectible finish. Prioritize recognizable gadget identity over kawaii decoration. Use candy plastic, translucent/frosted shells, pearlescent surfaces, restrained metallic accents, and stylized visible internals only where rarity calls for them. Keep the object consistent with a coherent blind-box mini gadget product line and readable at small in-game size. Avoid photoreal product rendering, generic glossy mobile 3D, excessive sparkles, and branded 1:1 product copies.
