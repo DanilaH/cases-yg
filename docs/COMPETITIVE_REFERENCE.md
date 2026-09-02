@@ -1,249 +1,111 @@
 # Competitive reference notes
 
-Purpose: extract **cheap, high-leverage retention primitives** without copying the production burden of mature case simulators.
+Purpose: extract cheap, high-leverage retention primitives without copying the production burden of mature case simulators.
 
-These notes are directional. Exact live feature sets can change and should be re-checked before implementation decisions that depend on them.
-
----
-
-## 1. Сквиш Мистери Дамплинги: Открой Пельмень
-
-https://yandex.ru/games/app/skvish-misteri-damplingi-otkroi-pelmen-533677
-
-Useful as the simplest structural reference:
-
-- opener;
-- rarity;
-- collection;
-- low interaction burden.
-
-Lesson:
-
-> very low-input mystery reveal + rarity + collection can work as a skeleton, but theme/presentation carry much of the value.
+These notes are directional; live competitor features can change.
 
 ---
 
-## 2. Сундук Удачи: пиксельный лут-симулятор
+## Key references / lessons
 
-https://yandex.ru/games/app/sunduk-udachi-pikselnyi-lut-simuliator-560153
+### Сквиш Мистери Дамплинги: Открой Пельмень
 
-Observed/reference feature set discussed during research:
+Simple opener → rarity → collection reference.
 
-- 144 items;
-- 7 rarities;
-- luck meter;
-- duplicate crafting;
-- 7 biomes;
-- daily rewards;
-- rewarded ads;
-- leaderboard.
+Lesson: low-input mystery reveal can work as a skeleton, but theme/presentation carry much of the value.
 
-### What we kept
+### Сундук Удачи: пиксельный лут-симулятор
 
-**Luck/pity → SIGNAL**.
+Observed research set included many items/rarities, luck meter, duplicate crafting, biomes, dailies, ads and leaderboard.
 
-Reason: ordinary duplicates create visible progress without adding another economy.
+Kept transformation:
 
-### What we learned but parked
+> **Luck/pity → SIGNAL**
 
-**Duplicate crafting → Tech Parts / Mod Bench** was initially accepted as a transformation, then deliberately parked after the probe content shrank to Camera + Flip Phone. With only eight standard variants, Signal already solves the duplicate-frustration job and a second currency/upgrade scene would muddy the test.
+Duplicate crafting inspired **Tech Parts / Mod Bench**. That system is absent from the two-family internal slice because Signal is enough there, but it must be re-evaluated when the public catalog becomes much larger.
 
-### Do not imitate
+Do not copy seven rarity tiers/biomes or the feature-count arms race.
 
-- 7 normal rarities;
-- 7 biomes;
-- feature-count arms race.
+### Самодельные боксы: распаковка
 
----
+Secret-compartment inspiration became **Hidden Pocket**: a cheap automatic post-reveal surprise rather than another manipulation mechanic.
 
-## 3. Самодельные боксы: распаковка
+Slice behavior is deliberately simple: rare Secret acquisition. Public reward pool/chance is rebalanced with the release catalog.
 
-https://yandex.ru/games/app/samodelnye-boksy-raspakovka-557788
+### Кейс-батл / other mature case simulators
 
-Research interest:
+Useful reminders:
 
-- opening UX;
-- secret compartments / double-bottom surprise;
-- duplicate recycling/upgrading.
+- repeated-open friction eventually creates demand for fast reveal;
+- upgrades/contracts/economies can create retention but explode scope;
+- broad content catalogs can support more targeted progression systems.
 
-### Kept transformation
+**Quick Reveal** is reviewed during direct slice playtesting. Do not wait for a public traffic experiment to notice obvious friction.
 
-**Secret compartment → Hidden Pocket**.
+### Mature external Case Opener-style products
 
-Our version is an automatic post-reveal surprise, not a search/manipulation sequence.
+Use as an idea warehouse, not a scope model.
 
-For the probe it has one job:
-
-> **rare Secret acquisition**
-
-No generic bonus table and no second input.
+Avoid turning the product into a simulated-gambling ecosystem with markets, crash/double/jackpot, giant minigame stacks or 3D inventory complexity.
 
 ---
 
-## 4. Кейс-батл
+# Current synthesis by stage
 
-https://yandex.ru/games/app/434649
+## Internal vertical slice
 
-Useful as a warning/reference for case-meta growth:
+Include:
 
-- fast opening;
-- upgrades;
-- contracts;
-- economy/farming layers.
+- core opener/reveal;
+- 4-rarity visual ladder;
+- Signal;
+- Hidden Pocket;
+- Shelf + Library;
+- Yandex SDK/storage/analytics;
+- **advertising infrastructure and draft/debug ad-path testing**.
 
-### Keep in reserve
+Exclude from slice gameplay unless user feedback forces an early change:
 
-**Quick Reveal** as eventual QoL if repeated opening becomes slow.
+- Tech Parts / Mod Bench;
+- package tiers;
+- Daily Spotlight;
+- shelf evolution;
+- large retention meta.
 
-### Avoid
+## Content/release expansion
 
-- importing the whole meta stack;
-- contracts/farm systems merely because mature case games have them.
+Primary expansion lever is **more desirable gadget families** using the repeatable art pipeline.
 
----
+Then reconsider:
 
-## 5. Кейс симулятор Станд Бокс 2 — 3D
-
-https://yandex.ru/games/app/436125
-
-Use as a warehouse of mature retention ideas, not a scope reference.
-
-Avoid in first probe:
-
-- market/trading;
-- 3D inspection;
-- clicker/farm loops;
-- minigames;
-- deep crafting/customization;
-- large economy.
+- Tech Parts / Mod Bench if duplicate pressure needs another sink;
+- package tiers if different pools/odds create real choice;
+- Daily Spotlight when enough families exist;
+- shelf/environment progression;
+- Quick Reveal if direct repeated-opening feedback warrants it;
+- final rewarded/interstitial/sticky monetization UX using the ad infrastructure already built in the slice.
 
 ---
 
-## 6. Стандофф 2 Симулятор: Кейсы
+# Anti-patterns
 
-https://yandex.ru/games/app/427908
-
-Research interest:
-
-- timer-based gifts;
-- persistent return hooks.
-
-Potential later transformation:
-
-- Daily Spotlight / timed content boost after there are enough gadget families.
-
-Do not block first probe with it.
-
----
-
-## 7. Симулятор Кейсов: Открой Все Стэнд Боксы
-
-https://yandex.ru/games/app/simuliator-keisov-otkroi-vse-stend-boksy-524218
-
-Research interest:
-
-- single vs multi-open;
-- speeding repeated openings.
-
-Current decision:
-
-- **Quick Reveal is parked but must be revisited from real repeated-opening data**;
-- no x5 opening in first probe.
-
----
-
-## 8. Geometry Dash — Открытие кейсов
-
-https://yandex.ru/games/app/423078
-
-Research interest:
-
-- collection/value framing;
-- duplicate/value loop.
-
-Potential later lesson:
-
-- aggregate collection score/value may exist after validation;
-- not required now.
-
----
-
-## 9. Case Opener — Google Play
-
-https://play.google.com/store/apps/details?id=com.jakpok.casesimulator
-
-Mature external reference for the long tail of case-sim meta:
-
-- upgrader;
-- contracts;
-- achievements;
-- leaderboards;
-- broad case variety;
-- many economy/minigame systems.
-
-Important conclusion:
-
-> **Do not turn Mystery Pocket Tech into a simulated-gambling ecosystem.**
-
-The reusable pattern is acquisition → bad/duplicate outcome → visible progress → repeat. In the probe, **Signal alone** owns that visible-progress job.
-
----
-
-# Cross-competitor synthesis — CURRENT
-
-## Included in first probe
-
-### 1. Pity/progress protection
-
-**SIGNAL**.
-
-### 2. Rare second surprise
-
-**Hidden Pocket**, simplified to a 3% post-standard Secret event after onboarding while an undiscovered Secret remains.
-
-### 3. Visible collection payoff
-
-**Shelf + Library** rather than a giant inventory grid.
-
-## Explicitly parked
-
-### 4. Duplicate crafting / deterministic upgrades
-
-**Tech Parts / Mod Bench** — only revisit if real data shows Signal is insufficient.
-
-### 5. Repeated-open friction reduction
-
-**Quick Reveal** — required post-data review, not initial scope.
-
-### 6. Return hooks
-
-**Daily Spotlight / streaks / timed gifts** — only after core continuation validates and there is enough content.
-
-### 7. Visual environment evolution
-
-Potential later shelf/desk milestones, not first probe.
-
----
-
-# Explicit anti-patterns
-
-Do not compete on:
+Do not compete primarily on:
 
 - raw system count;
 - rarity-label count;
 - worlds/biomes;
-- simulated betting;
+- betting framing;
 - markets/trading;
 - minigame count;
-- 3D complexity;
-- hundreds of unrelated base items.
+- 3D complexity.
 
 Compete on:
 
-- theme fit;
-- collectible art desirability;
-- fast opening UX;
-- satisfying rarity/material escalation;
-- visible duplicate mitigation;
-- collection progress;
-- low-cost surprise.
+- Y2K object desirability;
+- collectible art consistency;
+- fast satisfying opening;
+- readable rarity/material escalation;
+- useful duplicate/progression logic;
+- strong visible collection;
+- cheap surprise/chase mechanics;
+- enough **content variety** for the public release without bloating the game systems.
