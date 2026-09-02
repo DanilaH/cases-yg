@@ -23,7 +23,8 @@ Status meanings:
 | Core loop | LOCKED | package → short open interaction → anticipation → reveal → rarity → collection/duplicate resolution → repeat |
 | Package form | LOCKED | stylized silver/translucent-lavender anti-static / foil mystery pouch |
 | Tear interaction | LOCKED | one short left-to-right drag using a large star-shaped tear-tab along a horizontal tear line; no physics or multi-stage unpacking |
-| Reveal choreography after tear | OPEN | define exact motion, timing, package exit, item entrance, rarity presentation, and optional Hidden Pocket hook |
+| Reveal choreography after tear | LOCKED | tear strip detaches → pouch gives a tiny recoil/twitch → short rarity-tinted flash from inside → gadget rises/scales into center → pouch drops/fades backward → gadget overshoots slightly and settles → rarity + NEW/duplicate state appears; target ~1.0–1.4 s after drag |
+| Reveal FX | LOCKED | runtime-only, cheap Phaser effects: soft radial flash, small sparkle burst, one ring/outline pulse and rarity-tinted glow; Epic/Legendary may add a tiny camera bump and denser particles; no expensive shaders or baked effect-heavy item art |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
