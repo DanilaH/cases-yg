@@ -1,0 +1,83 @@
+name: Apply PR6 art plumbing
+
+on:
+  push:
+    branches:
+      - feat/final-slice-art
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/final-slice-art
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Thread collectible ids into art rendering once
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          opening = Path('src/game/scenes/OpeningScene.ts')
+          text = opening.read_text()
+          text = text.replace(
+              "createCollectibleVisual(this, root, pending.standard.familyId, pending.standard.rarity, heroX, POUCH_Y + 52)",
+              "createCollectibleVisual(\n      this,\n      root,\n      pending.standard.familyId,\n      pending.standard.rarity,\n      heroX,\n      POUCH_Y + 52,\n      pending.standard.collectibleId,\n    )",
+              1,
+          )
+          text = text.replace(
+              "      POUCH_Y + 42,\n    );",
+              "      POUCH_Y + 42,\n      pending.hiddenPocket.collectibleId,\n    );",
+              1,
+          )
+          text = text.replace(
+              "        metrics.centerX - 188,\n        344,\n      );",
+              "        metrics.centerX - 188,\n        344,\n        pending.standard.collectibleId,\n      );",
+              1,
+          )
+          text = text.replace(
+              "const secret = createCollectibleVisual(this, root, pending.hiddenPocket.familyId, 'secret', metrics.centerX + 72, 314);",
+              "const secret = createCollectibleVisual(\n        this,\n        root,\n        pending.hiddenPocket.familyId,\n        'secret',\n        metrics.centerX + 72,\n        314,\n        pending.hiddenPocket.collectibleId,\n      );",
+              1,
+          )
+          text = text.replace(
+              "        metrics.centerX,\n        316,\n      );",
+              "        metrics.centerX,\n        316,\n        pending.standard.collectibleId,\n      );",
+              1,
+          )
+          opening.write_text(text)
+
+          collection = Path('src/game/scenes/CollectionScene.ts')
+          text = collection.read_text()
+          text = text.replace(
+              "const visual = createCollectibleVisual(this, root, family.id, best, x, 365);",
+              "const visual = createCollectibleVisual(this, root, family.id, best, x, 365, family.standard[best].id);",
+              1,
+          )
+          text = text.replace(
+              "const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8);",
+              "const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8, entry.id);",
+              1,
+          )
+          collection.write_text(text)
+          PY
+      - name: Commit source patch if changed
+        run: |
+          if [ -z "$(git status --porcelain -- src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts
+          git commit -m "Thread collectible ids into runtime art selection"
+          git push
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
