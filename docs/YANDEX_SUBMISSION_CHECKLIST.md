@@ -1,340 +1,231 @@
-# Yandex Games submission checklist
+# Yandex Games public-release checklist
 
-Platform requirements checked against current Yandex Games documentation on **2026-09-02**. Re-check the official draft form immediately before submission because platform requirements can change.
+This checklist is for the **expanded public release**, not the private Camera + Flip Phone internal slice.
 
-This file is operational, not a replacement for the official requirements.
-
----
-
-# 1. Probe platform selection — LOCKED
-
-Target first release:
-
-- **Desktop**;
-- **Mobile**;
-- **Landscape** orientation.
-
-No TV-specific UX/support in the first probe.
-
-Portrait gets orientation guidance rather than a second game composition.
-
-Operational iOS rule:
-
-- current Yandex draft flow requires an **Apple Team ID** when iOS is selected;
-- if a valid Team ID is readily available, include iOS;
-- if not, do not delay the behavioral release: submit Desktop + Android/mobile support first and add iOS later.
+Platform requirements were checked against Yandex Games documentation on 2026-09-02. Re-check immediately before submission.
 
 ---
 
-# 2. SDK / lifecycle — REQUIRED
+# 1. SDK is production infrastructure from day one
 
-Before moderation verify:
+Before public moderation verify:
 
-- Yandex Games SDK is connected;
-- `LoadingAPI.ready()` is called only when all critical assets are loaded, save recovery is resolved and the game is actually interactive;
-- gameplay start/stop lifecycle is marked correctly if `GameplayAPI` is used;
-- game/tweens/input react correctly to platform pause/resume;
-- all sound stops/pauses when the page/app is minimized or gameplay is paused;
-- game remains playable without authorization/login.
+- Yandex Games SDK initializes correctly;
+- `LoadingAPI.ready()` fires only when required startup assets/save recovery are done and the game is interactive;
+- `GameplayAPI.start()/stop()` mapping matches actual gameplay/menu state if used;
+- `game_api_pause` / `game_api_resume` pause and resume gameplay/audio correctly;
+- game remains usable without mandatory authorization unless release scope later adds an account-dependent feature.
 
-First probe does not require player authorization.
+The internal slice should already have exercised these paths in Yandex draft/debug mode.
 
-Recommended gameplay-markup mapping if enabled:
+---
+
+# 2. Advertising — REQUIRED RELEASE QA
+
+The release is intended to monetize through Yandex advertising.
+
+Architecture must already expose:
 
 ```text
-Opening playable  → GameplayAPI.start()
-Collection/menu   → GameplayAPI.stop()
-return to Opening → GameplayAPI.start()
+showInterstitial()
+showRewarded(rewardId)
+setStickyBannerVisible(boolean)
 ```
 
-Do not emit contradictory start/stop events around platform/tab pause and resume.
+Final release config must specify which are actually used.
+
+Verify:
+
+- ads are called only through Yandex Games SDK;
+- interstitial is requested only at a logical pause, never during active tear/reveal;
+- rewarded is explicitly optional and UI states the **specific reward** before the user starts it;
+- rewarded value is granted exactly once only after rewarded completion callback;
+- close/error without reward grants nothing;
+- ad unavailability/error never deadlocks gameplay;
+- full-screen/rewarded ads pause gameplay and all audio;
+- state resumes correctly after `game_api_resume`;
+- returning from an ad cannot double-commit a pending reward;
+- sticky banner, if enabled, never obscures gameplay/navigation and its show/hide state survives layout changes appropriately.
+
+Yandex controls interstitial display frequency; game code should request at chosen logical moments rather than inventing an unsafe high-frequency loop.
 
 ---
 
-# 3. Save / recovery — REQUIRED
+# 3. Final monetization choices — MUST BE LOCKED BEFORE SUBMISSION
 
-The probe remains local-first and does not enable Yandex cloud save.
+After expanded content/economy is known, document:
 
-Implementation:
+- rewarded placement(s);
+- exact reward(s);
+- interstitial request point(s);
+- whether sticky banner is enabled;
+- any cooldown/config rules owned by game code;
+- analytics events used to evaluate monetization impact.
 
-- inject a small `StorageAdapter`;
-- in Yandex runtime use the Storage-like object returned by `await ysdk.getStorage()`;
-- in ordinary local development use browser `localStorage` fallback;
-- save immediately around reward transactions;
-- `pendingReveal` must survive refresh and resume the same predetermined reward;
-- refresh/crash must never reroll or double-commit a result.
-
-The Draft cloud-save toggle should remain off unless `Player.setData()` / `setStats()` is deliberately introduced later.
+Do not manufacture energy/package scarcity solely to force ads.
 
 ---
 
-# 4. Build/archive — REQUIRED
+# 4. Save / recovery
 
-Yandex archive build:
+Use injected `StorageAdapter`:
 
-- root contains `index.html`;
-- uncompressed archive content remains below the current platform limit (**100 MB** at time of this checklist);
-- no spaces or Cyrillic characters in runtime file/folder names;
-- no network dependency is required to enter the base gameplay loop;
-- all ten collectible hero assets, pouch layers and primary scene assets are preloaded/cached before game-ready.
+- Yandex runtime via `await ysdk.getStorage()`;
+- local development fallback via browser localStorage.
 
-Internal target is much smaller: keep the first-probe build preferably under roughly **15 MB uncompressed** unless asset-quality profiling justifies more.
+Verify:
+
+- progress survives refresh;
+- `pendingReveal` survives interruption;
+- refresh cannot reroll;
+- ad open/close cannot double-commit;
+- save format migrates cleanly from internal/content-development versions where needed.
+
+Cloud/player save remains a separate release choice if later needed.
 
 ---
 
-# 5. Responsive / browser-interaction moderation — REQUIRED
+# 5. Expanded-content loading
 
-The game must remain functional when moderation resizes the available game area.
+The public release will contain substantially more than 10 collectible assets.
 
-Verify representative desktop sizes including:
+Before Game Ready / moderation:
 
-- 1280×1024;
-- 1366×768;
-- 1600×900;
-- 1680×1050;
-- 1920×1080;
-- 1920×1200;
-- 2560×1080;
-- 2560×1440;
-- 3840×2160.
+- profile actual startup payload;
+- preload only what is required for immediate interaction;
+- use grouped/on-demand loading for expanded Collection content if needed;
+- no user-visible network wait during ordinary Opening ↔ currently available Collection navigation;
+- decoded texture memory is tested on real mobile;
+- archive remains below current Yandex limits.
 
-Also test real mobile landscape viewports and representative browser zoom around **80–125%**.
+Do not blindly preload every 1024 texture merely because the internal slice could.
 
-Fail the build if resizing/input causes:
+---
 
-- critical content crop;
+# 6. Responsive / browser-interaction QA
+
+Target Desktop + Mobile landscape unless release plan changes.
+
+Verify representative desktop/mobile sizes, browser zoom ~80–125%, and orientation transitions.
+
+Fail release if there is:
+
+- critical crop;
 - overlapping controls;
 - unusable tear gesture;
 - hidden navigation;
 - non-uniform sprite stretch;
-- browser scrollbars that interfere with play;
-- swipe-to-refresh/overscroll stealing the gesture;
-- right-click context menus blocking the game surface;
-- long-press text selection/context UI interfering with touch play.
-
-Use the locked adaptive layout rules from `TECHNICAL_DIRECTION.md` rather than special-casing every resolution.
+- system scrollbar;
+- swipe-to-refresh/overscroll stealing interaction;
+- right-click/long-press context UI interfering with play;
+- ad/banner overlay hiding required game controls.
 
 ---
 
-# 6. Localization — REQUIRED FOR SELECTED LANGUAGES
+# 7. Localization
 
-Probe UI supports:
+Current architecture: RU + EN, unsupported language → EN.
 
-- RU;
-- EN;
-- EN fallback for unsupported platform languages.
+Before release:
 
-Use `ysdk.environment.i18n.lang` for automatic language selection.
-
-Before submission verify meaningful gameplay/UI text is localized, including:
-
-- NEW / НОВОЕ;
-- DUPLICATE / ДУБЛИКАТ;
-- Common / Обычный;
-- Rare / Редкий;
-- Epic / Эпический;
-- Legendary / Легендарный;
-- Secret / Секретный;
-- SIGNAL LOCK / СИГНАЛ ЗАХВАЧЕН;
-- Collection / Коллекция;
-- Shelf / Полка;
-- Library / Библиотека;
-- Next pouch / Следующий пакет;
-- Open more / Открыть ещё;
-- Back / Назад;
-- Standard Collection / Основная коллекция;
-- Secrets / Секреты.
-
-No manual language selector is needed in the first probe.
+- verify all gameplay, Collection, progression and monetization copy in both languages;
+- rewarded CTA states that an ad will be watched and names the reward;
+- screenshots/media match selected localization;
+- no important gameplay copy is baked into non-localizable raster art.
 
 ---
 
-# 7. Store titles — CURRENT CANDIDATES
+# 8. Store metadata / titles
 
-RU:
+Final title is chosen only after expanded release content/key visual is stable.
 
-> **Мистери Гаджеты: Ретро Распаковка**
-
-EN:
-
-> **Mystery Pocket Tech**
-
-Before submission:
-
-- verify catalog uniqueness in the actual Yandex Games Console;
-- if a collision exists, rename before producing final text-bearing promotional material;
-- keep the chosen title consistent with draft localization.
-
-For the first probe, icon/cover/hero should contain **no localized title text** so the same high-quality object creative can be reused for RU + EN and a late title collision does not force art re-export.
-
-Catalog uniqueness is an external check, not a reason to reopen the product concept.
-
----
-
-# 8. Required visual materials
-
-Current draft requirements to design/export against:
-
-## Icon
-
-- **512×512 px**;
-- PNG;
-- not a raw gameplay screenshot.
-
-Locked composition:
-
-> partly torn Mystery Pouch + one highly readable Camera emerging + strong `?` cue; no small text.
-
-## Cover
-
-- **800×470 px**;
-- PNG;
-- not a raw gameplay screenshot.
-
-Locked composition:
-
-> Mystery Pouch + Camera + Flip Phone, showing the actual collectible fantasy without fake platform UI/badges.
-
-## Maskable icon
-
-- current Draft exposes a **512×512 PNG** maskable-icon field;
-- optional for the probe; cheap to produce if final icon layers already support safe margins.
-
-## Optional Hero Image
-
-- **1560×520 px**;
-- PNG or JPG.
-
-Do only if cheap after icon/cover are final.
-
----
-
-# 9. Screenshots — REQUIRED
-
-Current landscape screenshot requirement:
-
-- **16:9**;
-- long side between **1280 and 2560 px**;
-- JPEG or 24-bit PNG;
-- at least **2 screenshots for each selected platform**;
-- screenshots must be actual game presentation.
-
-Because the draft declares RU + EN and screenshots contain localized in-game UI, plan language-specific captures.
-
-Minimum planned set:
+Working candidates remain:
 
 ```text
-RU: 2 Desktop + 2 Mobile landscape
-EN: 2 Desktop + 2 Mobile landscape
-= 8 screenshots
+RU: Мистери Гаджеты: Ретро Распаковка
+EN: Mystery Pocket Tech
 ```
 
-Recommended coverage:
+Before upload:
 
-1. active pouch tear/reveal;
-2. Collection Shelf;
-3. Library/rarity progress as an optional additional shot.
-
-Do not substitute promotional mockups for screenshots.
-
----
-
-# 10. Media-content sanity
-
-Before upload verify:
-
-- no broken/compressed visual artifacts;
-- no cut-off text;
-- no system status bars/battery indicators in promo media;
-- no fake Yandex Games rating/badge/UI;
-- no borders/rounded-card frame baked around icon/cover;
-- media clearly reflects the actual game;
-- no brand logos or exact copyrighted product branding in collectible art;
-- localized screenshots match the language selected in the draft.
+- verify catalog uniqueness in Console;
+- choose real categories/tags/keywords from current Console options;
+- ensure metadata describes the expanded release, not the internal two-family slice;
+- confirm platform/iOS Team ID requirements if iOS is selected.
 
 ---
 
-# 11. Content-duration / completeness check — REQUIRED
+# 9. Store visual materials
 
-Yandex requirement 2.9 expects enough content for a user to spend at least around **10 minutes**, but official guidance explicitly allows games with little unique content when **replayability/variability provides a real reason to keep playing**.
+Re-check exact current dimensions before upload.
 
-Our moderation case is replayability:
+Current planning targets:
 
-- random family/rarity outcomes;
-- Signal progression;
-- Legendary chase;
-- Hidden Pocket;
-- 2 Secret outcomes;
-- persistent 8/8 + 2/2 collection goals;
-- repeatable opening remains functional after standard completion.
+- icon 512×512 PNG;
+- cover 800×470 PNG;
+- optional maskable icon 512×512;
+- optional hero 1560×520;
+- required landscape screenshots 16:9 within current allowed long-side range.
 
-Do not present the build publicly as unfinished `beta` or `probe`.
+Produce these from the **expanded release key visual/content**, not from the temporary two-family slice unless Camera/Flip Phone still happen to be the strongest marketing heroes.
 
-The catalog build must feel like a small complete collectible toy:
-
-- opening loop fully works;
-- save/recovery works;
-- Collection works;
-- no dead buttons/placeholders;
-- no visible `coming soon` systems;
-- no Mod Bench/Tech Parts shells;
-- no placeholder art;
-- repeated/chase play is visible and intentional.
-
-If moderation specifically rejects content duration, respond to that evidence. Do **not** pre-emptively restore the old large content scope.
+Screenshots must show the actual release build and localization.
 
 ---
 
-# 12. Monetization declaration — REQUIRED
+# 10. Content completeness
 
-The first behavioral release intentionally contains **no ads and no in-app purchases**.
+The public build must look intentionally complete:
 
-Current Yandex requirement says YAN monetization is normally expected; when a developer intentionally does not monetize, state that directly in the Draft **Developer’s comment**.
+- expanded roster is present;
+- no internal debug controls;
+- no placeholder assets;
+- no dead buttons;
+- no unexplained `coming soon` shells;
+- Collection organization fits the final family count;
+- progression/odds match release balance rather than old slice numbers;
+- monetization UI is integrated coherently rather than bolted on.
 
-Recommended comment:
-
-> First release intentionally contains no ads or in-app purchases. Monetization is not provided in this version. The core experience is a free replayable collectible opener; progress is saved immediately after reward transactions.
-
-Do not add artificial energy/package scarcity just to make monetization exist.
-
----
-
-# 13. Analytics verification
-
-Built-in Yandex Games metrics require no custom gameplay backend.
-
-For custom gameplay funnel:
-
-- create/connect Yandex Metrica counter;
-- include the counter according to current Yandex instructions;
-- verify goals/events in draft mode;
-- confirm `first_package_interaction`, `reveal_complete`, Collection, Signal and Hidden Pocket events fire once with correct parameters;
-- never let analytics failure block gameplay/save commits.
+The old moderation concern about a two-family game is no longer relevant because that build is private.
 
 ---
 
-# 14. Final pre-submit pass
+# 11. Analytics
 
-Before pressing moderation:
+Verify built-in Yandex metrics and Metrica gameplay events in draft mode.
 
-- fresh install/save test;
-- first 3 protected openings test;
-- duplicate → Signal test;
-- SIGNAL LOCK early and late-mode test;
-- Hidden Pocket forced-debug test for both Secrets;
-- refresh during pending reveal test;
-- recovery through Yandex safe storage test;
-- 8/8 completion test;
-- 2/2 Secret completion test;
-- RU/EN language test;
-- Desktop/mobile landscape test;
-- resize + browser zoom stress test;
-- right-click/long-press/overscroll test;
-- orientation-change/save test on mobile;
-- minimize/audio-pause test;
-- Metrica event test;
-- production build/archive smoke test;
-- icon/cover/screenshots/title consistency review;
-- Developer’s comment confirms intentional no-monetization;
-- if iOS selected, verify Apple Team ID is available and valid;
-- run the game in Yandex draft/debug environment before moderation.
+Gameplay events should represent release semantics after roster/balance changes.
+
+Ad events should allow diagnosing:
+
+- interstitial request/open/close/error;
+- rewarded request/start/earned/close/error;
+- reward granted exactly once;
+- progression/continuation around ad placements.
+
+Analytics failure must never block gameplay/reward commits.
+
+---
+
+# 12. Final pre-submit pass
+
+At minimum:
+
+- fresh save + migration test;
+- drop/Signal/Hidden Pocket release rules;
+- forced rarity/Secret paths;
+- interrupted pending reveal;
+- Collection at early/mid/full states;
+- expanded-content loading/memory test;
+- RU/EN;
+- Desktop/Mobile landscape;
+- resize/zoom/right-click/long-press/overscroll;
+- minimize/tab pause;
+- startup ad pause/resume event path;
+- interstitial call/return;
+- rewarded success/close/error/exactly-once reward;
+- sticky banner layout if enabled;
+- Metrica events;
+- production archive smoke test;
+- final icon/cover/screenshots/metadata consistency;
+- Yandex draft/debug run before moderation.
