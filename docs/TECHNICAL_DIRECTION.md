@@ -245,21 +245,129 @@ For fast navigation, scene-critical shared assets should be loaded up front or k
 
 ---
 
-# 11. Responsive layout — LANDSCAPE LOCKED
+# 11. Responsive layout — LOCKED
 
-Primary orientation is **landscape**.
+Primary orientation is **landscape-only for the first probe**.
 
-This means the opener, reveal composition, Collection and Mod Bench should all be designed landscape-first rather than treating landscape as an afterthought around a portrait game board.
+The layout is genuinely adaptive. Do **not** implement one immutable 1280×720 board and simply `FIT` it into every viewport.
 
-Still to decide before implementation:
+## Reference and supported aspect range
 
-- logical Phaser resolution / aspect-ratio target;
-- scaling strategy across desktop and mobile landscape;
-- minimum supported viewport and safe-area policy;
-- whether extreme-wide desktop uses bounded composition / decorative side space;
-- how Collection density changes across narrower landscape screens.
+- reference art/composition ratio: **16:9**;
+- expected coherent layout range: approximately **5:4 (1.25)** through **12:5 (2.40)**;
+- screens outside this range still render safely, but the meaningful composition is clamped and extra area is treated as decorative space rather than stretching gameplay/UI.
 
-Do not build a separate portrait composition for the first probe unless platform evidence later makes it necessary.
+Responsive modes:
+
+```text
+compact   1.25 – 1.50
+standard  >1.50 – 1.95
+wide      >1.95 – 2.40
+```
+
+These modes may change spacing, safe margins, collection density, and modest object scale. They must not change the core interaction or require a second UX design.
+
+## Logical coordinate strategy
+
+Use a stable logical **height of 720 units** and derive logical width from the current viewport aspect ratio:
+
+```text
+logicalHeight = 720
+logicalWidth = clamp(viewportAspect * 720, 900, 1728)
+```
+
+This means:
+
+- 5:4 ≈ 900×720 logical space;
+- 16:9 = 1280×720;
+- 12:5 ≈ 1728×720.
+
+The renderer/canvas follows the available viewport, while scene layout is recomputed from logical bounds.
+
+Do not non-uniformly stretch sprites or UI.
+
+## Layout metrics
+
+Create one small layout service/helper that scenes consume, e.g.:
+
+```ts
+type LayoutMode = 'compact' | 'standard' | 'wide';
+
+interface LayoutMetrics {
+  width: number;
+  height: number;
+  aspect: number;
+  mode: LayoutMode;
+  safeLeft: number;
+  safeRight: number;
+  safeTop: number;
+  safeBottom: number;
+  centerX: number;
+  centerY: number;
+}
+```
+
+Recompute metrics on viewport/scale resize and relayout scene elements from anchors/constraints. Do not scatter bespoke resize math across every sprite.
+
+## OpeningScene anchoring
+
+Default semantic anchors:
+
+```text
+Signal       → top-left safe anchor
+Tech Parts   → top-right safe anchor
+Package      → visual center
+Collection   → bottom-left safe anchor
+Mod Bench    → bottom-right safe anchor
+```
+
+Rules:
+
+- package remains the visual hero in every mode;
+- package may scale down modestly in `compact`;
+- package should not grow indefinitely in `wide`;
+- extra horizontal room primarily becomes atmosphere/decor;
+- HUD may tighten spacing in `compact`, but no core control disappears;
+- reveal can temporarily dim/de-emphasize HUD without changing layout.
+
+## Safe areas and hit targets
+
+Critical UI must honor both device/browser safe insets and internal scene margins.
+
+Use responsive internal margins around **3–5% of the viewport dimension**, with sensible min/max clamps so margins neither collapse on small screens nor become comically large on ultrawide desktop.
+
+Touch/pointer targets must remain at least approximately **44 CSS px** in effective hit size on mobile landscape. The hit area may be larger than the drawn icon.
+
+Never place critical interaction exactly against a viewport edge.
+
+## Background and extreme aspect handling
+
+Backgrounds are decorative and may:
+
+- crop;
+- extend;
+- reveal additional side decoration;
+- use layered/parallax pieces if cheap.
+
+Critical gameplay content may **not**:
+
+- be cropped;
+- leave the viewport;
+- overlap because of aspect changes;
+- stretch non-uniformly;
+- trigger browser scrolling.
+
+For very wide desktop, keep the meaningful gameplay composition bounded and use the extra sides for atmosphere rather than pushing HUD/package farther and farther apart.
+
+## Collection adaptation
+
+Collection must use the same layout metrics and may change density between `compact`, `standard`, and `wide`.
+
+Exact slot count/grid is intentionally deferred to the Collection specification. The responsive system must support changing columns/spacing without changing collection data semantics.
+
+## Portrait behavior
+
+Do not build a separate portrait game UI for the first probe. Portrait is outside the intended gameplay orientation; handle it at the platform/shell level with an orientation prompt rather than maintaining two full scene compositions.
 
 ---
 
