@@ -94,23 +94,27 @@ Still-open visual details such as exact Secret concepts and final naming can be 
 
 ---
 
-# 5. Package tiers — NEXT
+# 5. Package tiers / package economy — RESOLVED FOR PROBE
 
-Old handoff assumed roughly 3 package tiers. This now needs an even harder simplification review because the probe contains only Camera + Flip Phone.
+Locked direction:
 
-Questions:
+- exactly **one Mystery Pouch type**;
+- package is always available;
+- openings are unlimited and free;
+- no package currency;
+- no energy;
+- no package inventory;
+- no store gating;
+- no Basic/Premium/Legendary package tiers;
+- rarity odds do not vary by package because there is only one package type.
 
-- Is there just one always-openable/basic package in the probe?
-- If multiple packages exist, what meaningful choice can they create with only two gadget families?
-- Is any package currency required at all, or should repeat opening be frictionless for the behavioral test?
-- Should rarity odds vary by package, or is that unnecessary complexity before validation?
-- Does the economy ever deadlock?
+Reason: with only Camera + Flip Phone, package tiers create economy/UI complexity without meaningful choice. The behavioral probe must test whether the opening/reward loop is enjoyable when friction is removed.
 
-Goal: **smallest possible package model that still lets us test the opening/reward loop honestly.** Do not preserve 2–3 package tiers just because the old handoff mentioned them.
+Multiple package types may be reconsidered only after validation and only if a larger content/economy model gives them a concrete purpose.
 
 ---
 
-# 6. Drop odds
+# 6. Drop odds — NEXT
 
 Need final probability model for:
 
@@ -120,16 +124,18 @@ Need final probability model for:
 - Legendary;
 - Secret acquisition;
 - Hidden Pocket;
-- new-item protection;
-- any package modifier if section 5 keeps one.
+- new-item protection.
+
+There are **no package-tier modifiers** in the probe.
 
 Do not choose percentages in isolation. Balance against:
 
-- average time per opening;
-- expected session length;
-- tiny 8-variant standard collection;
-- duplicate conversion;
-- Signal fill speed.
+- ~1.0–1.4 s reveal time;
+- expected repeated-opening session length;
+- tiny **8-variant standard collection**;
+- duplicate conversion into Tech Parts;
+- Signal fill speed;
+- avoiding both five-minute completion and oppressive duplicate spam.
 
 ---
 
@@ -141,7 +147,7 @@ Decide:
 
 - what increases Signal;
 - exact increments;
-- global vs any package-specific implementation;
+- global implementation (there are no package tiers in the probe);
 - full-meter reward;
 - reset rules;
 - interaction with Legendary/Secret;
@@ -221,16 +227,19 @@ Still need to explicitly decide which state is the headline `collection complete
 
 Need exact first-probe use.
 
+Because base packages are unlimited and free, **do not use rewarded ads merely to grant another ordinary opening**.
+
 Possible low-distortion options:
 
 - bonus Tech Parts;
-- one extra package/opening if the package economy actually needs a consumable;
-- another simple progression boost compatible with the tiny content pool.
+- Signal boost;
+- another simple progression benefit compatible with the tiny content pool.
 
 Avoid:
 
 - mandatory ads to continue;
 - fake near-win framing;
+- artificially restricting free packages just to create an ad reward;
 - ad loops that overwhelm opening/collection fantasy.
 
 ---
