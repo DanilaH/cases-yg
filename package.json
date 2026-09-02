@@ -1,0 +1,20 @@
+{
+  "name": "mystery-pocket-tech",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "4.2.1"
+  },
+  "devDependencies": {
+    "@types/ysdk": "1.2.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
+  }
+}
