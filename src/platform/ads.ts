@@ -34,43 +34,24 @@ export interface AdsAdapter {
 export interface AdsAdapterOptions {
   analytics?: AnalyticsAdapter;
   fullscreenTimeoutMs?: number;
-  rewardGrantTimeoutMs?: number;
 }
 
 export const AD_ALREADY_IN_PROGRESS = 'AD_ALREADY_IN_PROGRESS';
 export const AD_CALLBACK_TIMEOUT = 'AD_CALLBACK_TIMEOUT';
-export const REWARD_GRANT_TIMEOUT = 'REWARD_GRANT_TIMEOUT';
 
 const DEFAULT_FULLSCREEN_TIMEOUT_MS = 120_000;
-const DEFAULT_REWARD_GRANT_TIMEOUT_MS = 5_000;
 
 const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
-const withTimeout = async <T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> => {
-  let timeout: ReturnType<typeof globalThis.setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timeout = globalThis.setTimeout(() => reject(new Error(message)), milliseconds);
-      }),
-    ]);
-  } finally {
-    if (timeout !== undefined) globalThis.clearTimeout(timeout);
-  }
-};
 
 abstract class BaseAdsAdapter {
   protected fullscreenInFlight = false;
   protected readonly fullscreenTimeoutMs: number;
-  protected readonly rewardGrantTimeoutMs: number;
 
   protected constructor(
     protected readonly activity: GameplayActivityCoordinator,
     protected readonly options: AdsAdapterOptions = {},
   ) {
     this.fullscreenTimeoutMs = options.fullscreenTimeoutMs ?? DEFAULT_FULLSCREEN_TIMEOUT_MS;
-    this.rewardGrantTimeoutMs = options.rewardGrantTimeoutMs ?? DEFAULT_REWARD_GRANT_TIMEOUT_MS;
   }
 
   protected beginFullscreen(): boolean {
@@ -80,10 +61,14 @@ abstract class BaseAdsAdapter {
     return true;
   }
 
-  protected endFullscreen(): void {
+  protected releaseFullscreenActivity(): void {
+    this.activity.setBlocked('ad', false);
+  }
+
+  protected finishFullscreen(): void {
     if (!this.fullscreenInFlight) return;
     this.fullscreenInFlight = false;
-    this.activity.setBlocked('ad', false);
+    this.releaseFullscreenActivity();
   }
 
   protected track(event: string, params?: Readonly<Record<string, boolean | number | string>>): void {
@@ -107,7 +92,7 @@ export class MockAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
       this.track('ad_interstitial_close', { platform: 'mock', wasShown: true });
       return { status: 'closed', wasShown: true };
     } finally {
-      this.endFullscreen();
+      this.finishFullscreen();
     }
   }
 
@@ -119,7 +104,7 @@ export class MockAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
     this.track('ad_rewarded_request', { platform: 'mock', rewardId: request.rewardId });
     try {
       await new Promise((resolve) => globalThis.setTimeout(resolve, 300));
-      await withTimeout(Promise.resolve().then(() => request.onReward()), this.rewardGrantTimeoutMs, REWARD_GRANT_TIMEOUT);
+      await request.onReward();
       this.track('ad_rewarded_grant', { platform: 'mock', rewardId: request.rewardId });
       this.track('ad_rewarded_close', { platform: 'mock', rewardId: request.rewardId, rewardEarned: true });
       return { status: 'closed', rewardEarned: true };
@@ -128,7 +113,7 @@ export class MockAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
       this.track('ad_rewarded_error', { platform: 'mock', rewardId: request.rewardId, error: message });
       return { status: 'error', rewardEarned: false, error: message };
     } finally {
-      this.endFullscreen();
+      this.finishFullscreen();
     }
   }
 
@@ -163,7 +148,7 @@ export class YandexAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
         if (settled) return;
         settled = true;
         globalThis.clearTimeout(watchdog);
-        this.endFullscreen();
+        this.finishFullscreen();
         if (result.status === 'closed') {
           this.track('ad_interstitial_close', { platform: 'yandex', wasShown: result.wasShown });
         } else {
@@ -212,11 +197,8 @@ export class YandexAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
       const grantOnce = (): void => {
         if (settled || rewardCallbackSeen) return;
         rewardCallbackSeen = true;
-        rewardTask = withTimeout(
-          Promise.resolve().then(() => request.onReward()),
-          this.rewardGrantTimeoutMs,
-          REWARD_GRANT_TIMEOUT,
-        )
+        rewardTask = Promise.resolve()
+          .then(() => request.onReward())
           .then(() => {
             rewardEarned = true;
             this.track('ad_rewarded_grant', { platform: 'yandex', rewardId: request.rewardId });
@@ -231,8 +213,14 @@ export class YandexAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
         if (settled) return;
         settled = true;
         globalThis.clearTimeout(watchdog);
+
+        // The fullscreen surface is already gone once close/error/timeout settles.
+        // Resume gameplay/audio immediately, but keep fullscreenInFlight reserved
+        // until reward persistence finishes so a second rewarded write cannot race it.
+        this.releaseFullscreenActivity();
+
         void rewardTask.finally(() => {
-          this.endFullscreen();
+          this.fullscreenInFlight = false;
           const error = rewardError ?? sdkError;
           const result: RewardedResult = {
             status: error ? 'error' : status,
