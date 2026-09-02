@@ -47,7 +47,7 @@ Before release decide:
 - how the package model interacts with ads without creating artificial frustration;
 - whether the core opener remains immediately available for a new player.
 
-This is one of the highest-impact release decisions because it affects monetization, balance and session pacing. Do not sneak an economy into the slice merely to answer it early.
+This is one of the highest-impact release decisions because it affects balance and session pacing. Do not sneak an economy into the slice merely to answer it early.
 
 ---
 
@@ -91,28 +91,28 @@ Architecture must remain data-driven now so this becomes UI/content work rather 
 
 ---
 
-# 5. Final monetization UX — OPEN, INFRASTRUCTURE NOT OPEN
+# 5. Advertising — IMPLEMENTATION RULES RESOLVED, RELEASE TUNING LATER
 
-SDK/ad infrastructure is implemented in the internal slice.
+Advertising itself is **not an open implementation question**.
 
-Before public release choose:
+From the internal slice onward, follow the current Yandex Games SDK and moderation rules:
 
-- rewarded placement;
-- exact rewarded benefit;
-- interstitial logical pause points;
-- whether sticky banner is used;
-- any ad-related analytics experiments.
+- SDK-only ad calls;
+- logical-pause interstitials, never active tear/reveal;
+- optional rewarded ad with the exact reward stated up front;
+- reward granted exactly once on rewarded completion;
+- gameplay/audio paused for fullscreen/rewarded;
+- error/close/unavailable paths safe;
+- sticky banner configured and placed according to Yandex rules if used.
 
-Constraints already locked:
+The later release pass only tunes product choices that cannot be chosen intelligently yet:
 
-- rewarded is optional and clearly states the exact reward;
-- reward grants exactly once from the rewarded callback;
-- interstitial never interrupts active tear/reveal;
-- ads pause gameplay/audio correctly;
-- ad failure never blocks progression;
-- do not invent scarcity solely to force ad views.
+- where a compliant rewarded opportunity is actually useful;
+- exact reward value/type;
+- which logical pauses are worth requesting interstitial at;
+- whether sticky banner earns enough to justify its layout cost.
 
-The final ad design should be decided together with the public package/economy model, not independently.
+These are optimization decisions after the expanded economy/content exists, not blockers and not a need for further user clarification now.
 
 ---
 
@@ -159,7 +159,17 @@ Evaluate after launch roster and package model are real.
 
 ---
 
-# 9. Public store/submission choices — DEFER UNTIL RELEASE BUILD
+# 9. Public measurement plan — REQUIRED BEFORE RELEASE
+
+The private slice has no public KPI gate.
+
+Before public launch, define the release measurement plan using Yandex built-in metrics + Metrica gameplay/ad events. Choose the actual continuation, retention, playtime and monetization checkpoints only after the release loop/content/economy is known.
+
+Do not block the internal slice on invented KPI thresholds, but do not publish the final game without a measurement plan.
+
+---
+
+# 10. Public store/submission choices — DEFER UNTIL RELEASE BUILD
 
 Need only after expanded content/key visual stabilizes:
 
@@ -181,7 +191,7 @@ Already clear enough:
 
 - Phaser/Vite/strict TS;
 - Yandex SDK from day one;
-- ads adapter from day one;
+- Yandex-compliant ads adapter from day one;
 - storage/analytics adapters;
 - adaptive landscape layout;
 - Camera + Flip Phone slice assets;
