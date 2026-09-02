@@ -378,12 +378,12 @@ export class OpeningScene extends Phaser.Scene {
     this.drag = null;
     this.pouch?.dragZone.disableInteractive();
     this.setChromeEnabled(false);
+    getGameAudio().play('tear');
 
     try {
       const pending = await this.session.prepareReveal();
       if (this.isSceneShutdown()) return;
       this.lastReveal = pending;
-      getGameAudio().play('tear');
       if (firstInteraction && pending.openingNumber === 1) {
         this.firstInteractionTracked = true;
         getPlatformRuntime().analytics.track('first_package_interaction');
@@ -487,9 +487,6 @@ export class OpeningScene extends Phaser.Scene {
     const pouch = this.pouch!;
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
     getGameAudio().play('reveal-pop');
-    getGameAudio().play('reveal-pop');
-    getGameAudio().play('reveal-pop');
-    getGameAudio().play('reveal-pop');
     const heroX = metrics.centerX;
     const heroY = 320;
 
@@ -569,18 +566,6 @@ export class OpeningScene extends Phaser.Scene {
       this.cameras.main.shake(85, pending.standard.rarity === 'legendary' ? 0.0025 : 0.0017);
     }
 
-    getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) getGameAudio().play('duplicate');
-    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
-    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
-    getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) getGameAudio().play('duplicate');
-    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
-    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
-    getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) getGameAudio().play('duplicate');
-    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
-    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
     getGameAudio().play(pending.standard.rarity);
     if (!pending.standard.isNew) getGameAudio().play('duplicate');
     if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
@@ -708,9 +693,6 @@ export class OpeningScene extends Phaser.Scene {
     const ring = createRevealRing(this, root, metrics.centerX + 72, 318, SECRET_REVEAL_COLOR)
       .setScale(0.5)
       .setAlpha(0.2);
-    getGameAudio().play('secret-reveal');
-    getGameAudio().play('secret-reveal');
-    getGameAudio().play('secret-reveal');
     getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
       this,
