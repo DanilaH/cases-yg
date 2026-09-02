@@ -90,6 +90,28 @@ describe('slice reward engine', () => {
     expect(pending.signal.after).toBe(expectedGain);
   });
 
+  it('arms SIGNAL LOCK when a duplicate reaches the threshold', () => {
+    const state: SaveState = {
+      ...createInitialSaveState(),
+      totalOpens: 3,
+      signal: 80,
+      discoveredStandard: ['camera-rare'],
+    };
+    const pending = createPendingReveal({
+      state,
+      registry: SLICE_REGISTRY,
+      balance: SLICE_BALANCE,
+      random: new SequenceRandom([0, 0.7, 0.999]),
+      transactionId: 'lock-reached',
+    });
+
+    expect(pending.standard.collectibleId).toBe('camera-rare');
+    expect(pending.signal.gain).toBe(20);
+    expect(pending.signal.after).toBe(100);
+    expect(pending.signal.lockReached).toBe(true);
+    expect(pending.signal.lockConsumed).toBe(false);
+  });
+
   it('forces the only missing non-Legendary variant when SIGNAL LOCK is armed', () => {
     const state: SaveState = {
       ...createInitialSaveState(),
@@ -229,6 +251,26 @@ describe('slice reward engine', () => {
     expect(pending.signal.lockConsumed).toBe(false);
     expect(pending.signal.gain).toBe(0);
     expect(pending.signal.after).toBe(40);
+  });
+
+  it('does not treat unknown saved IDs as completed standard content', () => {
+    const state: SaveState = {
+      ...createInitialSaveState(),
+      totalOpens: 50,
+      signal: 100,
+      discoveredStandard: Array.from({ length: 8 }, (_, index) => `legacy-unknown-${index}`),
+    };
+    const pending = createPendingReveal({
+      state,
+      registry: SLICE_REGISTRY,
+      balance: SLICE_BALANCE,
+      random: new SequenceRandom([0, 0.999]),
+      transactionId: 'unknown-ids',
+    });
+
+    expect(pending.signal.lockConsumed).toBe(true);
+    expect(pending.standard.isNew).toBe(true);
+    expect(SLICE_REGISTRY.collectibleFamilyById.has(pending.standard.collectibleId)).toBe(true);
   });
 
   it('supports a third family through registry/config without special-case drop or Collection code', () => {

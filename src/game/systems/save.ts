@@ -1,4 +1,5 @@
 import type { StorageAdapter } from '../../platform/storage';
+import { STANDARD_RARITIES } from '../data/collectibles';
 import type { PendingReveal } from './drops';
 
 export const SAVE_VERSION = 1;
@@ -37,11 +38,63 @@ export const createInitialSaveState = (): SaveState => ({
   },
 });
 
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((entry) => typeof entry === 'string');
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isNonNegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0;
+
+const isNonNegativeFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+const isUniqueStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) &&
+  value.every((entry) => typeof entry === 'string') &&
+  new Set(value).size === value.length;
+
+const isProgressSnapshot = (value: unknown): value is ProgressSnapshot => {
+  if (!isRecord(value) || !isRecord(value.stats)) return false;
+  return (
+    isUniqueStringArray(value.discoveredStandard) &&
+    isUniqueStringArray(value.discoveredSecrets) &&
+    isNonNegativeFiniteNumber(value.signal) &&
+    isNonNegativeInteger(value.totalOpens) &&
+    isNonNegativeInteger(value.stats.duplicates) &&
+    isNonNegativeInteger(value.stats.hiddenPockets)
+  );
+};
+
+const isPendingReveal = (value: unknown): value is PendingReveal => {
+  if (!isRecord(value) || !isRecord(value.standard) || !isRecord(value.signal)) return false;
+  const hiddenPocket = value.hiddenPocket;
+  const hiddenPocketValid =
+    hiddenPocket === null ||
+    (isRecord(hiddenPocket) &&
+      typeof hiddenPocket.collectibleId === 'string' &&
+      typeof hiddenPocket.familyId === 'string');
+  const rarityValid =
+    typeof value.standard.rarity === 'string' && STANDARD_RARITIES.includes(value.standard.rarity as never);
+
+  return (
+    typeof value.id === 'string' &&
+    value.id.length > 0 &&
+    isNonNegativeInteger(value.baseTotalOpens) &&
+    isNonNegativeInteger(value.openingNumber) &&
+    value.openingNumber === value.baseTotalOpens + 1 &&
+    typeof value.standard.collectibleId === 'string' &&
+    typeof value.standard.familyId === 'string' &&
+    rarityValid &&
+    typeof value.standard.isNew === 'boolean' &&
+    isNonNegativeFiniteNumber(value.signal.before) &&
+    isNonNegativeFiniteNumber(value.signal.after) &&
+    isNonNegativeFiniteNumber(value.signal.gain) &&
+    typeof value.signal.lockConsumed === 'boolean' &&
+    typeof value.signal.lockReached === 'boolean' &&
+    hiddenPocketValid &&
+    isProgressSnapshot(value.commit) &&
+    value.commit.totalOpens === value.openingNumber
+  );
+};
 
 export const parseSaveState = (raw: string): SaveState => {
   const value: unknown = JSON.parse(raw);
@@ -50,15 +103,9 @@ export const parseSaveState = (raw: string): SaveState => {
   }
 
   if (
-    !isStringArray(value.discoveredStandard) ||
-    !isStringArray(value.discoveredSecrets) ||
-    typeof value.signal !== 'number' ||
-    !Number.isInteger(value.totalOpens) ||
-    (value.pendingReveal !== null && !isRecord(value.pendingReveal)) ||
-    typeof value.muted !== 'boolean' ||
-    !isRecord(value.stats) ||
-    !Number.isInteger(value.stats.duplicates) ||
-    !Number.isInteger(value.stats.hiddenPockets)
+    !isProgressSnapshot(value) ||
+    (value.pendingReveal !== null && !isPendingReveal(value.pendingReveal)) ||
+    typeof value.muted !== 'boolean'
   ) {
     throw new Error('Invalid save payload');
   }

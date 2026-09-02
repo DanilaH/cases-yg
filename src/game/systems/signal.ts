@@ -11,7 +11,10 @@ export interface SignalResolution {
 export const isStandardCollectionComplete = (
   registry: ContentRegistry,
   discoveredStandard: readonly string[],
-): boolean => new Set(discoveredStandard).size >= registry.standardItems.length;
+): boolean => {
+  const discovered = new Set(discoveredStandard);
+  return registry.standardItems.every(({ collectible }) => discovered.has(collectible.id));
+};
 
 export const isSignalLockArmed = (
   signal: number,
