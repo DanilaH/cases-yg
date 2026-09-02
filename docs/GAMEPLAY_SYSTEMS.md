@@ -56,7 +56,7 @@ Secrets are outside the standard ladder.
 Launch direction:
 
 - 2–3 total Secrets for a fuller launch target;
-- first behavioral probe may use only 1–2 Secrets;
+- first behavioral probe uses only 1–2 Secrets;
 - special editions rather than another material tier;
 - not required for main collection completion;
 - stronger bespoke design changes than standard rarity variants;
@@ -221,13 +221,16 @@ The Shelf is the attractive display surface.
 
 Rules:
 
-- one fixed shelf slot per **base gadget**;
+- one fixed shelf slot per **base gadget collection**;
 - a slot displays the **best/highest-rarity version currently owned** for that gadget;
 - missing gadgets use a locked silhouette / empty presentation;
-- the shelf is not a 48- or 96-cell rarity spreadsheet;
+- the shelf is not a rarity spreadsheet;
 - high-rarity finds should visibly improve the shelf over time.
 
-For the first probe there are **12 base gadget slots**, grouped into **two mini-collections of six gadgets**.
+For the first behavioral probe there are exactly **two shelf slots**:
+
+1. Digital Camera;
+2. Flip Phone.
 
 ## Library / Catalog
 
@@ -235,8 +238,8 @@ The Library is the exhaustive completionist view adjacent to the Shelf inside th
 
 It shows:
 
-- all base gadgets;
-- each gadget's Common / Rare / Epic / Legendary entries;
+- Camera: Common / Rare / Epic / Legendary;
+- Flip Phone: Common / Rare / Epic / Legendary;
 - discovered vs missing rarity variants;
 - separate Secret/Chase tracking.
 
@@ -246,13 +249,12 @@ Therefore the roles are deliberately different:
 
 The first behavioral probe contains:
 
-- 12 base gadgets;
+- 2 base gadget collections: Camera + Flip Phone;
 - 4 standard rarity variants per gadget;
-- 48 standard collectible variants total;
-- 1–2 Secrets;
-- 2 mini-collections of 6 gadgets each.
+- 8 standard collectible variants total;
+- 1–2 Secrets.
 
-A fuller post-validation target may expand toward ~24 base gadgets, but the probe must not wait for that content volume.
+The probe deliberately stops here. Additional gadget families are post-validation content, not a prerequisite for testing whether the opener/reward loop is enjoyable.
 
 Potential later layer:
 
@@ -287,20 +289,9 @@ Architecture should therefore keep reveal timings configurable even though Quick
 
 # 10. Daily Spotlight — PARKED
 
-Potential return mechanic that reuses existing content instead of adding new content:
+Potential return mechanic that reuses existing content instead of adding new content.
 
-Examples:
-
-- `DIGICAM DAY` — boosted camera-family odds;
-- `FLIP PHONE DAY`;
-- `MUSIC TECH DAY`.
-
-Possible rule:
-
-- first Spotlight package of the day is free;
-- family weighting changes daily.
-
-Do not implement until the basic loop is validated.
+Do not implement until the basic loop is validated and there are enough gadget families for a rotating family boost to make sense.
 
 ---
 
@@ -316,7 +307,7 @@ Exact use is open. Candidates:
 
 - bonus Tech Parts;
 - bonus package;
-- temporary family boost.
+- temporary boost if a future content/economy model supports one.
 
 Avoid tying rewarded ads to a deceptive near-win or casino-like loop.
 
@@ -336,6 +327,7 @@ Rejected for the probe:
 - large minigame suite;
 - betting economy;
 - deep clicker/farm mode;
-- hundreds of unrelated hero assets.
+- hundreds of unrelated hero assets;
+- expanding beyond Camera + Flip Phone before the core loop is validated.
 
 The goal is to steal **retention primitives**, not the production burden.
