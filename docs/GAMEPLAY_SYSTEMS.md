@@ -25,6 +25,14 @@ Target feel:
 - no physics requirement;
 - no multi-step manipulation.
 
+Current reveal behavior for the first probe:
+
+- the full reveal always plays;
+- target duration after tear is ~1.0–1.4 s;
+- tap/click does not skip or accelerate it;
+- package exits quickly enough that the gadget becomes the visual hero;
+- cheap runtime FX scale with rarity rather than using separate expensive animations.
+
 ---
 
 # 2. Standard rarity
@@ -208,17 +216,25 @@ Milestone evolution is **parked**, not part of the required first probe.
 
 ---
 
-# 9. Quick Reveal — PARKED
+# 9. Quick Reveal — PARKED, REQUIRED REVISIT
 
 Case/opening games commonly add fast-open or multi-open because repeated long animations eventually become friction.
 
-Our likely approach if data shows friction:
+For the first probe:
 
-- first openings use full juicy animation;
-- unlock a shorter `Quick Reveal` after repeated lifetime opens;
-- do not default to x5/mass opening unless needed.
+- use the full juicy reveal every time;
+- do not allow tap-to-skip;
+- do not ship x5/mass opening.
 
-Architecture should not make reveal duration impossible to change, but this feature does not block the probe.
+However, **Quick Reveal must be revisited deliberately after repeated-opening playtests or early behavioral data**. It is not a forgotten nice-to-have; it is a scheduled product question once we know how many openings a normal session contains and whether the ~1.0–1.4 s full reveal starts to irritate players.
+
+Likely direction if friction appears:
+
+- unlock a shorter ~0.4–0.6 s reveal after repeated lifetime opens;
+- preserve rarity readability and reward feel;
+- keep the same state machine and configurable timings so this can be added without reworking the opener.
+
+Architecture should therefore keep reveal timings configurable even though Quick Reveal is not part of the first probe.
 
 ---
 
