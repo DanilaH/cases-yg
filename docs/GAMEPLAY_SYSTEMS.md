@@ -135,30 +135,26 @@ Public release:
 
 ---
 
-# 7. Advertising — INFRASTRUCTURE IN SLICE, UX FINALIZED FOR RELEASE
+# 7. Advertising — PLATFORM RULES LOCKED, RELEASE TUNING LATER
 
-Ads are no longer excluded from early development.
+Advertising is implemented from the internal slice and follows current Yandex Games SDK/moderation rules by default.
 
-Internal slice must prove:
+Locked behavior:
 
-- interstitial SDK call;
-- rewarded SDK call;
-- sticky-banner show/hide boundary if supported/used;
-- game/audio pause and resume correctly;
-- ad errors do not break the loop;
-- rewarded callback grants exactly once.
+- all ads go through the Yandex Games SDK adapter;
+- interstitial is requested only at logical pauses and never during active tear/reveal;
+- rewarded is optional and its CTA explicitly names the exact reward;
+- reward is granted exactly once only after rewarded completion;
+- close/error/unavailable ad never grants a reward and never blocks gameplay;
+- fullscreen/rewarded ads pause gameplay and all audio;
+- sticky banner, if used, must be configured so it does not cover or interfere with gameplay/UI;
+- platform/ad/visibility pause reasons must not fight each other on resume.
 
-A **dev-only** `+25 Signal` rewarded test is acceptable to verify wiring. It must be visibly/debug-configured and must not become public reward design by accident.
+Internal slice proves the plumbing with deliberate dev/debug actions. A dev-only `+25 Signal` rewarded test is acceptable only to verify exactly-once reward behavior.
 
-Public release still needs explicit product choices for:
+After the larger content/economy exists, we **tune** which compliant ad opportunities are useful, the rewarded value, and whether sticky is worth showing. Those are later optimization decisions, not questions that block implementation now.
 
-- rewarded reward;
-- rewarded placement;
-- interstitial logical pause points;
-- sticky-banner use;
-- monetization frequency/experiments.
-
-Do not interrupt active tear/reveal with ads and do not create artificial energy scarcity just to sell an ad reward.
+Do not create artificial energy scarcity solely to force ad views.
 
 ---
 
