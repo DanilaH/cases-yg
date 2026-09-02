@@ -33,11 +33,29 @@ The old ~24-family planning target is back on the table as a **reference scale**
 
 ---
 
-# 2. Release balance — OPEN
+# 2. Public package / economy model — OPEN
+
+The internal slice intentionally keeps one unlimited free pouch so interaction can be judged without economy friction.
+
+That does **not** automatically lock the public release to unlimited free opening.
+
+Before release decide:
+
+- unlimited free openings vs soft-currency acquisition vs another light access model;
+- whether multiple package types/tiered pools create meaningful choice once many families exist;
+- where currency, if any, comes from;
+- how the package model interacts with ads without creating artificial frustration;
+- whether the core opener remains immediately available for a new player.
+
+This is one of the highest-impact release decisions because it affects monetization, balance and session pacing. Do not sneak an economy into the slice merely to answer it early.
+
+---
+
+# 3. Release balance — OPEN
 
 Current numbers are slice-only.
 
-Once launch roster is known, decide/re-simulate:
+Once launch roster/package model is known, decide/re-simulate:
 
 - family weights / grouping;
 - standard rarity odds;
@@ -52,7 +70,7 @@ Do not preserve 60/28/10/2 or 3% just because they were convenient in the two-fa
 
 ---
 
-# 3. Collection at scale — OPEN
+# 4. Collection at scale — OPEN
 
 The core roles are retained:
 
@@ -73,7 +91,7 @@ Architecture must remain data-driven now so this becomes UI/content work rather 
 
 ---
 
-# 4. Final monetization UX — OPEN, INFRASTRUCTURE NOT OPEN
+# 5. Final monetization UX — OPEN, INFRASTRUCTURE NOT OPEN
 
 SDK/ad infrastructure is implemented in the internal slice.
 
@@ -92,11 +110,13 @@ Constraints already locked:
 - interstitial never interrupts active tear/reveal;
 - ads pause gameplay/audio correctly;
 - ad failure never blocks progression;
-- do not invent energy/package scarcity solely to force ad views.
+- do not invent scarcity solely to force ad views.
+
+The final ad design should be decided together with the public package/economy model, not independently.
 
 ---
 
-# 5. Quick Reveal — REVIEW DURING INTERNAL SLICE
+# 6. Quick Reveal — REVIEW DURING INTERNAL SLICE
 
 Do not wait for public analytics.
 
@@ -110,7 +130,7 @@ Candidate:
 
 ---
 
-# 6. Tech Parts / Mod Bench — RE-EVALUATE WITH LARGE ROSTER
+# 7. Tech Parts / Mod Bench — RE-EVALUATE WITH LARGE ROSTER
 
 They were removed from the two-family slice because Signal was enough there.
 
@@ -124,21 +144,22 @@ Do not scaffold the scene/economy before this decision.
 
 ---
 
-# 7. Package tiers / Daily Spotlight / shelf evolution — OPEN LATER
+# 8. Daily Spotlight / shelf evolution / other retention — OPEN LATER
 
 These become more meaningful only with many families.
 
 Potential jobs:
 
-- package tiers: meaningful pool/odds choice;
 - Daily Spotlight: rotate attention toward a family/group;
-- shelf evolution: cheap visible long-term progression.
+- shelf evolution: cheap visible long-term progression;
+- package variation: different pools only if it creates real choice;
+- other light retention hooks: only where the expanded loop needs them.
 
-Evaluate after launch roster is real.
+Evaluate after launch roster and package model are real.
 
 ---
 
-# 8. Public store/submission choices — DEFER UNTIL RELEASE BUILD
+# 9. Public store/submission choices — DEFER UNTIL RELEASE BUILD
 
 Need only after expanded content/key visual stabilizes:
 
