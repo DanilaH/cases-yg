@@ -48,7 +48,9 @@ Keep the event set intentionally small.
 - `collection_open`
 - `collection_return`
 
-`reveal_complete` should carry compact parameters such as:
+`reveal_complete` means **one whole opening transaction has finished presentation**. If that transaction contains Hidden Pocket, emit `reveal_complete` after the Secret beat resolves, not before it. This keeps one event equal to one completed opening cycle.
+
+It should carry compact parameters such as:
 
 - session open index;
 - lifetime open index;
@@ -57,7 +59,7 @@ Keep the event set intentionally small.
 - new vs duplicate;
 - Signal before/after;
 - whether SIGNAL LOCK was consumed;
-- whether Hidden Pocket triggered after this standard reveal.
+- whether Hidden Pocket occurred in this opening.
 
 ## Progression / chase
 
@@ -80,6 +82,8 @@ From `reveal_complete`, derive continuation at:
 - open #10;
 - open #25;
 - open #50.
+
+Unless otherwise stated, continuation denominators are players who completed their **first reveal**.
 
 Also track:
 
@@ -113,9 +117,9 @@ Treat the core as validated enough for the next iteration when approximately all
 
 - first reveal completion: **≥ 92%** of first-package interactions;
 - second-open continuation: **≥ 75%** of first-reveal completers;
-- reach open #5: **≥ 55%**;
-- reach open #10: **≥ 35%**;
-- reach open #25: **≥ 15%**;
+- reach open #5: **≥ 55%** of first-reveal completers;
+- reach open #10: **≥ 35%** of first-reveal completers;
+- reach open #25: **≥ 15%** of first-reveal completers;
 - Collection opened by **≥ 25%** of players who reach 5 opens;
 - return to opener after Collection: **≥ 70%**.
 
@@ -178,11 +182,35 @@ After the core clears the continuation gates, run a separate monetization pass. 
 
 ---
 
-# 9. Scope estimate — REBASED
+# 9. Balance sanity check — REVIEWED
+
+A simple Monte Carlo sanity pass over the locked drop/Signal/Hidden Pocket rules was used only to detect obvious contradictions. It is **not** a player KPI or guaranteed timing.
+
+Approximate median outcomes from the model:
+
+- first ordinary duplicate: around opening **#4**;
+- first SIGNAL LOCK reached: around opening **#9**;
+- first Hidden Pocket: around opening **#26**;
+- both Secrets discovered: around **60 openings**;
+- standard 8/8 completion: around **76 openings**;
+- both standard 8/8 + Secrets 2/2: around **98 openings**.
+
+Interpretation:
+
+- Signal appears early enough to teach itself naturally;
+- Hidden Pocket is rare but should be seen by a meaningful share of engaged players;
+- the standard library is not auto-completed by Signal;
+- the late 10% Legendary SIGNAL LOCK boost is useful but does not guarantee completion.
+
+Re-simulate if any odds/Signal/Hidden Pocket rule changes.
+
+---
+
+# 10. Scope estimate — REBASED
 
 Current first-probe target, excluding moderation waiting time:
 
-- engineering/platform/responsive/save/analytics: ~1–1.5 focused days;
+- engineering/platform/responsive/save/analytics/localization/audio: ~1–1.5 focused days;
 - opener/reveal/drop/Signal/Hidden Pocket: ~1.5–2 focused days;
 - Collection Shelf + Library: ~0.5–1 focused day;
 - final Camera/Flip Phone rarity + Secret art and scene polish: ~1.5–2.5 focused days;
@@ -196,7 +224,7 @@ If the probe cannot be made submission-ready within roughly **8 focused days** w
 
 ---
 
-# 10. Post-validation expansion order
+# 11. Post-validation expansion order
 
 If the probe works, expand in this order:
 
