@@ -95,7 +95,7 @@ It is global and progressively disclosed only after the first duplicate.
 
 ## Gain
 
-Only standard duplicates add Signal:
+Only ordinary standard duplicates add Signal:
 
 | Duplicate rarity | Signal |
 |---|---:|
@@ -130,7 +130,9 @@ This gives a meaningful late-game pity beat without guaranteeing either Legendar
 
 ## Reset / completion
 
-- consume/reset Signal to `0` only after the armed standard result commits;
+- consuming SIGNAL LOCK sets Signal to **0** after the armed standard result commits;
+- the armed result itself does **not** add Signal even if that boosted late-game result is still a duplicate;
+- the following ordinary duplicate starts building Signal again from 0;
 - Hidden Pocket remains independent;
 - once all **8/8** standard variants are discovered, stop adding Signal and show standard collection completion instead of continuing a meaningless pity loop.
 
@@ -139,7 +141,7 @@ This gives a meaningful late-game pity beat without guaranteeing either Legendar
 Cheap UI direction:
 
 - compact old-LCD / antenna meter;
-- explicit `+25 SIGNAL`, etc. on duplicates;
+- explicit `+25 SIGNAL`, etc. on ordinary duplicates;
 - duplicate result copy combines the state rather than adding another reward system, e.g. `DUPLICATE · +25 SIGNAL`;
 - short glitch/pulse at 100;
 - clear `SIGNAL LOCK` state;
