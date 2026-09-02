@@ -93,14 +93,17 @@ Status meanings:
 | Decision | Status | Current answer |
 |---|---|---|
 | Yandex SDK | LOCKED FOR RELEASE ARCHITECTURE | integrate from the first slice behind a thin platform adapter |
+| Advertising policy | LOCKED | advertising follows current Yandex Games SDK and moderation requirements by default; platform compliance is not an open product-design question |
 | Ads infrastructure | LOCKED FOR RELEASE ARCHITECTURE | implement from the first slice in `platform/ads.ts`: interstitial, rewarded and sticky-banner control boundary |
 | Internal ad testing | LOCKED FOR SLICE | test Yandex draft ad lifecycle/callbacks with dev-only hooks; ad failures must never block gameplay/save |
-| Rewarded reward in slice | LOCKED FOR SLICE | use a clearly dev-only test reward (e.g. +25 Signal) only to prove callback/idempotency; it is **not** the public reward design |
-| Public rewarded reward | OPEN FOR RELEASE | decide after expanded economy/content is known; must be optional and explicitly communicate the exact reward |
-| Public interstitial placement | OPEN FOR RELEASE | choose logical pause points/cadence after final loop structure is known; never interrupt active tearing/reveal |
-| Sticky banner | OPEN FOR RELEASE | adapter may support it; actual release use depends on layout/revenue trade-off |
-| Ad pause/resume | LOCKED | ads must cooperate with `game_api_pause/resume`; game/audio stay paused while full-screen/rewarded ad is active |
-| Analytics adapter | LOCKED FOR RELEASE ARCHITECTURE | Yandex built-ins + typed Yandex Metrica gameplay events; analytics failure never blocks gameplay |
+| Rewarded compliance | LOCKED | rewarded is voluntary; UI clearly says an ad will be watched and names the exact reward; reward grants exactly once only after the rewarded callback; close/error without reward grants nothing |
+| Interstitial compliance | LOCKED | request only at logical pauses outside active tear/reveal; never use unsafe timer spam; Yandex controls actual display frequency |
+| Sticky-banner compliance | LOCKED | if sticky is used, configure it in Yandex Console; if the game controls visibility, enable API-managed sticky-banner mode; banner must not cover required game interaction/UI |
+| Ad pause/resume | LOCKED | fullscreen/rewarded ads pause gameplay and all audio; resume only when platform/game state is actually playable |
+| Ad state ownership | LOCKED | coordinate platform/ad/visibility/menu pause reasons so duplicate callbacks cannot cause double `start()`, premature resume, or state corruption |
+| Internal rewarded test | LOCKED FOR SLICE | a clearly dev-only test reward such as +25 Signal may verify callback/idempotency plumbing only; it is not public economy design |
+| Public monetization tuning | OPEN FOR RELEASE | after expanded content/economy exists, choose the most useful compliant placements/reward values and whether sticky is worth using; this is later tuning, not a blocker or architecture question |
+| Analytics adapter | LOCKED FOR RELEASE ARCHITECTURE | Yandex built-ins + typed Yandex Metrica gameplay/ad events; analytics failure never blocks gameplay |
 
 ---
 
