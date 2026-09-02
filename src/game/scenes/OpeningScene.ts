@@ -1,10 +1,51 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
-import { createLayoutMetrics, layoutX, layoutY, readSafeAreaInsets } from '../systems/layout';
+import { SLICE_BALANCE } from '../data/balance';
+import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
+import type { PendingReveal } from '../systems/drops';
+import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import { OpeningSession } from '../systems/openingSession';
+import { MathRandomSource } from '../systems/random';
+import { SaveRepository, type SaveState } from '../systems/save';
+import { isStandardCollectionComplete } from '../systems/signal';
+import {
+  createCollectibleVisual,
+  createPouchVisual,
+  createRevealRing,
+  RARITY_REVEAL_COLORS,
+  SECRET_REVEAL_COLOR,
+  type PouchVisual,
+} from '../ui/openingVisuals';
+
+const LOGICAL_HEIGHT = 720;
+const POUCH_Y = 392;
+const DRAG_THRESHOLD = 238;
+const RESULT_HOLD_MS = 600;
+
+type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'failed' | 'shutdown';
+
+interface DragState {
+  pointerId: number;
+  startPointerX: number;
+  progress: number;
+}
 
 export class OpeningScene extends Phaser.Scene {
+  private phase: OpeningPhase = 'booting';
   private root: Phaser.GameObjects.Container | null = null;
+  private metrics: LayoutMetrics | null = null;
+  private pouch: PouchVisual | null = null;
+  private collectionButton: Phaser.GameObjects.Text | null = null;
+  private resultPrompt: Phaser.GameObjects.Text | null = null;
+  private drag: DragState | null = null;
+  private session: OpeningSession | null = null;
+  private saveState: SaveState | null = null;
+  private lastReveal: PendingReveal | null = null;
+  private resultReady = false;
+  private deferredResize = false;
+  private ignoreNextResultTap = false;
+  private firstInteractionTracked = false;
 
   public constructor() {
     super('OpeningScene');
@@ -14,65 +55,851 @@ export class OpeningScene extends Phaser.Scene {
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
 
-    this.renderPlaceholder();
-    this.scale.on('resize', this.renderPlaceholder, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off('resize', this.renderPlaceholder, this);
-      platform.activity.setGameplayDesired(false);
-    });
+    this.input.on('pointermove', this.handlePointerMove, this);
+    this.input.on('pointerup', this.handlePointerUp, this);
+    this.scale.on('resize', this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
-    platform.markReady();
+    void this.initialize();
   }
 
-  private renderPlaceholder(): void {
+  private async initialize(): Promise<void> {
+    const platform = getPlatformRuntime();
+    this.session = new OpeningSession({
+      repository: new SaveRepository(platform.storage),
+      registry: SLICE_REGISTRY,
+      balance: SLICE_BALANCE,
+      random: new MathRandomSource(),
+    });
+
+    try {
+      this.saveState = await this.session.load();
+    } catch (error: unknown) {
+      this.phase = 'failed';
+      this.renderFailure('Save data could not be loaded. Reload to retry.');
+      platform.markReady();
+      console.error(error);
+      return;
+    }
+
+    if (this.phase === 'shutdown') return;
+
+    this.renderIdle();
+    platform.markReady();
+
+    const pending = this.saveState.pendingReveal;
+    if (pending) {
+      this.phase = 'revealing';
+      this.lastReveal = pending;
+      getPlatformRuntime().analytics.track('pending_reveal_recovered', {
+        openingNumber: pending.openingNumber,
+      });
+      void this.playReveal(pending, true);
+    }
+  }
+
+  private handleShutdown(): void {
+    this.phase = 'shutdown';
+    this.input.off('pointermove', this.handlePointerMove, this);
+    this.input.off('pointerup', this.handlePointerUp, this);
+    this.scale.off('resize', this.handleResize, this);
+    this.tweens.killAll();
+    getPlatformRuntime().activity.setGameplayDesired(false);
+  }
+
+  private handleResize(): void {
+    if (this.phase === 'booting' || this.phase === 'shutdown' || this.phase === 'failed') {
+      return;
+    }
+
+    if (this.phase === 'revealing') {
+      this.deferredResize = true;
+      return;
+    }
+
+    if (this.phase === 'dragging') {
+      this.drag = null;
+      this.phase = 'idle';
+    }
+
+    if (this.phase === 'result' && this.lastReveal) {
+      this.renderResolvedResult(this.lastReveal);
+      return;
+    }
+
+    this.renderIdle();
+  }
+
+  private createRoot(): Phaser.GameObjects.Container {
     this.root?.destroy(true);
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
-    const root = this.add.container(0, 0);
+    this.metrics = metrics;
+    const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     this.root = root;
 
-    const backdrop = this.add.rectangle(
-      metrics.viewportWidth / 2,
-      metrics.viewportHeight / 2,
-      metrics.viewportWidth,
-      metrics.viewportHeight,
-      0x171421,
+    root.add(
+      this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x171421),
     );
 
-    const title = this.add
-      .text(layoutX(metrics, metrics.centerX), layoutY(metrics, 110), 'Mystery Pocket Tech', {
-        color: '#f5eefc',
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: `${Math.round(34 * metrics.scale)}px`,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
+    const haze = this.add.ellipse(metrics.centerX, 330, Math.min(metrics.logicalWidth * 0.72, 920), 520, 0x4b365e, 0.22);
+    root.add(haze);
 
-    const pouch = this.add
-      .rectangle(layoutX(metrics, metrics.centerX), layoutY(metrics, 350), 330 * metrics.scale, 280 * metrics.scale, 0xaea3c7)
-      .setStrokeStyle(Math.max(2, 4 * metrics.scale), 0xdccff4)
-      .setOrigin(0.5);
+    root.add(
+      this.add
+        .text(metrics.centerX, 62, 'Mystery Pocket Tech', {
+          color: '#f5eefc',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '30px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
 
-    const pouchLabel = this.add
-      .text(pouch.x, pouch.y, '?', {
-        color: '#312746',
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: `${Math.round(90 * metrics.scale)}px`,
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
+    return root;
+  }
 
-    const collection = this.add
-      .text(layoutX(metrics, metrics.safeRight), layoutY(metrics, metrics.safeBottom - 18), 'Collection →', {
+  private renderIdle(message?: string): void {
+    if (!this.saveState || this.phase === 'shutdown') return;
+
+    this.phase = 'idle';
+    this.resultReady = false;
+    this.lastReveal = null;
+    this.drag = null;
+    this.deferredResize = false;
+
+    const root = this.createRoot();
+    const metrics = this.metrics!;
+    this.renderSignalHud(root, this.saveState.signal);
+    this.createCollectionButton(root, true);
+
+    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+    this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
+
+    root.add(
+      this.add
+        .text(metrics.centerX, 610, 'Drag the star to tear →', {
+          color: '#d8cdea',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '18px',
+        })
+        .setOrigin(0.5),
+    );
+
+    if (message) {
+      root.add(
+        this.add
+          .text(metrics.centerX, 648, message, {
+            color: '#ffb7c8',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: '15px',
+          })
+          .setOrigin(0.5),
+      );
+    }
+  }
+
+  private renderFailure(message: string): void {
+    const root = this.createRoot();
+    const metrics = this.metrics!;
+    root.add(
+      this.add
+        .text(metrics.centerX, metrics.centerY, message, {
+          color: '#ffb7c8',
+          align: 'center',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '20px',
+          wordWrap: { width: Math.min(620, metrics.logicalWidth - 100) },
+        })
+        .setOrigin(0.5),
+    );
+  }
+
+  private renderSignalHud(root: Phaser.GameObjects.Container, signal: number, lockText = false): void {
+    if (!this.metrics) return;
+    if (signal <= 0 && !lockText) return;
+
+    const threshold = SLICE_BALANCE.signal.threshold;
+    const width = 190;
+    const x = this.metrics.safeLeft;
+    const y = this.metrics.safeTop + 18;
+    const clamped = Math.min(threshold, Math.max(0, signal));
+
+    const label = this.add.text(x, y, lockText || clamped >= threshold ? 'SIGNAL LOCK' : `SIGNAL ${clamped}/${threshold}`, {
+      color: '#b9f7ff',
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      fontStyle: 'bold',
+    });
+    const track = this.add.rectangle(x, y + 30, width, 13, 0x3a3146, 1).setOrigin(0, 0.5);
+    const fill = this.add
+      .rectangle(x, y + 30, width * (clamped / threshold), 13, 0x76e9f5, 0.92)
+      .setOrigin(0, 0.5);
+    root.add([label, track, fill]);
+  }
+
+  private createCollectionButton(root: Phaser.GameObjects.Container, enabled: boolean): void {
+    if (!this.metrics) return;
+
+    const button = this.add
+      .text(this.metrics.safeRight, this.metrics.safeBottom - 8, 'Collection →', {
         color: '#f5eefc',
         backgroundColor: '#312746',
-        padding: { x: Math.round(16 * metrics.scale), y: Math.round(10 * metrics.scale) },
+        padding: { x: 16, y: 10 },
         fontFamily: 'system-ui, sans-serif',
-        fontSize: `${Math.round(18 * metrics.scale)}px`,
+        fontSize: '18px',
       })
-      .setOrigin(1, 1)
-      .setInteractive({ useHandCursor: true });
+      .setOrigin(1, 1);
 
-    collection.on('pointerup', () => this.scene.start('CollectionScene'));
-    root.add([backdrop, title, pouch, pouchLabel, collection]);
+    if (enabled) {
+      button.setInteractive({ useHandCursor: true });
+      button.on('pointerup', () => {
+        this.ignoreNextResultTap = true;
+        this.scene.start('CollectionScene');
+      });
+    } else {
+      button.setAlpha(0.32);
+    }
+
+    this.collectionButton = button;
+    root.add(button);
+  }
+
+  private setChromeEnabled(enabled: boolean): void {
+    if (!this.collectionButton) return;
+    this.collectionButton.setAlpha(enabled ? 1 : 0.32);
+    if (enabled) {
+      this.collectionButton.setInteractive({ useHandCursor: true });
+    } else {
+      this.collectionButton.disableInteractive();
+    }
+  }
+
+  private beginDrag(pointer: Phaser.Input.Pointer): void {
+    if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;
+
+    this.phase = 'dragging';
+    this.drag = {
+      pointerId: pointer.id,
+      startPointerX: pointer.x,
+      progress: 0,
+    };
+    this.setChromeEnabled(false);
+  }
+
+  private handlePointerMove(pointer: Phaser.Input.Pointer): void {
+    if (this.phase !== 'dragging' || !this.drag || !this.pouch || !this.metrics) return;
+    if (pointer.id !== this.drag.pointerId) return;
+
+    const logicalDelta = Math.max(0, (pointer.x - this.drag.startPointerX) / this.metrics.scale);
+    const travel = this.pouch.tabEndX - this.pouch.tabStartX;
+    const progress = Math.min(1, logicalDelta / DRAG_THRESHOLD);
+    this.drag.progress = progress;
+    const tabX = this.pouch.tabStartX + travel * progress;
+    this.pouch.tab.setX(tabX);
+    this.pouch.dragZone.setX(tabX);
+    this.pouch.strip.setAlpha(1 - progress * 0.08);
+
+    if (progress >= 1) {
+      const firstInteraction = this.saveState?.totalOpens === 0 && !this.firstInteractionTracked;
+      if (firstInteraction) {
+        this.firstInteractionTracked = true;
+      }
+      void this.completeTear(firstInteraction);
+    }
+  }
+
+  private handlePointerUp(pointer: Phaser.Input.Pointer): void {
+    if (this.ignoreNextResultTap) {
+      this.ignoreNextResultTap = false;
+      return;
+    }
+
+    if (this.phase === 'result' && this.resultReady) {
+      this.renderIdle();
+      return;
+    }
+
+    if (this.phase !== 'dragging' || !this.drag || !this.pouch) return;
+    if (pointer.id !== this.drag.pointerId) return;
+
+    if (this.drag.progress >= 1) return;
+
+    this.drag = null;
+    this.phase = 'idle';
+    this.setChromeEnabled(true);
+    const pouch = this.pouch;
+    this.tweens.add({
+      targets: [pouch.tab, pouch.dragZone],
+      x: pouch.tabStartX,
+      duration: 170,
+      ease: 'Sine.Out',
+    });
+    this.tweens.add({
+      targets: pouch.strip,
+      alpha: 1,
+      duration: 140,
+      ease: 'Sine.Out',
+    });
+  }
+
+  private async completeTear(firstInteraction: boolean): Promise<void> {
+    if (this.phase !== 'dragging' || !this.session) return;
+
+    this.phase = 'revealing';
+    this.drag = null;
+    this.pouch?.dragZone.disableInteractive();
+    this.setChromeEnabled(false);
+
+    try {
+      const pending = await this.session.prepareReveal();
+      if (this.phase === 'shutdown') return;
+      this.lastReveal = pending;
+      if (firstInteraction && pending.openingNumber === 1) {
+        getPlatformRuntime().analytics.track('first_package_interaction');
+      }
+      await this.playReveal(pending, false);
+    } catch (error: unknown) {
+      if (this.phase === 'shutdown') return;
+      console.error(error);
+      this.saveState = this.session.getState();
+      this.renderIdle('Could not save the reward. Try the tear again.');
+    }
+  }
+
+  private async playReveal(pending: PendingReveal, recovered: boolean): Promise<void> {
+    if (!this.root || !this.pouch || !this.metrics || !this.session) return;
+
+    this.phase = 'revealing';
+    this.setChromeEnabled(false);
+    this.pouch.dragZone.disableInteractive();
+
+    if (recovered) {
+      this.pouch.tab.setX(this.pouch.tabEndX);
+      this.pouch.dragZone.setX(this.pouch.tabEndX);
+    }
+
+    await this.animateTearDetach(recovered);
+    if (this.phase === 'shutdown') return;
+
+    const standardVisual = await this.animateStandardReveal(pending);
+    if (this.phase === 'shutdown') return;
+
+    if (pending.hiddenPocket) {
+      await this.animateHiddenPocket(pending, standardVisual);
+      if (this.phase === 'shutdown') return;
+    }
+
+    let committed: SaveState | null = null;
+    for (let attempt = 0; attempt < 3 && !committed; attempt += 1) {
+      try {
+        committed = await this.session.commitReveal();
+      } catch (error: unknown) {
+        console.error(error);
+        if (attempt < 2) await this.wait(300 * (attempt + 1));
+      }
+    }
+
+    if (!committed) {
+      this.phase = 'failed';
+      this.addLockedSaveFailure();
+      return;
+    }
+
+    this.saveState = committed;
+    this.trackRevealCompletion(pending, committed);
+    this.phase = 'result';
+    this.resultReady = false;
+
+    if (this.deferredResize) {
+      this.deferredResize = false;
+      this.renderResolvedResult(pending);
+    } else {
+      this.setChromeEnabled(true);
+      this.addResultPrompt();
+    }
+
+    await this.wait(RESULT_HOLD_MS);
+    if (this.phase !== 'result') return;
+    this.resultReady = true;
+    if (this.resultPrompt) {
+      this.resultPrompt.setText('Tap for next pouch');
+      this.resultPrompt.setAlpha(1);
+    }
+  }
+
+  private async animateTearDetach(recovered: boolean): Promise<void> {
+    if (!this.pouch) return;
+    const pouch = this.pouch;
+    const originalY = pouch.group.y;
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: pouch.strip,
+        x: recovered ? 130 : 172,
+        alpha: 0,
+        duration: recovered ? 100 : 155,
+        ease: 'Cubic.In',
+        onComplete: () => resolve(),
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: pouch.group,
+        y: originalY + 8,
+        duration: 55,
+        yoyo: true,
+        ease: 'Sine.InOut',
+        onComplete: () => resolve(),
+      });
+    });
+  }
+
+  private async animateStandardReveal(pending: PendingReveal): Promise<Phaser.GameObjects.Container> {
+    const root = this.root!;
+    const metrics = this.metrics!;
+    const pouch = this.pouch!;
+    const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
+    const heroX = metrics.centerX;
+    const heroY = 320;
+
+    const flash = this.add.circle(heroX, POUCH_Y - 16, 82, color, 0.18).setScale(0.25);
+    root.add(flash);
+    const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.55).setAlpha(0);
+    const visual = createCollectibleVisual(this, root, pending.standard.familyId, pending.standard.rarity, heroX, POUCH_Y + 52);
+    visual.group.setScale(0.24).setAlpha(0);
+
+    this.spawnSparkles(heroX, heroY, color, pending.standard.rarity === 'legendary' ? 10 : 7);
+
+    void new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: flash,
+        scale: 3.1,
+        alpha: 0,
+        duration: 280,
+        ease: 'Cubic.Out',
+        onComplete: () => {
+          flash.destroy();
+          resolve();
+        },
+      });
+    });
+
+    void new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: ring,
+        scale: 1.35,
+        alpha: 0.65,
+        duration: 240,
+        yoyo: true,
+        ease: 'Sine.Out',
+        onComplete: () => {
+          ring.destroy();
+          resolve();
+        },
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: visual.group,
+        y: heroY,
+        scale: 1.07,
+        alpha: 1,
+        duration: 370,
+        ease: 'Back.Out',
+        onComplete: () => resolve(),
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: pouch.group,
+        y: pouch.group.y + 82,
+        scale: 0.92,
+        alpha: 0,
+        duration: 220,
+        ease: 'Cubic.In',
+        onComplete: () => resolve(),
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: visual.group,
+        scale: 1,
+        y: heroY - 4,
+        duration: 140,
+        ease: 'Sine.Out',
+        onComplete: () => resolve(),
+      });
+    });
+
+    if (pending.standard.rarity === 'epic' || pending.standard.rarity === 'legendary') {
+      this.cameras.main.shake(85, pending.standard.rarity === 'legendary' ? 0.0025 : 0.0017);
+    }
+
+    this.addStandardResultLabels(pending, heroX, 492);
+    return visual.group;
+  }
+
+  private addStandardResultLabels(pending: PendingReveal, x: number, y: number): void {
+    const root = this.root!;
+    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    const familyName = family?.name[getPlatformRuntime().language] ?? pending.standard.familyId;
+    const rarity = pending.standard.rarity.toUpperCase();
+    const color = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
+
+    root.add(
+      this.add
+        .text(x, y, `${familyName} · ${rarity}`, {
+          color,
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '22px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
+
+    let status = pending.standard.isNew ? 'NEW' : 'DUPLICATE';
+    if (pending.signal.lockConsumed) {
+      status += ' · SIGNAL LOCK';
+    } else if (pending.signal.gain > 0) {
+      status += ` · +${pending.signal.gain} SIGNAL`;
+    }
+    if (pending.signal.lockReached) {
+      status += ' · LOCKED';
+    }
+
+    root.add(
+      this.add
+        .text(x, y + 34, status, {
+          color: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
+          fontFamily: 'monospace',
+          fontSize: '16px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
+  }
+
+  private async animateHiddenPocket(
+    pending: PendingReveal,
+    standardVisual: Phaser.GameObjects.Container,
+  ): Promise<void> {
+    if (!pending.hiddenPocket || !this.root || !this.metrics || !this.pouch) return;
+
+    const root = this.root;
+    const metrics = this.metrics;
+    const pouch = this.pouch;
+    await this.wait(320);
+
+    const hiddenLabel = this.add
+      .text(metrics.centerX, 126, 'HIDDEN POCKET!', {
+        color: '#8df8ff',
+        fontFamily: 'monospace',
+        fontSize: '22px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    root.add(hiddenLabel);
+
+    this.tweens.add({
+      targets: standardVisual,
+      x: metrics.centerX - 188,
+      y: 344,
+      scale: 0.52,
+      alpha: 0.62,
+      duration: 260,
+      ease: 'Cubic.Out',
+    });
+
+    pouch.group.setPosition(metrics.centerX, POUCH_Y + 92).setScale(0.9).setAlpha(0.8);
+    pouch.strip.setAlpha(0);
+
+    await Promise.all([
+      new Promise<void>((resolve) => {
+        this.tweens.add({
+          targets: pouch.group,
+          y: POUCH_Y + 36,
+          alpha: 1,
+          duration: 210,
+          ease: 'Back.Out',
+          onComplete: () => resolve(),
+        });
+      }),
+      new Promise<void>((resolve) => {
+        this.tweens.add({
+          targets: hiddenLabel,
+          alpha: 1,
+          duration: 160,
+          onComplete: () => resolve(),
+        });
+      }),
+    ]);
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: pouch.group,
+        angle: 3,
+        duration: 55,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Sine.InOut',
+        onComplete: () => resolve(),
+      });
+    });
+
+    const flash = this.add.circle(metrics.centerX + 72, 322, 90, SECRET_REVEAL_COLOR, 0.22).setScale(0.3);
+    root.add(flash);
+    const ring = createRevealRing(this, root, metrics.centerX + 72, 318, SECRET_REVEAL_COLOR)
+      .setScale(0.5)
+      .setAlpha(0.2);
+    const secret = createCollectibleVisual(
+      this,
+      root,
+      pending.hiddenPocket.familyId,
+      'secret',
+      metrics.centerX + 72,
+      POUCH_Y + 42,
+    );
+    secret.group.setScale(0.26).setAlpha(0);
+    this.spawnSparkles(metrics.centerX + 72, 318, SECRET_REVEAL_COLOR, 11);
+
+    this.tweens.add({
+      targets: flash,
+      scale: 3.3,
+      alpha: 0,
+      duration: 320,
+      ease: 'Cubic.Out',
+      onComplete: () => flash.destroy(),
+    });
+    this.tweens.add({
+      targets: ring,
+      scale: 1.55,
+      alpha: 0,
+      duration: 420,
+      ease: 'Cubic.Out',
+      onComplete: () => ring.destroy(),
+    });
+
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: secret.group,
+        y: 314,
+        scale: 1.06,
+        alpha: 1,
+        duration: 410,
+        ease: 'Back.Out',
+        onComplete: () => resolve(),
+      });
+    });
+
+    this.tweens.add({
+      targets: pouch.group,
+      y: POUCH_Y + 108,
+      alpha: 0,
+      duration: 180,
+      ease: 'Cubic.In',
+    });
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: secret.group,
+        scale: 1,
+        duration: 120,
+        ease: 'Sine.Out',
+        onComplete: () => resolve(),
+      });
+    });
+
+    this.cameras.main.shake(105, 0.0024);
+    const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
+    const familyName = family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId;
+    root.add(
+      this.add
+        .text(metrics.centerX + 72, 490, `${familyName} · SECRET`, {
+          color: '#8df8ff',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '22px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
+    root.add(
+      this.add
+        .text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {
+          color: '#f5f0ff',
+          fontFamily: 'monospace',
+          fontSize: '16px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
+  }
+
+  private spawnSparkles(x: number, y: number, color: number, count: number): void {
+    if (!this.root) return;
+    const root = this.root;
+    for (let index = 0; index < count; index += 1) {
+      const angle = (Math.PI * 2 * index) / count + 0.18;
+      const distance = 82 + (index % 3) * 24;
+      const sparkle = this.add.circle(x, y, index % 2 === 0 ? 5 : 3, color, 0.9);
+      root.add(sparkle);
+      this.tweens.add({
+        targets: sparkle,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        alpha: 0,
+        scale: 0.25,
+        duration: 380 + (index % 3) * 70,
+        ease: 'Cubic.Out',
+        onComplete: () => sparkle.destroy(),
+      });
+    }
+  }
+
+  private trackRevealCompletion(pending: PendingReveal, committed: SaveState): void {
+    const analytics = getPlatformRuntime().analytics;
+    analytics.track('reveal_complete', {
+      openingNumber: pending.openingNumber,
+      familyId: pending.standard.familyId,
+      rarity: pending.standard.rarity,
+      isNew: pending.standard.isNew,
+      hiddenPocket: pending.hiddenPocket !== null,
+      signalAfter: committed.signal,
+    });
+
+    if (pending.signal.lockReached) {
+      analytics.track('signal_lock_reached', { openingNumber: pending.openingNumber });
+    }
+    if (pending.signal.lockConsumed) {
+      analytics.track('signal_lock_consumed', { openingNumber: pending.openingNumber });
+    }
+    if (pending.hiddenPocket) {
+      analytics.track('hidden_pocket_triggered', { openingNumber: pending.openingNumber });
+      analytics.track('secret_discovered', {
+        openingNumber: pending.openingNumber,
+        familyId: pending.hiddenPocket.familyId,
+        collectibleId: pending.hiddenPocket.collectibleId,
+      });
+    }
+    if (isStandardCollectionComplete(SLICE_REGISTRY, committed.discoveredStandard)) {
+      const wasCompleteBefore = isStandardCollectionComplete(
+        SLICE_REGISTRY,
+        pending.standard.isNew
+          ? committed.discoveredStandard.filter((id) => id !== pending.standard.collectibleId)
+          : committed.discoveredStandard,
+      );
+      if (!wasCompleteBefore) {
+        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });
+      }
+    }
+  }
+
+  private addResultPrompt(): void {
+    if (!this.root || !this.metrics) return;
+    this.resultPrompt?.destroy();
+    this.resultPrompt = this.add
+      .text(this.metrics.centerX, 646, 'Result locked', {
+        color: '#d5cae5',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '17px',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.6);
+    this.root.add(this.resultPrompt);
+  }
+
+  private addLockedSaveFailure(): void {
+    if (!this.root || !this.metrics) return;
+    this.setChromeEnabled(false);
+    this.root.add(
+      this.add
+        .text(this.metrics.centerX, 640, 'Reward shown, but save could not be confirmed. Reload to recover it safely.', {
+          color: '#ffb7c8',
+          align: 'center',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '15px',
+          wordWrap: { width: Math.min(660, this.metrics.logicalWidth - 80) },
+        })
+        .setOrigin(0.5),
+    );
+  }
+
+  private renderResolvedResult(pending: PendingReveal): void {
+    if (!this.saveState || this.phase === 'shutdown') return;
+    const root = this.createRoot();
+    const metrics = this.metrics!;
+    this.renderSignalHud(root, this.saveState.signal, this.saveState.signal >= SLICE_BALANCE.signal.threshold);
+    this.createCollectionButton(root, true);
+    this.pouch = null;
+
+    if (pending.hiddenPocket) {
+      const standard = createCollectibleVisual(
+        this,
+        root,
+        pending.standard.familyId,
+        pending.standard.rarity,
+        metrics.centerX - 188,
+        344,
+      );
+      standard.group.setScale(0.52).setAlpha(0.62);
+      const secret = createCollectibleVisual(this, root, pending.hiddenPocket.familyId, 'secret', metrics.centerX + 72, 314);
+      secret.group.setScale(1);
+      root.add(
+        this.add
+          .text(metrics.centerX, 126, 'HIDDEN POCKET!', {
+            color: '#8df8ff',
+            fontFamily: 'monospace',
+            fontSize: '22px',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5),
+      );
+      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
+      root.add(
+        this.add
+          .text(metrics.centerX + 72, 490, `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · SECRET`, {
+            color: '#8df8ff',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: '22px',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5),
+      );
+      root.add(
+        this.add
+          .text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {
+            color: '#f5f0ff',
+            fontFamily: 'monospace',
+            fontSize: '16px',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5),
+      );
+    } else {
+      const standard = createCollectibleVisual(
+        this,
+        root,
+        pending.standard.familyId,
+        pending.standard.rarity,
+        metrics.centerX,
+        316,
+      );
+      standard.group.setScale(1);
+      this.addStandardResultLabels(pending, metrics.centerX, 492);
+    }
+
+    this.addResultPrompt();
+    if (this.resultReady && this.resultPrompt) {
+      this.resultPrompt.setText('Tap for next pouch').setAlpha(1);
+    }
+  }
+
+  private wait(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.time.delayedCall(milliseconds, () => resolve());
+    });
   }
 }
