@@ -29,6 +29,10 @@ Status meanings:
 | Reveal skip in first probe | LOCKED OUT | full reveal always plays; tap/click does not skip or accelerate it in the first probe |
 | Primary screen architecture | LOCKED | Opening is the clean primary scene; Collection and Mod Bench are separate scenes/surfaces rather than permanent opener UI |
 | Scene transition UX | LOCKED | transitions between Opening, Collection and Mod Bench must feel effectively instant; no blocking asset load, network wait, or long transition animation on navigation |
+| Opening HUD budget | LOCKED | maximum persistent gameplay HUD is Signal, Tech Parts, Collection navigation and Mod Bench navigation; no streaks, extra currencies, leaderboard widgets or other permanent clutter in the probe |
+| Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress; Tech Parts and Mod Bench are introduced on the first duplicate/Parts gain rather than occupying the screen before they have meaning |
+| Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD is dimmed/temporarily de-emphasized and cannot compete with or interrupt the reward presentation; it returns immediately after resolution |
+| First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection, Signal and Mod Bench contextually when those systems first become relevant |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
