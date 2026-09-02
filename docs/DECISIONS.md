@@ -33,6 +33,7 @@ Status meanings:
 | Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress; Tech Parts and Mod Bench are introduced on the first duplicate/Parts gain rather than occupying the screen before they have meaning |
 | Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD is dimmed/temporarily de-emphasized and cannot compete with or interrupt the reward presentation; it returns immediately after resolution |
 | First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection, Signal and Mod Bench contextually when those systems first become relevant |
+| Primary orientation | LOCKED | landscape |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
