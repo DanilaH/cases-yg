@@ -15,7 +15,7 @@ Primary loop:
 5. show gadget + rarity + `NEW`/duplicate;
 6. update Signal / Collection state;
 7. optionally trigger Hidden Pocket;
-8. return immediately to the next free pouch.
+8. hold the final result briefly, then let the player advance to the next free pouch.
 
 Target feel:
 
@@ -34,6 +34,18 @@ Reveal behavior:
 - pouch then slides/scales/fades away;
 - gadget overshoots slightly and settles as sole hero;
 - runtime FX scale by rarity.
+
+## Result hold / next pouch
+
+After the final standard result — or Secret result when Hidden Pocket triggers — settles:
+
+- keep the result readable for at least **~0.6 s**;
+- do **not** auto-advance on a timer;
+- after the minimum hold, tap/click anywhere outside Collection navigation advances to a fresh pouch;
+- a small localized `Next pouch` / `Следующий пакет` cue may appear;
+- this input dismisses a completed result and is **not** reveal skipping.
+
+If the player opens Collection from the resolved result state, returning from Collection starts with a fresh pouch.
 
 Reveal choreography stays inside `OpeningScene`; do not switch to a separate scene merely for the animation.
 
@@ -128,6 +140,7 @@ Cheap UI direction:
 
 - compact old-LCD / antenna meter;
 - explicit `+25 SIGNAL`, etc. on duplicates;
+- duplicate result copy combines the state rather than adding another reward system, e.g. `DUPLICATE · +25 SIGNAL`;
 - short glitch/pulse at 100;
 - clear `SIGNAL LOCK` state;
 - restrained scan/lock treatment on the next pouch.
@@ -205,6 +218,8 @@ Secret emerges
 ```
 
 Reuse existing pouch/reveal language. No new unpacking mechanic.
+
+The normal result cannot be dismissed while a predetermined Hidden Pocket beat is pending.
 
 ---
 
