@@ -12,16 +12,30 @@ const replace = (from, to, count = Infinity) => {
   return replaced;
 };
 
-replace(
-  "import { getPlatformRuntime } from '../../app/runtime';\n",
-  "import { getPlatformRuntime } from '../../app/runtime';\nimport { getMessages } from '../../i18n';\n",
-  1,
-);
-replace(
-  "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\n",
-  "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\nimport { getGameAudio } from '../systems/audio';\n",
-  1,
-);
+const messagesImport = "import { getMessages } from '../../i18n';\n";
+while (text.includes(messagesImport + messagesImport)) {
+  text = text.replace(messagesImport + messagesImport, messagesImport);
+}
+if (!text.includes(messagesImport)) {
+  replace(
+    "import { getPlatformRuntime } from '../../app/runtime';\n",
+    "import { getPlatformRuntime } from '../../app/runtime';\n" + messagesImport,
+    1,
+  );
+}
+
+const audioImport = "import { getGameAudio } from '../systems/audio';\n";
+while (text.includes(audioImport + audioImport)) {
+  text = text.replace(audioImport + audioImport, audioImport);
+}
+if (!text.includes(audioImport)) {
+  replace(
+    "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\n",
+    "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\n" + audioImport,
+    1,
+  );
+}
+
 replace(
   "this.renderFailure('Save data could not be loaded. Reload to retry.');",
   'this.renderFailure(getMessages(platform.language).opening.saveLoadError);',
