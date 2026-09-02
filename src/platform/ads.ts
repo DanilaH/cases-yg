@@ -1,6 +1,7 @@
 import type { SDK } from 'ysdk';
 
 import type { GameplayActivityCoordinator } from './activity';
+import type { AnalyticsAdapter } from './analytics';
 
 export interface InterstitialResult {
   status: 'closed' | 'error' | 'offline';
@@ -30,23 +31,68 @@ export interface AdsAdapter {
   setStickyBannerVisible(visible: boolean): Promise<StickyBannerResult>;
 }
 
-const AD_ALREADY_IN_PROGRESS = 'AD_ALREADY_IN_PROGRESS';
+export interface AdsAdapterOptions {
+  analytics?: AnalyticsAdapter;
+  fullscreenTimeoutMs?: number;
+}
 
-export class MockAdsAdapter implements AdsAdapter {
-  private fullscreenInFlight = false;
+export const AD_ALREADY_IN_PROGRESS = 'AD_ALREADY_IN_PROGRESS';
+export const AD_CALLBACK_TIMEOUT = 'AD_CALLBACK_TIMEOUT';
 
-  public constructor(private readonly activity: GameplayActivityCoordinator) {}
+const DEFAULT_FULLSCREEN_TIMEOUT_MS = 120_000;
+
+const errorMessage = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+abstract class BaseAdsAdapter {
+  protected fullscreenInFlight = false;
+  protected readonly fullscreenTimeoutMs: number;
+
+  protected constructor(
+    protected readonly activity: GameplayActivityCoordinator,
+    protected readonly options: AdsAdapterOptions = {},
+  ) {
+    this.fullscreenTimeoutMs = options.fullscreenTimeoutMs ?? DEFAULT_FULLSCREEN_TIMEOUT_MS;
+  }
+
+  protected beginFullscreen(): boolean {
+    if (this.fullscreenInFlight) return false;
+    this.fullscreenInFlight = true;
+    this.activity.setBlocked('ad', true);
+    return true;
+  }
+
+  protected releaseFullscreenActivity(): void {
+    this.activity.setBlocked('ad', false);
+  }
+
+  protected finishFullscreen(): void {
+    if (!this.fullscreenInFlight) return;
+    this.fullscreenInFlight = false;
+    this.releaseFullscreenActivity();
+  }
+
+  protected track(event: string, params?: Readonly<Record<string, boolean | number | string>>): void {
+    this.options.analytics?.track(event, params);
+  }
+}
+
+export class MockAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
+  public constructor(activity: GameplayActivityCoordinator, options: AdsAdapterOptions = {}) {
+    super(activity, options);
+  }
 
   public async showInterstitial(): Promise<InterstitialResult> {
     if (!this.beginFullscreen()) {
       return { status: 'error', wasShown: false, error: AD_ALREADY_IN_PROGRESS };
     }
 
+    this.track('ad_interstitial_request', { platform: 'mock' });
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 250));
+      this.track('ad_interstitial_close', { platform: 'mock', wasShown: true });
       return { status: 'closed', wasShown: true };
     } finally {
-      this.endFullscreen();
+      this.finishFullscreen();
     }
   }
 
@@ -55,68 +101,77 @@ export class MockAdsAdapter implements AdsAdapter {
       return { status: 'error', rewardEarned: false, error: AD_ALREADY_IN_PROGRESS };
     }
 
+    this.track('ad_rewarded_request', { platform: 'mock', rewardId: request.rewardId });
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 300));
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 300));
       await request.onReward();
+      this.track('ad_rewarded_grant', { platform: 'mock', rewardId: request.rewardId });
+      this.track('ad_rewarded_close', { platform: 'mock', rewardId: request.rewardId, rewardEarned: true });
       return { status: 'closed', rewardEarned: true };
+    } catch (error: unknown) {
+      const message = errorMessage(error);
+      this.track('ad_rewarded_error', { platform: 'mock', rewardId: request.rewardId, error: message });
+      return { status: 'error', rewardEarned: false, error: message };
     } finally {
-      this.endFullscreen();
+      this.finishFullscreen();
     }
   }
 
   public async setStickyBannerVisible(visible: boolean): Promise<StickyBannerResult> {
+    this.track('ad_sticky_change', { platform: 'mock', requestedVisible: visible, isShowing: visible });
     return { isShowing: visible };
-  }
-
-  private beginFullscreen(): boolean {
-    if (this.fullscreenInFlight) return false;
-    this.fullscreenInFlight = true;
-    this.activity.setBlocked('ad', true);
-    return true;
-  }
-
-  private endFullscreen(): void {
-    this.fullscreenInFlight = false;
-    this.activity.setBlocked('ad', false);
   }
 }
 
-export class YandexAdsAdapter implements AdsAdapter {
-  private fullscreenInFlight = false;
-
+export class YandexAdsAdapter extends BaseAdsAdapter implements AdsAdapter {
   public constructor(
     private readonly sdk: SDK,
-    private readonly activity: GameplayActivityCoordinator,
-  ) {}
+    activity: GameplayActivityCoordinator,
+    options: AdsAdapterOptions = {},
+  ) {
+    super(activity, options);
+  }
 
   public showInterstitial(): Promise<InterstitialResult> {
     if (!this.beginFullscreen()) {
       return Promise.resolve({ status: 'error', wasShown: false, error: AD_ALREADY_IN_PROGRESS });
     }
 
+    this.track('ad_interstitial_request', { platform: 'yandex' });
     return new Promise((resolve) => {
       let settled = false;
+      const watchdog = globalThis.setTimeout(
+        () => settle({ status: 'error', wasShown: false, error: AD_CALLBACK_TIMEOUT }),
+        this.fullscreenTimeoutMs,
+      );
       const settle = (result: InterstitialResult): void => {
         if (settled) return;
         settled = true;
-        this.endFullscreen();
+        globalThis.clearTimeout(watchdog);
+        this.finishFullscreen();
+        if (result.status === 'closed') {
+          this.track('ad_interstitial_close', { platform: 'yandex', wasShown: result.wasShown });
+        } else {
+          this.track('ad_interstitial_error', {
+            platform: 'yandex',
+            status: result.status,
+            error: result.error ?? result.status,
+          });
+        }
         resolve(result);
       };
 
       try {
         this.sdk.adv.showFullscreenAdv({
           callbacks: {
+            onOpen: () => this.track('ad_interstitial_open', { platform: 'yandex' }),
             onClose: (wasShown) => settle({ status: 'closed', wasShown }),
             onError: (error) => settle({ status: 'error', wasShown: false, error: error.message }),
             onOffline: () => settle({ status: 'offline', wasShown: false }),
           },
         });
-      } catch (error) {
-        settle({
-          status: 'error',
-          wasShown: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      } catch (error: unknown) {
+        settle({ status: 'error', wasShown: false, error: errorMessage(error) });
       }
     });
   }
@@ -126,46 +181,81 @@ export class YandexAdsAdapter implements AdsAdapter {
       return Promise.resolve({ status: 'error', rewardEarned: false, error: AD_ALREADY_IN_PROGRESS });
     }
 
+    this.track('ad_rewarded_request', { platform: 'yandex', rewardId: request.rewardId });
     return new Promise((resolve) => {
       let settled = false;
+      let rewardCallbackSeen = false;
       let rewardEarned = false;
       let rewardError: string | undefined;
       let rewardTask: Promise<void> = Promise.resolve();
 
+      const watchdog = globalThis.setTimeout(
+        () => settle('error', AD_CALLBACK_TIMEOUT),
+        this.fullscreenTimeoutMs,
+      );
+
       const grantOnce = (): void => {
-        if (rewardEarned) return;
-        rewardEarned = true;
+        if (settled || rewardCallbackSeen) return;
+        rewardCallbackSeen = true;
         rewardTask = Promise.resolve()
           .then(() => request.onReward())
+          .then(() => {
+            rewardEarned = true;
+            this.track('ad_rewarded_grant', { platform: 'yandex', rewardId: request.rewardId });
+          })
           .catch((error: unknown) => {
-            rewardError = error instanceof Error ? error.message : String(error);
+            rewardError = errorMessage(error);
             console.error(`[ads] failed to persist rewarded grant ${request.rewardId}`, error);
           });
       };
 
-      const settle = (result: RewardedResult): void => {
+      const settle = (status: RewardedResult['status'], sdkError?: string): void => {
         if (settled) return;
         settled = true;
+        globalThis.clearTimeout(watchdog);
+
+        // The fullscreen surface is already gone once close/error/timeout settles.
+        // Resume gameplay/audio immediately, but keep fullscreenInFlight reserved
+        // until reward persistence finishes so a second rewarded write cannot race it.
+        this.releaseFullscreenActivity();
+
         void rewardTask.finally(() => {
-          this.endFullscreen();
-          resolve(rewardError ? { ...result, error: rewardError } : result);
+          this.fullscreenInFlight = false;
+          const error = rewardError ?? sdkError;
+          const result: RewardedResult = {
+            status: error ? 'error' : status,
+            rewardEarned,
+            ...(error ? { error } : {}),
+          };
+          if (result.status === 'closed') {
+            this.track('ad_rewarded_close', {
+              platform: 'yandex',
+              rewardId: request.rewardId,
+              rewardEarned: result.rewardEarned,
+            });
+          } else {
+            this.track('ad_rewarded_error', {
+              platform: 'yandex',
+              rewardId: request.rewardId,
+              rewardEarned: result.rewardEarned,
+              error: result.error ?? 'unknown',
+            });
+          }
+          resolve(result);
         });
       };
 
       try {
         this.sdk.adv.showRewardedVideo({
           callbacks: {
+            onOpen: () => this.track('ad_rewarded_open', { platform: 'yandex', rewardId: request.rewardId }),
             onRewarded: grantOnce,
-            onClose: () => settle({ status: 'closed', rewardEarned }),
-            onError: (error) => settle({ status: 'error', rewardEarned, error: error.message }),
+            onClose: () => settle('closed'),
+            onError: (error) => settle('error', error.message),
           },
         });
-      } catch (error) {
-        settle({
-          status: 'error',
-          rewardEarned,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      } catch (error: unknown) {
+        settle('error', errorMessage(error));
       }
     });
   }
@@ -175,28 +265,29 @@ export class YandexAdsAdapter implements AdsAdapter {
       if (visible) {
         const result = await this.sdk.adv.showBannerAdv();
         const status = await this.sdk.adv.getBannerAdvStatus();
-        return { isShowing: status.stickyAdvIsShowing, ...(result.reason ? { reason: result.reason } : {}) };
+        const response = { isShowing: status.stickyAdvIsShowing, ...(result.reason ? { reason: result.reason } : {}) };
+        this.track('ad_sticky_change', {
+          platform: 'yandex',
+          requestedVisible: true,
+          isShowing: response.isShowing,
+          ...(response.reason ? { reason: response.reason } : {}),
+        });
+        return response;
       }
 
       const result = await this.sdk.adv.hideBannerAdv();
-      return { isShowing: result.stickyAdvIsShowing };
-    } catch (error) {
-      return {
+      const response = { isShowing: result.stickyAdvIsShowing };
+      this.track('ad_sticky_change', { platform: 'yandex', requestedVisible: false, isShowing: response.isShowing });
+      return response;
+    } catch (error: unknown) {
+      const reason = errorMessage(error);
+      this.track('ad_sticky_change', {
+        platform: 'yandex',
+        requestedVisible: visible,
         isShowing: false,
-        reason: error instanceof Error ? error.message : String(error),
-      };
+        reason,
+      });
+      return { isShowing: false, reason };
     }
-  }
-
-  private beginFullscreen(): boolean {
-    if (this.fullscreenInFlight) return false;
-    this.fullscreenInFlight = true;
-    this.activity.setBlocked('ad', true);
-    return true;
-  }
-
-  private endFullscreen(): void {
-    this.fullscreenInFlight = false;
-    this.activity.setBlocked('ad', false);
   }
 }
