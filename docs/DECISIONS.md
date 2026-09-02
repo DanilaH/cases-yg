@@ -1,14 +1,14 @@
 # Decision ledger
 
-This file separates **what is actually accepted** from ideas that are still being evaluated. Do not silently promote provisional ideas into scope.
+This file separates **what is actually accepted** from ideas that are still being evaluated. Do not silently promote parked ideas into probe scope.
 
 Status meanings:
 
-- **LOCKED** — treat as source of truth unless new evidence directly invalidates it.
-- **ACCEPTED FOR PROBE** — include in the first behavioral version unless implementation cost proves materially larger than expected.
-- **PROVISIONAL** — promising, but must be explicitly confirmed before becoming a launch blocker.
+- **LOCKED** — source of truth unless new evidence directly invalidates it.
+- **LOCKED FOR PROBE** — required behavior for the first behavioral/public probe.
 - **PARKED** — useful later; do not block the probe.
-- **OPEN** — unresolved.
+- **LOCKED OUT** — deliberately excluded.
+- **HYPOTHESIS** — assumption to validate, not a product requirement.
 
 ---
 
@@ -22,27 +22,28 @@ Status meanings:
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | LOCKED | package → short open interaction → anticipation → reveal → rarity → collection/duplicate resolution → repeat |
 | Package form | LOCKED | stylized silver/translucent-lavender anti-static / foil mystery pouch |
-| Probe package model | LOCKED | exactly one Mystery Pouch type; it is always available and can be opened indefinitely without spending a package currency |
-| Probe package economy | LOCKED OUT | no package tiers, package prices, energy, store gating or consumable package inventory in the first behavioral probe |
+| Probe package model | LOCKED FOR PROBE | exactly one Mystery Pouch type; always available; unlimited free openings |
+| Probe package economy | LOCKED OUT | no package tiers, package prices, energy, store gating or consumable package inventory |
 | Tear interaction | LOCKED | one short left-to-right drag using a large star-shaped tear-tab along a horizontal tear line; no physics or multi-stage unpacking |
-| Reveal choreography after tear | LOCKED | tear strip detaches → pouch gives a tiny recoil/twitch → short rarity-tinted flash from inside → gadget rises/scales into center → pouch drops/fades backward → gadget overshoots slightly and settles → rarity + NEW/duplicate state appears; target ~1.0–1.4 s after drag |
-| Package presence during reveal | LOCKED | pouch remains visible for the first ~0.3–0.4 s as the physical source of the item; gadget visibly emerges from it, then the pouch slides down / scales slightly down / fades so the collectible becomes the sole visual hero |
-| Reveal FX | LOCKED | runtime-only, cheap Phaser effects: soft radial flash, small sparkle burst, one ring/outline pulse and rarity-tinted glow; Epic/Legendary may add a tiny camera bump and denser particles; no expensive shaders or baked effect-heavy item art |
-| Reveal skip in first probe | LOCKED OUT | full reveal always plays; tap/click does not skip or accelerate it in the first probe |
-| Primary screen architecture | LOCKED FOR PROBE | Opening is the clean primary scene and Collection is the only separate gameplay surface required by the first probe; Mod Bench is parked |
-| Scene transition UX | LOCKED | transitions between Opening and Collection must feel effectively instant; no blocking asset load, network wait, or long transition animation on navigation |
-| Opening HUD budget | LOCKED | maximum persistent gameplay HUD in the probe is Signal + Collection navigation; Tech Parts and Mod Bench are parked, and no streaks, extra currencies or leaderboard widgets should be added |
-| Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress |
-| Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD is dimmed/temporarily de-emphasized and cannot compete with or interrupt the reward presentation; it returns immediately after resolution |
-| First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection and Signal contextually when they first become relevant |
-| Primary orientation | LOCKED | landscape only for the first probe |
-| Responsive philosophy | LOCKED | true adaptive landscape layout, not a fixed 16:9 board scaled with FIT. Canvas follows the available viewport; meaningful UI uses anchors/constraints and decorative background absorbs excess space |
-| Reference composition | LOCKED | 16:9 is the art/layout reference, but the same scene must remain functional and coherent across approximately 5:4 through 12:5 landscape aspect ratios |
-| Responsive modes | LOCKED | `compact` 1.25–1.50, `standard` >1.50–1.95, `wide` >1.95–2.40. Breakpoints affect spacing/density and modest object scale, not the core interaction flow |
-| Extreme aspect behavior | LOCKED | outside the target aspect range, clamp the meaningful composition to the supported core and use decorative background/fill rather than stretching, cropping critical UI or reflowing into a different game |
-| Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
-| Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
-| Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
+| Reveal choreography | LOCKED | tear strip detaches → pouch recoil/twitch → rarity-tinted flash → gadget visibly rises/scales from pouch → pouch drops/fades → gadget overshoots/settles → rarity + NEW/duplicate; target ~1.0–1.4 s after drag |
+| Package presence during reveal | LOCKED | pouch remains the physical source for the first ~0.3–0.4 s before exiting behind the collectible |
+| Reveal FX | LOCKED | cheap runtime-only Phaser effects: soft radial flash, small sparkle burst, ring/outline pulse, rarity glow; Epic/Legendary may add tiny camera bump and denser particles |
+| Reveal skip | LOCKED OUT FOR PROBE | no tap-to-skip, acceleration or x5 opening in the first probe; Quick Reveal is a required post-data revisit |
+| Primary screen architecture | LOCKED FOR PROBE | Opening is primary; Collection is the only separate persistent gameplay surface; reveal choreography stays inside Opening rather than switching to a separate Reveal scene |
+| Scene transition UX | LOCKED | Opening ↔ Collection must feel effectively instant with no user-visible loading |
+| Opening HUD budget | LOCKED FOR PROBE | Signal + Collection navigation only |
+| Opening HUD progressive disclosure | LOCKED | Collection navigation appears after first reveal; Signal appears on first Signal gain |
+| Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD dims and cannot interrupt the reward presentation |
+| First-session tutorial | LOCKED | no modal tutorial; teach tear gesture, Collection and Signal contextually |
+| Primary orientation | LOCKED | landscape-only for first probe |
+| Responsive philosophy | LOCKED | true adaptive landscape layout; canvas follows viewport; semantic anchors/constraints; no fixed 16:9 board simply scaled with FIT |
+| Reference composition | LOCKED | 16:9 reference, coherent target range approximately 5:4 through 12:5 |
+| Responsive modes | LOCKED | `compact` 1.25–1.50, `standard` >1.50–1.95, `wide` >1.95–2.40 |
+| Extreme aspect behavior | LOCKED | clamp meaningful composition; use decorative fill/atmosphere instead of stretching or cropping critical UI |
+| Production philosophy | LOCKED | ultra-low production burden; do not turn the probe into a large game |
+| Primary RU store title | LOCKED CANDIDATE | `Мистери Гаджеты: Ретро Распаковка`; change only if catalog uniqueness/moderation forces it |
+| EN title | LOCKED CANDIDATE | `Mystery Pocket Tech` |
+| Audience | HYPOTHESIS | primary visual target roughly 14–27, likely female-skewed but not exclusive; secondary nostalgia target roughly 25–35 |
 
 ---
 
@@ -51,83 +52,110 @@ Status meanings:
 | Decision | Status | Current answer |
 |---|---|---|
 | Rendering | LOCKED | stylized 2D / painted 2.5D |
-| Real-device references | LOCKED | yes; recognizable archetypes are desirable |
-| Exact branded models/logos | LOCKED | avoid exact logos/model names and unnecessary 1:1 copying |
-| Perspective | LOCKED | front-facing or very soft 3/4 depending on which angle best expresses the device; no dramatic/deep perspective |
+| Real-device references | LOCKED | recognizable archetypes are desirable |
+| Exact branded models/logos | LOCKED OUT | avoid logos/model names and unnecessary 1:1 copies |
+| Perspective | LOCKED | front-facing or very soft 3/4 depending on readability; no dramatic/deep perspective |
 | Shape language | LOCKED | compact, chunky, softened, slightly toyified |
 | Material language | LOCKED | candy plastic, translucent/frosted shells, pearlescent/iridescent treatments, controlled chrome/metal accents |
-| Decoration | LOCKED | charms/decals allowed sparingly; gadget identity first, kawaii garnish second |
-| Package visual grammar | LOCKED | circular mystery `?` badge, three small gadget silhouettes, restrained circuit traces, large functional star tear-tab; minimal/no baked product text |
+| Decoration | LOCKED | charms/decals sparingly; gadget identity first |
+| Package visual grammar | LOCKED | circular `?` badge, three small gadget silhouettes, restrained circuit traces, large star tear-tab, minimal/no baked product text |
 | Package reference asset | LOCKED | `docs/assets/package-mystery-pouch-v1.webp` |
-| Collection environment | LOCKED | cozy Y2K shelf/desk/display with fixed slots rather than free placement |
-| Gadget art exploration | LOCKED | for each base gadget, generate roughly 6–10 exploratory candidates, choose one canonical master, then derive the four standard rarity variants from that same selected design |
-| Rarity variant consistency | LOCKED | Common/Rare/Epic/Legendary are four rarity executions of one base gadget, not four independently redesigned devices; preserve core geometry, camera angle and recognizable identity |
-| Rarity sheet workflow | ALLOWED | a 2×2 rarity sprite/reference sheet is a valid production format when it preserves consistency; it is a production convenience, not a runtime architecture requirement |
+| Collection environment | LOCKED | cozy illustrated Y2K shelf/desk/display with fixed presentation positions |
+| Gadget art exploration | LOCKED | each base gadget: ~6–10 exploratory candidates → one canonical master → four derived standard rarity variants |
+| Rarity consistency | LOCKED | preserve geometry, camera angle, major controls and identity across Common/Rare/Epic/Legendary |
+| Runtime collectible export | LOCKED FOR PROBE | transparent 1024×1024 WebP; source master target 1536×1536 where tool quality permits, never below 1024×1024 |
+| Art pipeline | LOCKED | operational workflow lives in `ART_PRODUCTION.md` |
 
 ---
 
-## Rarity
+## Rarity / content
 
 | Decision | Status | Current answer |
 |---|---|---|
 | Standard rarity count | LOCKED | 4 |
 | Ladder | LOCKED | Common → Rare → Epic → Legendary |
-| Probe standard odds | LOCKED BASELINE | Common **60%**, Rare **28%**, Epic **10%**, Legendary **2%** |
-| Probe family split | LOCKED | choose Camera vs Flip Phone at **50/50**, independently from the standard rarity roll |
-| Common | LOCKED | solid or mostly solid candy plastic; simple but already desirable |
+| Probe standard odds | LOCKED FOR PROBE | Common **60%**, Rare **28%**, Epic **10%**, Legendary **2%** |
+| Probe family split | LOCKED FOR PROBE | Camera vs Flip Phone at **50/50**, independent of rarity |
+| Common | LOCKED | solid/mostly solid candy plastic; simple but desirable |
 | Rare | LOCKED | translucent/frosted material + restrained premium accent |
-| Epic | LOCKED | pearlescent/iridescent/premium surface + richer trim/accessory |
+| Epic | LOCKED | pearlescent/iridescent treatment + richer trim/accessory |
 | Legendary | LOCKED | clear shell + stylized visible internals + premium metallic treatment |
-| First-three onboarding protection | LOCKED | first 3 standard openings are guaranteed to produce undiscovered standard variants; the second opening must use the opposite gadget family from the first so both Camera and Flip Phone are introduced immediately |
-| Ongoing hidden duplicate protection | LOCKED OUT | after the first 3 protected openings, ordinary standard rolls use normal RNG; duplicate frustration is handled by Signal rather than a permanent hidden reroll system |
-| Reveal FX baked into item art | LOCKED | no; glow/particles/burst belong primarily to reveal presentation |
-| Secret/Chase tier | LOCKED | exists outside normal rarity ladder |
-| Secret quantity at launch | LOCKED RANGE | 2–3 total, not one per base gadget |
-| Secret design rule | LOCKED | special edition, not a fifth rarity color; can change ~15–25% of design details/geometry |
-| Secret collection completion | LOCKED | not required for main collection completion |
-| Secret exact drop chance | OPEN | Secret/Hidden Pocket is a separate post-standard roll and does not consume or dilute the 100% standard rarity table; exact chance remains to be tuned |
+| First-three protection | LOCKED FOR PROBE | first 3 standard openings are undiscovered standard variants; opening #2 must use the opposite family from opening #1 |
+| Ongoing hidden anti-duplicate | LOCKED OUT | after opening #3 ordinary standard rolls use normal RNG; Signal is the visible mitigation system |
+| Probe base gadgets | LOCKED FOR PROBE | exactly **Digital Camera** and **Flip Phone** |
+| Standard variants per gadget | LOCKED | 4 each |
+| Probe standard content | LOCKED | **8 standard collectible variants** total |
+| Probe Secrets | LOCKED FOR PROBE | exactly **2**: one Secret Camera and one Secret Flip Phone |
+| Secret Camera | LOCKED | cold cyan/cosmic translucent special edition with distinctive Saturn/planet charm and altered lens/face details |
+| Secret Flip Phone | LOCKED | purple/music-edition special with altered faceplate/controls/accessory language |
+| Secret design rule | LOCKED | outside normal rarity ladder; may change roughly 15–25% geometry/details; must feel like special edition, not fifth rarity color |
+| Secret completion | LOCKED OUT | Secrets do not count toward standard 8/8 completion |
+| Reveal FX baked into item art | LOCKED OUT | reward glow/particles/bursts belong to runtime presentation |
+| Additional gadget families | PARKED | add only after behavioral validation |
 
 ---
 
-## Progression / retention
+## Signal / duplicate handling
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Signal meter / pity system | LOCKED FOR PROBE | Signal is global and increases only on standard duplicates. Common duplicate +25, Rare +20, Epic +15, Legendary +10; cap at 100 until consumed |
-| SIGNAL LOCK reward | LOCKED | when Signal reaches 100, the next standard reveal is forced to an undiscovered non-Legendary variant if any remain. If all six Common/Rare/Epic variants are already discovered, it instead forces a Rare/Epic standard result; it never forces Legendary |
-| Signal reset | LOCKED | consuming SIGNAL LOCK resets Signal to 0 after the forced standard result is transactionally resolved |
-| Signal ↔ Secret | LOCKED OUT | Signal never affects Secret/Hidden Pocket probability or outcome; the post-standard Hidden Pocket roll remains independent |
-| Signal UI | LOCKED DIRECTION | reveal Signal only when it first gains progress; show compact LCD/antenna-style meter, explicit `+Signal` feedback on duplicate and a short `SIGNAL LOCK` pulse/scan treatment when full |
-| Tech Parts | PARKED | remove from the first behavioral probe. Signal already gives duplicates visible progression; do not add a second currency before the core opener validates |
-| Mod Bench / deterministic upgrade | PARKED | remove the scene, navigation and upgrade economy from the first behavioral probe; reconsider only if repeated-opening data shows Signal alone is insufficient |
-| Hidden Pocket / rare second reveal | ACCEPTED FOR PROBE | after an apparently complete normal reveal, a rare automatic second beat can make the pouch twitch/return and reveal a bonus or Secret; no second player input. Treat it as surprise presentation, not a new unpacking mechanic |
-| Hidden Pocket ↔ Secrets | ACCEPTED DIRECTION | Hidden Pocket is the preferred thematic channel for Secret/Chase acquisition rather than presenting Secrets as a plain fifth-rarity roll; exact chance/reward table remains open |
-| Quick Reveal | PARKED | not in first probe, but **must be revisited deliberately after repeated-opening testing / early behavioral data**; likely shorter ~0.4–0.6 s reveal if the full animation becomes friction. Do not silently forget this decision point. |
-| Room/shelf evolution milestones | PARKED | use one evolving collection scene instead of multiple biomes/worlds |
-| Daily Spotlight / rotating family boost | PARKED | possible return hook; do not block first probe |
-| Daily reward streak | PARKED | conventional retention system; only after core loop validates |
-| Leaderboard | PARKED | low priority for the collectible fantasy |
-| Market/trading | LOCKED OUT | do not build |
-| Gambling-like crash/jackpot/double | LOCKED OUT | do not build |
-| Minigame currency faucets | LOCKED OUT | do not build for probe |
-| Multiple biomes/worlds | LOCKED OUT FOR PROBE | too much content burden |
+| Signal | LOCKED FOR PROBE | global visible pity system; only standard duplicates add Signal |
+| Signal gains | LOCKED | Common dup +25, Rare +20, Epic +15, Legendary +10; cap at 100 |
+| New item Signal | LOCKED OUT | new discoveries add no Signal |
+| SIGNAL LOCK early/mid collection | LOCKED | if any Common/Rare/Epic standard variant is missing, the next standard reveal is forced to an undiscovered non-Legendary variant |
+| SIGNAL LOCK late collection | LOCKED | once all six non-Legendary variants are discovered, the armed next standard roll uses **Rare 60% / Epic 30% / Legendary 10%**, with family still 50/50; no Common; Legendary is boosted but never guaranteed |
+| Signal reset | LOCKED | reset to 0 only after the armed standard result commits |
+| Signal after 8/8 standard completion | LOCKED | stop gaining Signal and mark the standard collection complete; do not run a meaningless pity loop after all standard variants are owned |
+| Signal ↔ Hidden Pocket | LOCKED OUT | Signal never changes Hidden Pocket/Secret probability or result |
+| Signal UI | LOCKED | compact LCD/antenna meter; explicit `+Signal`; short `SIGNAL LOCK` glitch/pulse; restrained scan treatment on armed pouch |
+| Tech Parts | PARKED | not in probe |
+| Mod Bench | PARKED | not in probe |
 
 ---
 
-## Content model
+## Hidden Pocket / chase
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Full content target | WORKING MODEL | expand to additional gadget families only after the behavioral probe validates; the old ~24-base-gadget target is no longer a probe commitment |
-| Probe base gadgets | LOCKED | exactly 2 base gadget collections: **Digital Camera** and **Flip Phone** |
-| Standard variants per gadget | LOCKED | each probe gadget has 4 standard rarity variants: Common, Rare, Epic, Legendary |
-| Probe standard variant count | LOCKED | 2 × 4 = **8 standard collectible variants** |
-| Probe Secrets | LOCKED RANGE | **1–2 special chase items** outside standard completion; exact Camera/Flip Phone assignment remains open |
-| Main Shelf representation | LOCKED | one shelf slot per base gadget; therefore the probe shelf has 2 primary slots, each displaying the best/highest-rarity version currently owned for Camera or Flip Phone |
-| Library / Catalog | LOCKED | separate collection sub-surface shows all 8 standard Camera/Flip Phone rarity variants plus Secret discovery state; this is the exhaustive completionist/checklist view |
-| Shelf vs Library purpose | LOCKED | Shelf is the attractive display of the player's best Camera and Flip Phone finds; Library is the exhaustive record of all rarity variants and Secrets |
-| Probe grouping | LOCKED | `Camera` and `Flip Phone` are the two entire probe collections; do not reinterpret this as two six-item collections |
-| Package tiers | LOCKED OUT FOR PROBE | exactly one unlimited free Mystery Pouch; multiple package tiers may only be reconsidered after the core loop validates and a larger content/economy model gives them a real purpose |
+| Hidden Pocket | LOCKED FOR PROBE | rare automatic second reveal after the normal result; no second player input |
+| Activation | LOCKED | disabled for the first 3 onboarding openings; beginning with opening #4, make an independent **3% post-standard roll** while an undiscovered Secret remains |
+| Reward | LOCKED | Hidden Pocket always awards an undiscovered Secret in the probe; no generic bonus reward table |
+| Secret duplicate protection | LOCKED | Secret results are always undiscovered; no Secret duplicates |
+| After both Secrets | LOCKED | Hidden Pocket stops triggering for the probe |
+| Animation budget | LOCKED | ~0.9–1.1 s additional beat: brief pause → pouch twitch/return → distinct sound/inner flash → Secret reveal |
+| Signal interaction | LOCKED OUT | independent from Signal and standard rarity |
+
+---
+
+## Collection
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Collection surface | LOCKED FOR PROBE | one `CollectionScene` with two internal views: Shelf (default) and Library |
+| Shelf slots | LOCKED | two hero positions: Camera and Flip Phone |
+| Shelf display priority | LOCKED | show best owned visual per family: Secret > Legendary > Epic > Rare > Common; missing family uses silhouette/empty stand |
+| Shelf progress | LOCKED | show compact per-family mastery `x/4` for standard variants; Secret tracked separately |
+| Library structure | LOCKED | Camera row + Flip Phone row; each shows Common/Rare/Epic/Legendary plus one Secret slot; missing standard = silhouette, missing Secret = `???` |
+| Library responsive density | LOCKED | standard/wide may show a whole family row; compact may wrap cards but does not change semantics |
+| Item detail | LOCKED OUT FOR PROBE | no separate item detail page/modal; Library card state is enough |
+| Headline completion | LOCKED | **standard collection = 8/8**; this is the main completion state |
+| Base-family `2/2` | LOCKED | informational only; not headline completion because onboarding makes it trivial |
+| Secrets | LOCKED | separate `Secrets 0/2`; never required for 8/8 completion |
+| Completion celebration | LOCKED | one short non-blocking celebration the first time 8/8 is reached; player can immediately continue opening/chasing Secrets |
+| Return affordance | LOCKED | obvious Back/Open More action returns instantly to Opening |
+
+---
+
+## Monetization / validation
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Ads in first behavioral probe | LOCKED OUT | no rewarded or interstitial ads in first probe; keep behavior measurement clean |
+| Artificial scarcity for ads | LOCKED OUT | never add energy/package scarcity merely to manufacture an ad reward |
+| Monetization pass | PARKED | evaluate only after core continuation gates are met |
+| Analytics | LOCKED | built-in Yandex Games metrics + Yandex Metrica custom gameplay events through a typed adapter; no analytics backend |
+| Validation gates | LOCKED | defined in `PROBE_VALIDATION.md`; first serious decision after ≥500 first-package interactions and ≥7 days, absent instrumentation/technical failures |
+| Quick Reveal | PARKED / REQUIRED REVISIT | explicitly reevaluate after repeated-opening data; likely ~0.4–0.6 s mode if full reveal becomes friction |
 
 ---
 
@@ -139,20 +167,27 @@ Status meanings:
 | Build/dev tooling | LOCKED | Vite |
 | Language | LOCKED | strict TypeScript |
 | React | LOCKED OUT | do not use React for game runtime |
-| Physics | LOCKED OUT BY DEFAULT | not required for current deterministic opener |
-| Yandex SDK | LOCKED | integrate through a platform adapter |
-| Save | LOCKED | local-first save is enough for probe |
-| Backend/login | LOCKED OUT FOR PROBE | no backend and no required login |
-| Anti-reroll | LOCKED | persist `pendingReveal` before reveal animation, then commit inventory and clear it |
-| Scene loading policy | LOCKED | preload/shared-load assets needed by Opening and Collection before normal navigation; scene changes must not trigger user-visible asset loading |
-| Scene transition budget | LOCKED TARGET | target transition response ~100–200 ms plus only a very short cosmetic fade/slide if used; if navigation feels like a page load, implementation is wrong |
-| Responsive coordinate model | LOCKED | use a stable logical height of 720 units and derive logical width from viewport aspect, clamped roughly to 900–1728 units; scenes recompute layout on resize instead of scaling one immutable 1280×720 composition |
-| Safe-area policy | LOCKED | anchors must honor browser/device safe insets plus internal margins. Critical controls never touch the viewport edge; use roughly 3–5% responsive margins with practical min/max clamps |
-| Touch target floor | LOCKED | interactive controls must remain at least ~44 CSS px in effective hit size on mobile landscape, even when visual art is smaller |
-| Stretch/crop policy | LOCKED OUT | never non-uniformly stretch gameplay art/UI; decorative backgrounds may crop or extend, critical UI/package/reward content may not |
+| Physics | LOCKED OUT | not needed |
+| Yandex SDK | LOCKED | thin platform adapter; call loading/gameplay lifecycle correctly |
+| Save | LOCKED | local-first, versioned; no required login/backend/cloud for probe |
+| Persistent discovery model | LOCKED | store discovered standard IDs + discovered Secret IDs; duplicates are not retained as an inventory stack |
+| Anti-reroll transaction | LOCKED | determine full standard result + optional Hidden Pocket result + Signal consequences, persist `pendingReveal`, animate, commit once, clear pending |
+| Scene loading | LOCKED | preload/cache Opening + Collection critical assets before normal navigation; no user-visible scene asset loading |
+| Scene transition budget | LOCKED TARGET | ~100–200 ms perceived response plus at most a very short cosmetic transition |
+| Responsive coordinate model | LOCKED | stable logical height 720; logical width = clamped viewport aspect × 720, roughly 900–1728 |
+| Safe-area policy | LOCKED | browser/device safe insets + ~3–5% responsive internal margins with clamps |
+| Touch target floor | LOCKED | ~44 CSS px effective hit size |
+| Stretch/crop policy | LOCKED OUT | never non-uniformly stretch gameplay art/UI; only decorative backgrounds may crop/extend |
 
 ---
 
-## Scope warning
+## Scope / delivery
 
-The probe is intentionally much smaller than the old 12- or 24-gadget planning models: **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**. Tech Parts and Mod Bench are explicitly parked. Re-estimate implementation after the remaining probe systems are locked, but do not inflate content or meta-economy before the core opening loop proves itself.
+| Decision | Status | Current answer |
+|---|---|---|
+| First-probe content | LOCKED | 8 standard assets + 2 Secrets; no additional families |
+| First-probe systems | LOCKED | opener/reveal, Signal, Hidden Pocket, Shelf/Library, local save, Yandex lifecycle, analytics |
+| Excluded probe systems | LOCKED OUT | package economy, Tech Parts, Mod Bench, ads, dailies, leaderboard, trading, minigames, 3D |
+| Rebased effort | LOCKED TARGET | approximately **5–8 focused days** excluding moderation waiting; perform scope review rather than silent expansion if submission-ready build exceeds ~8 focused days |
+
+The probe is now considered **implementation-ready**. Remaining questions are post-validation tuning or store-submission verification, not blockers for coding.
