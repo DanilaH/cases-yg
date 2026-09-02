@@ -66,16 +66,15 @@ See `DECISIONS.md` and `TECHNICAL_DIRECTION.md`.
 
 ---
 
-# 4. Content matrix — STRUCTURE RESOLVED, LINEUP NEXT
+# 4. Content matrix — RESOLVED FOR PROBE
 
-Locked structural model:
+Locked probe content:
 
-- first behavioral probe = **12 base gadgets**;
-- split into **2 mini-collections of 6 gadgets**;
-- every base gadget has Common / Rare / Epic / Legendary variants;
-- total probe standard content = **48 rarity variants**;
+- exactly **2 base gadget collections**: **Digital Camera** and **Flip Phone**;
+- each has Common / Rare / Epic / Legendary;
+- total standard probe content = **8 rarity variants**;
 - add **1–2 Secrets** outside the standard ladder;
-- fuller post-validation target may grow toward ~24 base gadgets, but the probe does not wait for that volume.
+- do not expand to more gadget families until the behavioral probe validates the core loop.
 
 Locked art-production rule per base gadget:
 
@@ -85,32 +84,29 @@ Locked art-production rule per base gadget:
 4. preserve core geometry, camera angle and device identity across rarity variants;
 5. a 2×2 rarity sheet is allowed as a production convenience when consistency holds.
 
-Still need to decide:
+Locked collection representation:
 
-- themes/names of the two six-item mini-collections;
-- exact 12 base gadget lineup;
-- family distribution across those collections;
-- final color/material assignments where rarity grammar leaves freedom;
-- 1–2 exact Secret concepts;
-- naming rules for devices/variants.
+- Shelf has **2 primary slots**, one Camera and one Flip Phone;
+- each slot shows the best/highest-rarity version owned;
+- Library/Catalog shows all 8 standard variants and Secret discovery state.
 
-Do not mass-produce final art until the 12-item lineup is locked.
+Still-open visual details such as exact Secret concepts and final naming can be resolved during art-production work; they do not justify adding more base gadgets to the probe.
 
 ---
 
-# 5. Package tiers
+# 5. Package tiers — NEXT
 
-Old handoff assumed roughly 3 package tiers. This needs fresh review now that Signal and Mod Bench exist.
+Old handoff assumed roughly 3 package tiers. This now needs an even harder simplification review because the probe contains only Camera + Flip Phone.
 
 Questions:
 
-- Is a free/basic package always available?
-- Are there 2 or 3 tiers?
-- What differentiates tiers: rarity odds, family targeting, Signal gain, price?
-- Does Daily Spotlight replace some tier complexity?
-- Can the economy deadlock?
+- Is there just one always-openable/basic package in the probe?
+- If multiple packages exist, what meaningful choice can they create with only two gadget families?
+- Is any package currency required at all, or should repeat opening be frictionless for the behavioral test?
+- Should rarity odds vary by package, or is that unnecessary complexity before validation?
+- Does the economy ever deadlock?
 
-Goal: smallest package model that creates meaningful choice without turning into a store simulator.
+Goal: **smallest possible package model that still lets us test the opening/reward loop honestly.** Do not preserve 2–3 package tiers just because the old handoff mentioned them.
 
 ---
 
@@ -125,13 +121,13 @@ Need final probability model for:
 - Secret acquisition;
 - Hidden Pocket;
 - new-item protection;
-- package-tier modifiers.
+- any package modifier if section 5 keeps one.
 
 Do not choose percentages in isolation. Balance against:
 
 - average time per opening;
 - expected session length;
-- collection size;
+- tiny 8-variant standard collection;
 - duplicate conversion;
 - Signal fill speed.
 
@@ -145,12 +141,14 @@ Decide:
 
 - what increases Signal;
 - exact increments;
-- global vs per package;
+- global vs any package-specific implementation;
 - full-meter reward;
 - reset rules;
 - interaction with Legendary/Secret;
 - whether `SIGNAL LOCK` guarantees `NEW`, `Rare+`, or both;
 - how it is communicated without clutter.
+
+Because the probe contains only eight standard variants, verify that Signal still adds value rather than over-solving progression.
 
 ---
 
@@ -163,10 +161,10 @@ Decide:
 - duplicate-to-parts values by rarity;
 - whether extra copies are stored or immediately recycled;
 - upgrade model;
-- 3-choice offer vs direct same-item rarity upgrade;
+- whether the tiny Camera/Flip Phone content pool makes direct same-item upgrade preferable to a 3-choice offer;
 - costs;
 - whether lower-rarity item is consumed;
-- how to prevent Mod Bench from trivializing collection completion;
+- how to prevent Mod Bench from trivializing the eight-item standard collection;
 - exact unlock timing after the first duplicate introduction.
 
 ---
@@ -178,6 +176,7 @@ Hidden Pocket is accepted for the probe. Remaining tuning:
 - trigger chance;
 - allowed rewards;
 - exact Secret relationship;
+- whether the 1–2 probe Secrets map one-to-one to Camera/Flip Phone or use another pattern;
 - final animation budget;
 - analytics representation.
 
@@ -190,16 +189,14 @@ Keep it cheap and automatic; kill any implementation that turns it into a second
 Locked direction:
 
 - **Main Shelf** is the attractive collection display;
-- one shelf slot per base gadget;
-- each slot shows the best/highest-rarity version currently owned for that gadget;
-- **Library / Catalog** is a separate nearby collection sub-surface showing all gadgets and Common/Rare/Epic/Legendary discovery states;
-- Secrets are tracked separately from the standard rarity ladder;
-- first probe shelf therefore has 12 base slots rather than 48 rarity slots.
+- probe Shelf has one Camera slot and one Flip Phone slot;
+- each slot shows the best/highest-rarity version currently owned;
+- **Library / Catalog** is a separate nearby collection sub-surface showing all 8 standard rarity variants plus Secret discovery state;
+- Secrets are tracked separately from the standard rarity ladder.
 
 Still need a concrete visual/UI spec for:
 
-- shelf/desk composition;
-- how the two six-item mini-collections are arranged;
+- shelf/desk composition with only two hero slots;
 - locked-slot appearance;
 - Library navigation and density;
 - item detail behavior, if any;
@@ -210,13 +207,13 @@ Still need a concrete visual/UI spec for:
 
 # 11. Collection completion semantics — PARTIALLY RESOLVED
 
-The UI structure now naturally supports two layers:
+The UI structure naturally supports:
 
-- Shelf/base-gadget progress;
-- Library rarity-variant mastery;
+- base-gadget ownership: Camera / Flip Phone;
+- Library rarity mastery: 8 standard variants;
 - Secrets tracked separately.
 
-Still need to explicitly decide which of these counts as the game's headline `collection complete` state and how the progress numbers are presented. Do not assume Secrets are required; the existing rarity decision says they are outside main completion.
+Still need to explicitly decide which state is the headline `collection complete` state and how the progress numbers are presented. Secrets remain outside main completion.
 
 ---
 
@@ -227,8 +224,8 @@ Need exact first-probe use.
 Possible low-distortion options:
 
 - bonus Tech Parts;
-- one extra package;
-- temporary Spotlight/family boost.
+- one extra package/opening if the package economy actually needs a consumable;
+- another simple progression boost compatible with the tiny content pool.
 
 Avoid:
 
@@ -301,4 +298,4 @@ Do not spend time naming before the visual hook is stable.
 
 After sections 1–10 are locked, recalculate MVP/probe effort.
 
-The previous ~7 focused-day kill boundary predates the accepted Signal/Mod Bench/Secret direction. Preserve the **low-burden constraint**, but do not pretend the old number is still validated.
+The content scope is now aggressively reduced to **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**, so the old larger-content estimates are obsolete. Preserve this low-burden probe unless behavioral evidence justifies expansion.
