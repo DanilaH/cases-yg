@@ -4,25 +4,26 @@ This is the queue for the next discussion. Work through it deliberately and move
 
 ---
 
-# 1. Package and opening UX
+# 1. Package and opening UX — RESOLVED
 
-Need to decide:
+Locked direction:
 
-- package visual type: foil blind pouch, anti-static-style pouch, small box, capsule, blister-like tech pack, etc.;
-- whether there is one package appearance or several tiers;
-- exact single interaction: tap, short pull, swipe tear, tab drag, etc.;
-- reveal timing;
-- skip/fast behavior;
-- whether package remains visually present during reveal;
-- how Hidden Pocket would physically fit the package if included.
+- silver/translucent-lavender anti-static / foil mystery pouch;
+- star-shaped tear-tab with one short left-to-right drag;
+- deterministic one-action opening, no physics or multistage manipulation;
+- ~1.0–1.4 s full reveal after tear;
+- package remains the physical source for the first ~0.3–0.4 s, then exits so the gadget owns the frame;
+- cheap runtime rarity FX only;
+- no skip in first probe; Quick Reveal must be revisited after repeated-opening tests;
+- Hidden Pocket accepted for probe as a rare automatic second reveal without additional player input.
 
-This is the next major product/UX block.
+See `DECISIONS.md`, `GAMEPLAY_SYSTEMS.md`, and `ART_DIRECTION.md`.
 
 ---
 
-# 2. Screen flow / state machine
+# 2. Screen flow / state machine — RESOLVED
 
-Need to freeze exact flow:
+Locked direction:
 
 ```text
 Boot
@@ -34,32 +35,38 @@ Boot
 ↘ Mod Bench
 ```
 
-Questions:
+- Opening is the clean primary scene;
+- Collection and Mod Bench are separate fast scenes/surfaces;
+- scene navigation must feel effectively instant;
+- opener HUD budget is Signal + Tech Parts + Collection + Mod Bench only;
+- HUD is introduced progressively when systems become meaningful;
+- first-session teaching is contextual, not a modal tutorial.
 
-- Is Collection a separate scene or overlay?
-- When does the player first see Signal?
-- When is Mod Bench introduced?
-- Where is Tech Parts balance shown?
-- How many persistent HUD elements are acceptable before opener becomes cluttered?
-- What happens on the very first session/tutorial?
-
----
-
-# 3. Orientation / responsive composition
-
-Must decide before implementation:
-
-- portrait vs landscape primary target;
-- logical Phaser resolution;
-- desktop presentation;
-- mobile/tablet safe areas;
-- collection layout at different aspect ratios.
-
-This affects every art/layout decision and is a true blocker.
+See `DECISIONS.md` and `TECHNICAL_DIRECTION.md`.
 
 ---
 
-# 4. Content matrix
+# 3. Orientation / responsive composition — RESOLVED
+
+Locked direction:
+
+- landscape-only first probe;
+- true adaptive canvas/layout, not fixed 1280×720 `FIT`;
+- 16:9 reference composition;
+- coherent target range approximately 5:4 through 12:5;
+- modes: compact 1.25–1.50, standard >1.50–1.95, wide >1.95–2.40;
+- stable logical height 720 with derived/clamped logical width ~900–1728;
+- anchor/constraint layout with shared `LayoutMetrics`;
+- safe insets + responsive internal margins;
+- ~44 CSS px minimum effective touch targets;
+- decorative background absorbs extra space; critical UI/content never stretches or crops;
+- no separate portrait composition in the first probe.
+
+See `DECISIONS.md` and `TECHNICAL_DIRECTION.md`.
+
+---
+
+# 4. Content matrix — NEXT
 
 Working model is around 24 base gadgets, likely including families such as:
 
@@ -163,21 +170,17 @@ Decide:
 
 ---
 
-# 9. Hidden Pocket decision
+# 9. Hidden Pocket tuning
 
-Currently provisional.
-
-Need explicit yes/no after package UX is designed.
-
-If yes, decide:
+Hidden Pocket is accepted for the probe. Remaining tuning:
 
 - trigger chance;
 - allowed rewards;
-- Secret relationship;
-- animation budget;
-- whether event is visible in collection/analytics.
+- exact Secret relationship;
+- final animation budget;
+- analytics representation.
 
-Kill it if it complicates the one-action opener materially.
+Keep it cheap and automatic; kill any implementation that turns it into a second unpacking mechanic.
 
 ---
 
