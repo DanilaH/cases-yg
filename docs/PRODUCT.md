@@ -2,267 +2,203 @@
 
 ## 1. Product thesis
 
-**Mystery Pocket Tech** / RU store candidate **«Мистери Гаджеты: Ретро Распаковка»** is a tiny Yandex Games collectible opener built around one strong object fantasy:
+**Mystery Pocket Tech** / RU working title **«Мистери Гаджеты: Ретро Распаковка»** is a Yandex Games collectible opener built around one strong object fantasy:
 
-> **Open mystery package → reveal a stylized Y2K pocket gadget → discover rarity → improve a visible collection → repeat.**
+> **Open mystery tech → reveal a stylized Y2K gadget → discover rarity → improve a visible collection → repeat.**
 
-The asymmetric bet is deliberately small:
-
-- tiny production burden;
-- immediately readable one-gesture interaction;
-- strong visual reward;
-- recognizable/trendy object theme;
-- visible collection payoff;
-- one simple duplicate-mitigation system;
-- one rare surprise/chase beat.
-
-It is not trying to become a broad case simulator.
+The product should stay mechanically compact, but the **public release is not intended to contain only two gadget families**. Low production burden means a repeatable content factory, not an artificially tiny final catalog.
 
 ---
 
-## 2. Player fantasy
+## 2. Development stages — LOCKED
 
-> **“I’m opening tiny mystery tech from the early 2000s and building a dream shelf of nostalgic pocket gadgets.”**
+### Stage A — internal vertical slice
 
-This is a collectible-toy fantasy, not:
+Private build for the user/developer only.
 
-- repair simulation;
-- technology education;
-- realistic electronics collecting;
-- inventory-management game;
-- room builder;
-- casino/case economy simulator.
+Purpose:
 
----
+- verify tearing/reveal feel hands-on;
+- validate Camera/Flip Phone art grammar and rarity escalation;
+- validate Signal and Hidden Pocket behavior;
+- validate Collection UX;
+- validate save/recovery;
+- validate responsive desktop/mobile landscape behavior;
+- validate Yandex SDK, lifecycle, analytics and **advertising integration** in draft/debug mode.
 
-## 3. Audience hypothesis
+Content:
 
-This remains a hypothesis to validate rather than a hard demographic requirement.
+- Digital Camera;
+- Flip Phone;
+- four standard rarities each;
+- one Secret per family.
 
-Primary visual target: roughly **14–27**, likely female-skewed but not exclusive.
+This build is **not submitted to moderation and not released publicly**.
 
-Likely hooks:
+### Stage B — content/release build
 
-- Y2K/retro-tech aesthetics;
-- digicams and old phones as identity/fashion objects;
-- translucent plastics;
-- charms/straps;
-- blind-box surprise;
-- tasteful cute collectible presentation.
+After the internal slice is approved:
 
-Secondary nostalgia target: roughly **25–35**, more gender-neutral.
+- expand the gadget roster materially;
+- preserve the established family production pipeline;
+- scale Collection from two-family demo composition to a real catalog;
+- re-simulate/rebalance drops, Signal, Hidden Pocket and completion;
+- decide final ad placements/rewards/cadence;
+- reconsider low-cost meta systems only where the larger content pool gives them a purpose;
+- produce final store creative only after the release content/key visual is stable.
 
-Design implication:
+### Stage C — public Yandex release
 
-> **recognizable old-tech archetype + collectible desirability + stylized cute finish**
-
-Do not make the art so sugary/childlike that gadget identity disappears.
-
----
-
-## 4. First-probe content — LOCKED
-
-The first behavioral/public probe contains exactly two gadget families:
-
-- **Digital Camera**;
-- **Flip Phone**.
-
-Each has:
-
-- Common;
-- Rare;
-- Epic;
-- Legendary.
-
-Standard content total: **8 variants**.
-
-Chase content:
-
-- one Secret Camera;
-- one Secret Flip Phone;
-- **2 Secrets total**, outside standard completion.
-
-Do not add more gadget families until behavior validates.
+Only the expanded release build goes through final moderation/store preparation.
 
 ---
 
-## 5. Core interaction — LOCKED
+## 3. Player fantasy
 
-1. Player sees one always-available Mystery Pouch.
+> **“I’m opening tiny mystery tech from the early 2000s and building a dream collection of nostalgic pocket gadgets.”**
+
+The product is a collectible-toy fantasy, not repair simulation, realistic electronics inventory management, or a simulated-gambling economy.
+
+Target visual hypothesis remains:
+
+- primary ~14–27, likely female-skewed but not exclusive;
+- secondary ~25–35 nostalgia audience;
+- recognizable Y2K electronics + blind-box desirability + tasteful cute finish.
+
+---
+
+## 4. Core interaction — LOCKED
+
+1. Mystery Pouch is ready.
 2. Player grabs the star tear-tab.
-3. One short left-to-right drag opens the pouch.
-4. Standard result is transactionally fixed.
-5. ~1.0–1.4 s reveal plays.
-6. Gadget + rarity + `NEW`/duplicate resolves.
+3. One short left-to-right drag completes the tear.
+4. Reward transaction is persisted.
+5. ~1.0–1.4 s reveal plays from the pouch.
+6. Gadget + rarity + NEW/duplicate resolves.
 7. Duplicate may advance Signal.
-8. Rarely, Hidden Pocket triggers a second Secret reveal.
-9. The next free pouch is immediately available.
+8. Hidden Pocket may add an automatic Secret beat.
+9. Result remains readable briefly; player advances to next pouch or opens Collection.
 
 Compact form:
 
-> **TEAR → REVEAL → COLLECT/SIGNAL → REPEAT**
+> **TEAR → REVEAL → COLLECT / PROGRESS → REPEAT**
 
-There is:
-
-- no package currency;
-- no energy;
-- no store gate;
-- no multi-stage unpacking;
-- no physics tearing;
-- no first-probe skip/x5.
+No physics or multistage tactile simulation.
 
 ---
 
-## 6. Progression horizons
+## 5. Internal-slice progression
 
-### Immediate
+The exact numbers below exist to make the two-family slice testable; they are **not sacred launch economy**.
 
-**What drops now?**
+- standard odds: Common 60 / Rare 28 / Epic 10 / Legendary 2;
+- Camera / Flip Phone 50/50;
+- first three standard opens protected from duplicates;
+- Signal turns duplicates into visible pity progress;
+- Hidden Pocket: 3% from opening #4 while a slice Secret remains;
+- slice completion: standard 8/8 + Secrets 0/2 separately.
 
-### Short horizon
-
-**Signal** turns ordinary duplicates into visible pity progress.
-
-Before all non-Legendary variants are owned, SIGNAL LOCK guarantees one missing Common/Rare/Epic variant.
-
-After all six non-Legendary variants are owned, SIGNAL LOCK becomes a boosted chase roll rather than guaranteeing a pointless duplicate.
-
-### Medium horizon
-
-**Standard Collection 8/8**.
-
-The Shelf visually upgrades to the best owned Camera and Flip Phone while Library records every standard rarity variant.
-
-### Chase horizon
-
-- two 2%-rarity Legendary variants in the normal table;
-- two Hidden-Pocket Secrets outside the standard ladder.
-
-Tech Parts / Mod Bench are parked. They are not needed to prove the loop.
+After public content expansion, rebalance from the new content matrix rather than preserving these percentages by inertia.
 
 ---
 
-## 7. Hidden Pocket fantasy
+## 6. Public content direction
 
-From opening #4 onward, while a Secret remains undiscovered, each normal reveal has a separate **3%** chance to trigger Hidden Pocket.
+Camera and Flip Phone are the **first two production families**, not the final game.
 
-Hidden Pocket:
+Candidate expansion pool includes:
 
-- requires no extra input;
-- always yields an undiscovered Secret;
-- never duplicates a Secret;
-- stops after both Secrets are found.
+- MP3 player;
+- pager;
+- mini camcorder;
+- handheld console;
+- PDA / pocket organizer;
+- portable disc / MiniDisc-like player;
+- pocket radio;
+- virtual-pet-like electronic;
+- additional Y2K pocket-tech archetypes discovered during production/research.
 
-Its job is surprise and chase, not a second economy.
-
----
-
-## 8. Collection fantasy — LOCKED
-
-Preferred environment:
-
-> **cozy illustrated Y2K shelf / desk / display**
-
-Collection has two internal views.
-
-### Shelf
-
-Two hero positions:
-
-- Camera;
-- Flip Phone.
-
-Each displays the best owned visual:
-
-> Secret → Legendary → Epic → Rare → Common
-
-Missing family uses a silhouette/empty stand.
-
-### Library
-
-Exhaustive checklist:
-
-- Camera: Common / Rare / Epic / Legendary + Secret;
-- Flip Phone: Common / Rare / Epic / Legendary + Secret.
-
-Headline completion is **8/8 standard variants**.
-
-Secrets use a separate **0/2** counter and are never required for standard completion.
-
-No free placement, room editor or item-detail subsystem in the probe.
+Exact public family count remains open. The old ~24-family scale can be reconsidered and exceeded if the art pipeline stays fast and coherent. Do not lock a launch count before we know real per-family production cost.
 
 ---
 
-## 9. Monetization philosophy — LOCKED FOR PROBE
+## 7. Collection fantasy
 
-The project ultimately targets ad-supported Yandex Games distribution, but the first behavioral probe ships **without rewarded/interstitial advertising**.
+Visual direction remains a cozy illustrated Y2K shelf/desk/display.
 
-Reason:
+Internal slice:
 
-- packages are intentionally free/unlimited;
-- ad-for-Signal would distort the pity behavior being measured;
-- monetization integration introduces pause/resume/failure paths before the core loop proves itself.
+- two hero positions;
+- Shelf shows best owned Camera/Flip Phone;
+- Library shows all slice variants.
 
-After continuation validates, run a separate monetization pass.
+Public release:
 
-Do not create artificial energy/package scarcity merely to make advertising valuable.
+- Collection must scale from data rather than hard-coded two-family layout;
+- likely needs groups/pages/themed shelves or another compact organization once launch family count is known;
+- Shelf stays the attractive “best finds” surface;
+- Library stays the completionist record.
 
----
-
-## 10. Behavioral validation
-
-Primary question:
-
-> **When opening is free and frictionless, do players voluntarily keep doing it?**
-
-The first serious decision point is after at least **500 first-package interactions and 7 calendar days**, provided instrumentation/technical health is good.
-
-Key internal gates live in `PROBE_VALIDATION.md`.
-
-If the loop underperforms, improve in this order:
-
-1. reveal feel/timing;
-2. package interaction clarity;
-3. rarity desirability/readability;
-4. Collection payoff/navigation;
-5. Signal pacing;
-6. theme if necessary.
-
-Do not rescue weak behavior by adding quests, crafting, worlds, minigames or a larger economy.
+Exact public completion semantics are redefined together with the expanded roster.
 
 ---
 
-## 11. Scope guardrails
+## 8. Monetization philosophy — UPDATED
 
-Explicitly excluded from the first probe:
+The public product is intended to be ad-supported, so **SDK and ad infrastructure are implemented from the first internal slice** rather than bolted on at the end.
+
+Internal slice:
+
+- exercise interstitial/rewarded/sticky-banner SDK boundaries in Yandex draft/debug mode;
+- verify pause/resume/audio behavior;
+- verify rewarded callbacks and idempotent reward granting;
+- a dev-only test reward is allowed purely to validate plumbing.
+
+Public release:
+
+- final rewarded reward and interstitial placement are chosen after content/economy scale is known;
+- rewarded ads remain optional and clearly state the reward;
+- interstitials belong only at logical pauses, never during active tear/reveal;
+- do not manufacture energy/package scarcity solely to make ads valuable.
+
+---
+
+## 9. Internal validation
+
+There is no 500-player/7-day gate before content expansion anymore.
+
+The internal slice is approved from direct hands-on review plus technical checks:
+
+- does tearing feel immediate and pleasant?
+- is reveal satisfying after dozens of repetitions?
+- are rarity differences desirable/readable?
+- do duplicates + Signal feel understandable?
+- does Collection feel worth visiting?
+- does Hidden Pocket land as a genuine surprise?
+- do resize/mobile/save/ad lifecycle paths hold up?
+
+Once the user signs off, move into content expansion.
+
+---
+
+## 10. Scope guardrails
+
+Still excluded by default:
+
+- real-time 3D;
+- physics-driven opening;
+- character movement/NPCs;
+- trading/market;
+- crash/double/jackpot betting framing;
+- giant minigame suite;
+- backend/live-service infrastructure without a proven requirement.
+
+Potentially return during release expansion, but only with a clear job:
 
 - Tech Parts / Mod Bench;
-- multiple package tiers;
-- package currency / energy;
-- ads;
-- real-time 3D;
-- physics;
-- character movement / NPCs;
-- multiple worlds/biomes;
-- free room placement;
-- backend/account requirement;
-- trading/market;
-- gambling-style crash/double/jackpot;
-- live-service architecture;
-- large minigame suite;
-- Daily Spotlight/streaks/leaderboard;
-- additional gadget families.
+- package tiers;
+- Daily Spotlight;
+- shelf evolution;
+- other cheap retention systems.
 
-The first build should feel like a **small polished complete web toy**, not an unfinished slice of a much larger game.
-
----
-
-## 12. Delivery target
-
-Current rebase:
-
-> **~5–8 focused days to submission-ready probe**, excluding moderation waiting time.
-
-Art consistency is the largest uncertainty.
-
-If the build exceeds roughly 8 focused days because scope is expanding, review scope instead of silently accepting the expansion.
+The release should become **content-rich, not system-bloated**.
