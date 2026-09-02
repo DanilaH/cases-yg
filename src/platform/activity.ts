@@ -1,4 +1,4 @@
-export type ActivityBlocker = 'ad' | 'platform' | 'visibility';
+export type ActivityBlocker = 'ad' | 'orientation' | 'platform' | 'visibility';
 
 type BlockedListener = (blocked: boolean) => void;
 

@@ -98,14 +98,5 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
 export const bootstrapPlatform = async (): Promise<PlatformRuntime> => {
   const params = new URLSearchParams(window.location.search);
   const forceMock = import.meta.env.DEV || params.get('platform') === 'mock';
-  if (forceMock) {
-    return createMockPlatform();
-  }
-
-  try {
-    return await createYandexPlatform();
-  } catch (error) {
-    console.error('[platform] Yandex SDK bootstrap failed; using standalone fallback', error);
-    return createMockPlatform();
-  }
+  return forceMock ? createMockPlatform() : createYandexPlatform();
 };

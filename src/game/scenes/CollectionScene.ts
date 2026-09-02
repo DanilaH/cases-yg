@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
 import { SLICE_FAMILIES } from '../data/collectibles';
-import { createLayoutMetrics, layoutX, layoutY } from '../systems/layout';
+import { createLayoutMetrics, layoutX, layoutY, readSafeAreaInsets } from '../systems/layout';
 
 export class CollectionScene extends Phaser.Scene {
   private root: Phaser.GameObjects.Container | null = null;
@@ -24,7 +24,7 @@ export class CollectionScene extends Phaser.Scene {
   private renderPlaceholder(): void {
     this.root?.destroy(true);
     const platform = getPlatformRuntime();
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height);
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     const root = this.add.container(0, 0);
     this.root = root;
 

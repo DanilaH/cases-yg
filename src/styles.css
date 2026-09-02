@@ -1,3 +1,10 @@
+:root {
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 html,
 body,
 #game-shell,
@@ -52,8 +59,8 @@ body {
 
 .mpt-debug-panel {
   position: fixed;
-  right: 12px;
-  bottom: 12px;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
   z-index: 2000;
   display: grid;
   gap: 6px;

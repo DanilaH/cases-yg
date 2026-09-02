@@ -8,13 +8,6 @@ import { OpeningScene } from './game/scenes/OpeningScene';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
-const updateOrientationGate = (): void => {
-  const gate = document.querySelector<HTMLElement>('#orientation-gate');
-  if (!gate) return;
-  const portrait = window.innerHeight > window.innerWidth;
-  gate.dataset.visible = portrait ? 'true' : 'false';
-};
-
 const boot = async (): Promise<void> => {
   const platform = await bootstrapPlatform();
   setPlatformRuntime(platform);
@@ -42,14 +35,24 @@ const boot = async (): Promise<void> => {
     }
   });
 
+  const gate = document.querySelector<HTMLElement>('#orientation-gate');
+  const updateOrientationGate = (): void => {
+    const portrait = window.innerHeight > window.innerWidth;
+    if (gate) gate.dataset.visible = portrait ? 'true' : 'false';
+    platform.activity.setBlocked('orientation', portrait);
+  };
+  const preventContextMenu = (event: Event): void => event.preventDefault();
+
   updateOrientationGate();
   window.addEventListener('resize', updateOrientationGate);
-  window.addEventListener('contextmenu', (event) => event.preventDefault());
+  document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);
 
   window.addEventListener(
     'beforeunload',
     () => {
       if (blocked) game.loop.wake();
+      window.removeEventListener('resize', updateOrientationGate);
+      document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();
       removeDebugPanel();
       platform.destroy();
@@ -59,4 +62,11 @@ const boot = async (): Promise<void> => {
   );
 };
 
-void boot();
+void boot().catch((error: unknown) => {
+  console.error('[boot] fatal startup error', error);
+  const gate = document.querySelector<HTMLElement>('#orientation-gate');
+  if (gate) {
+    gate.textContent = 'Unable to start the game';
+    gate.dataset.visible = 'true';
+  }
+});
