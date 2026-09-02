@@ -116,4 +116,9 @@ collection = collection.replace(
   "'Collection data could not be loaded.'",
   'getMessages(getPlatformRuntime().language).collection.loadError',
 );
+collection = collection.replace('  private openTracked = false;\n', '');
+collection = collection.replace(
+  "    if (!this.openTracked) {\n      this.openTracked = true;\n      getPlatformRuntime().analytics.track('collection_open', {\n        standardCount: this.snapshot.standardCount,\n        standardTotal: this.snapshot.standardTotal,\n        secretCount: this.snapshot.secretCount,\n        secretTotal: this.snapshot.secretTotal,\n      });\n    }",
+  "    getPlatformRuntime().analytics.track('collection_open', {\n      standardCount: this.snapshot.standardCount,\n      standardTotal: this.snapshot.standardTotal,\n      secretCount: this.snapshot.secretCount,\n      secretTotal: this.snapshot.secretTotal,\n    });",
+);
 writeFileSync(collectionPath, collection);
