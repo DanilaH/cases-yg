@@ -33,26 +33,48 @@ The project should use Phaser as a small 2D game framework, not as justification
 
 ---
 
-## 3. Suggested scene boundaries
+## 3. Scene boundaries — LOCKED DIRECTION
 
-Initial direction:
+Primary structure:
 
 ```text
 BootScene
 OpeningScene
 RevealScene
 CollectionScene
+ModBenchScene
 ```
 
-Potential overlays/surfaces rather than full scenes:
+`OpeningScene` is the clean primary surface. `CollectionScene` and `ModBenchScene` are separate navigable game surfaces rather than permanent panels cluttering the opener.
 
-- Mod Bench;
+Small transient UI may still be implemented as overlays/components inside a scene, for example:
+
 - settings;
 - rewarded ad prompt;
-- collection detail;
-- Signal state.
+- item detail;
+- Signal status;
+- lightweight notifications.
 
 Keep scene count small unless implementation proves a real need.
+
+### Transition performance rule
+
+Navigation between Opening, Collection and Mod Bench must feel effectively instant.
+
+Implementation requirements:
+
+- preload or shared-load assets required by these primary scenes before normal navigation;
+- do not perform network-dependent work on scene switches;
+- do not trigger user-visible asset loading when opening Collection or Mod Bench;
+- keep persistent game/save state outside individual scene instances;
+- avoid destroying/reconstructing heavyweight shared resources unnecessarily;
+- cosmetic fades/slides must be very short and must not mask actual loading.
+
+Target:
+
+> **~100–200 ms perceived response plus, at most, a very short cosmetic transition.**
+
+If switching scenes feels like navigating to another web page, the implementation is wrong.
 
 ---
 
@@ -68,6 +90,7 @@ src/
       OpeningScene.ts
       RevealScene.ts
       CollectionScene.ts
+      ModBenchScene.ts
 
     systems/
       rarity.ts
@@ -119,6 +142,8 @@ interface SaveState {
 ```
 
 Exact types should be designed during implementation spec work. The important rule is that **game systems are explicit state, not hidden inside scene objects**.
+
+This also allows scene changes to remain cheap: switching from Opening to Collection or Mod Bench should mostly be a rendering/navigation operation, not a reinitialization of game state.
 
 ---
 
@@ -215,6 +240,8 @@ Reveal juice should be primarily runtime presentation:
 - rarity frame/burst.
 
 Do not create separate 3D/inventory/reveal models for the same collectible.
+
+For fast navigation, scene-critical shared assets should be loaded up front or kept available in Phaser's asset cache rather than repeatedly loaded and discarded between primary scenes.
 
 ---
 
