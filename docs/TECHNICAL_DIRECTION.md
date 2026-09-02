@@ -33,19 +33,20 @@ The project should use Phaser as a small 2D game framework, not as justification
 
 ---
 
-## 3. Scene boundaries — LOCKED DIRECTION
+## 3. Scene boundaries — LOCKED FOR PROBE
 
-Primary structure:
+Primary first-probe structure:
 
 ```text
 BootScene
 OpeningScene
 RevealScene
 CollectionScene
-ModBenchScene
 ```
 
-`OpeningScene` is the clean primary surface. `CollectionScene` and `ModBenchScene` are separate navigable game surfaces rather than permanent panels cluttering the opener.
+`OpeningScene` is the clean primary surface. `CollectionScene` is the only separate persistent gameplay surface required by the first behavioral probe.
+
+`ModBenchScene` is **parked** and should not be scaffolded merely for future possibility.
 
 Small transient UI may still be implemented as overlays/components inside a scene, for example:
 
@@ -59,13 +60,13 @@ Keep scene count small unless implementation proves a real need.
 
 ### Transition performance rule
 
-Navigation between Opening, Collection and Mod Bench must feel effectively instant.
+Navigation between Opening and Collection must feel effectively instant.
 
 Implementation requirements:
 
 - preload or shared-load assets required by these primary scenes before normal navigation;
 - do not perform network-dependent work on scene switches;
-- do not trigger user-visible asset loading when opening Collection or Mod Bench;
+- do not trigger user-visible asset loading when opening Collection;
 - keep persistent game/save state outside individual scene instances;
 - avoid destroying/reconstructing heavyweight shared resources unnecessarily;
 - cosmetic fades/slides must be very short and must not mask actual loading.
@@ -90,15 +91,12 @@ src/
       OpeningScene.ts
       RevealScene.ts
       CollectionScene.ts
-      ModBenchScene.ts
 
     systems/
       rarity.ts
       drops.ts
       collection.ts
       signal.ts
-      duplicates.ts
-      modBench.ts
       save.ts
 
     data/
@@ -130,7 +128,6 @@ interface SaveState {
   version: number;
   inventory: Record<string, number>;
   discovered: string[];
-  techParts: number;
   signal: number;
   pendingReveal: PendingReveal | null;
   stats: {
@@ -143,7 +140,9 @@ interface SaveState {
 
 Exact types should be designed during implementation spec work. The important rule is that **game systems are explicit state, not hidden inside scene objects**.
 
-This also allows scene changes to remain cheap: switching from Opening to Collection or Mod Bench should mostly be a rendering/navigation operation, not a reinitialization of game state.
+This also allows scene changes to remain cheap: switching from Opening to Collection should mostly be a rendering/navigation operation, not a reinitialization of game state.
+
+Do not add `techParts` or Mod Bench state to the first-probe save schema unless that parked system is explicitly brought back later.
 
 ---
 
@@ -164,10 +163,9 @@ Goals:
 - interrupted animation does not corrupt progression;
 - save recovery is deterministic.
 
-This rule must also account for:
+This rule must account for:
 
-- Tech Parts from duplicates;
-- Signal changes;
+- Signal changes from duplicates;
 - possible Hidden Pocket result;
 - Secret result if applicable.
 
@@ -315,10 +313,8 @@ Default semantic anchors:
 
 ```text
 Signal       → top-left safe anchor
-Tech Parts   → top-right safe anchor
 Package      → visual center
-Collection   → bottom-left safe anchor
-Mod Bench    → bottom-right safe anchor
+Collection   → bottom-left or another quiet edge anchor
 ```
 
 Rules:
@@ -400,9 +396,7 @@ Minimum families:
 ### Progression
 
 - Signal advanced;
-- Signal lock reached/consumed;
-- Tech Parts gained/spent;
-- Mod Bench used/result chosen.
+- Signal lock reached/consumed.
 
 ### Collection
 
@@ -433,6 +427,7 @@ Do not introduce by default:
 - websocket infrastructure;
 - real-time 3D;
 - complex asset pipeline server;
+- Mod Bench / Tech Parts before post-validation evidence justifies them;
 - premature test harness/CI complexity unrelated to shipping the probe.
 
 The technical design should remain proportional to a tiny 2D collectible game.
