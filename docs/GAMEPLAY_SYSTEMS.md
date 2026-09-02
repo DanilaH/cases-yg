@@ -74,7 +74,7 @@ After opening #3:
 
 - normal standard RNG applies;
 - there is **no permanent hidden anti-duplicate reroll**;
-- duplicates are intentionally allowed because Signal and Tech Parts are the visible systems that make bad rolls useful.
+- duplicates are intentionally allowed because Signal is the visible system that makes bad rolls useful.
 
 Secret/Hidden Pocket is a **separate post-standard roll**. It does not reduce the 100% standard rarity table.
 
@@ -131,7 +131,7 @@ When Signal reaches 100:
 Resolution rules:
 
 1. if any undiscovered Common/Rare/Epic standard variants remain, choose an undiscovered non-Legendary variant and reveal it;
-2. if all six non-Legendary standard variants are already discovered, force a Rare/Epic standard result instead so the meter still creates a better duplicate/Tech Parts outcome;
+2. if all six non-Legendary standard variants are already discovered, force a Rare/Epic standard result instead so the meter still creates a better-than-common outcome;
 3. Signal never forces Legendary;
 4. Secret/Hidden Pocket remains a completely separate post-standard roll and is not modified by Signal.
 
@@ -155,59 +155,25 @@ Do not add a separate Signal scene or tutorial modal.
 
 ---
 
-# 5. Duplicate handling — ACCEPTED FOR PROBE
+# 5. Tech Parts / Mod Bench — PARKED
 
-Duplicates must not be dead rolls.
+Tech Parts and Mod Bench are **not part of the first behavioral probe**.
 
-Current direction:
+Reason:
 
-> **Duplicate → Tech Parts → deterministic progress**
+- the probe has only eight standard variants;
+- Signal already turns duplicates into visible forward progress;
+- adding a second currency, prices, upgrade rules, another scene and more HUD would test a meta-economy rather than the opener itself.
 
-Do not simply convert every duplicate into meaningless soft currency unless the economy proves that simpler approach is better.
+The first probe duplicate loop is therefore simply:
 
-Thematic framing:
+> **duplicate → Signal progress → repeat**
 
-- spare parts;
-- components;
-- upgrade pieces;
-- old-tech modding.
-
----
-
-# 6. Mod Bench — ACCEPTED FOR PROBE
-
-Tech Parts feed a simple deterministic reward/upgrade surface.
-
-Working fantasy:
-
-> **MOD BENCH / WORKBENCH**
-
-Potential low-cost implementations:
-
-### Option A — upgrade owned gadget
-
-Example:
-
-`Common Flip Phone + Parts → Rare Flip Phone`
-
-### Option B — choice of 3 blueprints/rewards
-
-Spend Parts and choose one of three offered outcomes.
-
-This adds agency without allowing the player to directly buy any missing Legendary.
-
-No crafting minigame is required. The UI can be a simple static workbench scene/modal.
-
-Open questions:
-
-- recipe/cost curve;
-- whether upgrade consumes lower-rarity copy;
-- whether result is deterministic or a 3-choice offer;
-- whether Mod Bench should be available immediately or after a few openings.
+Revisit Tech Parts / Mod Bench only after repeated-opening data shows a distinct unmet need that Signal does not solve.
 
 ---
 
-# 7. Hidden Pocket — ACCEPTED FOR PROBE
+# 6. Hidden Pocket — ACCEPTED FOR PROBE
 
 Hidden Pocket is a **rare automatic second reveal beat**, not a second unpacking mechanic.
 
@@ -232,7 +198,7 @@ Rules:
 - no extra swipe/tap requirement;
 - reuse the existing pouch and reveal language;
 - keep the extra animation very cheap;
-- use the event for an occasional bonus drop and especially as the preferred thematic route to Secret/Chase items.
+- use the event especially as the thematic route to Secret/Chase items.
 
 Why it is included:
 
@@ -245,15 +211,16 @@ Why it is included:
 Still open:
 
 - trigger chance;
-- allowed normal bonus rewards;
-- exact Secret probability / whether every Secret is Hidden-Pocket-only;
+- exact Secret reward rule;
+- whether the probe uses one or two Secrets;
+- final animation budget;
 - analytics event names.
 
 Do not tie rewarded ads to Hidden Pocket in the first probe.
 
 ---
 
-# 8. Collection — LOCKED STRUCTURE
+# 7. Collection — LOCKED STRUCTURE
 
 Collection is split into two complementary views.
 
@@ -307,7 +274,7 @@ Milestone evolution is **parked**, not part of the required first probe.
 
 ---
 
-# 9. Quick Reveal — PARKED, REQUIRED REVISIT
+# 8. Quick Reveal — PARKED, REQUIRED REVISIT
 
 Case/opening games commonly add fast-open or multi-open because repeated long animations eventually become friction.
 
@@ -329,7 +296,7 @@ Architecture should therefore keep reveal timings configurable even though Quick
 
 ---
 
-# 10. Daily Spotlight — PARKED
+# 9. Daily Spotlight — PARKED
 
 Potential return mechanic that reuses existing content instead of adding new content.
 
@@ -337,7 +304,7 @@ Do not implement until the basic loop is validated and there are enough gadget f
 
 ---
 
-# 11. Rewarded ads
+# 10. Rewarded ads
 
 Accepted monetization direction:
 
@@ -347,17 +314,15 @@ Accepted monetization direction:
 
 Because ordinary packages are already unlimited/free, do **not** use rewarded ads merely to grant another standard package.
 
-Current candidates:
+Current candidate:
 
-- bonus Tech Parts;
-- Signal boost;
-- another simple progression benefit compatible with the tiny content pool.
+- Signal boost or another similarly simple progression benefit compatible with the tiny content pool.
 
 Avoid tying rewarded ads to a deceptive near-win or casino-like loop.
 
 ---
 
-# 12. Explicitly rejected scope
+# 11. Explicitly rejected scope
 
 Do not copy mature case simulators wholesale.
 
@@ -372,6 +337,7 @@ Rejected for the probe:
 - betting economy;
 - deep clicker/farm mode;
 - hundreds of unrelated hero assets;
-- expanding beyond Camera + Flip Phone before the core loop is validated.
+- expanding beyond Camera + Flip Phone before the core loop is validated;
+- Tech Parts / Mod Bench economy before validation.
 
 The goal is to steal **retention primitives**, not the production burden.
