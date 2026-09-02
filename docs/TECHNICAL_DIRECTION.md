@@ -4,10 +4,12 @@
 
 Use:
 
-- **Phaser 4.x**
-- **Vite**
-- **strict TypeScript**
-- **Yandex Games SDK** behind a thin platform adapter
+- **Phaser 4.2.1** for the first probe; pin the exact dependency/lockfile rather than floating on `4.x`;
+- **Vite**;
+- **strict TypeScript**;
+- **Yandex Games SDK** behind a thin platform adapter.
+
+Upgrade Phaser only deliberately if a concrete defect or required fix justifies it.
 
 Target Yandex platforms for the first probe:
 
@@ -32,7 +34,7 @@ Prefer:
 - pure data/config for collectibles/balance;
 - small systems with explicit inputs/outputs;
 - Phaser tweens/particles for presentation;
-- provider adapters only where platform/analytics boundaries justify them.
+- provider adapters only where platform/storage/analytics boundaries justify them.
 
 Do not build framework infrastructure for future systems that are currently parked.
 
@@ -110,14 +112,18 @@ src/
     data/
       collectibles.ts
       balance.ts
-      strings.ts
 
     ui/
       ...
 
   platform/
     yandex.ts
+    storage.ts
     analytics.ts
+
+  i18n/
+    en.ts
+    ru.ts
 
   main.ts
 ```
@@ -237,7 +243,7 @@ This keeps Quick Reveal/balance tuning cheap later.
 
 ---
 
-# 8. Save and persistence
+# 8. Save and persistence — LOCKED
 
 For first probe:
 
@@ -246,14 +252,23 @@ For first probe:
 - no backend;
 - no cloud-sync requirement.
 
+Do not couple game/save logic directly to `window.localStorage`. Use a tiny injected `StorageAdapter` with the same minimal get/set/remove semantics.
+
+Provider rule:
+
+- in Yandex runtime, initialize storage from **`await ysdk.getStorage()`** and inject that storage object into the save system;
+- in ordinary local development outside Yandex, use browser `localStorage` as the fallback provider;
+- if the archive wrapper already makes browser storage safe, the adapter still remains useful because game code stays provider-agnostic.
+
 Persistence requirements:
 
 - write pending transaction before presentation;
 - commit immediately after reward resolution;
 - tolerate refresh/crash between these steps;
-- migrate by `version` rather than assuming old saves match current content.
+- migrate by `version` rather than assuming old saves match current content;
+- storage failures must fail visibly in development but must not produce duplicate rewards.
 
-Optional Yandex player/cloud save is post-validation scope.
+Optional Yandex `Player.setData()` cloud save is post-validation scope and should not be enabled merely because the SDK supports it.
 
 ---
 
@@ -264,9 +279,10 @@ Do not scatter SDK calls across scenes.
 `platform/yandex.ts` owns:
 
 - SDK initialization;
+- acquisition of safe storage via `ysdk.getStorage()`;
 - access to `ysdk.environment.i18n.lang`;
-- `LoadingAPI.ready()` when critical assets are loaded and the game is actually interactive;
-- `GameplayAPI.start()` / `stop()` lifecycle boundaries;
+- `LoadingAPI.ready()` when critical assets are loaded, save recovery is resolved and the game is actually interactive;
+- `GameplayAPI.start()` / `stop()` lifecycle boundaries if gameplay markup is used;
 - pause/resume events from platform/tab visibility;
 - future optional player/cloud integration.
 
@@ -297,9 +313,11 @@ Keep all meaningful UI copy outside image assets. Typical strings include:
 - DUPLICATE / ДУБЛИКАТ;
 - SIGNAL LOCK;
 - Collection / Коллекция;
+- Shelf / Полка;
 - Library / Библиотека;
 - Back / Назад;
 - Next pouch / Следующий пакет;
+- Open more / Открыть ещё;
 - Standard Collection / Основная коллекция;
 - Secrets / Секреты.
 
@@ -311,13 +329,7 @@ Rarity must not rely on color alone: keep readable rarity labels/material differ
 
 No background music.
 
-Use a small SFX set:
-
-- tear;
-- reveal/pop;
-- rarity chime variants or parameterized pitch/intensity;
-- Secret sting;
-- light UI click.
+Use a small SFX set; exact manifest lives in `ASSET_MANIFEST.md`.
 
 Rules:
 
@@ -365,9 +377,15 @@ Reveal juice stays runtime-first:
 - ring/outline pulse;
 - tiny camera bump for high rarity.
 
+The Mystery Pouch must be implemented as aligned runtime layers rather than one flat texture:
+
+- body;
+- detachable tear strip;
+- draggable star tab.
+
 Do not create separate 3D/inventory/reveal models for the same item.
 
-See `ART_PRODUCTION.md`.
+See `ART_PRODUCTION.md` and `ASSET_MANIFEST.md`.
 
 ---
 
@@ -375,7 +393,7 @@ See `ART_PRODUCTION.md`.
 
 Preload/cache all probe-critical assets before `LoadingAPI.ready()`:
 
-- Mystery Pouch;
+- 3 Mystery Pouch runtime layers;
 - 8 standard collectibles;
 - 2 Secrets;
 - Opening background/UI;
@@ -461,13 +479,16 @@ Collection  → quiet bottom/edge safe anchor
 
 Package remains the hero. In compact mode it may scale down modestly; in wide mode it does not grow indefinitely.
 
-## Safe areas
+## Safe areas / browser gesture constraints
 
 - honor browser/device safe insets;
 - use ~3–5% internal responsive margins with practical clamps;
 - effective touch/pointer target floor ~44 CSS px;
 - no critical control directly against viewport edge;
-- no browser scrolling.
+- no browser scrolling;
+- prevent swipe-to-refresh / overscroll from hijacking the game;
+- disable right-click/context-menu behavior inside the game surface when it interferes with play;
+- long-press must not trigger browser selection/context UI that blocks the tear gesture.
 
 ## Collection adaptation
 
@@ -494,10 +515,11 @@ For Yandex archive builds:
 - keep build comfortably below platform archive limits;
 - call game-ready only after all critical probe assets are ready;
 - test resize across Yandex moderation reference resolutions before submission;
+- test representative browser zoom in the **80–125%** range;
 - select Desktop + Mobile and landscape orientation in the draft;
 - keep game fully playable without login.
 
-Store media specs and composition direction are tracked in `ART_DIRECTION.md`.
+Store media/specification details are tracked in `YANDEX_SUBMISSION_CHECKLIST.md` and `ASSET_MANIFEST.md`.
 
 ---
 
@@ -518,4 +540,4 @@ Do not introduce by default:
 - manual language-selection UI;
 - premature CI/test infrastructure unrelated to shipping the probe.
 
-Small unit tests for pure drop/Signal transaction logic are worthwhile because RNG/recovery correctness matters. Do not expand this into a heavyweight testing program.
+Small unit tests for pure drop/Signal/transaction logic are worthwhile because RNG/recovery correctness matters. Do not expand this into a heavyweight testing program.
