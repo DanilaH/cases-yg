@@ -1,164 +1,171 @@
-# Open questions / post-validation queue
+# Open questions / release-expansion queue
 
-The first behavioral probe is now **implementation-ready**. There are no remaining product decisions that should block coding.
+The internal Camera + Flip Phone vertical slice is implementation-ready. It does **not** need these release questions answered before coding because the slice exists specifically to inform them.
 
-This file now tracks only post-validation questions, submission checks, and explicitly parked systems.
-
----
-
-# 1. First-probe decisions — RESOLVED
-
-Locked in the source-of-truth docs:
-
-- one silver/lavender Mystery Pouch;
-- one left-to-right star-tab tear gesture;
-- ~1.0–1.4 s full reveal, no skip in initial probe;
-- Opening + Collection only; reveal remains inside Opening;
-- adaptive landscape layout;
-- exactly Camera + Flip Phone;
-- 4 standard rarities each = 8 standard variants;
-- one free unlimited package type;
-- standard odds 60 / 28 / 10 / 2;
-- first-three undiscovered onboarding protection;
-- Signal duplicate pity system;
-- Tech Parts / Mod Bench parked;
-- 2 Secrets;
-- 3% Hidden Pocket from opening #4 while an undiscovered Secret remains;
-- Hidden Pocket always gives an undiscovered Secret, then disables after 2/2;
-- Shelf + Library collection model;
-- standard completion = 8/8, Secrets separate 0/2;
-- no ads in first behavioral probe;
-- Yandex built-in metrics + Yandex Metrica custom events;
-- operational art pipeline;
-- rebased 5–8 focused-day submission target.
-
-See:
-
-- `DECISIONS.md`;
-- `GAMEPLAY_SYSTEMS.md`;
-- `TECHNICAL_DIRECTION.md`;
-- `ART_DIRECTION.md`;
-- `ART_PRODUCTION.md`;
-- `PROBE_VALIDATION.md`.
+After hands-on sign-off, resolve the queue below before public release.
 
 ---
 
-# 2. Quick Reveal — REQUIRED POST-DATA REVIEW
+# 1. Public content size — OPEN
 
-Do not implement in the initial probe.
+We are definitely expanding beyond Camera + Flip Phone.
 
-Review when repeated-opening data/playtests show enough depth that the full reveal becomes friction.
+Need to lock:
 
-Candidate if needed:
+- target number of base gadget families for first public launch;
+- whether launch is one large catalog or several themed mini-collections;
+- how many Secrets belong to the launch roster;
+- which archetypes make the first expansion batch.
 
-- ~0.4–0.6 s fast mode;
-- same state/drop semantics;
-- preserve rarity readability;
-- no mass/x5 opening by default.
-
-This question must not be silently forgotten.
-
----
-
-# 3. Monetization — POST-VALIDATION
-
-No ads in first behavioral probe.
-
-If the continuation gates are met, separately decide:
-
-- interstitial vs rewarded strategy;
-- natural placement that does not damage the opener loop;
-- whether any rewarded progression benefit is useful without inventing artificial scarcity;
-- ad-frequency test plan.
-
-Do not add energy/package limits merely to make an ad reward valuable.
-
----
-
-# 4. Content expansion — POST-VALIDATION
-
-Do not add more families until core behavior validates.
-
-If validated, candidate next families include:
+Candidate families already identified:
 
 - MP3 player;
 - pager;
 - mini camcorder;
 - handheld console;
 - PDA;
-- MiniDisc/player archetype;
+- portable disc / MiniDisc-like player;
 - pocket radio;
-- virtual-pet-like electronics.
+- virtual-pet-like electronic;
+- more Y2K gadget archetypes as research/production finds them.
 
-Expansion should happen in small waves, not by jumping straight to the old ~24-family planning model.
-
----
-
-# 5. Tech Parts / Mod Bench — PARKED
-
-Only reconsider if real data shows Signal does not provide enough meaning to duplicates.
-
-Before bringing it back, answer:
-
-- what distinct problem does it solve that Signal does not?
-- does the larger content pool justify deterministic upgrade agency?
-- can it stay cheap without becoming a crafting/economy game?
-
-Do not scaffold it in advance.
+The old ~24-family planning target is back on the table as a **reference scale**, not a cap or commitment. Use actual art throughput/quality from the slice to decide.
 
 ---
 
-# 6. Package tiers / Daily Spotlight — PARKED
+# 2. Release balance — OPEN
 
-One free package is correct for the probe.
+Current numbers are slice-only.
 
-Only revisit multiple package types or rotating family boosts after more gadget families exist and there is a concrete choice to offer.
+Once launch roster is known, decide/re-simulate:
 
----
+- family weights / grouping;
+- standard rarity odds;
+- onboarding protection;
+- duplicate rate;
+- Signal gain curve and SIGNAL LOCK behavior;
+- Hidden Pocket probability;
+- Secret pool / duplicate rules;
+- expected standard completion and chase horizon.
 
-# 7. Shelf evolution / streaks / leaderboard — PARKED
-
-These remain optional retention layers after the loop validates.
-
-Priority if needed:
-
-1. cheap shelf/environment milestone evolution;
-2. Daily Spotlight when enough families exist;
-3. streak/leaderboard only if actual retention/social data justifies them.
-
----
-
-# 8. Store submission checks — REQUIRED BEFORE MODERATION
-
-These are operational verification tasks rather than game-design questions:
-
-- verify chosen RU/EN title uniqueness in the Yandex Games Console;
-- produce 512×512 PNG icon;
-- produce 800×470 PNG cover;
-- add at least two valid 16:9 screenshots for each selected platform;
-- verify title consistency across game and draft materials;
-- run resize/moderation viewport checks;
-- verify sound pauses on minimize/platform pause;
-- verify `LoadingAPI.ready()` fires only when interactive;
-- verify gameplay start/stop lifecycle;
-- verify local save and interrupted `pendingReveal` recovery;
-- verify Yandex Metrica custom events in draft mode.
+Do not preserve 60/28/10/2 or 3% just because they were convenient in the two-family slice.
 
 ---
 
-# 9. Behavioral decision point
+# 3. Collection at scale — OPEN
 
-Do not expand scope immediately after release.
+The core roles are retained:
 
-Wait for the first serious sample defined in `PROBE_VALIDATION.md`:
+- Shelf = desirable best finds;
+- Library = exhaustive completion view.
 
-> at least **500 first-package interactions + 7 calendar days**, provided instrumentation and technical health are sound.
+Need release design for many families:
 
-Then choose one of:
+- pages vs scrolling vs themed shelves;
+- family groups / mini-collections;
+- Library filtering/navigation;
+- what the headline completion counter means;
+- Secret grouping;
+- whether environments/shelves change between collections;
+- how many hero items are visible without making the room look like a spreadsheet.
 
-- continue/expand;
-- tune reveal/Collection/Signal;
-- re-theme;
-- kill.
+Architecture must remain data-driven now so this becomes UI/content work rather than a rewrite.
 
-New features are not the default response to weak continuation.
+---
+
+# 4. Final monetization UX — OPEN, INFRASTRUCTURE NOT OPEN
+
+SDK/ad infrastructure is implemented in the internal slice.
+
+Before public release choose:
+
+- rewarded placement;
+- exact rewarded benefit;
+- interstitial logical pause points;
+- whether sticky banner is used;
+- any ad-related analytics experiments.
+
+Constraints already locked:
+
+- rewarded is optional and clearly states the exact reward;
+- reward grants exactly once from the rewarded callback;
+- interstitial never interrupts active tear/reveal;
+- ads pause gameplay/audio correctly;
+- ad failure never blocks progression;
+- do not invent energy/package scarcity solely to force ad views.
+
+---
+
+# 5. Quick Reveal — REVIEW DURING INTERNAL SLICE
+
+Do not wait for public analytics.
+
+During 20–50+ repeated openings, decide whether the full ~1.0–1.4 s reveal becomes friction.
+
+Candidate:
+
+- configurable ~0.4–0.6 s Quick Reveal;
+- same reward semantics;
+- no default x5/mass-open requirement.
+
+---
+
+# 6. Tech Parts / Mod Bench — RE-EVALUATE WITH LARGE ROSTER
+
+They were removed from the two-family slice because Signal was enough there.
+
+With a materially larger catalog, ask again:
+
+- do duplicates need a second long-horizon sink?
+- does direct/choice-based upgrading improve agency without trivializing collection?
+- does this system justify its currency/UI complexity?
+
+Do not scaffold the scene/economy before this decision.
+
+---
+
+# 7. Package tiers / Daily Spotlight / shelf evolution — OPEN LATER
+
+These become more meaningful only with many families.
+
+Potential jobs:
+
+- package tiers: meaningful pool/odds choice;
+- Daily Spotlight: rotate attention toward a family/group;
+- shelf evolution: cheap visible long-term progression.
+
+Evaluate after launch roster is real.
+
+---
+
+# 8. Public store/submission choices — DEFER UNTIL RELEASE BUILD
+
+Need only after expanded content/key visual stabilizes:
+
+- final RU/EN title uniqueness;
+- categories/tags/keywords;
+- icon/cover/hero;
+- localized screenshots;
+- final platform selection/iOS Team ID;
+- final monetization configuration;
+- moderation QA.
+
+Do **not** spend final-store-art effort on the two-family internal slice.
+
+---
+
+# What does NOT need clarification before coding
+
+Already clear enough:
+
+- Phaser/Vite/strict TS;
+- Yandex SDK from day one;
+- ads adapter from day one;
+- storage/analytics adapters;
+- adaptive landscape layout;
+- Camera + Flip Phone slice assets;
+- current slice RNG/Signal/Hidden Pocket configuration;
+- canonical-master art pipeline;
+- reveal/Collection interaction model.
+
+So the next build can start without waiting on the release-scale decisions above.
