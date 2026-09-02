@@ -58,6 +58,9 @@ Status meanings:
 | Package visual grammar | LOCKED | circular mystery `?` badge, three small gadget silhouettes, restrained circuit traces, large functional star tear-tab; minimal/no baked product text |
 | Package reference asset | LOCKED | `docs/assets/package-mystery-pouch-v1.webp` |
 | Collection environment | LOCKED | cozy Y2K shelf/desk/display with fixed slots rather than free placement |
+| Gadget art exploration | LOCKED | for each base gadget, generate roughly 6–10 exploratory candidates, choose one canonical master, then derive the four standard rarity variants from that same selected design |
+| Rarity variant consistency | LOCKED | Common/Rare/Epic/Legendary are four rarity executions of one base gadget, not four independently redesigned devices; preserve core geometry, camera angle and recognizable identity |
+| Rarity sheet workflow | ALLOWED | a 2×2 rarity sprite/reference sheet is a valid production format when it preserves consistency; it is a production convenience, not a runtime architecture requirement |
 
 ---
 
@@ -105,10 +108,15 @@ Status meanings:
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Base gadget target | WORKING MODEL | around 24 base collectible gadget designs |
-| Standard variants per gadget | WORKING MODEL | 4 rarity executions per base gadget |
-| Resulting standard collection entries | WORKING MODEL | roughly 96 visual collectible versions if every base gadget has all four rarities |
-| Secrets | LOCKED RANGE | +2–3 special chase items outside standard completion |
+| Full content target | WORKING MODEL | around 24 base collectible gadget designs if the probe validates |
+| Probe content size | LOCKED | 12 base gadgets total, split into 2 mini-collections of 6 gadgets each |
+| Standard variants per gadget | LOCKED | every probe base gadget has 4 standard rarity variants: Common, Rare, Epic, Legendary |
+| Probe standard variant count | LOCKED | 12 × 4 = 48 standard collectible variants |
+| Probe Secrets | LOCKED RANGE | 1–2 special chase items outside standard completion |
+| Main Shelf representation | LOCKED | one shelf slot per base gadget; display the best/highest-rarity version currently owned for that gadget rather than dedicating four shelf slots to its rarity variants |
+| Library / Catalog | LOCKED | separate collection sub-surface lists all base gadgets and all rarity variants, showing discovered vs missing entries; this is the completionist/checklist view |
+| Shelf vs Library purpose | LOCKED | Shelf is the attractive display of the player's best finds; Library is the exhaustive record of everything discovered/missing |
+| Probe grouping | LOCKED | use two mini-collections as the entire first behavioral content set; exact themes and six-item lineups remain open |
 | Package tiers | OPEN | old research assumed ~3, but exact structure must be re-evaluated with Signal/Mod Bench |
 
 ---
