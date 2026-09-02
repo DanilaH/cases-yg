@@ -66,34 +66,35 @@ See `DECISIONS.md` and `TECHNICAL_DIRECTION.md`.
 
 ---
 
-# 4. Content matrix — NEXT
+# 4. Content matrix — STRUCTURE RESOLVED, LINEUP NEXT
 
-Working model is around 24 base gadgets, likely including families such as:
+Locked structural model:
 
-- digicam;
-- flip phone;
-- MP3 player;
-- pager;
-- mini camcorder;
-- handheld console;
-- PDA;
-- MiniDisc/cassette-style player;
-- pocket radio;
-- tiny keyboard/synth;
-- virtual-pet-like electronics;
-- novelty memory/USB device.
+- first behavioral probe = **12 base gadgets**;
+- split into **2 mini-collections of 6 gadgets**;
+- every base gadget has Common / Rare / Epic / Legendary variants;
+- total probe standard content = **48 rarity variants**;
+- add **1–2 Secrets** outside the standard ladder;
+- fuller post-validation target may grow toward ~24 base gadgets, but the probe does not wait for that volume.
 
-Need to decide:
+Locked art-production rule per base gadget:
 
-- exact 24 base models;
-- whether each base model truly has all four standard rarity variants;
-- family distribution;
-- color/material matrix;
-- 2–3 Secret concepts;
-- naming rules;
-- shelf-slot structure.
+1. generate roughly 6–10 exploratory base concepts;
+2. select one canonical master;
+3. derive all four rarity variants from that selected design;
+4. preserve core geometry, camera angle and device identity across rarity variants;
+5. a 2×2 rarity sheet is allowed as a production convenience when consistency holds.
 
-Do not mass-produce all art until the final asset grammar survives at least one more category beyond camera/flip phone.
+Still need to decide:
+
+- themes/names of the two six-item mini-collections;
+- exact 12 base gadget lineup;
+- family distribution across those collections;
+- final color/material assignments where rarity grammar leaves freedom;
+- 1–2 exact Secret concepts;
+- naming rules for devices/variants.
+
+Do not mass-produce final art until the 12-item lineup is locked.
 
 ---
 
@@ -122,7 +123,7 @@ Need final probability model for:
 - Epic;
 - Legendary;
 - Secret acquisition;
-- Hidden Pocket if included;
+- Hidden Pocket;
 - new-item protection;
 - package-tier modifiers.
 
@@ -166,7 +167,7 @@ Decide:
 - costs;
 - whether lower-rarity item is consumed;
 - how to prevent Mod Bench from trivializing collection completion;
-- unlock timing.
+- exact unlock timing after the first duplicate introduction.
 
 ---
 
@@ -184,44 +185,38 @@ Keep it cheap and automatic; kill any implementation that turns it into a second
 
 ---
 
-# 10. Collection screen
+# 10. Collection screen — CORE MODEL RESOLVED
 
-Need a concrete mock/spec:
+Locked direction:
+
+- **Main Shelf** is the attractive collection display;
+- one shelf slot per base gadget;
+- each slot shows the best/highest-rarity version currently owned for that gadget;
+- **Library / Catalog** is a separate nearby collection sub-surface showing all gadgets and Common/Rare/Epic/Legendary discovery states;
+- Secrets are tracked separately from the standard rarity ladder;
+- first probe shelf therefore has 12 base slots rather than 48 rarity slots.
+
+Still need a concrete visual/UI spec for:
 
 - shelf/desk composition;
-- number of visible slots per screen;
-- how 96 potential rarity variants are represented without visual overload;
-- whether the shelf displays best-owned rarity per base gadget or every variant separately;
-- how completion is counted;
-- how Secrets are shown/hidden;
-- whether a detail view exists;
-- how the player returns to opening.
-
-This is especially important: `24 base gadgets × 4 rarity variants` can mean very different UX depending on whether all 96 get dedicated slots.
+- how the two six-item mini-collections are arranged;
+- locked-slot appearance;
+- Library navigation and density;
+- item detail behavior, if any;
+- Secret visibility before discovery;
+- return/navigation affordances.
 
 ---
 
-# 11. Collection completion semantics
+# 11. Collection completion semantics — PARTIALLY RESOLVED
 
-Need to define exactly what “complete” means.
+The UI structure now naturally supports two layers:
 
-Possible models:
-
-### A. Base-family completion
-
-Own at least one version of each of the 24 gadgets.
-
-### B. Full rarity completion
-
-Own all 96 standard variants.
-
-### C. Two-layer completion
-
-- Main shelf completion = 24/24 gadget families;
-- Collector mastery = 96/96 standard variants;
+- Shelf/base-gadget progress;
+- Library rarity-variant mastery;
 - Secrets tracked separately.
 
-Model C currently looks promising but is **not yet locked**.
+Still need to explicitly decide which of these counts as the game's headline `collection complete` state and how the progress numbers are presented. Do not assume Secrets are required; the existing rarity decision says they are outside main completion.
 
 ---
 
@@ -268,7 +263,9 @@ Also define what evidence causes:
 
 # 14. Art production pipeline
 
-Need to choose and document:
+The base-gadget exploration → canonical master → four derived rarity variants rule is now locked.
+
+Still need to choose/document operational details:
 
 - generator/tool workflow;
 - prompt templates;
@@ -281,7 +278,7 @@ Need to choose and document:
 - retouch policy;
 - how source prompts/seeds/versions are tracked.
 
-The visual risk is higher than the engineering risk, so this deserves a real production rule-set.
+The visual risk is higher than the engineering risk, so this still deserves a real production rule-set.
 
 ---
 
