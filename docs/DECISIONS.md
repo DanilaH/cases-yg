@@ -93,7 +93,11 @@ Status meanings:
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Signal meter / pity system | ACCEPTED FOR PROBE | bad/duplicate rolls still advance toward a guaranteed useful drop; theme it as Y2K signal/lock-on rather than generic luck |
+| Signal meter / pity system | LOCKED FOR PROBE | Signal is global and increases only on standard duplicates. Common duplicate +25, Rare +20, Epic +15, Legendary +10; cap at 100 until consumed |
+| SIGNAL LOCK reward | LOCKED | when Signal reaches 100, the next standard reveal is forced to an undiscovered non-Legendary variant if any remain. If all six Common/Rare/Epic variants are already discovered, it instead forces a Rare/Epic standard result; it never forces Legendary |
+| Signal reset | LOCKED | consuming SIGNAL LOCK resets Signal to 0 after the forced standard result is transactionally resolved |
+| Signal ↔ Secret | LOCKED OUT | Signal never affects Secret/Hidden Pocket probability or outcome; the post-standard Hidden Pocket roll remains independent |
+| Signal UI | LOCKED DIRECTION | reveal Signal only when it first gains progress; show compact LCD/antenna-style meter, explicit `+Signal` feedback on duplicate and a short `SIGNAL LOCK` pulse/scan treatment when full |
 | Duplicate conversion | ACCEPTED FOR PROBE | duplicates become Tech Parts rather than dead inventory |
 | Mod Bench / deterministic upgrade | ACCEPTED FOR PROBE | Tech Parts feed a simple targeted upgrade/reward path; exact recipe/UI still open |
 | Hidden Pocket / rare second reveal | ACCEPTED FOR PROBE | after an apparently complete normal reveal, a rare automatic second beat can make the pouch twitch/return and reveal a bonus or Secret; no second player input. Treat it as surprise presentation, not a new unpacking mechanic |
