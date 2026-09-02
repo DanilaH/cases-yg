@@ -30,7 +30,9 @@ Current reveal behavior for the first probe:
 - the full reveal always plays;
 - target duration after tear is ~1.0–1.4 s;
 - tap/click does not skip or accelerate it;
-- package exits quickly enough that the gadget becomes the visual hero;
+- the pouch remains visible for the first ~0.3–0.4 s so the gadget visibly emerges from a physical source;
+- once the gadget has emerged far enough, the pouch slides down / scales slightly down / fades away;
+- the gadget becomes the sole visual hero for the final rarity + NEW/duplicate state;
 - cheap runtime FX scale with rarity rather than using separate expensive animations.
 
 ---
@@ -59,9 +61,11 @@ Launch direction:
 - stronger bespoke design changes than standard rarity variants;
 - special reveal presentation is allowed.
 
-Exact acquisition method and chance remain open.
+Preferred acquisition framing:
 
-A promising direction is to connect Secrets to the optional `Hidden Pocket` event rather than treating them as a plain fifth-rarity percentage.
+> **Secrets are discovered through the Hidden Pocket surprise layer rather than presented as an ordinary fifth-rarity result.**
+
+Exact probability and whether every Secret is strictly Hidden-Pocket-only remain open until drop odds are balanced.
 
 ---
 
@@ -160,39 +164,49 @@ Open questions:
 
 ---
 
-# 7. Hidden Pocket — PROVISIONAL
+# 7. Hidden Pocket — ACCEPTED FOR PROBE
 
-A strong low-cost transformation of `secret compartment` opening UX:
+Hidden Pocket is a **rare automatic second reveal beat**, not a second unpacking mechanic.
 
-After an apparently finished reveal, a small random chance triggers a second surprise:
+After an apparently finished normal reveal, a small random chance triggers:
 
 ```text
-normal reveal
+normal reveal completes
     ↓
-brief pause / package twitch
+brief ~0.3 s pause
     ↓
-WAIT…?
+pouch twitches / returns slightly
     ↓
-hidden pocket opens
+short distinct sound + inner flash
     ↓
-bonus / Secret reveal
+BONUS / SECRET second reveal
 ```
 
-Why it is attractive:
+Rules:
+
+- **no additional player input**;
+- no searching for a compartment;
+- no extra swipe/tap requirement;
+- reuse the existing pouch and reveal language;
+- keep the extra animation very cheap;
+- use the event for an occasional bonus drop and especially as the preferred thematic route to Secret/Chase items.
+
+Why it is included:
 
 - adds a second anticipation beat;
+- makes a finished reveal occasionally become surprising again;
 - uses existing package/item assets;
 - low engineering/content burden;
-- can make Secrets feel genuinely special rather than numerically rarer.
+- makes Secrets feel like discoveries rather than a fifth rarity color.
 
-This is **not yet a launch blocker**. Include only if the implementation remains cheap.
+Still open:
 
-Open questions:
+- trigger chance;
+- allowed normal bonus rewards;
+- exact Secret probability / whether every Secret is Hidden-Pocket-only;
+- analytics event names.
 
-- chance;
-- what can drop;
-- whether all Secrets are Hidden-Pocket-only;
-- whether rewarded ads can interact with it (default answer: probably avoid until core loop is validated).
+Do not tie rewarded ads to Hidden Pocket in the first probe.
 
 ---
 
