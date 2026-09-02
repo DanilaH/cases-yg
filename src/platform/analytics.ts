@@ -39,7 +39,7 @@ const installMetricaFunction = (): MetricaFunction => {
 export const installYandexMetricaTag = (counterId: number): void => {
   const ym = installMetricaFunction();
   const scriptSrc = `${METRICA_SCRIPT_BASE}?id=${counterId}`;
-  const alreadyInstalled = Array.from(document.scripts).some((script) => script.src === scriptSrc);
+  const alreadyInstalled = Array.from(document.scripts).some((script) => script.src.startsWith(METRICA_SCRIPT_BASE));
 
   if (!alreadyInstalled) {
     const script = document.createElement('script');
