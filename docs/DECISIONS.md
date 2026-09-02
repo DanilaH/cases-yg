@@ -6,6 +6,7 @@ Status meanings:
 
 - **LOCKED** — source of truth unless new evidence directly invalidates it.
 - **LOCKED FOR PROBE** — required behavior for the first behavioral/public probe.
+- **LOCKED CANDIDATE** — chosen submission/marketing answer unless an external constraint such as catalog uniqueness forces a rename.
 - **PARKED** — useful later; do not block the probe.
 - **LOCKED OUT** — deliberately excluded.
 - **HYPOTHESIS** — assumption to validate, not a product requirement.
@@ -17,6 +18,7 @@ Status meanings:
 | Decision | Status | Current answer |
 |---|---|---|
 | Platform | LOCKED | Yandex Games |
+| Supported platforms | LOCKED FOR PROBE | Desktop + Mobile in landscape; no TV-specific UX/support in the first probe |
 | Game choice | LOCKED | Mystery collectible opener; broad ideation is over |
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
@@ -29,12 +31,15 @@ Status meanings:
 | Package presence during reveal | LOCKED | pouch remains the physical source for the first ~0.3–0.4 s before exiting behind the collectible |
 | Reveal FX | LOCKED | cheap runtime-only Phaser effects: soft radial flash, small sparkle burst, ring/outline pulse, rarity glow; Epic/Legendary may add tiny camera bump and denser particles |
 | Reveal skip | LOCKED OUT FOR PROBE | no tap-to-skip, acceleration or x5 opening in the first probe; Quick Reveal is a required post-data revisit |
+| Result hold / next pouch | LOCKED | after the final standard/Secret result settles, keep it readable for at least ~0.6 s; then tap/click outside Collection navigation advances to the next pouch. No automatic timer advance; a small localized `Next pouch` cue may appear. This dismissal is not reveal skipping |
 | Primary screen architecture | LOCKED FOR PROBE | Opening is primary; Collection is the only separate persistent gameplay surface; reveal choreography stays inside Opening rather than switching to a separate Reveal scene |
 | Scene transition UX | LOCKED | Opening ↔ Collection must feel effectively instant with no user-visible loading |
-| Opening HUD budget | LOCKED FOR PROBE | Signal + Collection navigation only |
+| Opening HUD budget | LOCKED FOR PROBE | Signal + Collection navigation only; a tiny system-level sound toggle is exempt from gameplay-HUD budget |
 | Opening HUD progressive disclosure | LOCKED | Collection navigation appears after first reveal; Signal appears on first Signal gain |
 | Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD dims and cannot interrupt the reward presentation |
 | First-session tutorial | LOCKED | no modal tutorial; teach tear gesture, Collection and Signal contextually |
+| Audio | LOCKED FOR PROBE | SFX-only: tear, pop, rarity chime, Secret sting and light UI feedback; no background music; small persistent mute/speaker toggle; all audio pauses with platform/tab pause |
+| Localization | LOCKED FOR PROBE | ship RU + EN UI strings; choose automatically from `ysdk.environment.i18n.lang`; unsupported languages fall back to EN; no manual language selector in probe |
 | Primary orientation | LOCKED | landscape-only for first probe |
 | Responsive philosophy | LOCKED | true adaptive landscape layout; canvas follows viewport; semantic anchors/constraints; no fixed 16:9 board simply scaled with FIT |
 | Reference composition | LOCKED | 16:9 reference, coherent target range approximately 5:4 through 12:5 |
@@ -186,7 +191,7 @@ Status meanings:
 | Decision | Status | Current answer |
 |---|---|---|
 | First-probe content | LOCKED | 8 standard assets + 2 Secrets; no additional families |
-| First-probe systems | LOCKED | opener/reveal, Signal, Hidden Pocket, Shelf/Library, local save, Yandex lifecycle, analytics |
+| First-probe systems | LOCKED | opener/reveal, Signal, Hidden Pocket, Shelf/Library, local save, Yandex lifecycle, RU/EN localization, SFX, analytics |
 | Excluded probe systems | LOCKED OUT | package economy, Tech Parts, Mod Bench, ads, dailies, leaderboard, trading, minigames, 3D |
 | Rebased effort | LOCKED TARGET | approximately **5–8 focused days** excluding moderation waiting; perform scope review rather than silent expansion if submission-ready build exceeds ~8 focused days |
 
