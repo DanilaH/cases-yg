@@ -245,17 +245,21 @@ For fast navigation, scene-critical shared assets should be loaded up front or k
 
 ---
 
-# 11. Responsive layout — OPEN
+# 11. Responsive layout — LANDSCAPE LOCKED
+
+Primary orientation is **landscape**.
+
+This means the opener, reveal composition, Collection and Mod Bench should all be designed landscape-first rather than treating landscape as an afterthought around a portrait game board.
 
 Still to decide before implementation:
 
-- portrait vs landscape primary orientation;
-- logical Phaser resolution;
-- scaling strategy;
-- safe areas and desktop/mobile framing;
-- how opening screen and collection screen adapt.
+- logical Phaser resolution / aspect-ratio target;
+- scaling strategy across desktop and mobile landscape;
+- minimum supported viewport and safe-area policy;
+- whether extreme-wide desktop uses bounded composition / decorative side space;
+- how Collection density changes across narrower landscape screens.
 
-This is a genuine pre-development blocker because it affects all composition and asset sizing.
+Do not build a separate portrait composition for the first probe unless platform evidence later makes it necessary.
 
 ---
 
