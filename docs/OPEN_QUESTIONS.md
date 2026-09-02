@@ -114,47 +114,52 @@ Multiple package types may be reconsidered only after validation and only if a l
 
 ---
 
-# 6. Drop odds — NEXT
+# 6. Standard drop odds — RESOLVED FOR PROBE
 
-Need final probability model for:
+Locked baseline:
 
-- Common;
-- Rare;
-- Epic;
-- Legendary;
-- Secret acquisition;
-- Hidden Pocket;
-- new-item protection.
+| Rarity | Chance |
+|---|---:|
+| Common | **60%** |
+| Rare | **28%** |
+| Epic | **10%** |
+| Legendary | **2%** |
 
-There are **no package-tier modifiers** in the probe.
+Roll Camera / Flip Phone at **50/50**, independently from rarity. Therefore each specific raw Legendary family result is approximately **1% per standard opening**.
 
-Do not choose percentages in isolation. Balance against:
+Onboarding protection:
 
-- ~1.0–1.4 s reveal time;
-- expected repeated-opening session length;
-- tiny **8-variant standard collection**;
-- duplicate conversion into Tech Parts;
-- Signal fill speed;
-- avoiding both five-minute completion and oppressive duplicate spam.
+- first 3 standard openings are guaranteed undiscovered standard variants;
+- opening #2 must use the opposite gadget family from opening #1;
+- after opening #3, normal RNG begins;
+- no permanent hidden anti-duplicate reroll after onboarding; Signal + Tech Parts own duplicate mitigation.
+
+Secret/Hidden Pocket remains a separate post-standard roll and does not dilute this 100% standard rarity table.
+
+Still open under section 9: exact Hidden Pocket / Secret probability.
 
 ---
 
-# 7. Signal specification
+# 7. Signal specification — NEXT
 
 Accepted concept, unresolved mechanics.
 
-Decide:
+Need to decide:
 
 - what increases Signal;
-- exact increments;
-- global implementation (there are no package tiers in the probe);
+- exact increments by duplicate rarity;
+- whether anything except duplicates increases it;
 - full-meter reward;
 - reset rules;
-- interaction with Legendary/Secret;
-- whether `SIGNAL LOCK` guarantees `NEW`, `Rare+`, or both;
-- how it is communicated without clutter.
+- whether Signal can force a Legendary;
+- interaction with Secret/Hidden Pocket;
+- exact UI feedback when the meter fills/locks.
 
-Because the probe contains only eight standard variants, verify that Signal still adds value rather than over-solving progression.
+Constraints:
+
+- Signal is global because there is only one package type;
+- the probe has only eight standard variants, so Signal must reduce frustration without auto-completing the Library;
+- permanent hidden duplicate protection is intentionally off after opening #3.
 
 ---
 
