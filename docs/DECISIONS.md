@@ -25,6 +25,7 @@ Status meanings:
 | Tear interaction | LOCKED | one short left-to-right drag using a large star-shaped tear-tab along a horizontal tear line; no physics or multi-stage unpacking |
 | Reveal choreography after tear | LOCKED | tear strip detaches → pouch gives a tiny recoil/twitch → short rarity-tinted flash from inside → gadget rises/scales into center → pouch drops/fades backward → gadget overshoots slightly and settles → rarity + NEW/duplicate state appears; target ~1.0–1.4 s after drag |
 | Reveal FX | LOCKED | runtime-only, cheap Phaser effects: soft radial flash, small sparkle burst, one ring/outline pulse and rarity-tinted glow; Epic/Legendary may add a tiny camera bump and denser particles; no expensive shaders or baked effect-heavy item art |
+| Reveal skip in first probe | LOCKED OUT | full reveal always plays; tap/click does not skip or accelerate it in the first probe |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
@@ -75,7 +76,7 @@ Status meanings:
 | Duplicate conversion | ACCEPTED FOR PROBE | duplicates become Tech Parts rather than dead inventory |
 | Mod Bench / deterministic upgrade | ACCEPTED FOR PROBE | Tech Parts feed a simple targeted upgrade/reward path; exact recipe/UI still open |
 | Hidden Pocket / rare second reveal | PROVISIONAL | cheap surprise layer after a normal reveal; strong candidate if it fits budget |
-| Quick Reveal | PARKED | unlock after repeated openings if normal animation becomes friction |
+| Quick Reveal | PARKED | not in first probe, but **must be revisited deliberately after repeated-opening testing / early behavioral data**; likely shorter ~0.4–0.6 s reveal if the full animation becomes friction. Do not silently forget this decision point. |
 | Room/shelf evolution milestones | PARKED | use one evolving collection scene instead of multiple biomes/worlds |
 | Daily Spotlight / rotating family boost | PARKED | possible return hook; do not block first probe |
 | Daily reward streak | PARKED | conventional retention system; only after core loop validates |
