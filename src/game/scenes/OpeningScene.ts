@@ -898,7 +898,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private isSceneShutdown(): boolean {
-    return this.phase === 'shutdown';
+    return this.isSceneShutdown();
   }
 
   private wait(milliseconds: number): Promise<void> {
