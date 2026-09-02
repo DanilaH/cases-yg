@@ -108,16 +108,16 @@ Status meanings:
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Full content target | WORKING MODEL | around 24 base collectible gadget designs if the probe validates |
-| Probe content size | LOCKED | 12 base gadgets total, split into 2 mini-collections of 6 gadgets each |
-| Standard variants per gadget | LOCKED | every probe base gadget has 4 standard rarity variants: Common, Rare, Epic, Legendary |
-| Probe standard variant count | LOCKED | 12 × 4 = 48 standard collectible variants |
-| Probe Secrets | LOCKED RANGE | 1–2 special chase items outside standard completion |
-| Main Shelf representation | LOCKED | one shelf slot per base gadget; display the best/highest-rarity version currently owned for that gadget rather than dedicating four shelf slots to its rarity variants |
-| Library / Catalog | LOCKED | separate collection sub-surface lists all base gadgets and all rarity variants, showing discovered vs missing entries; this is the completionist/checklist view |
-| Shelf vs Library purpose | LOCKED | Shelf is the attractive display of the player's best finds; Library is the exhaustive record of everything discovered/missing |
-| Probe grouping | LOCKED | use two mini-collections as the entire first behavioral content set; exact themes and six-item lineups remain open |
-| Package tiers | OPEN | old research assumed ~3, but exact structure must be re-evaluated with Signal/Mod Bench |
+| Full content target | WORKING MODEL | expand to additional gadget families only after the behavioral probe validates; the old ~24-base-gadget target is no longer a probe commitment |
+| Probe base gadgets | LOCKED | exactly 2 base gadget collections: **Digital Camera** and **Flip Phone** |
+| Standard variants per gadget | LOCKED | each probe gadget has 4 standard rarity variants: Common, Rare, Epic, Legendary |
+| Probe standard variant count | LOCKED | 2 × 4 = **8 standard collectible variants** |
+| Probe Secrets | LOCKED RANGE | **1–2 special chase items** outside standard completion; exact Camera/Flip Phone assignment remains open |
+| Main Shelf representation | LOCKED | one shelf slot per base gadget; therefore the probe shelf has 2 primary slots, each displaying the best/highest-rarity version currently owned for Camera or Flip Phone |
+| Library / Catalog | LOCKED | separate collection sub-surface shows all 8 standard Camera/Flip Phone rarity variants plus Secret discovery state; this is the exhaustive completionist/checklist view |
+| Shelf vs Library purpose | LOCKED | Shelf is the attractive display of the player's best Camera and Flip Phone finds; Library is the exhaustive record of all rarity variants and Secrets |
+| Probe grouping | LOCKED | `Camera` and `Flip Phone` are the two entire probe collections; do not reinterpret this as two six-item collections |
+| Package tiers | OPEN | old research assumed ~3, but exact structure must be re-evaluated against the now very small two-gadget probe |
 
 ---
 
@@ -145,4 +145,4 @@ Status meanings:
 
 ## Scope warning
 
-The old handoff used a rough **4.5–6.5 focused day / ~7-day kill boundary** before Signal/Mod Bench/Secrets were fully incorporated. Treat that estimate as **NEEDS REBASE**, not as a current promise. The low-burden constraint is still locked; the exact day estimate must be recalculated after the documentation pass.
+The probe is intentionally much smaller than the old 12- or 24-gadget planning models: **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**. Re-estimate implementation after package/economy/system decisions are locked, but do not inflate content before the core opening loop proves itself.
