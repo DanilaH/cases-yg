@@ -17,18 +17,9 @@ Useful as the simplest structural reference:
 - collection;
 - low interaction burden.
 
-What it validates:
+Lesson:
 
-> very low-input mystery reveal + rarity + collection can work as a game skeleton.
-
-What not to copy:
-
-- dumpling/squish theme;
-- any assumption that the skeleton alone creates demand.
-
-Product lesson:
-
-> theme and presentation matter enormously.
+> very low-input mystery reveal + rarity + collection can work as a skeleton, but theme/presentation carry much of the value.
 
 ---
 
@@ -47,23 +38,21 @@ Observed/reference feature set discussed during research:
 - rewarded ads;
 - leaderboard.
 
-### Steal/transform
+### What we kept
 
-**Luck meter → SIGNAL meter**
+**Luck/pity → SIGNAL**.
 
-Reason: bad random results still create forward movement.
+Reason: ordinary duplicates create visible progress without adding another economy.
 
-**Duplicate crafting → Tech Parts + Mod Bench**
+### What we learned but parked
 
-Reason: duplicate becomes deterministic progress.
+**Duplicate crafting → Tech Parts / Mod Bench** was initially accepted as a transformation, then deliberately parked after the probe content shrank to Camera + Flip Phone. With only eight standard variants, Signal already solves the duplicate-frustration job and a second currency/upgrade scene would muddy the test.
 
-### Do not imitate directly
+### Do not imitate
 
-- 7 normal rarity tiers;
+- 7 normal rarities;
 - 7 biomes;
 - feature-count arms race.
-
-Our intended advantage is stronger object desirability and lower production burden, not more systems.
 
 ---
 
@@ -77,21 +66,17 @@ Research interest:
 - secret compartments / double-bottom surprise;
 - duplicate recycling/upgrading.
 
-### Transform
+### Kept transformation
 
-**Secret compartment → Hidden Pocket**
+**Secret compartment → Hidden Pocket**.
 
-Do not add a long search/manipulation sequence. Instead, after an apparently completed reveal, occasionally trigger a tiny second surprise beat.
+Our version is an automatic post-reveal surprise, not a search/manipulation sequence.
 
-Potential use:
+For the probe it has one job:
 
-- bonus item;
-- special package insert;
-- Secret/Chase acquisition path.
+> **rare Secret acquisition**
 
-### Duplicate lesson
-
-Duplicate value should be tangible and deterministic rather than “another useless copy.”
+No generic bonus table and no second input.
 
 ---
 
@@ -106,14 +91,14 @@ Useful as a warning/reference for case-meta growth:
 - contracts;
 - economy/farming layers.
 
-### Steal
+### Keep in reserve
 
-**Fast/quick reveal** as eventual QoL if repeated opening becomes slow.
+**Quick Reveal** as eventual QoL if repeated opening becomes slow.
 
 ### Avoid
 
 - importing the whole meta stack;
-- building contracts/farm systems merely because mature case games have them.
+- contracts/farm systems merely because mature case games have them.
 
 ---
 
@@ -121,9 +106,9 @@ Useful as a warning/reference for case-meta growth:
 
 https://yandex.ru/games/app/436125
 
-Use as a warehouse of mature retention ideas, not as a scope reference.
+Use as a warehouse of mature retention ideas, not a scope reference.
 
-The class of systems to avoid for the first probe includes:
+Avoid in first probe:
 
 - market/trading;
 - 3D inspection;
@@ -131,10 +116,6 @@ The class of systems to avoid for the first probe includes:
 - minigames;
 - deep crafting/customization;
 - large economy.
-
-Lesson:
-
-> a case simulator can become huge very quickly; that does not mean our product should.
 
 ---
 
@@ -145,14 +126,13 @@ https://yandex.ru/games/app/427908
 Research interest:
 
 - timer-based gifts;
-- persistent reason to return/open again.
+- persistent return hooks.
 
-Potential transformation later:
+Potential later transformation:
 
-- free Daily Spotlight package;
-- timed free delivery.
+- Daily Spotlight / timed content boost after there are enough gadget families.
 
-Do not block the first probe with this.
+Do not block first probe with it.
 
 ---
 
@@ -163,12 +143,12 @@ https://yandex.ru/games/app/simuliator-keisov-otkroi-vse-stend-boksy-524218
 Research interest:
 
 - single vs multi-open;
-- speeding up repeated openings.
+- speeding repeated openings.
 
 Current decision:
 
-- consider **Quick Reveal** later;
-- do not default to x5 opening because our object art/reveal is a bigger part of the value proposition.
+- **Quick Reveal is parked but must be revisited from real repeated-opening data**;
+- no x5 opening in first probe.
 
 ---
 
@@ -181,10 +161,10 @@ Research interest:
 - collection/value framing;
 - duplicate/value loop.
 
-Potential lesson:
+Potential later lesson:
 
-- collection can have an aggregate score/value later;
-- not required for the probe.
+- aggregate collection score/value may exist after validation;
+- not required now.
 
 ---
 
@@ -192,54 +172,56 @@ Potential lesson:
 
 https://play.google.com/store/apps/details?id=com.jakpok.casesimulator
 
-Use as a mature external reference for the long tail of case-sim meta:
+Mature external reference for the long tail of case-sim meta:
 
 - upgrader;
 - contracts;
 - achievements;
 - leaderboards;
 - broad case variety;
-- many additional economy/minigame systems.
+- many economy/minigame systems.
 
-### Important conclusion
+Important conclusion:
 
-Do **not** turn Mystery Pocket Tech into a simulated-gambling ecosystem.
+> **Do not turn Mystery Pocket Tech into a simulated-gambling ecosystem.**
 
-The valuable reusable pattern is:
-
-> **random acquisition → duplicate/bad roll → deterministic progress → another reason to open**
-
-Our version should remain themed around nostalgic technology collection rather than betting.
+The reusable pattern is acquisition → bad/duplicate outcome → visible progress → repeat. In the probe, **Signal alone** owns that visible-progress job.
 
 ---
 
-# Cross-competitor synthesis
+# Cross-competitor synthesis — CURRENT
 
-## Accepted high-leverage primitives
+## Included in first probe
 
 ### 1. Pity/progress protection
 
-Transform into **SIGNAL**.
+**SIGNAL**.
 
-### 2. Duplicate utility
+### 2. Rare second surprise
 
-Transform into **Tech Parts + Mod Bench**.
+**Hidden Pocket**, simplified to a 3% post-standard Secret event after onboarding while an undiscovered Secret remains.
 
-### 3. Rare second surprise
+### 3. Visible collection payoff
 
-Transform into **Hidden Pocket** if it stays cheap.
+**Shelf + Library** rather than a giant inventory grid.
 
-### 4. Repeated-open friction reduction
+## Explicitly parked
 
-Park **Quick Reveal** for later.
+### 4. Duplicate crafting / deterministic upgrades
 
-### 5. Return hooks through content rotation
+**Tech Parts / Mod Bench** — only revisit if real data shows Signal is insufficient.
 
-Park **Daily Spotlight** rather than building large daily-reward tables/content worlds.
+### 5. Repeated-open friction reduction
 
-### 6. Visual long-term progression
+**Quick Reveal** — required post-data review, not initial scope.
 
-Use one **evolving shelf/desk scene** rather than 7+ biomes.
+### 6. Return hooks
+
+**Daily Spotlight / streaks / timed gifts** — only after core continuation validates and there is enough content.
+
+### 7. Visual environment evolution
+
+Potential later shelf/desk milestones, not first probe.
 
 ---
 
@@ -247,12 +229,11 @@ Use one **evolving shelf/desk scene** rather than 7+ biomes.
 
 Do not compete on:
 
-- raw number of systems;
-- number of rarity labels;
+- raw system count;
+- rarity-label count;
 - worlds/biomes;
 - simulated betting;
-- markets;
-- trading;
+- markets/trading;
 - minigame count;
 - 3D complexity;
 - hundreds of unrelated base items.
@@ -263,6 +244,6 @@ Compete on:
 - collectible art desirability;
 - fast opening UX;
 - satisfying rarity/material escalation;
-- useful duplicates;
-- visible collection progress;
-- low-cost surprise/retention mechanics.
+- visible duplicate mitigation;
+- collection progress;
+- low-cost surprise.
