@@ -1,239 +1,186 @@
-# Behavioral probe validation
+# Internal slice validation
 
-This file defines what the first public behavioral build is trying to prove and how to judge it without adding scope to rescue weak engagement.
+The Camera + Flip Phone build is a **private vertical slice for direct user/developer review**. It is not a public behavioral experiment and is not submitted to Yandex moderation as the final game.
 
-The numbers below are **internal decision gates**, not claimed industry benchmarks.
+Its job is to answer:
 
----
-
-# 1. Probe question — LOCKED
-
-The first build exists to answer:
-
-> **Does the core `tear → reveal → collect → repeat` loop create enough immediate desire to keep opening when the package itself is free and frictionless?**
-
-Secondary questions:
-
-- does the Collection create a meaningful payoff outside the reveal screen?
-- does visible Signal progression make duplicates tolerable?
-- does Hidden Pocket create a memorable surprise/chase beat?
-
-The first probe is **not** intended to validate a package economy, crafting system, ad economy, daily retention program, or large content library.
+> **Is the core opener good enough, technically correct enough and production-ready enough to justify mass-producing content on top of it?**
 
 ---
 
-# 2. Analytics implementation — LOCKED
+# 1. Acceptance dimensions
 
-Use two layers:
+## Feel
 
-1. **Yandex Games built-in metrics** for platform-level traffic, playtime, return and technical/product metrics;
-2. **Yandex Metrica** for the small custom gameplay funnel below.
+- tear gesture is obvious and pleasant on mouse/touch;
+- reveal feels satisfying and visually coherent;
+- repeated opening remains tolerable over at least 50+ manual/forced cycles;
+- rarity escalation is readable and desirable;
+- result state is readable without slowing the loop excessively.
 
-No analytics backend is required.
+## Progression
 
-Route custom events through one typed `analytics` adapter. Game scenes/systems should not call a provider-specific global directly.
+- NEW/duplicate state is immediately understandable;
+- Signal feedback is legible;
+- SIGNAL LOCK behavior feels useful rather than arbitrary;
+- Hidden Pocket lands as a genuine surprise;
+- Shelf/Library makes acquisition feel persistent.
 
-Do not send personal data or arbitrary user-entered text.
+## Technical correctness
 
----
+- no reward rerolls on refresh;
+- no double commits;
+- pending reveal recovers deterministically;
+- responsive layout survives desktop/mobile landscape and resize;
+- no browser gesture/context-menu interference;
+- save survives refresh;
+- RU/EN and mute work;
+- no visible asset loading between primary surfaces.
 
-# 3. Custom event set — LOCKED
+## Platform / ads
 
-Keep the event set intentionally small.
-
-## Funnel / loop
-
-- `first_package_interaction`
-- `reveal_complete`
-- `collection_open`
-- `collection_return`
-
-`reveal_complete` means **one whole opening transaction has finished presentation**. If that transaction contains Hidden Pocket, emit `reveal_complete` after the Secret beat resolves, not before it. This keeps one event equal to one completed opening cycle.
-
-It should carry compact parameters such as:
-
-- session open index;
-- lifetime open index;
-- family;
-- rarity;
-- new vs duplicate;
-- Signal before/after;
-- whether SIGNAL LOCK was consumed;
-- whether Hidden Pocket occurred in this opening.
-
-## Progression / chase
-
-- `signal_lock_reached`
-- `signal_lock_consumed`
-- `hidden_pocket_triggered`
-- `secret_discovered`
-- `standard_collection_complete`
-
-Do not create a separate custom event for every rarity/family combination; use event parameters instead.
+- SDK initializes correctly in Yandex draft/debug mode;
+- Game Ready timing is correct;
+- `game_api_pause/resume` behavior is correct;
+- interstitial opens/closes/errors safely;
+- rewarded opens/closes/errors safely;
+- dev-only reward is granted exactly once only on rewarded completion;
+- sticky banner boundary can show/hide safely if tested;
+- audio/gameplay stays paused during full-screen/rewarded ads;
+- ad failure never blocks the opener.
 
 ---
 
-# 4. Derived funnel checkpoints — LOCKED
+# 2. Internal analytics
 
-From `reveal_complete`, derive continuation at:
+Keep Yandex Metrica instrumentation because it is part of production architecture, but do **not** use public KPI gates before content expansion.
 
-- open #2;
-- open #5;
-- open #10;
-- open #25;
-- open #50.
+Core gameplay events:
 
-Unless otherwise stated, continuation denominators are players who completed their **first reveal**.
+```text
+first_package_interaction
+reveal_complete
+collection_open
+collection_return
+signal_lock_reached
+signal_lock_consumed
+hidden_pocket_triggered
+secret_discovered
+standard_collection_complete
+```
 
-Also track:
+Ad/debug integration events may include:
 
-- first reveal completion rate after first package interaction;
-- Collection visit rate among players who reached at least 5 opens;
-- return-to-opener rate after entering Collection;
-- median and distribution of session opens;
-- duplicate rate over session depth;
-- Signal locks reached/consumed;
-- Hidden Pocket exposure and Secret discovery.
+```text
+ad_interstitial_requested
+ad_interstitial_closed
+ad_rewarded_requested
+ad_rewarded_earned
+ad_error
+```
 
----
-
-# 5. Decision sample — LOCKED
-
-Do not make a product kill decision from a few dozen sessions.
-
-First serious decision point:
-
-> **at least 500 first-package interactions and at least 7 calendar days of public traffic**, provided there is no known instrumentation or technical failure.
-
-If traffic composition changes materially during the sample, segment by device/country before interpreting a blended number.
+The slice only needs to prove these events fire once with correct parameters and never interfere with save/gameplay.
 
 ---
 
-# 6. Continue / tune / kill gates — LOCKED
+# 3. Slice balance sanity check
 
-## Strong enough to continue
+Current two-family model remains a useful **engineering/feel test configuration**:
 
-Treat the core as validated enough for the next iteration when approximately all of these hold:
+- Common 60 / Rare 28 / Epic 10 / Legendary 2;
+- first-three protection;
+- Signal +25/+20/+15/+10;
+- late lock Rare 60 / Epic 30 / Legendary 10;
+- Hidden Pocket 3% from opening #4;
+- two Secrets without duplicates.
 
-- first reveal completion: **≥ 92%** of first-package interactions;
-- second-open continuation: **≥ 75%** of first-reveal completers;
-- reach open #5: **≥ 55%** of first-reveal completers;
-- reach open #10: **≥ 35%** of first-reveal completers;
-- reach open #25: **≥ 15%** of first-reveal completers;
-- Collection opened by **≥ 25%** of players who reach 5 opens;
-- return to opener after Collection: **≥ 70%**.
+Previous Monte Carlo sanity results were approximately:
 
-These thresholds deliberately demand strong immediate repetition because the probe removes currency/energy friction.
+```text
+first ordinary duplicate    ~4
+first SIGNAL LOCK           ~9
+first Hidden Pocket         ~26
+both Secrets                ~59–60
+standard 8/8                ~80
+8/8 + Secrets 2/2           ~100
+```
 
-## Tune before expanding
+These figures only demonstrate that the slice configuration is internally coherent. They are **not targets for the expanded public release**.
 
-Tune presentation/balance when the game is between the strong and kill bands, especially when:
-
-- first reveal is healthy but second/open-5 continuation falls off;
-- Collection is rarely opened or players do not return from it;
-- duplicate-heavy sessions correlate with sharp abandonment before Signal can help;
-- reveal duration visibly becomes friction in repeated-opening tests.
-
-Tuning order:
-
-1. reveal feel/timing;
-2. package interaction clarity;
-3. rarity desirability/readability;
-4. Collection payoff/navigation;
-5. Signal pacing;
-6. only then consider new content/systems.
-
-## Kill or re-theme
-
-Do not rescue the concept with more systems when, after the minimum sample and after technical issues are ruled out, either of these is true:
-
-- second-open continuation is **< 55%**;
-- open-10 continuation is **< 15%**.
-
-Also strongly consider re-theme/kill if the first reveal works mechanically but players consistently ignore the Collection and higher-rarity/Secret outcomes produce no observable continuation lift.
+After launch roster/content grouping is locked, rerun the model from scratch.
 
 ---
 
-# 7. Quick Reveal revisit — REQUIRED
+# 4. Hands-on review checklist
 
-Quick Reveal remains parked in the initial build, but must be reviewed once real repeated-opening data exists.
+The slice is ready for user review when:
 
-Revisit when either:
+- final-ish Camera and Flip Phone sets are integrated;
+- pouch tear/reveal is polished enough to judge rather than placeholder animation;
+- Collection has Shelf + Library;
+- all slice RNG/Signal/Hidden Pocket paths can be forced from dev controls;
+- ad types/callback paths can be deliberately exercised;
+- desktop + real mobile landscape have been smoke-tested.
 
-- median engaged sessions commonly exceed ~20 opens;
-- playtests show the ~1.0–1.4 s full reveal becoming repetitive friction;
-- continuation drops specifically after players have already learned the reveal pattern.
+During review deliberately answer:
 
-If needed, add a shorter ~0.4–0.6 s mode without changing reward semantics.
-
----
-
-# 8. Monetization checkpoint — LOCKED
-
-Do **not** include rewarded/interstitial advertising in the first behavioral probe.
-
-Reason:
-
-- ordinary openings are already free/unlimited;
-- an ad-for-Signal shortcut would distort the duplicate/pity behavior being measured;
-- ad integration adds another failure/pause/resume path before the core loop proves itself.
-
-After the core clears the continuation gates, run a separate monetization pass. Do not artificially add energy/package scarcity just to create an ad reward.
+1. Is the tear gesture fun enough to repeat?
+2. Is ~1.0–1.4 s reveal too slow after 20–50 opens?
+3. Does Common still feel desirable?
+4. Is Legendary visually strong enough?
+5. Is Signal understandable without explanation?
+6. Does Hidden Pocket feel exciting rather than random noise?
+7. Is Shelf worth opening?
+8. Does Library communicate missing variants cleanly?
+9. Do ads technically pause/resume cleanly without corrupting the state machine?
+10. What visual/UX rules must be fixed **before** multiplying the art across many families?
 
 ---
 
-# 9. Balance sanity check — REVIEWED
+# 5. Slice GO / FIX / STOP
 
-A simple Monte Carlo sanity pass over the locked drop/Signal/Hidden Pocket rules was used only to detect obvious contradictions. It is **not** a player KPI or guaranteed timing.
+There is no statistical 500-player threshold.
 
-Approximate median outcomes from the model:
+### GO to content expansion
 
-- first ordinary duplicate: around opening **#4**;
-- first SIGNAL LOCK reached: around opening **#9**;
-- first Hidden Pocket: around opening **#26**;
-- both Secrets discovered: around **59–60 openings**;
-- standard 8/8 completion: around **80 openings**;
-- both standard 8/8 + Secrets 2/2: around **100 openings**.
+User signs off that the opener/reveal/Collection fantasy works and no architectural bug would make mass content expensive to integrate.
 
-Interpretation:
+### FIX before content expansion
 
-- Signal appears early enough to teach itself naturally;
-- Hidden Pocket is rare but should be seen by a meaningful share of engaged players;
-- the standard library is not auto-completed by Signal;
-- the late 10% Legendary SIGNAL LOCK boost is useful but does not guarantee completion.
+Typical blockers:
 
-Simulation assumption: the armed SIGNAL LOCK result consumes the meter to 0 and does not itself award new Signal even if the boosted result is a duplicate.
+- tear feels clumsy;
+- reveal timing becomes annoying quickly;
+- rarity variants read inconsistently;
+- Collection layout feels fundamentally wrong;
+- asset pipeline cannot maintain family consistency;
+- SDK/ad pause/reward callbacks are fragile;
+- core content system is hard-coded to two families.
 
-Re-simulate if any odds/Signal/Hidden Pocket rule changes.
+### STOP / re-theme
 
----
+Only if direct review shows the central object/reveal fantasy itself is not compelling enough to justify producing many assets.
 
-# 10. Scope estimate — REBASED
-
-Current first-probe target, excluding moderation waiting time:
-
-- engineering/platform/responsive/save/analytics/localization/audio: ~1–1.5 focused days;
-- opener/reveal/drop/Signal/Hidden Pocket: ~1.5–2 focused days;
-- Collection Shelf + Library: ~0.5–1 focused day;
-- final Camera/Flip Phone rarity + Secret art and scene polish: ~1.5–2.5 focused days;
-- QA, store materials and moderation fixes: ~0.5–1 focused day.
-
-Working total:
-
-> **~5–8 focused days**, with art consistency as the largest uncertainty.
-
-If the probe cannot be made submission-ready within roughly **8 focused days** without adding content/systems, perform a scope review instead of silently expanding the schedule.
+Do not try to rescue a bad core by mass-producing content first.
 
 ---
 
-# 11. Post-validation expansion order
+# 6. Quick Reveal checkpoint
 
-If the probe works, expand in this order:
+Quick Reveal should be decided from this direct review, not postponed until public traffic.
 
-1. fix observed reveal/Collection friction;
-2. decide Quick Reveal from data;
-3. add a small number of new gadget families;
-4. then evaluate monetization;
-5. only then reconsider Tech Parts / Mod Bench, Daily Spotlight, additional package types or other retention systems.
+If repeated full reveals become friction, introduce a configurable shorter ~0.4–0.6 s mode before content expansion/public release while preserving reward readability.
 
-New systems must solve observed problems, not merely make the feature list larger.
+---
+
+# 7. After slice approval
+
+Immediately move to:
+
+1. lock first public content batch/roster target;
+2. mass-produce families through the canonical-master pipeline;
+3. design scaled Collection grouping;
+4. rebalance drop/Signal/Hidden Pocket from the larger matrix;
+5. finalize real ad UX/rewards;
+6. re-evaluate Tech Parts / Mod Bench and other parked systems only against actual release needs;
+7. then prepare store/moderation assets.
