@@ -21,6 +21,9 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | LOCKED | package → short open interaction → anticipation → reveal → rarity → collection/duplicate resolution → repeat |
+| Package form | LOCKED | stylized silver/translucent-lavender anti-static / foil mystery pouch |
+| Tear interaction | LOCKED | one short left-to-right drag using a large star-shaped tear-tab along a horizontal tear line; no physics or multi-stage unpacking |
+| Reveal choreography after tear | OPEN | define exact motion, timing, package exit, item entrance, rarity presentation, and optional Hidden Pocket hook |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
@@ -38,6 +41,8 @@ Status meanings:
 | Shape language | LOCKED | compact, chunky, softened, slightly toyified |
 | Material language | LOCKED | candy plastic, translucent/frosted shells, pearlescent/iridescent treatments, controlled chrome/metal accents |
 | Decoration | LOCKED | charms/decals allowed sparingly; gadget identity first, kawaii garnish second |
+| Package visual grammar | LOCKED | circular mystery `?` badge, three small gadget silhouettes, restrained circuit traces, large functional star tear-tab; minimal/no baked product text |
+| Package reference asset | LOCKED | `docs/assets/package-mystery-pouch-v1.webp` |
 | Collection environment | LOCKED | cozy Y2K shelf/desk/display with fixed slots rather than free placement |
 
 ---
