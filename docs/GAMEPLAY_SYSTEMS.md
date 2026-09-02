@@ -37,7 +37,7 @@ Current reveal behavior for the first probe:
 
 ---
 
-# 2. Standard rarity
+# 2. Standard rarity and drop roll — LOCKED FOR PROBE
 
 Locked ladder:
 
@@ -45,7 +45,38 @@ Locked ladder:
 
 The rarity system is primarily visual/material, not just text color.
 
-Exact drop odds are still open.
+Baseline standard rarity odds:
+
+| Rarity | Chance |
+|---|---:|
+| Common | 60% |
+| Rare | 28% |
+| Epic | 10% |
+| Legendary | 2% |
+
+Standard roll order:
+
+1. choose gadget family: `Camera` or `Flip Phone` at **50/50**;
+2. choose standard rarity from the table above;
+3. resolve the corresponding standard variant.
+
+Therefore each specific Legendary Camera / Legendary Flip Phone is approximately a **1% raw standard-roll outcome** before onboarding/Signal modifiers.
+
+## First-three onboarding protection
+
+The first **3 standard openings** are protected:
+
+- each must produce an undiscovered standard variant;
+- opening #2 must use the opposite gadget family from opening #1, ensuring that both Camera and Flip Phone appear immediately;
+- rarity presentation remains meaningful, but the result resolver may select/reroll within the undiscovered standard pool to satisfy these onboarding guarantees.
+
+After opening #3:
+
+- normal standard RNG applies;
+- there is **no permanent hidden anti-duplicate reroll**;
+- duplicates are intentionally allowed because Signal and Tech Parts are the visible systems that make bad rolls useful.
+
+Secret/Hidden Pocket is a **separate post-standard roll**. It does not reduce the 100% standard rarity table.
 
 ---
 
@@ -66,7 +97,7 @@ Preferred acquisition framing:
 
 > **Secrets are discovered through the Hidden Pocket surprise layer rather than presented as an ordinary fifth-rarity result.**
 
-Exact probability and whether every Secret is strictly Hidden-Pocket-only remain open until drop odds are balanced.
+Exact probability and whether every Secret is strictly Hidden-Pocket-only remain open until Hidden Pocket tuning is locked.
 
 ---
 
@@ -87,29 +118,17 @@ Functional goal:
 
 > **a disappointing or duplicate roll still moves the player toward a guaranteed useful result**
 
-Preferred product behavior:
-
-- duplicate/common disappointment increases Signal;
-- reaching full Signal guarantees a useful future drop;
-- ideally protect against duplicate frustration, not only low rarity.
-
-Example concept only — not final balance:
-
-```text
-Duplicate Common  → +Signal
-Duplicate Rare    → +Signal
-Duplicate Epic    → smaller +Signal
-New item          → little/no Signal
-100%              → SIGNAL LOCK
-next eligible reveal prioritizes a NEW item, preferably Rare+
-```
+Now that standard odds and the first-three onboarding protection are locked, Signal is the next balance system to specify.
 
 Open questions:
 
-- exact meter increments;
-- whether a Legendary resets Signal;
-- whether full Signal guarantees `NEW`, `Rare+`, or both;
-- whether Signal is per package tier or global.
+- which duplicate rarities add how much Signal;
+- whether any non-duplicate result adds Signal;
+- exact full-meter reward;
+- reset rules;
+- whether Signal can ever force a Legendary;
+- interaction with Secret/Hidden Pocket;
+- how to remain useful without trivializing an eight-variant collection.
 
 ---
 
@@ -303,11 +322,13 @@ Accepted monetization direction:
 - grant reward only after the actual rewarded callback;
 - do not make ad watching mandatory to continue the base loop.
 
-Exact use is open. Candidates:
+Because ordinary packages are already unlimited/free, do **not** use rewarded ads merely to grant another standard package.
+
+Current candidates:
 
 - bonus Tech Parts;
-- bonus package;
-- temporary boost if a future content/economy model supports one.
+- Signal boost;
+- another simple progression benefit compatible with the tiny content pool.
 
 Avoid tying rewarded ads to a deceptive near-win or casino-like loop.
 
