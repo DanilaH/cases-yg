@@ -35,17 +35,23 @@ export class MockAdsAdapter implements AdsAdapter {
 
   public async showInterstitial(): Promise<InterstitialResult> {
     this.activity.setBlocked('ad', true);
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-    this.activity.setBlocked('ad', false);
-    return { status: 'closed', wasShown: true };
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      return { status: 'closed', wasShown: true };
+    } finally {
+      this.activity.setBlocked('ad', false);
+    }
   }
 
   public async showRewarded(request: RewardedRequest): Promise<RewardedResult> {
     this.activity.setBlocked('ad', true);
-    await new Promise((resolve) => window.setTimeout(resolve, 300));
-    await request.onReward();
-    this.activity.setBlocked('ad', false);
-    return { status: 'closed', rewardEarned: true };
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
+      await request.onReward();
+      return { status: 'closed', rewardEarned: true };
+    } finally {
+      this.activity.setBlocked('ad', false);
+    }
   }
 
   public async setStickyBannerVisible(visible: boolean): Promise<StickyBannerResult> {
@@ -95,19 +101,26 @@ export class YandexAdsAdapter implements AdsAdapter {
     return new Promise((resolve) => {
       let settled = false;
       let rewardEarned = false;
-
-      const settle = (result: RewardedResult): void => {
-        if (settled) return;
-        settled = true;
-        this.activity.setBlocked('ad', false);
-        resolve(result);
-      };
+      let rewardError: string | undefined;
+      let rewardTask: Promise<void> = Promise.resolve();
 
       const grantOnce = (): void => {
         if (rewardEarned) return;
         rewardEarned = true;
-        void Promise.resolve(request.onReward()).catch((error: unknown) => {
-          console.error(`[ads] failed to persist rewarded grant ${request.rewardId}`, error);
+        rewardTask = Promise.resolve()
+          .then(() => request.onReward())
+          .catch((error: unknown) => {
+            rewardError = error instanceof Error ? error.message : String(error);
+            console.error(`[ads] failed to persist rewarded grant ${request.rewardId}`, error);
+          });
+      };
+
+      const settle = (result: RewardedResult): void => {
+        if (settled) return;
+        settled = true;
+        void rewardTask.finally(() => {
+          this.activity.setBlocked('ad', false);
+          resolve(rewardError ? { ...result, error: rewardError } : result);
         });
       };
 

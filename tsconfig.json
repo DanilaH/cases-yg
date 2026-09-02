@@ -15,7 +15,7 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node", "ysdk"]
   },
   "include": ["src", "vite.config.ts"]
 }
