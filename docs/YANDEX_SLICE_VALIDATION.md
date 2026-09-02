@@ -21,8 +21,8 @@ These must be green before merging PR-5:
 - `npm test`
 - `npm run build`
 - rewarded `onRewarded` callback is exactly-once even if the SDK repeats it;
-- a reward persistence failure returns an error and releases the ad blocker;
-- a hung reward callback times out and releases the ad blocker;
+- a reward persistence failure returns an error and does not leave gameplay/audio blocked;
+- gameplay/audio is released as soon as rewarded close/error settles even if reward persistence is still finishing;
 - a missing fullscreen SDK callback times out and releases the ad blocker;
 - interstitial error releases the ad blocker.
 
@@ -65,7 +65,8 @@ Expected:
 - successful reward adds 25 Signal, capped at the slice Signal threshold;
 - reload after the reward preserves the Signal grant;
 - failure to persist the reward returns an error instead of claiming success;
-- ad close/error always releases gameplay/audio blocking;
+- ad close/error releases gameplay/audio immediately; persistence may finish just after the fullscreen surface is gone;
+- a second fullscreen ad cannot start until the current reward persistence has settled;
 - the `+25 Signal` grant is a development probe only and is not the final production economy.
 
 ## DRAFT — sticky banner boundary
