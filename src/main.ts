@@ -2,16 +2,23 @@ import Phaser from 'phaser';
 
 import { setPlatformRuntime } from './app/runtime';
 import { createDebugPanel } from './debug/createDebugPanel';
-import { BootScene } from './game/scenes/BootScene';
 import { CollectionScene } from './game/scenes/CollectionScene';
+import { BootScene } from './game/scenes/BootScene';
 import { OpeningScene } from './game/scenes/OpeningScene';
+import { getGameAudio } from './game/systems/audio';
+import { getMessages } from './i18n';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
 const boot = async (): Promise<void> => {
   const platform = await bootstrapPlatform();
   setPlatformRuntime(platform);
+  const messages = getMessages(platform.language);
   const removeDebugPanel = createDebugPanel(platform);
+  const audio = getGameAudio();
+
+  document.documentElement.lang = platform.language;
+  document.title = messages.appTitle;
 
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -28,6 +35,7 @@ const boot = async (): Promise<void> => {
   const removeBlockedListener = platform.activity.onBlockedChange((nextBlocked) => {
     blocked = nextBlocked;
     game.sound.mute = nextBlocked;
+    audio.setBlocked(nextBlocked);
     if (nextBlocked) {
       game.loop.sleep();
     } else {
@@ -36,6 +44,7 @@ const boot = async (): Promise<void> => {
   });
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
+  if (gate) gate.textContent = messages.rotateDevice;
   const updateOrientationGate = (): void => {
     const portrait = window.innerHeight > window.innerWidth;
     if (gate) gate.dataset.visible = portrait ? 'true' : 'false';

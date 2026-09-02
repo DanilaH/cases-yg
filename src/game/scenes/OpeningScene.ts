@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
+import { getMessages } from '../../i18n';
 import { SLICE_BALANCE } from '../data/balance';
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
+import { getGameAudio } from '../systems/audio';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { OpeningSession } from '../systems/openingSession';
@@ -77,7 +79,7 @@ export class OpeningScene extends Phaser.Scene {
       this.saveState = await this.session.load();
     } catch (error: unknown) {
       this.phase = 'failed';
-      this.renderFailure('Save data could not be loaded. Reload to retry.');
+      this.renderFailure(getMessages(platform.language).opening.saveLoadError);
       platform.markReady();
       console.error(error);
       return;
@@ -151,7 +153,7 @@ export class OpeningScene extends Phaser.Scene {
 
     root.add(
       this.add
-        .text(metrics.centerX, 62, 'Mystery Pocket Tech', {
+        .text(metrics.centerX, 62, getMessages(getPlatformRuntime().language).appTitle, {
           color: '#f5eefc',
           fontFamily: 'system-ui, sans-serif',
           fontSize: '30px',
@@ -177,6 +179,7 @@ export class OpeningScene extends Phaser.Scene {
     this.renderSignalHud(root, this.saveState.signal);
     if (this.saveState.totalOpens > 0) {
       this.createCollectionButton(root, true);
+      this.createMuteButton(root);
     }
 
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
@@ -184,7 +187,7 @@ export class OpeningScene extends Phaser.Scene {
 
     root.add(
       this.add
-        .text(metrics.centerX, 610, 'Drag the star to tear →', {
+        .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {
           color: '#d8cdea',
           fontFamily: 'system-ui, sans-serif',
           fontSize: '18px',
@@ -248,7 +251,7 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.metrics) return;
 
     const button = this.add
-      .text(this.metrics.safeRight, this.metrics.safeBottom - 8, 'Collection →', {
+      .text(this.metrics.safeRight, this.metrics.safeBottom - 8, getMessages(getPlatformRuntime().language).opening.collection, {
         color: '#f5eefc',
         backgroundColor: '#312746',
         padding: { x: 16, y: 10 },
@@ -268,6 +271,28 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     this.collectionButton = button;
+    root.add(button);
+  }
+
+  private createMuteButton(root: Phaser.GameObjects.Container): void {
+    if (!this.metrics) return;
+    const audio = getGameAudio();
+    const messages = getMessages(getPlatformRuntime().language);
+    const button = this.add
+      .text(this.metrics.safeRight, this.metrics.safeTop + 8, audio.isMuted() ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`, {
+        color: '#d9cfe4',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '14px',
+        backgroundColor: '#312746',
+        padding: { x: 10, y: 7 },
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true });
+    button.on('pointerup', () => {
+      this.ignoreNextResultTap = true;
+      const muted = audio.toggleMuted();
+      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);
+    });
     root.add(button);
   }
 
@@ -353,6 +378,7 @@ export class OpeningScene extends Phaser.Scene {
     this.drag = null;
     this.pouch?.dragZone.disableInteractive();
     this.setChromeEnabled(false);
+    getGameAudio().play('tear');
 
     try {
       const pending = await this.session.prepareReveal();
@@ -367,7 +393,7 @@ export class OpeningScene extends Phaser.Scene {
       if (this.isSceneShutdown()) return;
       console.error(error);
       this.saveState = this.session.getState();
-      this.renderIdle('Could not save the reward. Try the tear again.');
+      this.renderIdle(getMessages(getPlatformRuntime().language).opening.saveStageError);
     }
   }
 
@@ -422,7 +448,7 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'result') return;
     this.resultReady = true;
     if (this.resultPrompt) {
-      this.resultPrompt.setText('Tap for next pouch');
+      this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext);
       this.resultPrompt.setAlpha(1);
     }
   }
@@ -460,6 +486,7 @@ export class OpeningScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const pouch = this.pouch!;
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
+    getGameAudio().play('reveal-pop');
     const heroX = metrics.centerX;
     const heroY = 320;
 
@@ -539,6 +566,10 @@ export class OpeningScene extends Phaser.Scene {
       this.cameras.main.shake(85, pending.standard.rarity === 'legendary' ? 0.0025 : 0.0017);
     }
 
+    getGameAudio().play(pending.standard.rarity);
+    if (!pending.standard.isNew) getGameAudio().play('duplicate');
+    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
+    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
     this.addStandardResultLabels(pending, heroX, 492);
     return visual.group;
   }
@@ -547,7 +578,7 @@ export class OpeningScene extends Phaser.Scene {
     const root = this.root!;
     const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
     const familyName = family?.name[getPlatformRuntime().language] ?? pending.standard.familyId;
-    const rarity = pending.standard.rarity.toUpperCase();
+    const rarity = getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity];
     const color = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
 
     for (const label of this.standardResultLabels) label.destroy();
@@ -561,14 +592,15 @@ export class OpeningScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    let status = pending.standard.isNew ? 'NEW' : 'DUPLICATE';
+    const messages = getMessages(getPlatformRuntime().language);
+    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
     if (pending.signal.lockConsumed) {
-      status += ' · SIGNAL LOCK';
+      status += ` · ${messages.opening.signalLock}`;
     } else if (pending.signal.gain > 0) {
       status += ` · +${pending.signal.gain} SIGNAL`;
     }
     if (pending.signal.lockReached) {
-      status += ' · LOCKED';
+      status += ` · ${messages.opening.locked}`;
     }
 
     const statusText = this.add
@@ -594,12 +626,13 @@ export class OpeningScene extends Phaser.Scene {
     const metrics = this.metrics;
     const pouch = this.pouch;
     await this.wait(320);
+    getGameAudio().play('hidden-pocket');
 
     for (const label of this.standardResultLabels) label.destroy();
     this.standardResultLabels = [];
 
     const hiddenLabel = this.add
-      .text(metrics.centerX, 126, 'HIDDEN POCKET!', {
+      .text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {
         color: '#8df8ff',
         fontFamily: 'monospace',
         fontSize: '22px',
@@ -660,6 +693,7 @@ export class OpeningScene extends Phaser.Scene {
     const ring = createRevealRing(this, root, metrics.centerX + 72, 318, SECRET_REVEAL_COLOR)
       .setScale(0.5)
       .setAlpha(0.2);
+    getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
       this,
       root,
@@ -732,7 +766,7 @@ export class OpeningScene extends Phaser.Scene {
     );
     root.add(
       this.add
-        .text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {
+        .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {
           color: '#f5f0ff',
           fontFamily: 'monospace',
           fontSize: '16px',
@@ -797,6 +831,7 @@ export class OpeningScene extends Phaser.Scene {
       );
       if (!wasCompleteBefore) {
         analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });
+        getGameAudio().play('collection-complete');
       }
     }
   }
@@ -805,7 +840,7 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.root || !this.metrics) return;
     this.resultPrompt?.destroy();
     this.resultPrompt = this.add
-      .text(this.metrics.centerX, 646, 'Result locked', {
+      .text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {
         color: '#d5cae5',
         fontFamily: 'system-ui, sans-serif',
         fontSize: '17px',
@@ -820,7 +855,7 @@ export class OpeningScene extends Phaser.Scene {
     this.setChromeEnabled(false);
     this.root.add(
       this.add
-        .text(this.metrics.centerX, 640, 'Reward shown, but save could not be confirmed. Reload to recover it safely.', {
+        .text(this.metrics.centerX, 640, getMessages(getPlatformRuntime().language).opening.saveConfirmError, {
           color: '#ffb7c8',
           align: 'center',
           fontFamily: 'system-ui, sans-serif',
@@ -837,6 +872,7 @@ export class OpeningScene extends Phaser.Scene {
     const metrics = this.metrics!;
     this.renderSignalHud(root, this.saveState.signal, this.saveState.signal >= SLICE_BALANCE.signal.threshold);
     this.createCollectionButton(root, true);
+    this.createMuteButton(root);
     this.pouch = null;
 
     if (pending.hiddenPocket) {
@@ -869,7 +905,7 @@ export class OpeningScene extends Phaser.Scene {
       secret.group.setScale(1);
       root.add(
         this.add
-          .text(metrics.centerX, 126, 'HIDDEN POCKET!', {
+          .text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {
             color: '#8df8ff',
             fontFamily: 'monospace',
             fontSize: '22px',
@@ -890,7 +926,7 @@ export class OpeningScene extends Phaser.Scene {
       );
       root.add(
         this.add
-          .text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {
+          .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {
             color: '#f5f0ff',
             fontFamily: 'monospace',
             fontSize: '16px',
@@ -913,7 +949,7 @@ export class OpeningScene extends Phaser.Scene {
 
     this.addResultPrompt();
     if (this.resultReady && this.resultPrompt) {
-      this.resultPrompt.setText('Tap for next pouch').setAlpha(1);
+      this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext).setAlpha(1);
     }
   }
 
