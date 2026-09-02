@@ -9,6 +9,13 @@ Use:
 - **strict TypeScript**
 - **Yandex Games SDK** behind a thin platform adapter
 
+Target Yandex platforms for the first probe:
+
+- Desktop;
+- Mobile, landscape orientation.
+
+Do not build TV-specific controls/UX in the first probe.
+
 Do not use React for the game runtime.
 
 Physics is off. Nothing in the first-probe opener needs a physics engine.
@@ -55,7 +62,7 @@ Do not create `LibraryScene` or `ModBenchScene`.
 Possible transient overlays/components:
 
 - orientation prompt at shell/platform level;
-- settings if needed;
+- tiny mute/speaker control;
 - lightweight notification/toast;
 - Collection view switch.
 
@@ -68,11 +75,17 @@ type OpeningPhase =
   | 'idle'
   | 'dragging'
   | 'revealing'
-  | 'result'
-  | 'hidden-pocket';
+  | 'hidden-pocket'
+  | 'result-hold'
+  | 'result-ready';
 ```
 
-This phase is presentation state. Reward ownership/progression belongs to persistent game state / `pendingReveal`, not to scene objects.
+Rules:
+
+- `result-hold` blocks dismissal for the minimum ~0.6 s readability window;
+- `result-ready` accepts tap/click outside Collection navigation to spawn the next pouch;
+- Hidden Pocket, when predetermined, runs before result dismissal becomes available;
+- opening result state is presentation state; reward ownership/progression belongs to persistent game state / `pendingReveal`.
 
 ---
 
@@ -92,10 +105,12 @@ src/
       collection.ts
       save.ts
       layout.ts
+      audio.ts
 
     data/
       collectibles.ts
       balance.ts
+      strings.ts
 
     ui/
       ...
@@ -125,6 +140,7 @@ interface SaveState {
   signal: number;
   totalOpens: number;
   pendingReveal: PendingReveal | null;
+  muted: boolean;
   stats: {
     duplicates: number;
     hiddenPockets: number;
@@ -134,10 +150,11 @@ interface SaveState {
 
 Notes:
 
-- `signal === 100` is enough to derive SIGNAL LOCK; no redundant boolean is required unless implementation proves useful;
+- `signal === 100` is enough to derive SIGNAL LOCK;
 - onboarding protection derives from `totalOpens < 3`;
 - Shelf best-owned state derives from discovered collectible data;
-- no `techParts`, currency, energy, package inventory or Mod Bench state.
+- no `techParts`, currency, energy, package inventory or Mod Bench state;
+- persist mute preference because audio is otherwise SFX-only and trivial to restore.
 
 Version the save from day one.
 
@@ -178,7 +195,7 @@ interface PendingReveal {
 }
 ```
 
-Exact field names may differ. Required properties:
+Required properties:
 
 - refresh cannot reroll standard rarity/family;
 - refresh cannot reroll Hidden Pocket;
@@ -194,7 +211,7 @@ If a pending transaction is found on startup, resume/finish the same reward rath
 
 Keep drop calculation pure enough to test independently from Phaser.
 
-Inputs should include only what affects the result, e.g.:
+Inputs should include only what affects the result:
 
 - `totalOpens`;
 - discovered standard IDs;
@@ -213,6 +230,7 @@ SIGNAL_GAINS
 SIGNAL_LATE_LOCK_ODDS
 HIDDEN_POCKET_CHANCE
 REVEAL_TIMINGS
+RESULT_HOLD_MS
 ```
 
 This keeps Quick Reveal/balance tuning cheap later.
@@ -246,6 +264,7 @@ Do not scatter SDK calls across scenes.
 `platform/yandex.ts` owns:
 
 - SDK initialization;
+- access to `ysdk.environment.i18n.lang`;
 - `LoadingAPI.ready()` when critical assets are loaded and the game is actually interactive;
 - `GameplayAPI.start()` / `stop()` lifecycle boundaries;
 - pause/resume events from platform/tab visibility;
@@ -257,7 +276,60 @@ Ads are not part of the first probe, so do not add an ad adapter until monetizat
 
 ---
 
-# 10. Analytics — LOCKED
+# 10. Localization — LOCKED FOR PROBE
+
+Ship a tiny typed string dictionary for:
+
+- **RU**;
+- **EN**.
+
+Use `ysdk.environment.i18n.lang` to choose language automatically.
+
+Fallback:
+
+> unsupported language → EN
+
+Do not add a manual language selector in the first probe.
+
+Keep all meaningful UI copy outside image assets. Typical strings include:
+
+- NEW / НОВОЕ;
+- DUPLICATE / ДУБЛИКАТ;
+- SIGNAL LOCK;
+- Collection / Коллекция;
+- Library / Библиотека;
+- Back / Назад;
+- Next pouch / Следующий пакет;
+- Standard Collection / Основная коллекция;
+- Secrets / Секреты.
+
+Rarity must not rely on color alone: keep readable rarity labels/material differences.
+
+---
+
+# 11. Audio — LOCKED FOR PROBE
+
+No background music.
+
+Use a small SFX set:
+
+- tear;
+- reveal/pop;
+- rarity chime variants or parameterized pitch/intensity;
+- Secret sting;
+- light UI click.
+
+Rules:
+
+- do not attempt autoplay audio before the first user gesture;
+- pause/stop audio with Yandex/platform/tab pause;
+- expose one small mute/speaker toggle;
+- persist mute preference;
+- do not build a Settings scene just for audio.
+
+---
+
+# 12. Analytics — LOCKED
 
 Use:
 
@@ -272,7 +344,7 @@ Do not add a custom analytics backend.
 
 ---
 
-# 11. Rendering and collectible assets
+# 13. Rendering and collectible assets
 
 Collectibles are static transparent 2D/2.5D assets reused across:
 
@@ -299,7 +371,7 @@ See `ART_PRODUCTION.md`.
 
 ---
 
-# 12. Asset loading — LOCKED
+# 14. Asset loading — LOCKED
 
 Preload/cache all probe-critical assets before `LoadingAPI.ready()`:
 
@@ -320,7 +392,7 @@ Target perceived navigation response:
 
 ---
 
-# 13. Responsive layout — LOCKED
+# 15. Responsive layout — LOCKED
 
 Primary orientation: **landscape-only for first probe**.
 
@@ -382,6 +454,7 @@ Recompute on resize. Do not scatter bespoke viewport math throughout sprites.
 
 ```text
 Signal      → top-left safe anchor
+Sound       → top-right safe anchor
 Package     → visual center
 Collection  → quiet bottom/edge safe anchor
 ```
@@ -412,7 +485,7 @@ No separate portrait game composition. Use shell/platform orientation guidance r
 
 ---
 
-# 14. Store/build constraints
+# 16. Store/build constraints
 
 For Yandex archive builds:
 
@@ -420,13 +493,15 @@ For Yandex archive builds:
 - avoid spaces/Cyrillic in runtime filenames/paths;
 - keep build comfortably below platform archive limits;
 - call game-ready only after all critical probe assets are ready;
-- test resize across Yandex moderation reference resolutions before submission.
+- test resize across Yandex moderation reference resolutions before submission;
+- select Desktop + Mobile and landscape orientation in the draft;
+- keep game fully playable without login.
 
-Store media specs and composition direction are tracked in the product/art docs.
+Store media specs and composition direction are tracked in `ART_DIRECTION.md`.
 
 ---
 
-# 15. Engineering guardrails
+# 17. Engineering guardrails
 
 Do not introduce by default:
 
@@ -440,6 +515,7 @@ Do not introduce by default:
 - ads before post-validation monetization pass;
 - Tech Parts / Mod Bench;
 - package economy;
+- manual language-selection UI;
 - premature CI/test infrastructure unrelated to shipping the probe.
 
 Small unit tests for pure drop/Signal transaction logic are worthwhile because RNG/recovery correctness matters. Do not expand this into a heavyweight testing program.
