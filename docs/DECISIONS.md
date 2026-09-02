@@ -29,12 +29,12 @@ Status meanings:
 | Package presence during reveal | LOCKED | pouch remains visible for the first ~0.3–0.4 s as the physical source of the item; gadget visibly emerges from it, then the pouch slides down / scales slightly down / fades so the collectible becomes the sole visual hero |
 | Reveal FX | LOCKED | runtime-only, cheap Phaser effects: soft radial flash, small sparkle burst, one ring/outline pulse and rarity-tinted glow; Epic/Legendary may add a tiny camera bump and denser particles; no expensive shaders or baked effect-heavy item art |
 | Reveal skip in first probe | LOCKED OUT | full reveal always plays; tap/click does not skip or accelerate it in the first probe |
-| Primary screen architecture | LOCKED | Opening is the clean primary scene; Collection and Mod Bench are separate scenes/surfaces rather than permanent opener UI |
-| Scene transition UX | LOCKED | transitions between Opening, Collection and Mod Bench must feel effectively instant; no blocking asset load, network wait, or long transition animation on navigation |
-| Opening HUD budget | LOCKED | maximum persistent gameplay HUD is Signal, Tech Parts, Collection navigation and Mod Bench navigation; no streaks, extra currencies, leaderboard widgets or other permanent clutter in the probe |
-| Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress; Tech Parts and Mod Bench are introduced on the first duplicate/Parts gain rather than occupying the screen before they have meaning |
+| Primary screen architecture | LOCKED FOR PROBE | Opening is the clean primary scene and Collection is the only separate gameplay surface required by the first probe; Mod Bench is parked |
+| Scene transition UX | LOCKED | transitions between Opening and Collection must feel effectively instant; no blocking asset load, network wait, or long transition animation on navigation |
+| Opening HUD budget | LOCKED | maximum persistent gameplay HUD in the probe is Signal + Collection navigation; Tech Parts and Mod Bench are parked, and no streaks, extra currencies or leaderboard widgets should be added |
+| Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress |
 | Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD is dimmed/temporarily de-emphasized and cannot compete with or interrupt the reward presentation; it returns immediately after resolution |
-| First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection, Signal and Mod Bench contextually when those systems first become relevant |
+| First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection and Signal contextually when they first become relevant |
 | Primary orientation | LOCKED | landscape only for the first probe |
 | Responsive philosophy | LOCKED | true adaptive landscape layout, not a fixed 16:9 board scaled with FIT. Canvas follows the available viewport; meaningful UI uses anchors/constraints and decorative background absorbs excess space |
 | Reference composition | LOCKED | 16:9 is the art/layout reference, but the same scene must remain functional and coherent across approximately 5:4 through 12:5 landscape aspect ratios |
@@ -79,7 +79,7 @@ Status meanings:
 | Epic | LOCKED | pearlescent/iridescent/premium surface + richer trim/accessory |
 | Legendary | LOCKED | clear shell + stylized visible internals + premium metallic treatment |
 | First-three onboarding protection | LOCKED | first 3 standard openings are guaranteed to produce undiscovered standard variants; the second opening must use the opposite gadget family from the first so both Camera and Flip Phone are introduced immediately |
-| Ongoing hidden duplicate protection | LOCKED OUT | after the first 3 protected openings, ordinary standard rolls use normal RNG; duplicate frustration is handled by Signal + Tech Parts rather than a permanent hidden reroll system |
+| Ongoing hidden duplicate protection | LOCKED OUT | after the first 3 protected openings, ordinary standard rolls use normal RNG; duplicate frustration is handled by Signal rather than a permanent hidden reroll system |
 | Reveal FX baked into item art | LOCKED | no; glow/particles/burst belong primarily to reveal presentation |
 | Secret/Chase tier | LOCKED | exists outside normal rarity ladder |
 | Secret quantity at launch | LOCKED RANGE | 2–3 total, not one per base gadget |
@@ -98,8 +98,8 @@ Status meanings:
 | Signal reset | LOCKED | consuming SIGNAL LOCK resets Signal to 0 after the forced standard result is transactionally resolved |
 | Signal ↔ Secret | LOCKED OUT | Signal never affects Secret/Hidden Pocket probability or outcome; the post-standard Hidden Pocket roll remains independent |
 | Signal UI | LOCKED DIRECTION | reveal Signal only when it first gains progress; show compact LCD/antenna-style meter, explicit `+Signal` feedback on duplicate and a short `SIGNAL LOCK` pulse/scan treatment when full |
-| Duplicate conversion | ACCEPTED FOR PROBE | duplicates become Tech Parts rather than dead inventory |
-| Mod Bench / deterministic upgrade | ACCEPTED FOR PROBE | Tech Parts feed a simple targeted upgrade/reward path; exact recipe/UI still open |
+| Tech Parts | PARKED | remove from the first behavioral probe. Signal already gives duplicates visible progression; do not add a second currency before the core opener validates |
+| Mod Bench / deterministic upgrade | PARKED | remove the scene, navigation and upgrade economy from the first behavioral probe; reconsider only if repeated-opening data shows Signal alone is insufficient |
 | Hidden Pocket / rare second reveal | ACCEPTED FOR PROBE | after an apparently complete normal reveal, a rare automatic second beat can make the pouch twitch/return and reveal a bonus or Secret; no second player input. Treat it as surprise presentation, not a new unpacking mechanic |
 | Hidden Pocket ↔ Secrets | ACCEPTED DIRECTION | Hidden Pocket is the preferred thematic channel for Secret/Chase acquisition rather than presenting Secrets as a plain fifth-rarity roll; exact chance/reward table remains open |
 | Quick Reveal | PARKED | not in first probe, but **must be revisited deliberately after repeated-opening testing / early behavioral data**; likely shorter ~0.4–0.6 s reveal if the full animation becomes friction. Do not silently forget this decision point. |
@@ -144,7 +144,7 @@ Status meanings:
 | Save | LOCKED | local-first save is enough for probe |
 | Backend/login | LOCKED OUT FOR PROBE | no backend and no required login |
 | Anti-reroll | LOCKED | persist `pendingReveal` before reveal animation, then commit inventory and clear it |
-| Scene loading policy | LOCKED | preload/shared-load assets needed by Opening, Collection and Mod Bench before normal navigation; scene changes must not trigger user-visible asset loading |
+| Scene loading policy | LOCKED | preload/shared-load assets needed by Opening and Collection before normal navigation; scene changes must not trigger user-visible asset loading |
 | Scene transition budget | LOCKED TARGET | target transition response ~100–200 ms plus only a very short cosmetic fade/slide if used; if navigation feels like a page load, implementation is wrong |
 | Responsive coordinate model | LOCKED | use a stable logical height of 720 units and derive logical width from viewport aspect, clamped roughly to 900–1728 units; scenes recompute layout on resize instead of scaling one immutable 1280×720 composition |
 | Safe-area policy | LOCKED | anchors must honor browser/device safe insets plus internal margins. Critical controls never touch the viewport edge; use roughly 3–5% responsive margins with practical min/max clamps |
@@ -155,4 +155,4 @@ Status meanings:
 
 ## Scope warning
 
-The probe is intentionally much smaller than the old 12- or 24-gadget planning models: **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**. Re-estimate implementation after package/economy/system decisions are locked, but do not inflate content before the core opening loop proves itself.
+The probe is intentionally much smaller than the old 12- or 24-gadget planning models: **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**. Tech Parts and Mod Bench are explicitly parked. Re-estimate implementation after the remaining probe systems are locked, but do not inflate content or meta-economy before the core opening loop proves itself.
