@@ -55,7 +55,8 @@ Secrets are outside the standard ladder.
 
 Launch direction:
 
-- 2–3 total Secrets;
+- 2–3 total Secrets for a fuller launch target;
+- first behavioral probe may use only 1–2 Secrets;
 - special editions rather than another material tier;
 - not required for main collection completion;
 - stronger bespoke design changes than standard rarity variants;
@@ -210,16 +211,48 @@ Do not tie rewarded ads to Hidden Pocket in the first probe.
 
 ---
 
-# 8. Collection
+# 8. Collection — LOCKED STRUCTURE
 
-Collection should be a visible environment, not primarily a card spreadsheet.
+Collection is split into two complementary views.
 
-Direction:
+## Main Shelf
 
-- cozy Y2K shelf/desk/display;
-- fixed slots;
-- locked silhouette vs unlocked item;
-- selected/high-rarity versions can be highlighted without making shelf unreadable.
+The Shelf is the attractive display surface.
+
+Rules:
+
+- one fixed shelf slot per **base gadget**;
+- a slot displays the **best/highest-rarity version currently owned** for that gadget;
+- missing gadgets use a locked silhouette / empty presentation;
+- the shelf is not a 48- or 96-cell rarity spreadsheet;
+- high-rarity finds should visibly improve the shelf over time.
+
+For the first probe there are **12 base gadget slots**, grouped into **two mini-collections of six gadgets**.
+
+## Library / Catalog
+
+The Library is the exhaustive completionist view adjacent to the Shelf inside the broader Collection experience.
+
+It shows:
+
+- all base gadgets;
+- each gadget's Common / Rare / Epic / Legendary entries;
+- discovered vs missing rarity variants;
+- separate Secret/Chase tracking.
+
+Therefore the roles are deliberately different:
+
+> **Shelf = best finds and visual ownership fantasy. Library = complete checklist and variant mastery.**
+
+The first behavioral probe contains:
+
+- 12 base gadgets;
+- 4 standard rarity variants per gadget;
+- 48 standard collectible variants total;
+- 1–2 Secrets;
+- 2 mini-collections of 6 gadgets each.
+
+A fuller post-validation target may expand toward ~24 base gadgets, but the probe must not wait for that content volume.
 
 Potential later layer:
 
