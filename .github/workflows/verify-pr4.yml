@@ -19,110 +19,65 @@ jobs:
         with:
           node-version: 22.12.0
           package-manager-cache: false
-      - name: Apply OpeningScene localization/audio integration once
+      - name: Apply opener localization and audio once
         run: |
           python - <<'PY'
           from pathlib import Path
-
           path = Path('src/game/scenes/OpeningScene.ts')
           text = path.read_text()
-
-          text = text.replace(
-            "import { getPlatformRuntime } from '../../app/runtime';\n",
-            "import { getPlatformRuntime } from '../../app/runtime';\nimport { getMessages } from '../../i18n';\n",
-          )
-          text = text.replace(
-            "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\n",
-            "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\nimport { getGameAudio } from '../systems/audio';\n",
-          )
-
-          replacements = {
-            "this.renderFailure('Save data could not be loaded. Reload to retry.');": "this.renderFailure(getMessages(platform.language).opening.saveLoadError);",
-            ".text(metrics.centerX, 62, 'Mystery Pocket Tech', {": ".text(metrics.centerX, 62, getMessages(getPlatformRuntime().language).appTitle, {",
-            ".text(metrics.centerX, 610, 'Drag the star to tear →', {": ".text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {",
-            ".text(this.metrics.safeRight, this.metrics.safeBottom - 8, 'Collection →', {": ".text(this.metrics.safeRight, this.metrics.safeBottom - 8, getMessages(getPlatformRuntime().language).opening.collection, {",
-            "this.renderIdle('Could not save the reward. Try the tear again.');": "this.renderIdle(getMessages(getPlatformRuntime().language).opening.saveStageError);",
-            ".text(metrics.centerX, 126, 'HIDDEN POCKET!', {": ".text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {",
-            ".text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {": ".text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {",
-            ".text(this.metrics.centerX, 646, 'Result locked', {": ".text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {",
-            "this.resultPrompt.setText('Tap for next pouch');": "this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext);",
-            ".text(this.metrics.centerX, 640, 'Reward shown, but save could not be confirmed. Reload to recover it safely.', {": ".text(this.metrics.centerX, 640, getMessages(getPlatformRuntime().language).opening.saveConfirmError, {",
-            "this.resultPrompt.setText('Tap for next pouch').setAlpha(1);": "this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext).setAlpha(1);",
-          }
-          for old, new in replacements.items():
-            text = text.replace(old, new)
-
-          text = text.replace(
-            "    this.renderSignalHud(root, this.saveState.signal);\n    if (this.saveState.totalOpens > 0) {\n      this.createCollectionButton(root, true);\n    }",
-            "    this.renderSignalHud(root, this.saveState.signal);\n    if (this.saveState.totalOpens > 0) {\n      this.createCollectionButton(root, true);\n      this.createMuteButton(root);\n    }",
-            1,
-          )
-
+          text = text.replace("import { getPlatformRuntime } from '../../app/runtime';\n", "import { getPlatformRuntime } from '../../app/runtime';\nimport { getMessages } from '../../i18n';\n")
+          text = text.replace("import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\n", "import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';\nimport { getGameAudio } from '../systems/audio';\n")
+          text = text.replace("this.renderFailure('Save data could not be loaded. Reload to retry.');", "this.renderFailure(getMessages(platform.language).opening.saveLoadError);")
+          text = text.replace(".text(metrics.centerX, 62, 'Mystery Pocket Tech', {", ".text(metrics.centerX, 62, getMessages(getPlatformRuntime().language).appTitle, {")
+          text = text.replace(".text(metrics.centerX, 610, 'Drag the star to tear →', {", ".text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {")
+          text = text.replace(".text(this.metrics.safeRight, this.metrics.safeBottom - 8, 'Collection →', {", ".text(this.metrics.safeRight, this.metrics.safeBottom - 8, getMessages(getPlatformRuntime().language).opening.collection, {")
+          text = text.replace("this.renderIdle('Could not save the reward. Try the tear again.');", "this.renderIdle(getMessages(getPlatformRuntime().language).opening.saveStageError);")
+          text = text.replace(".text(metrics.centerX, 126, 'HIDDEN POCKET!', {", ".text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {")
+          text = text.replace(".text(metrics.centerX + 72, 524, 'SECRET DISCOVERED', {", ".text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {")
+          text = text.replace(".text(this.metrics.centerX, 646, 'Result locked', {", ".text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {")
+          text = text.replace("this.resultPrompt.setText('Tap for next pouch');", "this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext);")
+          text = text.replace("this.resultPrompt.setText('Tap for next pouch').setAlpha(1);", "this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext).setAlpha(1);")
+          text = text.replace(".text(this.metrics.centerX, 640, 'Reward shown, but save could not be confirmed. Reload to recover it safely.', {", ".text(this.metrics.centerX, 640, getMessages(getPlatformRuntime().language).opening.saveConfirmError, {")
+          text = text.replace("    this.renderSignalHud(root, this.saveState.signal);\n    if (this.saveState.totalOpens > 0) {\n      this.createCollectionButton(root, true);\n    }", "    this.renderSignalHud(root, this.saveState.signal);\n    if (this.saveState.totalOpens > 0) {\n      this.createCollectionButton(root, true);\n      this.createMuteButton(root);\n    }", 1)
           marker = "  private setChromeEnabled(enabled: boolean): void {"
-          mute_method = '''  private createMuteButton(root: Phaser.GameObjects.Container): void {\n    if (!this.metrics) return;\n    const audio = getGameAudio();\n    const messages = getMessages(getPlatformRuntime().language);\n    const button = this.add\n      .text(\n        this.metrics.safeRight,\n        this.metrics.safeTop + 8,\n        audio.isMuted() ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`,\n        {\n          color: '#d9cfe4',\n          fontFamily: 'system-ui, sans-serif',\n          fontSize: '14px',\n          backgroundColor: '#312746',\n          padding: { x: 10, y: 7 },\n        },\n      )\n      .setOrigin(1, 0)\n      .setInteractive({ useHandCursor: true });\n    button.on('pointerup', () => {\n      this.ignoreNextResultTap = true;\n      const muted = audio.toggleMuted();\n      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);\n    });\n    root.add(button);\n  }\n\n'''
+          mute_method = """  private createMuteButton(root: Phaser.GameObjects.Container): void {
+            if (!this.metrics) return;
+            const audio = getGameAudio();
+            const messages = getMessages(getPlatformRuntime().language);
+            const button = this.add
+              .text(this.metrics.safeRight, this.metrics.safeTop + 8, audio.isMuted() ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`, {
+                color: '#d9cfe4',
+                fontFamily: 'system-ui, sans-serif',
+                fontSize: '14px',
+                backgroundColor: '#312746',
+                padding: { x: 10, y: 7 },
+              })
+              .setOrigin(1, 0)
+              .setInteractive({ useHandCursor: true });
+            button.on('pointerup', () => {
+              this.ignoreNextResultTap = true;
+              const muted = audio.toggleMuted();
+              button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);
+            });
+            root.add(button);
+          }
+
+"""
           if 'private createMuteButton(' not in text:
-            text = text.replace(marker, mute_method + marker)
-
-          text = text.replace(
-            "      this.lastReveal = pending;\n      if (firstInteraction",
-            "      this.lastReveal = pending;\n      getGameAudio().play('tear');\n      if (firstInteraction",
-          )
-          text = text.replace(
-            "    const color = RARITY_REVEAL_COLORS[pending.standard.rarity];\n",
-            "    const color = RARITY_REVEAL_COLORS[pending.standard.rarity];\n    getGameAudio().play('reveal-pop');\n",
-          )
-          text = text.replace(
-            "    this.addStandardResultLabels(pending, heroX, 492);\n    return visual.group;",
-            "    getGameAudio().play(pending.standard.rarity);\n    if (!pending.standard.isNew) getGameAudio().play('duplicate');\n    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');\n    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');\n    this.addStandardResultLabels(pending, heroX, 492);\n    return visual.group;",
-          )
-          text = text.replace(
-            "    let status = pending.standard.isNew ? 'NEW' : 'DUPLICATE';\n    if (pending.signal.lockConsumed) {\n      status += ' · SIGNAL LOCK';\n",
-            "    const messages = getMessages(getPlatformRuntime().language);\n    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;\n    if (pending.signal.lockConsumed) {\n      status += ` · ${messages.opening.signalLock}`;\n",
-          )
+              text = text.replace(marker, mute_method + marker)
+          text = text.replace("      this.lastReveal = pending;\n      if (firstInteraction", "      this.lastReveal = pending;\n      getGameAudio().play('tear');\n      if (firstInteraction")
+          text = text.replace("    const color = RARITY_REVEAL_COLORS[pending.standard.rarity];\n", "    const color = RARITY_REVEAL_COLORS[pending.standard.rarity];\n    getGameAudio().play('reveal-pop');\n")
+          text = text.replace("    this.addStandardResultLabels(pending, heroX, 492);\n    return visual.group;", "    getGameAudio().play(pending.standard.rarity);\n    if (!pending.standard.isNew) getGameAudio().play('duplicate');\n    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');\n    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');\n    this.addStandardResultLabels(pending, heroX, 492);\n    return visual.group;")
+          text = text.replace("    const rarity = pending.standard.rarity.toUpperCase();", "    const rarity = getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity];")
+          text = text.replace("    let status = pending.standard.isNew ? 'NEW' : 'DUPLICATE';\n    if (pending.signal.lockConsumed) {\n      status += ' · SIGNAL LOCK';", "    const messages = getMessages(getPlatformRuntime().language);\n    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;\n    if (pending.signal.lockConsumed) {\n      status += ` · ${messages.opening.signalLock}`;")
           text = text.replace("      status += ' · LOCKED';", "      status += ` · ${messages.opening.locked}`;")
-          text = text.replace(
-            "    const rarity = pending.standard.rarity.toUpperCase();",
-            "    const rarity = getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity];",
-          )
-          text = text.replace(
-            "    await this.wait(320);\n\n    for (const label",
-            "    await this.wait(320);\n    getGameAudio().play('hidden-pocket');\n\n    for (const label",
-          )
-          text = text.replace(
-            "    const secret = createCollectibleVisual(\n      this,\n      root,\n      pending.hiddenPocket.familyId,",
-            "    getGameAudio().play('secret-reveal');\n    const secret = createCollectibleVisual(\n      this,\n      root,\n      pending.hiddenPocket.familyId,",
-            1,
-          )
-          text = text.replace(
-            "    this.createCollectionButton(root, true);\n    this.pouch = null;",
-            "    this.createCollectionButton(root, true);\n    this.createMuteButton(root);\n    this.pouch = null;",
-          )
-          text = text.replace(
-            "            `${standardFamily?.name[getPlatformRuntime().language] ?? pending.standard.familyId} · ${pending.standard.rarity.toUpperCase()}`,
-",
-            "            `${standardFamily?.name[getPlatformRuntime().language] ?? pending.standard.familyId} · ${getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity]}`,
-",
-          )
-          text = text.replace(
-            "      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);\n      root.add(\n        this.add\n          .text(metrics.centerX + 72, 490, `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · SECRET`, {",
-            "      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);\n      root.add(\n        this.add\n          .text(metrics.centerX + 72, 490, `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · ${getMessages(getPlatformRuntime().language).rarity.secret.toUpperCase()}`, {",
-          )
-          text = text.replace(
-            "    if (isStandardCollectionComplete(SLICE_REGISTRY, committed.discoveredStandard)) {",
-            "    if (isStandardCollectionComplete(SLICE_REGISTRY, committed.discoveredStandard)) {",
-          )
-          text = text.replace(
-            "      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n      }",
-            "      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n        getGameAudio().play('collection-complete');\n      }",
-          )
-
+          text = text.replace("    await this.wait(320);\n\n    for (const label", "    await this.wait(320);\n    getGameAudio().play('hidden-pocket');\n\n    for (const label")
+          text = text.replace("    const secret = createCollectibleVisual(\n      this,\n      root,\n      pending.hiddenPocket.familyId,", "    getGameAudio().play('secret-reveal');\n    const secret = createCollectibleVisual(\n      this,\n      root,\n      pending.hiddenPocket.familyId,", 1)
+          text = text.replace("    this.createCollectionButton(root, true);\n    this.pouch = null;", "    this.createCollectionButton(root, true);\n    this.createMuteButton(root);\n    this.pouch = null;")
+          text = text.replace("      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n      }", "      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n        getGameAudio().play('collection-complete');\n      }")
           path.write_text(text)
-
           collection = Path('src/game/scenes/CollectionScene.ts')
-          ctext = collection.read_text().replace(
-            "'Collection data could not be loaded.'",
-            "getMessages(getPlatformRuntime().language).collection.loadError",
-          )
+          ctext = collection.read_text().replace("'Collection data could not be loaded.'", "getMessages(getPlatformRuntime().language).collection.loadError")
           collection.write_text(ctext)
           PY
           git config user.name "github-actions[bot]"
