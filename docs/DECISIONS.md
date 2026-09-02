@@ -72,16 +72,20 @@ Status meanings:
 |---|---|---|
 | Standard rarity count | LOCKED | 4 |
 | Ladder | LOCKED | Common → Rare → Epic → Legendary |
+| Probe standard odds | LOCKED BASELINE | Common **60%**, Rare **28%**, Epic **10%**, Legendary **2%** |
+| Probe family split | LOCKED | choose Camera vs Flip Phone at **50/50**, independently from the standard rarity roll |
 | Common | LOCKED | solid or mostly solid candy plastic; simple but already desirable |
 | Rare | LOCKED | translucent/frosted material + restrained premium accent |
 | Epic | LOCKED | pearlescent/iridescent/premium surface + richer trim/accessory |
 | Legendary | LOCKED | clear shell + stylized visible internals + premium metallic treatment |
+| First-three onboarding protection | LOCKED | first 3 standard openings are guaranteed to produce undiscovered standard variants; the second opening must use the opposite gadget family from the first so both Camera and Flip Phone are introduced immediately |
+| Ongoing hidden duplicate protection | LOCKED OUT | after the first 3 protected openings, ordinary standard rolls use normal RNG; duplicate frustration is handled by Signal + Tech Parts rather than a permanent hidden reroll system |
 | Reveal FX baked into item art | LOCKED | no; glow/particles/burst belong primarily to reveal presentation |
 | Secret/Chase tier | LOCKED | exists outside normal rarity ladder |
 | Secret quantity at launch | LOCKED RANGE | 2–3 total, not one per base gadget |
 | Secret design rule | LOCKED | special edition, not a fifth rarity color; can change ~15–25% of design details/geometry |
 | Secret collection completion | LOCKED | not required for main collection completion |
-| Secret exact drop chance | OPEN | tune after opening speed/economy is fixed; earlier rough thought was ~0.5–1%, not final |
+| Secret exact drop chance | OPEN | Secret/Hidden Pocket is a separate post-standard roll and does not consume or dilute the 100% standard rarity table; exact chance remains to be tuned |
 
 ---
 
