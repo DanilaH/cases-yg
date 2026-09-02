@@ -1,7 +1,7 @@
 import type { SDK } from 'ysdk';
 
 import { GameplayActivityCoordinator } from './activity';
-import { ConsoleAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
+import { ConsoleAnalyticsAdapter, createYandexAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
 import { MockAdsAdapter, YandexAdsAdapter, type AdsAdapter } from './ads';
 import { WebStorageAdapter, type StorageAdapter } from './storage';
 
@@ -29,16 +29,17 @@ const installVisibilityBridge = (activity: GameplayActivityCoordinator): (() => 
 
 const createMockPlatform = (): PlatformRuntime => {
   const activity = new GameplayActivityCoordinator(() => undefined, () => undefined);
+  const analytics = new ConsoleAnalyticsAdapter();
   const removeVisibilityBridge = installVisibilityBridge(activity);
 
   return {
     kind: 'mock',
     language: normalizeLanguage(navigator.language.split('-')[0]),
     storage: new WebStorageAdapter(window.localStorage),
-    analytics: new ConsoleAnalyticsAdapter(),
-    ads: new MockAdsAdapter(activity),
+    analytics,
+    ads: new MockAdsAdapter(activity, { analytics }),
     activity,
-    markReady: () => undefined,
+    markReady: () => analytics.track('platform_ready', { platform: 'mock' }),
     destroy: removeVisibilityBridge,
   };
 };
@@ -65,27 +66,35 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   await loadYandexSdk();
   const sdk: SDK = await YaGames.init();
   const storage = await sdk.getStorage();
+  const analytics = createYandexAnalyticsAdapter();
   const activity = new GameplayActivityCoordinator(
     () => sdk.features.GameplayAPI?.start(),
     () => sdk.features.GameplayAPI?.stop(),
   );
 
   const removeVisibilityBridge = installVisibilityBridge(activity);
-  const offPause = sdk.on('game_api_pause', () => activity.setBlocked('platform', true));
-  const offResume = sdk.on('game_api_resume', () => activity.setBlocked('platform', false));
+  const offPause = sdk.on('game_api_pause', () => {
+    analytics.track('platform_pause', { platform: 'yandex' });
+    activity.setBlocked('platform', true);
+  });
+  const offResume = sdk.on('game_api_resume', () => {
+    analytics.track('platform_resume', { platform: 'yandex' });
+    activity.setBlocked('platform', false);
+  });
   let readySent = false;
 
   return {
     kind: 'yandex',
     language: normalizeLanguage(sdk.environment.i18n.lang),
     storage: new WebStorageAdapter(storage),
-    analytics: new ConsoleAnalyticsAdapter(),
-    ads: new YandexAdsAdapter(sdk, activity),
+    analytics,
+    ads: new YandexAdsAdapter(sdk, activity, { analytics }),
     activity,
     markReady: () => {
       if (readySent) return;
       readySent = true;
       sdk.features.LoadingAPI?.ready();
+      analytics.track('platform_ready', { platform: 'yandex' });
     },
     destroy: () => {
       removeVisibilityBridge();
