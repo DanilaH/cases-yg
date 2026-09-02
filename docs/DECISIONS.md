@@ -33,7 +33,11 @@ Status meanings:
 | Opening HUD progressive disclosure | LOCKED | first launch starts visually minimal. Collection navigation is introduced after the first successful reveal; Signal appears when it first gains progress; Tech Parts and Mod Bench are introduced on the first duplicate/Parts gain rather than occupying the screen before they have meaning |
 | Reveal focus mode | LOCKED | during tear/reveal, nonessential HUD is dimmed/temporarily de-emphasized and cannot compete with or interrupt the reward presentation; it returns immediately after resolution |
 | First-session tutorial | LOCKED | no modal tutorial flow. Teach the opener with a small animated/gesture cue on the star tear-tab, then teach Collection, Signal and Mod Bench contextually when those systems first become relevant |
-| Primary orientation | LOCKED | landscape |
+| Primary orientation | LOCKED | landscape only for the first probe |
+| Responsive philosophy | LOCKED | true adaptive landscape layout, not a fixed 16:9 board scaled with FIT. Canvas follows the available viewport; meaningful UI uses anchors/constraints and decorative background absorbs excess space |
+| Reference composition | LOCKED | 16:9 is the art/layout reference, but the same scene must remain functional and coherent across approximately 5:4 through 12:5 landscape aspect ratios |
+| Responsive modes | LOCKED | `compact` 1.25–1.50, `standard` >1.50–1.95, `wide` >1.95–2.40. Breakpoints affect spacing/density and modest object scale, not the core interaction flow |
+| Extreme aspect behavior | LOCKED | outside the target aspect range, clamp the meaningful composition to the supported core and use decorative background/fill rather than stretching, cropping critical UI or reflowing into a different game |
 | Production philosophy | LOCKED | ultra-low production burden; avoid systems that turn this into a large game |
 | Working title | OPEN | `Mystery Pocket Tech` is placeholder only |
 | Audience | OPEN / HYPOTHESIS | Primary visual target roughly 14–27 with likely female skew; secondary nostalgia audience roughly 25–35 |
@@ -124,6 +128,10 @@ Status meanings:
 | Anti-reroll | LOCKED | persist `pendingReveal` before reveal animation, then commit inventory and clear it |
 | Scene loading policy | LOCKED | preload/shared-load assets needed by Opening, Collection and Mod Bench before normal navigation; scene changes must not trigger user-visible asset loading |
 | Scene transition budget | LOCKED TARGET | target transition response ~100–200 ms plus only a very short cosmetic fade/slide if used; if navigation feels like a page load, implementation is wrong |
+| Responsive coordinate model | LOCKED | use a stable logical height of 720 units and derive logical width from viewport aspect, clamped roughly to 900–1728 units; scenes recompute layout on resize instead of scaling one immutable 1280×720 composition |
+| Safe-area policy | LOCKED | anchors must honor browser/device safe insets plus internal margins. Critical controls never touch the viewport edge; use roughly 3–5% responsive margins with practical min/max clamps |
+| Touch target floor | LOCKED | interactive controls must remain at least ~44 CSS px in effective hit size on mobile landscape, even when visual art is smaller |
+| Stretch/crop policy | LOCKED OUT | never non-uniformly stretch gameplay art/UI; decorative backgrounds may crop or extend, critical UI/package/reward content may not |
 
 ---
 
