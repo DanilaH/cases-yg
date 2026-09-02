@@ -140,43 +140,48 @@ Still open under section 9: exact Hidden Pocket / Secret probability.
 
 ---
 
-# 7. Signal specification — NEXT
+# 7. Signal specification — RESOLVED FOR PROBE
 
-Accepted concept, unresolved mechanics.
+Locked rules:
 
-Need to decide:
+- Signal is global;
+- only standard duplicates add Signal;
+- Common duplicate `+25`;
+- Rare duplicate `+20`;
+- Epic duplicate `+15`;
+- Legendary duplicate `+10`;
+- new discoveries add no Signal;
+- meter caps at 100 until consumed;
+- at 100, `SIGNAL LOCK` arms the next standard reveal;
+- if any undiscovered Common/Rare/Epic variant remains, the next standard reveal is forced to one of those missing non-Legendary variants;
+- if all six non-Legendary standard variants are already discovered, SIGNAL LOCK instead forces a Rare/Epic standard result;
+- Signal never guarantees Legendary;
+- Hidden Pocket / Secret roll is independent from Signal;
+- after the forced result commits, Signal resets to 0.
 
-- what increases Signal;
-- exact increments by duplicate rarity;
-- whether anything except duplicates increases it;
-- full-meter reward;
-- reset rules;
-- whether Signal can force a Legendary;
-- interaction with Secret/Hidden Pocket;
-- exact UI feedback when the meter fills/locks.
+Presentation direction:
 
-Constraints:
+- compact old-LCD / antenna meter;
+- progressively disclosed on first Signal gain;
+- explicit `+Signal` feedback on duplicate;
+- short `SIGNAL LOCK` pulse/glitch when full;
+- restrained scan/lock treatment on the armed next pouch.
 
-- Signal is global because there is only one package type;
-- the probe has only eight standard variants, so Signal must reduce frustration without auto-completing the Library;
-- permanent hidden duplicate protection is intentionally off after opening #3.
+See `DECISIONS.md` and `GAMEPLAY_SYSTEMS.md`.
 
 ---
 
-# 8. Tech Parts / Mod Bench specification
+# 8. Tech Parts / Mod Bench specification — NEXT
 
-Accepted concept, unresolved mechanics.
+The concept was accepted before the probe content was reduced to only Camera + Flip Phone. Re-evaluate it against the new scope rather than preserving it automatically.
 
-Decide:
+Need to decide first:
 
-- duplicate-to-parts values by rarity;
-- whether extra copies are stored or immediately recycled;
-- upgrade model;
-- whether the tiny Camera/Flip Phone content pool makes direct same-item upgrade preferable to a 3-choice offer;
-- costs;
-- whether lower-rarity item is consumed;
-- how to prevent Mod Bench from trivializing the eight-item standard collection;
-- exact unlock timing after the first duplicate introduction.
+- does the eight-variant probe need a second duplicate-mitigation system at all now that Signal is fully specified?
+- if yes, what distinct job does Tech Parts / Mod Bench perform that Signal does not already solve?
+- if no, park both for post-validation and remove their HUD/nav/scene burden from the first probe.
+
+If retained, then define duplicate-to-parts values, spending model, costs and unlock timing. Avoid a direct deterministic path that trivializes the tiny eight-item Library or makes Signal redundant.
 
 ---
 
@@ -236,7 +241,7 @@ Because base packages are unlimited and free, **do not use rewarded ads merely t
 
 Possible low-distortion options:
 
-- bonus Tech Parts;
+- bonus Tech Parts if Tech Parts survive the scope review;
 - Signal boost;
 - another simple progression benefit compatible with the tiny content pool.
 
@@ -259,7 +264,7 @@ Need explicit event names and quantitative/qualitative thresholds for:
 - collection visit;
 - return from collection;
 - Signal consumption;
-- Mod Bench use;
+- Mod Bench use if retained;
 - rewarded completion;
 - session return if measured.
 
