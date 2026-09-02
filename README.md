@@ -1,57 +1,65 @@
 # Mystery Pocket Tech
 
-Small Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
+Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 > Open a mystery pouch → reveal a stylized retro gadget → discover rarity → improve a visible collection → repeat.
 
 ## Current phase
 
-**Implementation-ready behavioral probe.** Product scope, core UX, drop model, Signal, Hidden Pocket, Collection semantics, responsive architecture, localization/audio, analytics gates, art-production workflow, asset inventory, execution roadmap and Yandex submission checks are locked.
+**Implementation-ready internal vertical slice.**
 
-First probe content is intentionally tiny:
+The first playable build is private and exists for direct user/developer feedback. It uses only:
 
 - Digital Camera;
 - Flip Phone;
 - Common / Rare / Epic / Legendary for each;
-- 2 Secrets;
-- 8 standard + 2 Secret collectible assets total.
+- 2 Secrets.
 
-Do not expand content or meta systems before the probe validates.
+This two-family slice is **not the public release**.
+
+After hands-on sign-off, the same project moves directly into a materially larger content build. The final release may contain roughly the old ~24-family scale or more if the production pipeline supports it; exact launch count is intentionally decided after the slice establishes real per-family cost/quality.
+
+## What is production-grade from day one
+
+Even though content is tiny in the slice, these boundaries are implemented immediately:
+
+- Phaser 4.2.1 + Vite + strict TypeScript;
+- Yandex Games SDK;
+- injected safe storage + transactional `pendingReveal`;
+- adaptive Desktop/Mobile landscape layout;
+- data-driven gadget registry/Collection;
+- Yandex Metrica adapter;
+- **Yandex ad adapter: interstitial + rewarded + sticky-banner boundary**;
+- platform pause/resume/audio behavior;
+- RU + EN architecture.
+
+## Slice gameplay configuration
+
+- one free/unlimited Mystery Pouch;
+- deterministic star-tab tear;
+- standard slice odds 60/28/10/2;
+- Signal duplicate pity;
+- Hidden Pocket 3% from opening #4 while a slice Secret remains;
+- Shelf + Library;
+- slice standard completion 8/8, Secrets 0/2.
+
+These exact numbers are **slice balance only**. Release progression is re-simulated after the larger content roster is locked.
 
 ## Source of truth
 
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — canonical product/technology decision ledger.
-- [`docs/PRODUCT.md`](docs/PRODUCT.md) — product thesis, scope, player fantasy, progression and monetization stance.
-- [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — opener, drop odds, Signal, Hidden Pocket, Collection behavior.
-- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — pinned Phaser/Vite/TypeScript architecture, transaction/save/storage, responsive layout, localization/audio and Yandex integration.
-- [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) — collectible visual language, rarity grammar, Secrets, package and store visual direction.
-- [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md) — operational generation/export/cleanup pipeline.
-- [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — complete first-probe runtime, audio, localization and store-asset inventory.
-- [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — milestone/PR execution sequence, estimates and Definition of Done.
-- [`docs/PREIMPLEMENTATION_AUDIT.md`](docs/PREIMPLEMENTATION_AUDIT.md) — independent pre-code validation, moderation checks, risk register and GO/NO-GO verdict.
-- [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — analytics events, continuation gates, balance sanity check, kill/tune/continue rules and rebased effort.
-- [`docs/YANDEX_SUBMISSION_CHECKLIST.md`](docs/YANDEX_SUBMISSION_CHECKLIST.md) — current platform, media, lifecycle, storage, localization and moderation checklist; re-check official requirements before submission.
-- [`docs/COMPETITIVE_REFERENCE.md`](docs/COMPETITIVE_REFERENCE.md) — competitor mechanics worth stealing, transforming or avoiding.
-- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — post-validation/parked queue; no current implementation blockers.
-
-## Locked probe direction
-
-- Platform: **Yandex Games**, Desktop + Mobile landscape.
-- Engine: **Phaser 4.2.1 + Vite + strict TypeScript**.
-- Runtime scenes: **Boot → Opening ↔ Collection**; reveal stays inside Opening.
-- Landscape-only adaptive layout.
-- One free/unlimited Mystery Pouch; no package currency, energy or tiers.
-- One deterministic left-to-right star-tab tear gesture.
-- Standard odds: **60% Common / 28% Rare / 10% Epic / 2% Legendary**.
-- Signal is the only standard duplicate-mitigation system.
-- Hidden Pocket: separate 3% post-standard chase roll from opening #4, while a Secret remains.
-- Collection: Shelf + Library; standard completion **8/8**, Secrets separate **0/2**.
-- Local-first, versioned transactional save through an injected storage adapter; no login/backend/cloud requirement.
-- RU + EN UI with EN fallback; SFX-only audio with persistent mute.
-- No Tech Parts / Mod Bench / ads / dailies / leaderboard / extra gadget families in first probe.
-- Analytics: Yandex built-ins + custom Yandex Metrica gameplay events.
-- Working delivery target: **~5–8 focused days**, excluding moderation waiting time.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — canonical stage/product/technology decisions.
+- [`docs/PRODUCT.md`](docs/PRODUCT.md) — product thesis and internal-slice → content-expansion → release staging.
+- [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — core mechanics vs slice-only balance.
+- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — scalable content architecture, SDK/storage/analytics/ads boundaries.
+- [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) — collectible visual language.
+- [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md) — repeatable family production workflow.
+- [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — slice assets + public content-factory implications.
+- [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — four-stage execution plan.
+- [`docs/PREIMPLEMENTATION_AUDIT.md`](docs/PREIMPLEMENTATION_AUDIT.md) — amended independent audit.
+- [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — private slice acceptance checklist.
+- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — release-scale decisions intentionally deferred until after hands-on review.
+- [`docs/YANDEX_SUBMISSION_CHECKLIST.md`](docs/YANDEX_SUBMISSION_CHECKLIST.md) — eventual expanded public-release moderation checklist.
 
 ## Product principle
 
-The project should win through **visual desirability, fast anticipation/reveal, collection payoff and very cheap visible progression** — not through feature count, 3D complexity, worlds, minigames or a giant economy.
+Scale primarily through **desirable collectible content and a repeatable art pipeline**, not through feature count. The internal slice stays tiny so mistakes are cheap; the public game does not.
