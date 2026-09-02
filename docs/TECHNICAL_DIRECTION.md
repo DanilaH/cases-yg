@@ -7,81 +7,76 @@ Use:
 - **Phaser 4.x**
 - **Vite**
 - **strict TypeScript**
-- **Yandex Games SDK** through a small platform adapter
+- **Yandex Games SDK** behind a thin platform adapter
 
 Do not use React for the game runtime.
 
-Physics is **off by default**. Nothing in the accepted opener loop requires a physics engine.
+Physics is off. Nothing in the first-probe opener needs a physics engine.
 
 ---
 
-## 2. Why Phaser
+## 2. Architecture principle
 
-Phaser gives the project the right abstraction level for:
+This is a tiny deterministic 2D collectible game. Architecture must remain proportional to that scope.
 
-- scenes/state transitions;
-- sprite/image rendering;
-- tweens;
-- particles/reveal FX;
-- pointer/touch input;
-- audio;
-- asset loading;
-- responsive canvas/scaling;
-- pause/resume boundaries around platform events/ads.
+Prefer:
 
-The project should use Phaser as a small 2D game framework, not as justification for building a large game architecture.
+- plain typed state;
+- pure data/config for collectibles/balance;
+- small systems with explicit inputs/outputs;
+- Phaser tweens/particles for presentation;
+- provider adapters only where platform/analytics boundaries justify them.
+
+Do not build framework infrastructure for future systems that are currently parked.
 
 ---
 
 ## 3. Scene boundaries — LOCKED FOR PROBE
 
-Primary first-probe structure:
+Primary structure:
 
 ```text
 BootScene
 OpeningScene
-RevealScene
 CollectionScene
 ```
 
-`OpeningScene` is the clean primary surface. `CollectionScene` is the only separate persistent gameplay surface required by the first behavioral probe.
+There is **no separate RevealScene** in the probe.
 
-`ModBenchScene` is **parked** and should not be scaffolded merely for future possibility.
+Reason: the accepted reveal requires visual continuity with the physical pouch for the first ~0.3–0.4 s. Keeping tear, reveal, result and Hidden Pocket as phases inside `OpeningScene` is simpler and avoids a pointless scene transition.
 
-Small transient UI may still be implemented as overlays/components inside a scene, for example:
+`CollectionScene` contains two internal UI states:
 
-- settings;
-- rewarded ad prompt;
-- item detail;
-- Signal status;
-- lightweight notifications.
+- Shelf;
+- Library.
 
-Keep scene count small unless implementation proves a real need.
+Do not create `LibraryScene` or `ModBenchScene`.
 
-### Transition performance rule
+Possible transient overlays/components:
 
-Navigation between Opening and Collection must feel effectively instant.
+- orientation prompt at shell/platform level;
+- settings if needed;
+- lightweight notification/toast;
+- Collection view switch.
 
-Implementation requirements:
+### Opening transient phase
 
-- preload or shared-load assets required by these primary scenes before normal navigation;
-- do not perform network-dependent work on scene switches;
-- do not trigger user-visible asset loading when opening Collection;
-- keep persistent game/save state outside individual scene instances;
-- avoid destroying/reconstructing heavyweight shared resources unnecessarily;
-- cosmetic fades/slides must be very short and must not mask actual loading.
+A small scene-local phase enum is enough, for example:
 
-Target:
+```ts
+type OpeningPhase =
+  | 'idle'
+  | 'dragging'
+  | 'revealing'
+  | 'result'
+  | 'hidden-pocket';
+```
 
-> **~100–200 ms perceived response plus, at most, a very short cosmetic transition.**
-
-If switching scenes feels like navigating to another web page, the implementation is wrong.
+This phase is presentation state. Reward ownership/progression belongs to persistent game state / `pendingReveal`, not to scene objects.
 
 ---
 
 ## 4. Suggested source structure
-
-Working structure, not yet final:
 
 ```text
 src/
@@ -89,19 +84,17 @@ src/
     scenes/
       BootScene.ts
       OpeningScene.ts
-      RevealScene.ts
       CollectionScene.ts
 
     systems/
-      rarity.ts
       drops.ts
-      collection.ts
       signal.ts
+      collection.ts
       save.ts
+      layout.ts
 
     data/
       collectibles.ts
-      packages.ts
       balance.ts
 
     ui/
@@ -109,153 +102,237 @@ src/
 
   platform/
     yandex.ts
-    ads.ts
     analytics.ts
 
   main.ts
 ```
 
-Avoid framework architecture for its own sake. Prefer pure data/config for content and balance.
+Do not scaffold ads, Tech Parts, Mod Bench, daily systems or package economy code in the probe.
 
 ---
 
-## 5. Game-state model
+## 5. Persistent game state — LOCKED DIRECTION
 
-At minimum the save will need concepts similar to:
+Duplicates are not retained as inventory stacks in the probe. Store discovery and progression state directly.
+
+Minimum shape:
 
 ```ts
 interface SaveState {
   version: number;
-  inventory: Record<string, number>;
-  discovered: string[];
+  discoveredStandard: StandardCollectibleId[];
+  discoveredSecrets: SecretCollectibleId[];
   signal: number;
+  totalOpens: number;
   pendingReveal: PendingReveal | null;
   stats: {
-    totalOpens: number;
     duplicates: number;
-    secretsFound: number;
+    hiddenPockets: number;
   };
 }
 ```
 
-Exact types should be designed during implementation spec work. The important rule is that **game systems are explicit state, not hidden inside scene objects**.
+Notes:
 
-This also allows scene changes to remain cheap: switching from Opening to Collection should mostly be a rendering/navigation operation, not a reinitialization of game state.
+- `signal === 100` is enough to derive SIGNAL LOCK; no redundant boolean is required unless implementation proves useful;
+- onboarding protection derives from `totalOpens < 3`;
+- Shelf best-owned state derives from discovered collectible data;
+- no `techParts`, currency, energy, package inventory or Mod Bench state.
 
-Do not add `techParts` or Mod Bench state to the first-probe save schema unless that parked system is explicitly brought back later.
+Version the save from day one.
 
 ---
 
 # 6. Transactional reveal / anti-reroll — LOCKED
 
-Before reveal animation begins:
+A single opening transaction must predetermine everything that refresh/restart must not reroll.
 
-1. determine the result;
-2. persist a `pendingReveal` record;
-3. only then start the reveal animation;
-4. on completion, commit the result to inventory/progression;
-5. clear `pendingReveal`.
+Before the reveal animation begins:
 
-Goals:
+1. determine the standard result, applying onboarding/SIGNAL LOCK rules;
+2. determine whether it is new/duplicate and the resulting Signal delta/reset;
+3. if eligible, roll Hidden Pocket;
+4. if Hidden Pocket triggers, choose the undiscovered Secret result;
+5. persist the full `pendingReveal` transaction;
+6. only then run tear/reveal/result presentation;
+7. commit discovery/stats/Signal once;
+8. clear `pendingReveal`.
 
-- refresh cannot reroll the reward;
-- double click cannot apply the reward twice;
-- interrupted animation does not corrupt progression;
-- save recovery is deterministic.
+Conceptual shape:
 
-This rule must account for:
+```ts
+interface PendingReveal {
+  id: string;
+  standard: {
+    collectibleId: StandardCollectibleId;
+    isNew: boolean;
+  };
+  signal: {
+    before: number;
+    after: number;
+    lockConsumed: boolean;
+  };
+  hiddenPocket: null | {
+    secretId: SecretCollectibleId;
+  };
+}
+```
 
-- Signal changes from duplicates;
-- possible Hidden Pocket result;
-- Secret result if applicable.
+Exact field names may differ. Required properties:
 
-The full transaction shape should be specified before coding the drop pipeline.
+- refresh cannot reroll standard rarity/family;
+- refresh cannot reroll Hidden Pocket;
+- reward cannot commit twice;
+- interrupted reveal can recover deterministically;
+- Signal reset/gain cannot double-apply.
+
+If a pending transaction is found on startup, resume/finish the same reward rather than generating a new one.
 
 ---
 
-# 7. Save and persistence
+# 7. Drop-system boundaries
 
-For the behavioral probe:
+Keep drop calculation pure enough to test independently from Phaser.
 
-- local-first persistence is sufficient;
+Inputs should include only what affects the result, e.g.:
+
+- `totalOpens`;
+- discovered standard IDs;
+- discovered Secret IDs;
+- current Signal.
+
+Outputs are a complete `PendingReveal` proposal.
+
+Do not make scenes directly mutate probability tables.
+
+Balance constants live in `data/balance.ts`, including:
+
+```ts
+STANDARD_ODDS
+SIGNAL_GAINS
+SIGNAL_LATE_LOCK_ODDS
+HIDDEN_POCKET_CHANCE
+REVEAL_TIMINGS
+```
+
+This keeps Quick Reveal/balance tuning cheap later.
+
+---
+
+# 8. Save and persistence
+
+For first probe:
+
+- local-first save;
 - no required account;
 - no backend;
-- no cloud sync requirement.
+- no cloud-sync requirement.
 
-The save format must be versioned from the start so generated content/balance can evolve without immediately breaking old saves.
+Persistence requirements:
 
-Potential Yandex player/cloud data can be considered later; it is not required to validate the opener loop.
+- write pending transaction before presentation;
+- commit immediately after reward resolution;
+- tolerate refresh/crash between these steps;
+- migrate by `version` rather than assuming old saves match current content.
+
+Optional Yandex player/cloud save is post-validation scope.
 
 ---
 
-# 8. Yandex platform adapter
+# 9. Yandex platform adapter — LOCKED
 
-Do not scatter SDK calls across game scenes.
+Do not scatter SDK calls across scenes.
 
-Create a thin boundary for:
+`platform/yandex.ts` owns:
 
 - SDK initialization;
-- loading-ready signal;
-- gameplay start/stop/pause boundaries;
-- rewarded ads;
-- analytics hooks if routed through platform-specific integrations;
-- optional player data later.
+- `LoadingAPI.ready()` when critical assets are loaded and the game is actually interactive;
+- `GameplayAPI.start()` / `stop()` lifecycle boundaries;
+- pause/resume events from platform/tab visibility;
+- future optional player/cloud integration.
 
-Game logic should remain testable without a live Yandex environment.
+Sound/tweens/input must pause appropriately when gameplay is stopped/minimized.
 
----
-
-# 9. Rewarded ads
-
-Rules:
-
-- reward only after confirmed rewarded completion callback;
-- pause/resume Phaser correctly around ad display;
-- avoid duplicate reward delivery on resume/retry;
-- ad failure must not corrupt save state;
-- base loop must never deadlock because an ad is unavailable.
-
-Exact rewarded use is still open.
+Ads are not part of the first probe, so do not add an ad adapter until monetization is deliberately reintroduced.
 
 ---
 
-# 10. Rendering and assets
+# 10. Analytics — LOCKED
 
-Current item direction is static transparent 2D/2.5D art.
+Use:
 
-A single collectible asset should be reusable across:
+- automatic built-in Yandex Games metrics for platform/product/technical metrics;
+- **Yandex Metrica** for custom gameplay events.
 
-- reveal hero presentation;
-- shelf/collection placement;
-- thumbnails/detail UI where appropriate.
+Implement one typed `platform/analytics.ts` adapter so game systems emit semantic events without depending directly on the Metrica global.
 
-Reveal juice should be primarily runtime presentation:
+Minimum custom events and decision thresholds are defined in `PROBE_VALIDATION.md`.
 
-- scale tween;
-- rotation/settle;
-- glow/filter if needed;
+Do not add a custom analytics backend.
+
+---
+
+# 11. Rendering and collectible assets
+
+Collectibles are static transparent 2D/2.5D assets reused across:
+
+- reveal hero;
+- Shelf;
+- Library thumbnail.
+
+Runtime collectible target:
+
+- transparent **1024×1024 WebP**;
+- consistent object framing/margins across rarity variants.
+
+Reveal juice stays runtime-first:
+
+- tweens;
+- glow;
 - particles;
-- rarity frame/burst.
+- ring/outline pulse;
+- tiny camera bump for high rarity.
 
-Do not create separate 3D/inventory/reveal models for the same collectible.
+Do not create separate 3D/inventory/reveal models for the same item.
 
-For fast navigation, scene-critical shared assets should be loaded up front or kept available in Phaser's asset cache rather than repeatedly loaded and discarded between primary scenes.
+See `ART_PRODUCTION.md`.
 
 ---
 
-# 11. Responsive layout — LOCKED
+# 12. Asset loading — LOCKED
 
-Primary orientation is **landscape-only for the first probe**.
+Preload/cache all probe-critical assets before `LoadingAPI.ready()`:
 
-The layout is genuinely adaptive. Do **not** implement one immutable 1280×720 board and simply `FIT` it into every viewport.
+- Mystery Pouch;
+- 8 standard collectibles;
+- 2 Secrets;
+- Opening background/UI;
+- Collection background/UI;
+- core reveal particles/sounds.
 
-## Reference and supported aspect range
+There are only ten collectible hero assets, so lazy-loading between Opening and Collection is unnecessary complexity.
 
-- reference art/composition ratio: **16:9**;
-- expected coherent layout range: approximately **5:4 (1.25)** through **12:5 (2.40)**;
-- screens outside this range still render safely, but the meaningful composition is clamped and extra area is treated as decorative space rather than stretching gameplay/UI.
+Opening ↔ Collection navigation must not wait on network/assets.
 
-Responsive modes:
+Target perceived navigation response:
+
+> **~100–200 ms plus, at most, a very short cosmetic fade/slide.**
+
+---
+
+# 13. Responsive layout — LOCKED
+
+Primary orientation: **landscape-only for first probe**.
+
+Do not implement an immutable 1280×720 board and merely `FIT` it.
+
+## Supported composition range
+
+- reference: **16:9**;
+- coherent target: approximately **5:4 (1.25)** through **12:5 (2.40)**;
+- outside range: keep meaningful composition clamped and fill excess space decoratively.
+
+Modes:
 
 ```text
 compact   1.25 – 1.50
@@ -263,30 +340,24 @@ standard  >1.50 – 1.95
 wide      >1.95 – 2.40
 ```
 
-These modes may change spacing, safe margins, collection density, and modest object scale. They must not change the core interaction or require a second UX design.
-
-## Logical coordinate strategy
-
-Use a stable logical **height of 720 units** and derive logical width from the current viewport aspect ratio:
+## Logical coordinates
 
 ```text
 logicalHeight = 720
 logicalWidth = clamp(viewportAspect * 720, 900, 1728)
 ```
 
-This means:
+Examples:
 
-- 5:4 ≈ 900×720 logical space;
-- 16:9 = 1280×720;
-- 12:5 ≈ 1728×720.
+- 5:4 → ~900×720;
+- 16:9 → 1280×720;
+- 12:5 → ~1728×720.
 
-The renderer/canvas follows the available viewport, while scene layout is recomputed from logical bounds.
+Renderer/canvas follows viewport; layout is recomputed from logical bounds. Never non-uniformly stretch sprites/UI.
 
-Do not non-uniformly stretch sprites or UI.
+## Shared layout metrics
 
-## Layout metrics
-
-Create one small layout service/helper that scenes consume, e.g.:
+Use one helper/service:
 
 ```ts
 type LayoutMode = 'compact' | 'standard' | 'wide';
@@ -305,129 +376,70 @@ interface LayoutMetrics {
 }
 ```
 
-Recompute metrics on viewport/scale resize and relayout scene elements from anchors/constraints. Do not scatter bespoke resize math across every sprite.
+Recompute on resize. Do not scatter bespoke viewport math throughout sprites.
 
-## OpeningScene anchoring
-
-Default semantic anchors:
+## Opening anchors
 
 ```text
-Signal       → top-left safe anchor
-Package      → visual center
-Collection   → bottom-left or another quiet edge anchor
+Signal      → top-left safe anchor
+Package     → visual center
+Collection  → quiet bottom/edge safe anchor
 ```
 
-Rules:
+Package remains the hero. In compact mode it may scale down modestly; in wide mode it does not grow indefinitely.
 
-- package remains the visual hero in every mode;
-- package may scale down modestly in `compact`;
-- package should not grow indefinitely in `wide`;
-- extra horizontal room primarily becomes atmosphere/decor;
-- HUD may tighten spacing in `compact`, but no core control disappears;
-- reveal can temporarily dim/de-emphasize HUD without changing layout.
+## Safe areas
 
-## Safe areas and hit targets
-
-Critical UI must honor both device/browser safe insets and internal scene margins.
-
-Use responsive internal margins around **3–5% of the viewport dimension**, with sensible min/max clamps so margins neither collapse on small screens nor become comically large on ultrawide desktop.
-
-Touch/pointer targets must remain at least approximately **44 CSS px** in effective hit size on mobile landscape. The hit area may be larger than the drawn icon.
-
-Never place critical interaction exactly against a viewport edge.
-
-## Background and extreme aspect handling
-
-Backgrounds are decorative and may:
-
-- crop;
-- extend;
-- reveal additional side decoration;
-- use layered/parallax pieces if cheap.
-
-Critical gameplay content may **not**:
-
-- be cropped;
-- leave the viewport;
-- overlap because of aspect changes;
-- stretch non-uniformly;
-- trigger browser scrolling.
-
-For very wide desktop, keep the meaningful gameplay composition bounded and use the extra sides for atmosphere rather than pushing HUD/package farther and farther apart.
+- honor browser/device safe insets;
+- use ~3–5% internal responsive margins with practical clamps;
+- effective touch/pointer target floor ~44 CSS px;
+- no critical control directly against viewport edge;
+- no browser scrolling.
 
 ## Collection adaptation
 
-Collection must use the same layout metrics and may change density between `compact`, `standard`, and `wide`.
+Shelf remains a two-hero composition in all modes.
 
-Exact slot count/grid is intentionally deferred to the Collection specification. The responsive system must support changing columns/spacing without changing collection data semantics.
+Library:
 
-## Portrait behavior
+- standard/wide: show a full family row where practical;
+- compact: wrap cards/adjust gaps;
+- never hide rarity state or change data semantics.
 
-Do not build a separate portrait game UI for the first probe. Portrait is outside the intended gameplay orientation; handle it at the platform/shell level with an orientation prompt rather than maintaining two full scene compositions.
+## Portrait
 
----
-
-# 12. Analytics
-
-Behavioral analytics should answer product questions rather than merely log technical events.
-
-Minimum families:
-
-### Start
-
-- game loaded/ready;
-- first package interaction;
-- first reveal completed.
-
-### Core loop
-
-- package opened;
-- reveal completed;
-- second package opened;
-- N lifetime/session openings.
-
-### Drop quality
-
-- rarity result;
-- new vs duplicate;
-- Secret found;
-- Hidden Pocket triggered if implemented.
-
-### Progression
-
-- Signal advanced;
-- Signal lock reached/consumed.
-
-### Collection
-
-- collection opened;
-- item detail viewed if such UI exists;
-- return to opener.
-
-### Monetization
-
-- rewarded offered;
-- rewarded started;
-- rewarded completed;
-- reward consumed.
-
-Exact event names and success thresholds remain open.
+No separate portrait game composition. Use shell/platform orientation guidance rather than maintaining two games.
 
 ---
 
-# 13. Engineering scope guardrails
+# 14. Store/build constraints
+
+For Yandex archive builds:
+
+- root archive contains `index.html`;
+- avoid spaces/Cyrillic in runtime filenames/paths;
+- keep build comfortably below platform archive limits;
+- call game-ready only after all critical probe assets are ready;
+- test resize across Yandex moderation reference resolutions before submission.
+
+Store media specs and composition direction are tracked in the product/art docs.
+
+---
+
+# 15. Engineering guardrails
 
 Do not introduce by default:
 
 - React;
-- Redux/Zustand-style state framework unless plain typed state genuinely fails;
+- Redux/Zustand-style store;
 - ECS;
-- physics engine usage;
-- backend;
-- websocket infrastructure;
+- physics;
+- backend/websockets;
 - real-time 3D;
-- complex asset pipeline server;
-- Mod Bench / Tech Parts before post-validation evidence justifies them;
-- premature test harness/CI complexity unrelated to shipping the probe.
+- custom asset-pipeline server;
+- ads before post-validation monetization pass;
+- Tech Parts / Mod Bench;
+- package economy;
+- premature CI/test infrastructure unrelated to shipping the probe.
 
-The technical design should remain proportional to a tiny 2D collectible game.
+Small unit tests for pure drop/Signal transaction logic are worthwhile because RNG/recovery correctness matters. Do not expand this into a heavyweight testing program.
