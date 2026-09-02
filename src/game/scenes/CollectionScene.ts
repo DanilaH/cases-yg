@@ -416,7 +416,7 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     root.add(
       this.add
-        .text(metrics.centerX, metrics.centerY, 'Collection data could not be loaded.', {
+        .text(metrics.centerX, metrics.centerY, getMessages(getPlatformRuntime().language).collection.loadError, {
           color: '#ffb7c8',
           fontFamily: 'system-ui, sans-serif',
           fontSize: '18px',
