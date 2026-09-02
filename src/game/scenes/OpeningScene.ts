@@ -82,7 +82,7 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
-    if (this.phase === 'shutdown') return;
+    if (this.isSceneShutdown()) return;
 
     this.renderIdle();
     platform.markReady();
@@ -108,7 +108,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private handleResize(): void {
-    if (this.phase === 'booting' || this.phase === 'shutdown' || this.phase === 'failed') {
+    if (this.phase === 'booting' || this.isSceneShutdown() || this.phase === 'failed') {
       return;
     }
 
@@ -159,7 +159,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private renderIdle(message?: string): void {
-    if (!this.saveState || this.phase === 'shutdown') return;
+    if (!this.saveState || this.isSceneShutdown()) return;
 
     this.phase = 'idle';
     this.resultReady = false;
@@ -352,14 +352,14 @@ export class OpeningScene extends Phaser.Scene {
 
     try {
       const pending = await this.session.prepareReveal();
-      if (this.phase === 'shutdown') return;
+      if (this.isSceneShutdown()) return;
       this.lastReveal = pending;
       if (firstInteraction && pending.openingNumber === 1) {
         getPlatformRuntime().analytics.track('first_package_interaction');
       }
       await this.playReveal(pending, false);
     } catch (error: unknown) {
-      if (this.phase === 'shutdown') return;
+      if (this.isSceneShutdown()) return;
       console.error(error);
       this.saveState = this.session.getState();
       this.renderIdle('Could not save the reward. Try the tear again.');
@@ -379,14 +379,14 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     await this.animateTearDetach(recovered);
-    if (this.phase === 'shutdown') return;
+    if (this.isSceneShutdown()) return;
 
     const standardVisual = await this.animateStandardReveal(pending);
-    if (this.phase === 'shutdown') return;
+    if (this.isSceneShutdown()) return;
 
     if (pending.hiddenPocket) {
       await this.animateHiddenPocket(pending, standardVisual);
-      if (this.phase === 'shutdown') return;
+      if (this.isSceneShutdown()) return;
     }
 
     let committed: SaveState | null = null;
@@ -828,7 +828,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private renderResolvedResult(pending: PendingReveal): void {
-    if (!this.saveState || this.phase === 'shutdown') return;
+    if (!this.saveState || this.isSceneShutdown()) return;
     const root = this.createRoot();
     const metrics = this.metrics!;
     this.renderSignalHud(root, this.saveState.signal, this.saveState.signal >= SLICE_BALANCE.signal.threshold);
@@ -895,6 +895,10 @@ export class OpeningScene extends Phaser.Scene {
     if (this.resultReady && this.resultPrompt) {
       this.resultPrompt.setText('Tap for next pouch').setAlpha(1);
     }
+  }
+
+  private isSceneShutdown(): boolean {
+    return this.phase === 'shutdown';
   }
 
   private wait(milliseconds: number): Promise<void> {
