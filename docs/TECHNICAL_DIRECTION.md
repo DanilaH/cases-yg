@@ -81,6 +81,7 @@ src/
     storage.ts
     analytics.ts
     ads.ts
+    activity.ts
   i18n/
     en.ts
     ru.ts
@@ -187,15 +188,26 @@ The slice must run in local mock/fallback mode and Yandex draft/debug mode.
 
 # 9. Advertising boundary — REQUIRED FROM FIRST SLICE
 
-Add `platform/ads.ts` immediately.
+Advertising follows the **current Yandex Games SDK and moderation requirements by default**. Do not invent a separate ad policy when the platform already defines the compliance baseline.
 
-Minimum API:
+Add `platform/ads.ts` immediately. A practical API may look like:
 
 ```ts
 interface AdsAdapter {
-  showInterstitial(): Promise<InterstitialResult>;
-  showRewarded(rewardId: string): Promise<RewardedResult>;
-  setStickyBannerVisible(visible: boolean): Promise<void>;
+  showInterstitial(): Promise<{
+    wasShown: boolean;
+    reason?: string;
+  }>;
+
+  showRewarded(rewardId: string): Promise<{
+    rewardEarned: boolean;
+    reason?: string;
+  }>;
+
+  setStickyBannerVisible(visible: boolean): Promise<{
+    isShowing: boolean;
+    reason?: string;
+  }>;
 }
 ```
 
@@ -203,21 +215,54 @@ Yandex implementation wraps:
 
 - `ysdk.adv.showFullscreenAdv()`;
 - `ysdk.adv.showRewardedVideo()`;
-- sticky-banner control where supported/selected.
+- sticky-banner SDK control when the release enables API-managed sticky banners in the Yandex Console.
 
-Rules:
+### Locked compliance behavior
 
 - scenes do not call `ysdk.adv` directly;
-- full-screen/rewarded display cooperates with platform pause/resume and game audio;
-- rewarded value is granted **exactly once** only after the rewarded callback;
-- close/error without reward grants nothing;
+- interstitials are requested only at logical pauses and never during active tear/reveal;
+- do not implement repeating timer spam for fullscreen ads; Yandex controls actual interstitial display frequency;
+- rewarded is always voluntary;
+- rewarded CTA explicitly communicates that an ad will be watched and names the exact reward;
+- reward is persisted/granted **exactly once on the rewarded callback**, not merely because the ad closed;
+- close/error without rewarded completion grants nothing;
 - ad error/unavailability never blocks save/gameplay;
-- guard against duplicate callbacks/resume paths;
-- internal debug build exposes deliberate test actions to trigger each supported ad type.
+- full-screen/rewarded ads pause gameplay and all audio;
+- sticky banner, if used, may be platform-managed or API-managed; if API-managed, enable the matching Yandex Console option and ensure it never covers required controls.
 
-For the internal slice only, a dev-labelled test reward such as `+25 Signal` may verify reward plumbing. Do not encode that as public monetization design.
+### Activity / pause ownership
 
-Final release questions — reward, interstitial pause points, cadence, sticky-banner use — remain config/product decisions after content expansion.
+Do not let ad callbacks, visibility events and `game_api_pause/resume` each independently toggle Phaser activity.
+
+Use a tiny activity coordinator, e.g.:
+
+```ts
+type PauseReason = 'platform' | 'visibility' | 'ad' | 'menu';
+```
+
+Gameplay is active only when no blocking pause reason is present and the current scene/state is playable.
+
+This prevents:
+
+- duplicate `GameplayAPI.start()`;
+- premature resume while an ad/platform pause is still active;
+- audio restarting behind an ad;
+- double processing caused by `onClose` plus `game_api_resume`.
+
+### Internal slice ad test
+
+Expose deliberate dev-only actions for:
+
+- interstitial request;
+- rewarded request;
+- rewarded success;
+- close without reward;
+- error/unavailable;
+- sticky show/hide when API-managed mode is being exercised.
+
+For the internal slice only, a clearly dev-labelled test reward such as `+25 Signal` may prove reward plumbing. Do not encode that as public monetization design.
+
+Final release tuning — exact rewarded benefit, useful compliant pause points, whether sticky is worth using — happens after content/economy expansion. No additional architecture decision is required now.
 
 ---
 
@@ -297,7 +342,8 @@ Small pure-logic tests are required for:
 - pendingReveal idempotency/recovery;
 - config-driven family addition;
 - rewarded-ad exactly-once reward handling;
-- ad error/close-without-reward paths.
+- ad close/error/no-reward paths;
+- activity coordinator with overlapping pause reasons.
 
 Dev-only controls should force rarity, duplicates, SIGNAL LOCK, Hidden Pocket/Secret and ad flows.
 
