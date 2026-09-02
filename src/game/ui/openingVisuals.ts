@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 
+import { collectibleTextureKey, POUCH_TEXTURE_KEY } from '../data/artAssets';
 import type { StandardRarity } from '../data/collectibles';
 
 export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
@@ -21,23 +22,15 @@ export interface PouchVisual {
   tabEndX: number;
 }
 
-export const createPouchVisual = (
+const addProceduralPouchBody = (
   scene: Phaser.Scene,
-  root: Phaser.GameObjects.Container,
-  x: number,
-  y: number,
-): PouchVisual => {
-  const group = scene.add.container(x, y);
-
-  const shadow = scene.add.ellipse(0, 142, 310, 34, 0x08070c, 0.28);
-  const body = scene.add
-    .rectangle(0, 10, 360, 248, 0xa89ebd, 1)
-    .setStrokeStyle(4, 0xd8d0e7, 0.85);
-
+  group: Phaser.GameObjects.Container,
+  body: Phaser.GameObjects.Rectangle,
+): void => {
+  body.setFillStyle(0xa89ebd, 1).setStrokeStyle(4, 0xd8d0e7, 0.85);
   const innerPanel = scene.add
     .rectangle(0, 22, 300, 168, 0xc7bdd8, 0.26)
     .setStrokeStyle(2, 0xe7e1ef, 0.25);
-
   const mysteryBadge = scene.add.circle(0, 6, 50, 0xe9e2f2, 0.9).setStrokeStyle(3, 0x716486, 0.75);
   const question = scene.add
     .text(0, 4, '?', {
@@ -64,11 +57,36 @@ export const createPouchVisual = (
   const silhouetteLeft = scene.add.rectangle(-82, 104, 44, 28, 0x675b78, 0.46).setOrigin(0.5);
   const silhouetteCenter = scene.add.rectangle(0, 104, 36, 36, 0x675b78, 0.46).setOrigin(0.5);
   const silhouetteRight = scene.add.rectangle(80, 104, 28, 46, 0x675b78, 0.46).setOrigin(0.5);
+  group.add([body, innerPanel, mysteryBadge, question, circuit, silhouetteLeft, silhouetteCenter, silhouetteRight]);
+};
 
+export const createPouchVisual = (
+  scene: Phaser.Scene,
+  root: Phaser.GameObjects.Container,
+  x: number,
+  y: number,
+): PouchVisual => {
+  const group = scene.add.container(x, y);
+  const shadow = scene.add.ellipse(0, 142, 310, 34, 0x08070c, 0.28);
+  const body = scene.add.rectangle(0, 10, 360, 248, 0xa89ebd, 0);
+  group.add(shadow);
+
+  if (scene.textures.exists(POUCH_TEXTURE_KEY)) {
+    const image = scene.add.image(0, 8, POUCH_TEXTURE_KEY).setOrigin(0.5);
+    const sourceWidth = Math.max(1, image.width);
+    image.setScale(374 / sourceWidth);
+    group.add([body, image]);
+  } else {
+    addProceduralPouchBody(scene, group, body);
+  }
+
+  // Interaction remains a separate runtime layer. The reference pouch already
+  // carries the same tear-line grammar, while this overlay provides deterministic
+  // movement/hit-area without baking mechanics into the image asset.
   const strip = scene.add.container(0, -112);
   const stripPlate = scene.add
-    .rectangle(0, 0, 360, 54, 0x9085a7, 1)
-    .setStrokeStyle(3, 0xd6cde3, 0.72);
+    .rectangle(0, 0, 360, 54, 0x8c80a2, scene.textures.exists(POUCH_TEXTURE_KEY) ? 0.16 : 1)
+    .setStrokeStyle(2, 0xd6cde3, scene.textures.exists(POUCH_TEXTURE_KEY) ? 0.2 : 0.72);
   const tearLine = scene.add.graphics();
   tearLine.lineStyle(2, 0x5f5372, 0.72);
   for (let lineX = -112; lineX < 130; lineX += 22) {
@@ -97,18 +115,7 @@ export const createPouchVisual = (
   const dragZone = scene.add.zone(tabStartX, 0, 94, 94).setInteractive({ useHandCursor: true });
 
   strip.add([stripPlate, tearLine, arrow, tab, dragZone]);
-  group.add([
-    shadow,
-    body,
-    innerPanel,
-    mysteryBadge,
-    question,
-    circuit,
-    silhouetteLeft,
-    silhouetteCenter,
-    silhouetteRight,
-    strip,
-  ]);
+  group.add(strip);
   root.add(group);
 
   return {
@@ -173,6 +180,23 @@ const createGenericDevice = (scene: Phaser.Scene, accentColor: number): Phaser.G
   return group;
 };
 
+const createAssetCollectible = (
+  scene: Phaser.Scene,
+  familyId: string,
+  textureKey: string,
+): Phaser.GameObjects.Container => {
+  const group = scene.add.container(0, 0);
+  const targetWidth = familyId === 'flip-phone' ? 190 : 246;
+  const image = scene.add.image(0, 0, textureKey).setOrigin(0.5);
+  image.setScale(targetWidth / Math.max(1, image.width));
+  const visualBottom = image.displayHeight / 2;
+  const shadowWidth = familyId === 'flip-phone' ? 170 : 220;
+  const shadow = scene.add.ellipse(0, visualBottom - 8, shadowWidth, 28, 0x050408, 0.2);
+  group.add([shadow, image]);
+  image.setDepth(1);
+  return group;
+};
+
 export const createCollectibleVisual = (
   scene: Phaser.Scene,
   root: Phaser.GameObjects.Container,
@@ -180,14 +204,18 @@ export const createCollectibleVisual = (
   rarity: StandardRarity | 'secret',
   x: number,
   y: number,
+  collectibleId?: string,
 ): CollectibleVisual => {
   const accentColor = rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[rarity];
+  const textureKey = collectibleId ? collectibleTextureKey(collectibleId) : null;
   const group =
-    familyId === 'camera'
-      ? createCamera(scene, accentColor)
-      : familyId === 'flip-phone'
-        ? createFlipPhone(scene, accentColor)
-        : createGenericDevice(scene, accentColor);
+    textureKey && scene.textures.exists(textureKey)
+      ? createAssetCollectible(scene, familyId, textureKey)
+      : familyId === 'camera'
+        ? createCamera(scene, accentColor)
+        : familyId === 'flip-phone'
+          ? createFlipPhone(scene, accentColor)
+          : createGenericDevice(scene, accentColor);
 
   group.setPosition(x, y);
   root.add(group);
