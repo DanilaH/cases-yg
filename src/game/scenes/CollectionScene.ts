@@ -29,7 +29,6 @@ export class CollectionScene extends Phaser.Scene {
   private snapshot: CollectionSnapshot | null = null;
   private view: CollectionView = 'shelf';
   private page = 0;
-  private openTracked = false;
 
   public constructor() {
     super('CollectionScene');
@@ -55,15 +54,12 @@ export class CollectionScene extends Phaser.Scene {
       return;
     }
 
-    if (!this.openTracked) {
-      this.openTracked = true;
-      getPlatformRuntime().analytics.track('collection_open', {
-        standardCount: this.snapshot.standardCount,
-        standardTotal: this.snapshot.standardTotal,
-        secretCount: this.snapshot.secretCount,
-        secretTotal: this.snapshot.secretTotal,
-      });
-    }
+    getPlatformRuntime().analytics.track('collection_open', {
+      standardCount: this.snapshot.standardCount,
+      standardTotal: this.snapshot.standardTotal,
+      secretCount: this.snapshot.secretCount,
+      secretTotal: this.snapshot.secretTotal,
+    });
     this.render();
   }
 

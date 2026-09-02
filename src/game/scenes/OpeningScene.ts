@@ -3,8 +3,10 @@ import Phaser from 'phaser';
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { getMessages } from '../../i18n';
+import { getMessages } from '../../i18n';
 import { SLICE_BALANCE } from '../data/balance';
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
+import { getGameAudio } from '../systems/audio';
 import { getGameAudio } from '../systems/audio';
 import { getGameAudio } from '../systems/audio';
 import type { PendingReveal } from '../systems/drops';
@@ -490,6 +492,7 @@ export class OpeningScene extends Phaser.Scene {
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
     getGameAudio().play('reveal-pop');
     getGameAudio().play('reveal-pop');
+    getGameAudio().play('reveal-pop');
     const heroX = metrics.centerX;
     const heroY = 320;
 
@@ -569,6 +572,10 @@ export class OpeningScene extends Phaser.Scene {
       this.cameras.main.shake(85, pending.standard.rarity === 'legendary' ? 0.0025 : 0.0017);
     }
 
+    getGameAudio().play(pending.standard.rarity);
+    if (!pending.standard.isNew) getGameAudio().play('duplicate');
+    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
+    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
     getGameAudio().play(pending.standard.rarity);
     if (!pending.standard.isNew) getGameAudio().play('duplicate');
     if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
@@ -700,6 +707,7 @@ export class OpeningScene extends Phaser.Scene {
     const ring = createRevealRing(this, root, metrics.centerX + 72, 318, SECRET_REVEAL_COLOR)
       .setScale(0.5)
       .setAlpha(0.2);
+    getGameAudio().play('secret-reveal');
     getGameAudio().play('secret-reveal');
     getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
