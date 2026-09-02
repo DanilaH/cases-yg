@@ -27,6 +27,7 @@ export const en = {
     openMore: '← Open more',
     emptyShelf: 'Open this gadget family to place it on the shelf',
     secret: 'SECRET',
+    loadError: 'Collection data could not be loaded. Reload to retry.',
   },
   audio: {
     mute: 'Sound off',
