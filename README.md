@@ -6,7 +6,7 @@ Small Yandex Games collectible opener built around nostalgic Y2K pocket electron
 
 ## Current phase
 
-**Implementation-ready behavioral probe.** Product scope, core UX, drop model, Signal, Hidden Pocket, Collection semantics, responsive architecture, localization/audio, analytics gates, art-production workflow and Yandex submission checks are locked.
+**Implementation-ready behavioral probe.** Product scope, core UX, drop model, Signal, Hidden Pocket, Collection semantics, responsive architecture, localization/audio, analytics gates, art-production workflow, asset inventory, execution roadmap and Yandex submission checks are locked.
 
 First probe content is intentionally tiny:
 
@@ -20,21 +20,24 @@ Do not expand content or meta systems before the probe validates.
 
 ## Source of truth
 
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — canonical decision ledger.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — canonical product/technology decision ledger.
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — product thesis, scope, player fantasy, progression and monetization stance.
 - [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — opener, drop odds, Signal, Hidden Pocket, Collection behavior.
-- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — Phaser/Vite/TypeScript architecture, save transaction, responsive layout, localization/audio and Yandex integration.
+- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — pinned Phaser/Vite/TypeScript architecture, transaction/save/storage, responsive layout, localization/audio and Yandex integration.
 - [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) — collectible visual language, rarity grammar, Secrets, package and store visual direction.
 - [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md) — operational generation/export/cleanup pipeline.
+- [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — complete first-probe runtime, audio, localization and store-asset inventory.
+- [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — milestone/PR execution sequence, estimates and Definition of Done.
+- [`docs/PREIMPLEMENTATION_AUDIT.md`](docs/PREIMPLEMENTATION_AUDIT.md) — independent pre-code validation, moderation checks, risk register and GO/NO-GO verdict.
 - [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — analytics events, continuation gates, balance sanity check, kill/tune/continue rules and rebased effort.
-- [`docs/YANDEX_SUBMISSION_CHECKLIST.md`](docs/YANDEX_SUBMISSION_CHECKLIST.md) — current platform, media, lifecycle, localization and moderation checklist; re-check official requirements before submission.
+- [`docs/YANDEX_SUBMISSION_CHECKLIST.md`](docs/YANDEX_SUBMISSION_CHECKLIST.md) — current platform, media, lifecycle, storage, localization and moderation checklist; re-check official requirements before submission.
 - [`docs/COMPETITIVE_REFERENCE.md`](docs/COMPETITIVE_REFERENCE.md) — competitor mechanics worth stealing, transforming or avoiding.
 - [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — post-validation/parked queue; no current implementation blockers.
 
 ## Locked probe direction
 
 - Platform: **Yandex Games**, Desktop + Mobile landscape.
-- Engine: **Phaser 4.x + Vite + strict TypeScript**.
+- Engine: **Phaser 4.2.1 + Vite + strict TypeScript**.
 - Runtime scenes: **Boot → Opening ↔ Collection**; reveal stays inside Opening.
 - Landscape-only adaptive layout.
 - One free/unlimited Mystery Pouch; no package currency, energy or tiers.
@@ -43,6 +46,7 @@ Do not expand content or meta systems before the probe validates.
 - Signal is the only standard duplicate-mitigation system.
 - Hidden Pocket: separate 3% post-standard chase roll from opening #4, while a Secret remains.
 - Collection: Shelf + Library; standard completion **8/8**, Secrets separate **0/2**.
+- Local-first, versioned transactional save through an injected storage adapter; no login/backend/cloud requirement.
 - RU + EN UI with EN fallback; SFX-only audio with persistent mute.
 - No Tech Parts / Mod Bench / ads / dailies / leaderboard / extra gadget families in first probe.
 - Analytics: Yandex built-ins + custom Yandex Metrica gameplay events.
