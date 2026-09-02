@@ -27,39 +27,16 @@ jobs:
           path = Path('src/game/scenes/OpeningScene.ts')
           text = path.read_text()
 
-          old = """    this.pouch?.dragZone.disableInteractive();
-    this.setChromeEnabled(false);
-
-    try {
-      const pending = await this.session.prepareReveal();
-      if (this.isSceneShutdown()) return;
-      this.lastReveal = pending;
-      getGameAudio().play('tear');
-"""
-          new = """    this.pouch?.dragZone.disableInteractive();
-    this.setChromeEnabled(false);
-    getGameAudio().play('tear');
-
-    try {
-      const pending = await this.session.prepareReveal();
-      if (this.isSceneShutdown()) return;
-      this.lastReveal = pending;
-"""
+          old = "    this.pouch?.dragZone.disableInteractive();\n    this.setChromeEnabled(false);\n\n    try {\n      const pending = await this.session.prepareReveal();\n      if (this.isSceneShutdown()) return;\n      this.lastReveal = pending;\n      getGameAudio().play('tear');\n"
+          new = "    this.pouch?.dragZone.disableInteractive();\n    this.setChromeEnabled(false);\n    getGameAudio().play('tear');\n\n    try {\n      const pending = await this.session.prepareReveal();\n      if (this.isSceneShutdown()) return;\n      this.lastReveal = pending;\n"
           if old in text:
               text = text.replace(old, new, 1)
 
-          for line in [
-              "    getGameAudio().play('reveal-pop');\n",
-              "    getGameAudio().play('secret-reveal');\n",
-          ]:
+          for line in ["    getGameAudio().play('reveal-pop');\n", "    getGameAudio().play('secret-reveal');\n"]:
               while line + line in text:
                   text = text.replace(line + line, line)
 
-          reward_block = """    getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) getGameAudio().play('duplicate');
-    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
-    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
-"""
+          reward_block = "    getGameAudio().play(pending.standard.rarity);\n    if (!pending.standard.isNew) getGameAudio().play('duplicate');\n    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');\n    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');\n"
           while reward_block + reward_block in text:
               text = text.replace(reward_block + reward_block, reward_block)
 
