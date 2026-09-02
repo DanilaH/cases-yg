@@ -21,9 +21,9 @@ See `DECISIONS.md`, `GAMEPLAY_SYSTEMS.md`, and `ART_DIRECTION.md`.
 
 ---
 
-# 2. Screen flow / state machine — RESOLVED
+# 2. Screen flow / state machine — RESOLVED FOR PROBE
 
-Locked direction:
+Locked probe direction:
 
 ```text
 Boot
@@ -32,15 +32,15 @@ Boot
 → resolve new/duplicate
 → Opening
 ↘ Collection
-↘ Mod Bench
 ```
 
 - Opening is the clean primary scene;
-- Collection and Mod Bench are separate fast scenes/surfaces;
+- Collection is the only separate persistent gameplay surface required by the probe;
 - scene navigation must feel effectively instant;
-- opener HUD budget is Signal + Tech Parts + Collection + Mod Bench only;
+- opener HUD budget is Signal + Collection navigation only;
 - HUD is introduced progressively when systems become meaningful;
-- first-session teaching is contextual, not a modal tutorial.
+- first-session teaching is contextual, not a modal tutorial;
+- Mod Bench / Tech Parts are parked and are not part of the probe architecture.
 
 See `DECISIONS.md` and `TECHNICAL_DIRECTION.md`.
 
@@ -132,7 +132,7 @@ Onboarding protection:
 - first 3 standard openings are guaranteed undiscovered standard variants;
 - opening #2 must use the opposite gadget family from opening #1;
 - after opening #3, normal RNG begins;
-- no permanent hidden anti-duplicate reroll after onboarding; Signal + Tech Parts own duplicate mitigation.
+- no permanent hidden anti-duplicate reroll after onboarding; Signal owns duplicate mitigation.
 
 Secret/Hidden Pocket remains a separate post-standard roll and does not dilute this 100% standard rarity table.
 
@@ -171,28 +171,32 @@ See `DECISIONS.md` and `GAMEPLAY_SYSTEMS.md`.
 
 ---
 
-# 8. Tech Parts / Mod Bench specification — NEXT
+# 8. Tech Parts / Mod Bench — PARKED
 
-The concept was accepted before the probe content was reduced to only Camera + Flip Phone. Re-evaluate it against the new scope rather than preserving it automatically.
+Resolved for the first behavioral probe:
 
-Need to decide first:
+- no Tech Parts currency;
+- no duplicate-to-parts conversion;
+- no Mod Bench scene/nav;
+- no upgrade recipes/economy;
+- duplicate resolution is **duplicate → Signal progress → repeat**.
 
-- does the eight-variant probe need a second duplicate-mitigation system at all now that Signal is fully specified?
-- if yes, what distinct job does Tech Parts / Mod Bench perform that Signal does not already solve?
-- if no, park both for post-validation and remove their HUD/nav/scene burden from the first probe.
+Reason: with eight standard variants, Signal already provides visible duplicate mitigation. A second progression currency and deterministic upgrade surface would add scope and make the behavioral test less clean.
 
-If retained, then define duplicate-to-parts values, spending model, costs and unlock timing. Avoid a direct deterministic path that trivializes the tiny eight-item Library or makes Signal redundant.
+Revisit after validation only if repeated-opening data shows a distinct problem that Signal alone does not solve.
 
 ---
 
-# 9. Hidden Pocket tuning
+# 9. Hidden Pocket tuning — NEXT
 
 Hidden Pocket is accepted for the probe. Remaining tuning:
 
 - trigger chance;
-- allowed rewards;
-- exact Secret relationship;
-- whether the 1–2 probe Secrets map one-to-one to Camera/Flip Phone or use another pattern;
+- whether it is disabled during the first-three protected onboarding opens;
+- exact Secret reward rule;
+- whether the probe uses one or two Secrets;
+- whether Secrets are protected from duplicate Hidden Pocket results;
+- what happens after all probe Secrets are discovered;
 - final animation budget;
 - analytics representation.
 
@@ -239,11 +243,9 @@ Need exact first-probe use.
 
 Because base packages are unlimited and free, **do not use rewarded ads merely to grant another ordinary opening**.
 
-Possible low-distortion options:
+Possible low-distortion option:
 
-- bonus Tech Parts if Tech Parts survive the scope review;
-- Signal boost;
-- another simple progression benefit compatible with the tiny content pool.
+- Signal boost or another simple progression benefit compatible with the tiny content pool.
 
 Avoid:
 
@@ -264,7 +266,7 @@ Need explicit event names and quantitative/qualitative thresholds for:
 - collection visit;
 - return from collection;
 - Signal consumption;
-- Mod Bench use if retained;
+- Hidden Pocket / Secret behavior;
 - rewarded completion;
 - session return if measured.
 
@@ -317,4 +319,4 @@ Do not spend time naming before the visual hook is stable.
 
 After sections 1–10 are locked, recalculate MVP/probe effort.
 
-The content scope is now aggressively reduced to **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**, so the old larger-content estimates are obsolete. Preserve this low-burden probe unless behavioral evidence justifies expansion.
+The content scope is now aggressively reduced to **2 base gadgets / 8 standard rarity assets + 1–2 Secrets**, with Tech Parts / Mod Bench parked. Preserve this low-burden probe unless behavioral evidence justifies expansion.
