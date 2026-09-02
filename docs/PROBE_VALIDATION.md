@@ -191,9 +191,9 @@ Approximate median outcomes from the model:
 - first ordinary duplicate: around opening **#4**;
 - first SIGNAL LOCK reached: around opening **#9**;
 - first Hidden Pocket: around opening **#26**;
-- both Secrets discovered: around **60 openings**;
-- standard 8/8 completion: around **76 openings**;
-- both standard 8/8 + Secrets 2/2: around **98 openings**.
+- both Secrets discovered: around **59–60 openings**;
+- standard 8/8 completion: around **80 openings**;
+- both standard 8/8 + Secrets 2/2: around **100 openings**.
 
 Interpretation:
 
@@ -201,6 +201,8 @@ Interpretation:
 - Hidden Pocket is rare but should be seen by a meaningful share of engaged players;
 - the standard library is not auto-completed by Signal;
 - the late 10% Legendary SIGNAL LOCK boost is useful but does not guarantee completion.
+
+Simulation assumption: the armed SIGNAL LOCK result consumes the meter to 0 and does not itself award new Signal even if the boosted result is a duplicate.
 
 Re-simulate if any odds/Signal/Hidden Pocket rule changes.
 
