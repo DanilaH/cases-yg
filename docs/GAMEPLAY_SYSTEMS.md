@@ -101,34 +101,57 @@ Exact probability and whether every Secret is strictly Hidden-Pocket-only remain
 
 ---
 
-# 4. Signal meter — ACCEPTED FOR PROBE
+# 4. Signal meter — LOCKED FOR PROBE
 
-Competitor `luck/pity` systems solve a real problem: a bad random roll must still create progress.
+Signal is the visible pity system for ordinary duplicate frustration.
 
-Our transformation is themed as **SIGNAL** rather than generic luck.
+It is global because the probe has only one package type.
 
-Possible presentation:
+## Gain rules
 
-- antenna bars;
-- old LCD signal meter;
-- scanning/lock-on language;
-- `SIGNAL LOCK` when full.
+Signal increases **only when the standard result is a duplicate**:
 
-Functional goal:
+| Duplicate rarity | Signal gain |
+|---|---:|
+| Common | +25 |
+| Rare | +20 |
+| Epic | +15 |
+| Legendary | +10 |
 
-> **a disappointing or duplicate roll still moves the player toward a guaranteed useful result**
+New discoveries add no Signal.
 
-Now that standard odds and the first-three onboarding protection are locked, Signal is the next balance system to specify.
+Signal caps at **100**. Once full, it stays locked at 100 until consumed.
 
-Open questions:
+## SIGNAL LOCK
 
-- which duplicate rarities add how much Signal;
-- whether any non-duplicate result adds Signal;
-- exact full-meter reward;
-- reset rules;
-- whether Signal can ever force a Legendary;
-- interaction with Secret/Hidden Pocket;
-- how to remain useful without trivializing an eight-variant collection.
+When Signal reaches 100:
+
+> **the next standard reveal is forced to be useful.**
+
+Resolution rules:
+
+1. if any undiscovered Common/Rare/Epic standard variants remain, choose an undiscovered non-Legendary variant and reveal it;
+2. if all six non-Legendary standard variants are already discovered, force a Rare/Epic standard result instead so the meter still creates a better duplicate/Tech Parts outcome;
+3. Signal never forces Legendary;
+4. Secret/Hidden Pocket remains a completely separate post-standard roll and is not modified by Signal.
+
+After the forced standard result is transactionally committed, Signal resets to **0**.
+
+This deliberately leaves both Legendary variants as real chase outcomes while still ensuring that four-to-seven disappointing duplicate rolls create visible forward progress.
+
+## Presentation
+
+Signal is progressively disclosed only after it first gains progress.
+
+Cheap presentation direction:
+
+- compact old-LCD / antenna meter;
+- explicit `+25 SIGNAL`, `+20 SIGNAL`, etc. feedback on duplicate resolution;
+- short glitch/pulse when the meter reaches 100;
+- show `SIGNAL LOCK` clearly;
+- the next pouch may receive a restrained scan/lock visual treatment so the player understands that the guarantee is armed.
+
+Do not add a separate Signal scene or tutorial modal.
 
 ---
 
