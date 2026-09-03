@@ -29,7 +29,7 @@ Even though content is tiny in the slice, these boundaries are implemented immed
 - adaptive Desktop/Mobile landscape layout;
 - data-driven gadget registry/Collection;
 - reviewed collectible/pouch/background/SFX manifests with safe procedural/synth fallbacks;
-- manifest-driven collectible preprocessing: cutout → normalized canvas → WebP → validation;
+- manifest-driven collectible preprocessing: alpha preservation / deterministic cutout / optional local U2NetP cutout → normalized canvas → WebP → validation;
 - optional Phaser atlas build tooling for profiling/inspection without forcing a runtime atlas migration;
 - deterministic debug scenarios for every critical reward path;
 - permanent CI for typecheck/tests/asset-tooling smoke test/production build;
@@ -45,9 +45,13 @@ npm run assets:prepare
 npm run assets:validate
 npm run assets:atlas -- --family flip-phone
 npm run assets:selftest
+
+# Optional local AI cutout path for soft-shadow/complex sources
+npm run assets:model:u2netp
+npm run assets:ai:selftest
 ```
 
-Raw generated collectible files go under the git-ignored `assets-src/raw/` tree. Accepted runtime exports remain individual transparent 1024×1024 WebPs in `public/assets/collectibles/`. See `docs/ASSET_PIPELINE.md` before changing thresholds or switching runtime loading to atlases.
+Raw generated collectible files go under the git-ignored `assets-src/raw/` tree. Accepted runtime exports remain individual transparent 1024×1024 WebPs in `public/assets/collectibles/`. The U2NetP model cache is also git-ignored and is never part of the game bundle. See `docs/ASSET_PIPELINE.md` before changing cutout thresholds/model weights or switching runtime loading to atlases.
 
 ## Slice gameplay configuration
 
