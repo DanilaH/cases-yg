@@ -1,0 +1,44 @@
+name: Recover Flip Phone Assets
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Decode staged runtime payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets/collectibles
+          cat \
+            .asset-upload/flip-phone-assets/part-00.b64 \
+            .asset-upload/flip-phone-assets/part-01.b64 \
+            .asset-upload/flip-phone-assets/part-02.b64 \
+            .asset-upload/flip-phone-assets/part-03.b64 \
+            .asset-upload/flip-phone-assets/part-04.b64 \
+            .asset-upload/flip-phone-assets/part-05-06.b64 \
+            | base64 --decode > /tmp/flip-phone-assets.tar.gz
+          tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
+          ls -lh public/assets/collectibles/flip-phone-*.webp
+      - run: npm ci
+      - name: Validate recovered Flip Phone family
+        run: npm run assets:validate -- --family flip-phone --require-all
+      - name: Upload recovered runtime assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: flip-phone-runtime-assets
+          path: public/assets/collectibles/flip-phone-*.webp
+          if-no-files-found: error
+          retention-days: 1
