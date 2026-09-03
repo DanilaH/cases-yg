@@ -41,13 +41,15 @@ try {
     canvas: 256,
     padding: 24,
     webpQuality: 88,
-    removeBackground: true,
+    backgroundRemoval: 'deterministic',
     backgroundColorTolerance: 48,
     edgeFeather: 0.8,
   };
 
-  await prepareCollectible('raw/one.png', 'out/one.webp', commonOptions);
-  await prepareCollectible('raw/two.png', 'out/two.webp', commonOptions);
+  const first = await prepareCollectible('raw/one.png', 'out/one.webp', commonOptions);
+  const second = await prepareCollectible('raw/two.png', 'out/two.webp', commonOptions);
+  assert.equal(first.backgroundMethod, 'deterministic');
+  assert.equal(second.backgroundMethod, 'deterministic');
 
   const validation = await validateCollectible('out/one.webp', {
     canvas: 256,
