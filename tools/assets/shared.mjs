@@ -49,31 +49,63 @@ const hasUsefulAlpha = async (input) => {
   return transparent / (info.width * info.height) > 0.005;
 };
 
-const maxRgbDifference = (data, channels, leftPixel, rightPixel) => {
-  const left = leftPixel * channels;
-  const right = rightPixel * channels;
-  return Math.max(
-    Math.abs(data[left] - data[right]),
-    Math.abs(data[left + 1] - data[right + 1]),
-    Math.abs(data[left + 2] - data[right + 2]),
-  );
+const averagePatch = (data, width, height, channels, startX, startY, patchWidth, patchHeight) => {
+  const sum = [0, 0, 0];
+  let count = 0;
+  for (let y = startY; y < Math.min(height, startY + patchHeight); y += 1) {
+    for (let x = startX; x < Math.min(width, startX + patchWidth); x += 1) {
+      const offset = (y * width + x) * channels;
+      sum[0] += data[offset];
+      sum[1] += data[offset + 1];
+      sum[2] += data[offset + 2];
+      count += 1;
+    }
+  }
+  return sum.map((value) => value / Math.max(1, count));
+};
+
+const bilinear = (topLeft, topRight, bottomLeft, bottomRight, x, y) => {
+  const top = topLeft * (1 - x) + topRight * x;
+  const bottom = bottomLeft * (1 - x) + bottomRight * x;
+  return top * (1 - y) + bottom * y;
 };
 
 /**
- * Removes the kind of clean, smooth generated background used by the art workflow.
- * This is deliberately not a general-purpose segmentation model: it flood-fills
- * only border-connected low-gradient pixels, preserving isolated cream/white areas
- * inside the collectible. Safety bounds make bad masks fail loudly instead of
- * silently destroying an asset.
+ * Removes the clean generated backgrounds used by the collectible workflow.
+ * A bilinear background-color model is learned from the four corners, then only
+ * model-matching pixels connected to the image border are removed. Unlike a
+ * local-gradient flood fill, this cannot wander through a smooth-colored object
+ * after crossing one anti-aliased edge. Safety bounds make bad masks fail loudly.
  */
 export const removeBorderBackground = async (
   input,
-  { stepTolerance = 18, edgeFeather = 0.8, foregroundMin = 0.04, foregroundMax = 0.9 } = {},
+  { colorTolerance = 48, edgeFeather = 0.8, foregroundMin = 0.04, foregroundMax = 0.9 } = {},
 ) => {
   const { data, info } = await sharp(input).rotate().ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
   const pixelCount = width * height;
   const alphaIndex = channels - 1;
+  const patch = Math.max(4, Math.floor(Math.min(width, height) * 0.04));
+  const topLeft = averagePatch(data, width, height, channels, 0, 0, patch, patch);
+  const topRight = averagePatch(data, width, height, channels, width - patch, 0, patch, patch);
+  const bottomLeft = averagePatch(data, width, height, channels, 0, height - patch, patch, patch);
+  const bottomRight = averagePatch(data, width, height, channels, width - patch, height - patch, patch, patch);
+
+  const isBackgroundCandidate = (pixel) => {
+    const offset = pixel * channels;
+    if (data[offset + alphaIndex] < 16) return true;
+    const x = width <= 1 ? 0 : (pixel % width) / (width - 1);
+    const y = height <= 1 ? 0 : Math.floor(pixel / width) / (height - 1);
+    const expected = [0, 1, 2].map((channel) =>
+      bilinear(topLeft[channel], topRight[channel], bottomLeft[channel], bottomRight[channel], x, y),
+    );
+    return Math.max(
+      Math.abs(data[offset] - expected[0]),
+      Math.abs(data[offset + 1] - expected[1]),
+      Math.abs(data[offset + 2] - expected[2]),
+    ) <= colorTolerance;
+  };
+
   const background = new Uint8Array(pixelCount);
   const queued = new Uint8Array(pixelCount);
   const queue = new Int32Array(pixelCount);
@@ -81,7 +113,7 @@ export const removeBorderBackground = async (
   let tail = 0;
 
   const enqueue = (pixel) => {
-    if (queued[pixel]) return;
+    if (queued[pixel] || !isBackgroundCandidate(pixel)) return;
     queued[pixel] = 1;
     queue[tail] = pixel;
     tail += 1;
@@ -96,24 +128,16 @@ export const removeBorderBackground = async (
     enqueue(y * width + width - 1);
   }
 
-  const tryNeighbor = (from, to) => {
-    if (to < 0 || to >= pixelCount || queued[to]) return;
-    const alpha = data[to * channels + alphaIndex];
-    if (alpha < 16 || maxRgbDifference(data, channels, from, to) <= stepTolerance) {
-      enqueue(to);
-    }
-  };
-
   while (head < tail) {
     const pixel = queue[head];
     head += 1;
     background[pixel] = 1;
     const x = pixel % width;
     const y = Math.floor(pixel / width);
-    if (x > 0) tryNeighbor(pixel, pixel - 1);
-    if (x < width - 1) tryNeighbor(pixel, pixel + 1);
-    if (y > 0) tryNeighbor(pixel, pixel - width);
-    if (y < height - 1) tryNeighbor(pixel, pixel + width);
+    if (x > 0) enqueue(pixel - 1);
+    if (x < width - 1) enqueue(pixel + 1);
+    if (y > 0) enqueue(pixel - width);
+    if (y < height - 1) enqueue(pixel + width);
   }
 
   let foregroundPixels = 0;
@@ -133,7 +157,7 @@ export const removeBorderBackground = async (
     );
   }
 
-  // One-pixel dilation protects anti-aliased object edges from an over-eager flood fill.
+  // One-pixel dilation protects anti-aliased object edges from an over-eager mask.
   const dilated = Buffer.from(mask);
   for (let y = 1; y < height - 1; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
@@ -201,7 +225,7 @@ export const prepareCollectible = async (sourcePath, outputPath, options) => {
   const usefulAlpha = await hasUsefulAlpha(sourceBuffer);
   const cutout = options.removeBackground && !usefulAlpha
     ? await removeBorderBackground(sourceBuffer, {
-        stepTolerance: options.backgroundStepTolerance,
+        colorTolerance: options.backgroundColorTolerance,
         edgeFeather: options.edgeFeather,
       })
     : await sharp(sourceBuffer).rotate().ensureAlpha().png().toBuffer();
