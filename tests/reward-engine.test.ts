@@ -189,7 +189,7 @@ describe('slice reward engine', () => {
       random: new SequenceRandom([0, 0, 0, 0]),
       transactionId: 'fifth',
     });
-    expect(fifth.hiddenPocket?.collectibleId).toBe('flip-phone-secret-music');
+    expect(fifth.hiddenPocket?.collectibleId).toBe('flip-phone-secret-noir');
     state = commitPendingRevealState(stagePendingReveal(state, fifth));
 
     const sixth = createPendingReveal({
