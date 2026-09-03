@@ -64,8 +64,11 @@ body {
   z-index: 2000;
   display: grid;
   gap: 6px;
-  width: 180px;
+  width: 210px;
+  max-height: min(82vh, 720px);
   padding: 10px;
+  overflow-y: auto;
+  box-sizing: border-box;
   border: 1px solid rgb(255 255 255 / 18%);
   border-radius: 10px;
   background: rgb(15 13 23 / 90%);
