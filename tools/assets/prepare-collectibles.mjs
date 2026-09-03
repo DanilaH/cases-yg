@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   DEFAULT_MANIFEST_PATH,
@@ -36,16 +37,27 @@ for (const entry of entries) {
   }
 
   const options = mergedOptions(manifest, entry);
-  const result = await prepareCollectible(entry.source, entry.output, options);
-  const validation = await validateCollectible(entry.output, { canvas: options.canvas });
+  const candidateOutput = `.asset-build/candidates/${entry.id}-${process.pid}.webp`;
 
-  console.log(`[assets] prepared ${entry.id} -> ${entry.output} [${result.backgroundMethod}]`);
-  for (const warning of validation.warnings) console.warn(`[assets] ${entry.id}: ${warning}`);
-  for (const error of validation.errors) {
-    console.error(`[assets] ${entry.id}: ${error}`);
-    failed = true;
+  try {
+    const result = await prepareCollectible(entry.source, candidateOutput, options);
+    const validation = await validateCollectible(candidateOutput, { canvas: options.canvas });
+
+    for (const warning of validation.warnings) console.warn(`[assets] ${entry.id}: ${warning}`);
+    if (validation.errors.length > 0) {
+      for (const error of validation.errors) console.error(`[assets] ${entry.id}: ${error}`);
+      failed = true;
+      continue;
+    }
+
+    const finalOutput = resolveRepoPath(entry.output);
+    await fs.mkdir(path.dirname(finalOutput), { recursive: true });
+    await fs.copyFile(resolveRepoPath(candidateOutput), finalOutput);
+    console.log(`[assets] prepared ${entry.id} -> ${entry.output} [${result.backgroundMethod}]`);
+    processed += 1;
+  } finally {
+    await fs.rm(resolveRepoPath(candidateOutput), { force: true });
   }
-  processed += 1;
 }
 
 console.log(`[assets] done: ${processed} prepared, ${skipped} skipped`);
