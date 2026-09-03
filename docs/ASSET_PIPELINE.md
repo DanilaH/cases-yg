@@ -1,14 +1,15 @@
 # Asset production pipeline
 
-This pipeline turns raw generated collectible images into deterministic runtime assets without manual resize/canvas work.
+This pipeline turns raw generated collectible images into consistent runtime assets without manual resize/canvas work.
 
 ## Decisions
 
 - Canonical runtime collectible output remains an **individual transparent 1024×1024 WebP per item** for the internal slice.
-- Atlas generation is available as an **optional build/inspection artifact**, but the runtime is **not switched to atlases yet**. The slice is too small to justify changing the loader, and release-scale packing/loading should be chosen after real mobile memory/profile data exists.
-- `sharp` handles cutout cleanup, trim, resize, centering, WebP encoding and validation.
+- Atlas generation is available as an **optional build/inspection artifact**, but the runtime is **not switched to atlases yet**. Release-scale packing/loading is chosen after real mobile profiling.
+- `sharp` handles trim, resize, centering, WebP encoding, deterministic background cleanup and validation.
 - `free-tex-packer-core` creates optional Phaser-compatible WebP atlases.
-- Do **not** add a heavyweight ML background-removal dependency to the game/toolchain by default. Current generated collectible sources use a clean isolated subject on a smooth background, so the project learns a simple color model from the four corners and removes only matching border-connected pixels. If it fails on a source, provide a cleaner/already-transparent source instead of accepting a bad automatic mask.
+- Background removal uses a **hybrid two-tier pipeline**: cheap deterministic cleanup first for clean generated backgrounds, with an opt-in/local U2NetP fallback for soft shadows and other cases where thresholding is not safe enough.
+- The AI runtime is tooling-only. It is an optional dependency and is not bundled into the game.
 
 ## Source/output layout
 
@@ -32,6 +33,12 @@ Tracked runtime outputs:
 public/assets/collectibles/camera-common.webp
 ...
 public/assets/collectibles/flip-phone-secret-noir.webp
+```
+
+Local model cache (git-ignored, never shipped):
+
+```text
+.asset-models/u2netp.onnx
 ```
 
 Optional atlas output (git-ignored, not shipped):
@@ -68,6 +75,25 @@ Require all selected raw files to exist:
 npm run assets:prepare -- --family flip-phone --require-all
 ```
 
+Prefetch/verify the optional U2NetP model:
+
+```bash
+npm run assets:model:u2netp
+```
+
+Run the normal deterministic tooling smoke test:
+
+```bash
+npm run assets:selftest
+```
+
+Run the opt-in AI cutout smoke test:
+
+```bash
+npm run assets:model:u2netp
+npm run assets:ai:selftest
+```
+
 Validate committed/generated runtime outputs:
 
 ```bash
@@ -86,25 +112,18 @@ Build optional Phaser atlas artifacts from prepared files:
 npm run assets:atlas -- --family flip-phone
 ```
 
-Run the tooling smoke test:
-
-```bash
-npm run assets:selftest
-```
-
 ## Processing contract
 
 For each manifest entry the prepare step:
 
 1. reads the raw source;
 2. preserves an existing meaningful alpha channel if one is already present;
-3. otherwise estimates the smooth background from the image corners and removes only matching pixels connected to the image border;
-4. fails if the resulting foreground ratio is implausible instead of silently writing a broken cutout;
-5. trims transparent excess;
-6. scales the collectible proportionally inside the configured safe area;
-7. centers it on a transparent square canvas, with optional per-item visual offsets in the manifest;
-8. exports WebP with alpha;
-9. writes to the exact runtime path declared in the manifest.
+3. otherwise applies the configured background-removal mode;
+4. trims transparent excess;
+5. scales the collectible proportionally inside the configured safe area;
+6. centers it on a transparent square canvas, with optional per-item optical offsets;
+7. exports WebP with alpha;
+8. writes to the exact runtime path declared in the manifest.
 
 Default slice output:
 
@@ -115,20 +134,59 @@ WebP quality: 90
 alpha quality: 100
 ```
 
-Per-item overrides can be added under an entry's `options` object, for example:
+## Background-removal modes
+
+Manifest `backgroundRemoval` accepts:
+
+- `auto` — deterministic remover first; if its safety checks reject the result, retry with U2NetP;
+- `deterministic` — corner-model/border-connected cleanup only;
+- `ai` — U2NetP directly; use for known soft shadows/complex edges;
+- `preserve` — do not cut the background; mainly useful for diagnostics or already-specialized source workflows.
+
+An already-transparent source is always preserved rather than unnecessarily re-segmented.
+
+The current `flip-phone-secret-noir` manifest entry explicitly uses `ai`. The real generated Noir source has a soft warm drop shadow: raising deterministic color tolerance enough to remove that shadow starts damaging silver/light details, so a per-item AI route is safer than weakening the entire catalog pipeline.
+
+Important: `auto` falls back to AI when deterministic masking **fails its safety checks**. It cannot reliably diagnose every aesthetically bad halo. If visual inspection shows a subtle retained shadow, set that item to `backgroundRemoval: "ai"` instead of globally increasing deterministic tolerance.
+
+Per-item overrides live under `options`, for example:
 
 ```json
 {
   "id": "example",
   "options": {
+    "backgroundRemoval": "ai",
     "offsetX": -12,
     "offsetY": 8,
-    "backgroundColorTolerance": 42
+    "aiMaskLow": 0.02,
+    "aiMaskHigh": 0.98
   }
 }
 ```
 
-Use offsets only for optical alignment; do not use them to compensate for a bad crop/source. Lower `backgroundColorTolerance` if a pale collectible edge is being removed; raise it cautiously if a smooth background halo remains.
+For deterministic sources, `backgroundColorTolerance` can be overridden per item. Lower it if a pale collectible edge is being removed; raise it cautiously if a genuinely smooth background remains. Do not tune global thresholds around one pathological source.
+
+## AI implementation and model provenance
+
+The optional AI path uses `onnxruntime-node` only as a local inference runtime. No image is uploaded to a background-removal API.
+
+The model is U2NetP at 320×320. The downloader verifies both exact byte size and SHA-256 before accepting it:
+
+```text
+file: u2netp.onnx
+size: 4,574,861 bytes
+sha256: 309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8
+```
+
+Pinned source/mirror:
+
+```text
+https://huggingface.co/edgetools/u2netp
+```
+
+The model card identifies the artifact as the U²-Net portable weights, marks it Apache-2.0, records the same SHA-256, and links the Apache-2.0 upstream U²-Net project. `onnxruntime-node` is MIT-licensed. The model file stays in `.asset-models/` and is excluded from Git and from the shipped game.
+
+This provenance is an engineering dependency gate, not legal advice. Do not silently swap the model URL/weights for BRIA RMBG or another model with different commercial terms.
 
 ## Validation contract
 
@@ -143,19 +201,13 @@ Use offsets only for optical alignment; do not use them to compensate for a bad 
 
 Use `--strict-size` only when intentionally enforcing the soft size target. Visible quality wins over shaving a few KB from an otherwise good collectible.
 
-## Background-removal limitations
+Automated alpha validation does **not** replace visual inspection. Before accepting an item, still check:
 
-The built-in remover is intentionally conservative. It is designed for the current generation style: one isolated gadget, clear silhouette, smooth light background, no object touching the image boundary.
-
-Reject or manually fix a cutout if any of these occur:
-
-- halo around the silhouette;
-- charm/strap/antenna disappears;
-- light-colored body panels develop holes;
-- object touches the source boundary;
-- foreground/background are highly textured or similarly colored.
-
-For such a file, make an already-transparent cutout first and rerun the same normalization/export pipeline. Do not tune global thresholds around one pathological source and risk the rest of the catalog.
+- no warm/bright halo;
+- charm/strap/antenna intact;
+- no holes in pale/translucent body panels;
+- no clipped extremities;
+- scale/optical centering matches the rest of the family.
 
 ## Atlas policy
 
@@ -173,6 +225,8 @@ For a larger release, family/group atlases or on-demand individual textures are 
 
 ## CI
 
-Permanent CI runs `assets:selftest`. This verifies that image normalization/background removal, WebP output, validation and atlas generation still work after dependency/tooling changes without requiring real art files in CI.
+Permanent CI runs with optional dependencies omitted and executes `assets:selftest`. This keeps normal verification lean while covering deterministic cutout, normalization, WebP validation and atlas generation.
+
+The AI path has a separate opt-in `assets:ai:selftest`; it was verified with the pinned U2NetP model during implementation. It is intentionally not downloaded on every ordinary CI run.
 
 Real committed collectible outputs are additionally checked by `npm run assets:validate`; missing not-yet-produced slice assets are warnings until a family is explicitly validated with `--require-all`.
