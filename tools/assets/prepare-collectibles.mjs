@@ -34,10 +34,7 @@ for (const entry of entries) {
   }
 
   const result = await prepareCollectible(entry.source, entry.output, mergedOptions(manifest, entry));
-  console.log(
-    `[assets] prepared ${entry.id} -> ${entry.output}` +
-      (result.removedBackground ? ' (background removed)' : ' (existing alpha preserved)'),
-  );
+  console.log(`[assets] prepared ${entry.id} -> ${entry.output} [${result.backgroundMethod}]`);
   processed += 1;
 }
 
