@@ -56,7 +56,7 @@ try {
   });
   assert.deepEqual(validation.errors, []);
   assert.ok(validation.alpha.transparentRatio > 0.1);
-  assert.ok(validation.alpha.solidRatio > 0.05);
+  assert.ok(validation.alpha.visibleRatio > 0.05);
 
   const files = await buildAtlasFiles(
     [
