@@ -6,7 +6,7 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Implementation-ready internal vertical slice.**
+**Infrastructure-complete internal vertical slice; asset production is the next critical path.**
 
 The first playable build is private and exists for direct user/developer feedback. It uses only:
 
@@ -28,6 +28,9 @@ Even though content is tiny in the slice, these boundaries are implemented immed
 - injected safe storage + transactional `pendingReveal`;
 - adaptive Desktop/Mobile landscape layout;
 - data-driven gadget registry/Collection;
+- reviewed-art preload/fallback boundary;
+- deterministic debug scenarios for every critical reward path;
+- permanent CI for typecheck/tests/production build;
 - Yandex Metrica adapter;
 - **Yandex ad adapter: interstitial + rewarded + sticky-banner boundary**;
 - platform pause/resume/audio behavior;
@@ -51,6 +54,7 @@ These exact numbers are **slice balance only**. Release progression is re-simula
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — product thesis and internal-slice → content-expansion → release staging.
 - [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — core mechanics vs slice-only balance.
 - [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — scalable content architecture, SDK/storage/analytics/ads boundaries.
+- [`docs/INFRASTRUCTURE_STATUS.md`](docs/INFRASTRUCTURE_STATUS.md) — what is complete, intentionally deferred and still requires a real Yandex draft.
 - [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) — collectible visual language.
 - [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md) — repeatable family production workflow.
 - [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — slice assets + public content-factory implications.
@@ -58,6 +62,7 @@ These exact numbers are **slice balance only**. Release progression is re-simula
 - [`docs/PREIMPLEMENTATION_AUDIT.md`](docs/PREIMPLEMENTATION_AUDIT.md) — amended independent audit.
 - [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — private slice acceptance checklist.
 - [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — release-scale decisions intentionally deferred until after hands-on review.
+- [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — hosted Yandex draft checks that CI cannot replace.
 - [`docs/YANDEX_SUBMISSION_CHECKLIST.md`](docs/YANDEX_SUBMISSION_CHECKLIST.md) — eventual expanded public-release moderation checklist.
 
 ## Product principle

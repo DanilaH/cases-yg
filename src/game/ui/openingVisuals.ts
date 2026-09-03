@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 
+import { collectibleTextureKey } from '../data/artAssets';
 import type { StandardRarity } from '../data/collectibles';
 
 export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
@@ -173,6 +174,23 @@ const createGenericDevice = (scene: Phaser.Scene, accentColor: number): Phaser.G
   return group;
 };
 
+const createAssetCollectible = (
+  scene: Phaser.Scene,
+  familyId: string,
+  textureKey: string,
+): Phaser.GameObjects.Container => {
+  const group = scene.add.container(0, 0);
+  const targetWidth = familyId === 'flip-phone' ? 190 : 246;
+  const image = scene.add.image(0, 0, textureKey).setOrigin(0.5);
+  image.setScale(targetWidth / Math.max(1, image.width));
+  const visualBottom = image.displayHeight / 2;
+  const shadowWidth = familyId === 'flip-phone' ? 170 : 220;
+  const shadow = scene.add.ellipse(0, visualBottom - 8, shadowWidth, 28, 0x050408, 0.2);
+  group.add([shadow, image]);
+  image.setDepth(1);
+  return group;
+};
+
 export const createCollectibleVisual = (
   scene: Phaser.Scene,
   root: Phaser.GameObjects.Container,
@@ -180,14 +198,18 @@ export const createCollectibleVisual = (
   rarity: StandardRarity | 'secret',
   x: number,
   y: number,
+  collectibleId?: string,
 ): CollectibleVisual => {
   const accentColor = rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[rarity];
+  const textureKey = collectibleId ? collectibleTextureKey(collectibleId) : null;
   const group =
-    familyId === 'camera'
-      ? createCamera(scene, accentColor)
-      : familyId === 'flip-phone'
-        ? createFlipPhone(scene, accentColor)
-        : createGenericDevice(scene, accentColor);
+    textureKey && scene.textures.exists(textureKey)
+      ? createAssetCollectible(scene, familyId, textureKey)
+      : familyId === 'camera'
+        ? createCamera(scene, accentColor)
+        : familyId === 'flip-phone'
+          ? createFlipPhone(scene, accentColor)
+          : createGenericDevice(scene, accentColor);
 
   group.setPosition(x, y);
   root.add(group);
