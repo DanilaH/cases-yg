@@ -8,7 +8,7 @@ This pipeline turns raw generated collectible images into deterministic runtime 
 - Atlas generation is available as an **optional build/inspection artifact**, but the runtime is **not switched to atlases yet**. The slice is too small to justify changing the loader, and release-scale packing/loading should be chosen after real mobile memory/profile data exists.
 - `sharp` handles cutout cleanup, trim, resize, centering, WebP encoding and validation.
 - `free-tex-packer-core` creates optional Phaser-compatible WebP atlases.
-- Do **not** add a heavyweight ML background-removal dependency to the game/toolchain by default. Current generated collectible sources use a clean isolated subject on a smooth background, so the project uses a deterministic border-connected background remover with safety checks. If it fails on a source, provide a cleaner/already-transparent source instead of accepting a bad automatic mask.
+- Do **not** add a heavyweight ML background-removal dependency to the game/toolchain by default. Current generated collectible sources use a clean isolated subject on a smooth background, so the project learns a simple color model from the four corners and removes only matching border-connected pixels. If it fails on a source, provide a cleaner/already-transparent source instead of accepting a bad automatic mask.
 
 ## Source/output layout
 
@@ -98,7 +98,7 @@ For each manifest entry the prepare step:
 
 1. reads the raw source;
 2. preserves an existing meaningful alpha channel if one is already present;
-3. otherwise removes only smooth border-connected background pixels;
+3. otherwise estimates the smooth background from the image corners and removes only matching pixels connected to the image border;
 4. fails if the resulting foreground ratio is implausible instead of silently writing a broken cutout;
 5. trims transparent excess;
 6. scales the collectible proportionally inside the configured safe area;
@@ -123,12 +123,12 @@ Per-item overrides can be added under an entry's `options` object, for example:
   "options": {
     "offsetX": -12,
     "offsetY": 8,
-    "backgroundStepTolerance": 16
+    "backgroundColorTolerance": 42
   }
 }
 ```
 
-Use offsets only for optical alignment; do not use them to compensate for a bad crop/source.
+Use offsets only for optical alignment; do not use them to compensate for a bad crop/source. Lower `backgroundColorTolerance` if a pale collectible edge is being removed; raise it cautiously if a smooth background halo remains.
 
 ## Validation contract
 
