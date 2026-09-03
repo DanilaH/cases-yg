@@ -313,9 +313,6 @@ export class OpeningScene extends Phaser.Scene {
       void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
         console.warn('[settings] failed to persist mute preference', error);
       });
-      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
-        console.warn('[settings] failed to persist mute preference', error);
-      });
     });
     root.add(button);
   }

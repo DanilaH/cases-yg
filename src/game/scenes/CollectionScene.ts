@@ -205,7 +205,10 @@ export class CollectionScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     button.on('pointerup', () => {
-      audio.toggleMuted();
+      const muted = audio.toggleMuted();
+      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
+        console.warn('[settings] failed to persist mute preference', error);
+      });
       this.render();
     });
     root.add(button);
