@@ -4,9 +4,13 @@
     "canvas": 1024,
     "padding": 64,
     "webpQuality": 90,
-    "removeBackground": true,
+    "backgroundRemoval": "auto",
     "backgroundColorTolerance": 48,
-    "edgeFeather": 0.8
+    "edgeFeather": 0.8,
+    "aiMaskLow": 0.015,
+    "aiMaskHigh": 0.985,
+    "aiMaskGamma": 1,
+    "aiEdgeFeather": 0
   },
   "assets": [
     {
@@ -67,7 +71,10 @@
       "id": "flip-phone-secret-noir",
       "family": "flip-phone",
       "source": "assets-src/raw/flip-phone/secret-noir.png",
-      "output": "public/assets/collectibles/flip-phone-secret-noir.webp"
+      "output": "public/assets/collectibles/flip-phone-secret-noir.webp",
+      "options": {
+        "backgroundRemoval": "ai"
+      }
     }
   ]
 }
