@@ -71,10 +71,7 @@
       "id": "flip-phone-secret-noir",
       "family": "flip-phone",
       "source": "assets-src/raw/flip-phone/secret-noir.png",
-      "output": "public/assets/collectibles/flip-phone-secret-noir.webp",
-      "options": {
-        "backgroundRemoval": "ai"
-      }
+      "output": "public/assets/collectibles/flip-phone-secret-noir.webp"
     }
   ]
 }
