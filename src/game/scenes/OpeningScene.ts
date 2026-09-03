@@ -422,7 +422,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (recovered) {
       this.pouch.tab.setX(this.pouch.tabEndX);
-      }
+    }
 
     await this.animateTearDetach(recovered);
     if (this.isSceneShutdown()) return;

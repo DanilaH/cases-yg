@@ -94,6 +94,20 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
 
+    if (this.view === 'shelf') {
+      this.renderShelf(root);
+    } else {
+      this.renderLibrary(root);
+    }
+
+    addCoverArt(
+      this,
+      root,
+      staticTextureKey('collection-foreground'),
+      metrics.logicalWidth,
+      LOGICAL_HEIGHT,
+    );
+
     root.add(
       this.add
         .text(metrics.centerX, 48, messages.collection.title, {
@@ -123,20 +137,6 @@ export class CollectionScene extends Phaser.Scene {
     this.createTab(root, metrics.centerX - 78, 128, 'shelf', messages.collection.shelf);
     this.createTab(root, metrics.centerX + 78, 128, 'library', messages.collection.library);
     this.createMuteButton(root);
-
-    if (this.view === 'shelf') {
-      this.renderShelf(root);
-    } else {
-      this.renderLibrary(root);
-    }
-
-    addCoverArt(
-      this,
-      root,
-      staticTextureKey('collection-foreground'),
-      metrics.logicalWidth,
-      LOGICAL_HEIGHT,
-    );
 
     this.renderPager(root);
 
