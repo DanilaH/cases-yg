@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "defaults": {
+    "canvas": 1024,
+    "padding": 64,
+    "webpQuality": 90,
+    "removeBackground": true,
+    "backgroundStepTolerance": 18,
+    "edgeFeather": 0.8
+  },
+  "assets": [
+    {
+      "id": "camera-common",
+      "family": "camera",
+      "source": "assets-src/raw/camera/common.png",
+      "output": "public/assets/collectibles/camera-common.webp"
+    },
+    {
+      "id": "camera-rare",
+      "family": "camera",
+      "source": "assets-src/raw/camera/rare.png",
+      "output": "public/assets/collectibles/camera-rare.webp"
+    },
+    {
+      "id": "camera-epic",
+      "family": "camera",
+      "source": "assets-src/raw/camera/epic.png",
+      "output": "public/assets/collectibles/camera-epic.webp"
+    },
+    {
+      "id": "camera-legendary",
+      "family": "camera",
+      "source": "assets-src/raw/camera/legendary.png",
+      "output": "public/assets/collectibles/camera-legendary.webp"
+    },
+    {
+      "id": "camera-secret-cosmic",
+      "family": "camera",
+      "source": "assets-src/raw/camera/secret-cosmic.png",
+      "output": "public/assets/collectibles/camera-secret-cosmic.webp"
+    },
+    {
+      "id": "flip-phone-common",
+      "family": "flip-phone",
+      "source": "assets-src/raw/flip-phone/common.png",
+      "output": "public/assets/collectibles/flip-phone-common.webp"
+    },
+    {
+      "id": "flip-phone-rare",
+      "family": "flip-phone",
+      "source": "assets-src/raw/flip-phone/rare.png",
+      "output": "public/assets/collectibles/flip-phone-rare.webp"
+    },
+    {
+      "id": "flip-phone-epic",
+      "family": "flip-phone",
+      "source": "assets-src/raw/flip-phone/epic.png",
+      "output": "public/assets/collectibles/flip-phone-epic.webp"
+    },
+    {
+      "id": "flip-phone-legendary",
+      "family": "flip-phone",
+      "source": "assets-src/raw/flip-phone/legendary.png",
+      "output": "public/assets/collectibles/flip-phone-legendary.webp"
+    },
+    {
+      "id": "flip-phone-secret-noir",
+      "family": "flip-phone",
+      "source": "assets-src/raw/flip-phone/secret-noir.png",
+      "output": "public/assets/collectibles/flip-phone-secret-noir.webp"
+    }
+  ]
+}
