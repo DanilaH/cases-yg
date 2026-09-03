@@ -5,6 +5,9 @@ This pipeline turns raw generated collectible images into consistent runtime ass
 ## Decisions
 
 - Canonical runtime collectible output remains an **individual transparent 1024×1024 WebP per item** for the internal slice.
+- Source image dimensions may vary; manual pre-resizing is not required before ingestion.
+- The pipeline preserves aspect ratio, trims transparent excess, fits the complete collectible inside a **64 px safe margin on every side** and normalizes it onto the 1024×1024 canvas.
+- Family variants must retain comparable perceived scale and the same camera angle; source-canvas differences must not make one rarity appear arbitrarily larger or smaller.
 - Atlas generation is available as an **optional build/inspection artifact**, but the runtime is **not switched to atlases yet**. Release-scale packing/loading is chosen after real mobile profiling.
 - `sharp` handles trim, resize, centering, WebP encoding, deterministic background cleanup and validation.
 - `free-tex-packer-core` creates optional Phaser-compatible WebP atlases.
@@ -27,12 +30,34 @@ assets-src/raw/camera/common.png
 assets-src/raw/flip-phone/secret-noir.png
 ```
 
+Raw source filenames are semantic. Do not preserve ChatGPT/export timestamps as production IDs. The source file for each manifest entry is renamed/mapped to its semantic slot before processing.
+
 Tracked runtime outputs:
 
 ```text
 public/assets/collectibles/camera-common.webp
 ...
 public/assets/collectibles/flip-phone-secret-noir.webp
+```
+
+Runtime naming is locked to lowercase kebab-case:
+
+```text
+<family>-common.webp
+<family>-rare.webp
+<family>-epic.webp
+<family>-legendary.webp
+<family>-secret-<edition>.webp
+```
+
+For the accepted Flip Phone family:
+
+```text
+flip-phone-common.webp
+flip-phone-rare.webp
+flip-phone-epic.webp
+flip-phone-legendary.webp
+flip-phone-secret-noir.webp
 ```
 
 Local model cache (git-ignored, never shipped):
@@ -48,6 +73,22 @@ Optional atlas output (git-ignored, not shipped):
 ```
 
 High-resolution generation sources are deliberately not committed automatically. The repo keeps accepted runtime exports plus prompt/revision documentation; raw masters can be archived separately if needed.
+
+## Accepted source contract
+
+Preferred production input:
+
+- PNG or WebP;
+- meaningful alpha/transparency already present when available;
+- full collectible visible, including charm/strap/antenna/accessories;
+- no clipped extremities;
+- no baked glow or reveal FX;
+- source dimensions may differ between files;
+- do **not** manually stretch or square the source just to satisfy the runtime target.
+
+A source such as 1024×1536, 1236×1273 or 1224×1285 is valid input. The pipeline owns normalization to the runtime square.
+
+If a source has no useful alpha, background removal may be attempted according to its manifest mode. An already-transparent source is preferred because it removes segmentation ambiguity from the production path.
 
 ## Commands
 
@@ -116,24 +157,40 @@ npm run assets:atlas -- --family flip-phone
 
 For each manifest entry the prepare step:
 
-1. reads the raw source;
+1. reads the raw source at its native dimensions;
 2. preserves an existing meaningful alpha channel if one is already present;
 3. otherwise applies the configured background-removal mode;
-4. trims transparent excess;
-5. scales the collectible proportionally inside the configured safe area;
-6. centers it on a transparent square canvas, with optional per-item optical offsets;
-7. exports WebP with alpha;
-8. validates the generated output before reporting success;
-9. writes to the exact runtime path declared in the manifest.
+4. trims transparent excess around the complete collectible;
+5. scales the collectible **proportionally** to fit inside the locked 896×896 maximum content box (1024 canvas minus 64 px safe margin on each side);
+6. centers it geometrically on the transparent square canvas;
+7. applies only small per-item `offsetX` / `offsetY` corrections when visual/optical centering requires them;
+8. exports WebP with alpha;
+9. validates the candidate before replacing any reviewed runtime output;
+10. writes to the exact runtime path declared in the manifest only after validation succeeds.
 
 Default slice output:
 
 ```text
 canvas: 1024×1024
-safe padding: 64 px
+safe padding: 64 px on every side
+maximum fitted content box: 896×896
 WebP quality: 90
 alpha quality: 100
+non-uniform stretch: forbidden
 ```
+
+### Framing acceptance rule
+
+For all variants of one family:
+
+- same canonical camera angle;
+- comparable perceived object scale;
+- complete silhouette/accessories inside safe area;
+- no rarity should look larger/smaller simply because its original source canvas had different dimensions;
+- geometric centering is the default;
+- optical offsets are corrections, not a second layout system.
+
+If normalization produces visibly inconsistent family scale, correct the manifest offset/source crop or source art and rerun; do not hand-edit the final runtime WebP as a one-off exception.
 
 ## Background-removal modes
 
