@@ -1,0 +1,64 @@
+name: Fix mute persistence boundary
+
+on:
+  push:
+    branches:
+      - feat/asset-runtime-infrastructure
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/asset-runtime-infrastructure
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Persist mute outside transactional reward save
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          for scene_name in ['OpeningScene.ts', 'CollectionScene.ts']:
+              path = Path('src/game/scenes') / scene_name
+              text = path.read_text()
+              if "../systems/settings" not in text:
+                  text = text.replace(
+                      "import { SaveRepository, type SaveState } from '../systems/save';\n",
+                      "import { SaveRepository, type SaveState } from '../systems/save';\nimport { persistMutedPreference } from '../systems/settings';\n",
+                      1,
+                  )
+              old = """      const muted = audio.toggleMuted();\n      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);\n"""
+              new = """      const muted = audio.toggleMuted();\n      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);\n      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {\n        console.warn('[settings] failed to persist mute preference', error);\n      });\n"""
+              if old in text:
+                  text = text.replace(old, new, 1)
+              path.write_text(text)
+
+          save = Path('src/game/systems/save.ts')
+          text = save.read_text()
+          text = text.replace(
+              "  pendingReveal: PendingReveal | null;\n  muted: boolean;\n",
+              "  pendingReveal: PendingReveal | null;\n  /** @deprecated v1 compatibility only; runtime mute lives in the separate settings key. */\n  muted: boolean;\n",
+              1,
+          )
+          save.write_text(text)
+          PY
+      - name: Commit review fix if changed
+        run: |
+          if [ -z "$(git status --porcelain -- src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts src/game/systems/save.ts)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts src/game/systems/save.ts
+          git commit -m "Persist mute outside transactional reward save"
+          git push
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
