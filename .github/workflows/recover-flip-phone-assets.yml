@@ -34,30 +34,32 @@ jobs:
               Path('.asset-upload/flip-phone-assets/part-04.b64'),
               Path('.asset-upload/flip-phone-assets/part-05-06.b64'),
           ]
-          texts = [''.join(p.read_text().split()) for p in parts]
-          decoded = []
-          all_individual = True
-          for p, text in zip(parts, texts):
-              print(f'{p.name}: chars={len(text)} padding={text.count("=")} tail={text[-8:]}')
+          alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+          texts = []
+          for p in parts:
+              raw = p.read_text()
+              compact = ''.join(raw.split())
+              invalid = [(i, repr(ch)) for i, ch in enumerate(compact) if ch not in alphabet]
+              print(f'{p.name}: chars={len(compact)} mod4={len(compact)%4} padding={compact.count("=")} head={compact[:8]} tail={compact[-8:]} invalid={invalid[:12]}')
+              texts.append(compact)
+
+          joined = ''.join(texts)
+          clean = ''.join(ch for ch in joined if ch in alphabet)
+          print(f'joined chars={len(joined)} mod4={len(joined)%4}; clean chars={len(clean)} mod4={len(clean)%4}; removed={len(joined)-len(clean)}')
+          last_error = None
+          for pad in range(4):
+              candidate = clean + ('=' * pad)
               try:
-                  decoded.append(base64.b64decode(text, validate=True))
-              except Exception as exc:
-                  print(f'{p.name}: not independently decodable: {exc}')
-                  all_individual = False
+                  payload = base64.b64decode(candidate, validate=True)
+                  print(f'base64 decoded with added padding={pad}; bytes={len(payload)} magic={payload[:8].hex()}')
+                  Path('/tmp/flip-phone-assets.tar.gz').write_bytes(payload)
                   break
-
-          if all_individual:
-              payload = b''.join(decoded)
-              print('decode mode: independently encoded chunks')
+              except Exception as exc:
+                  last_error = exc
           else:
-              joined = ''.join(texts)
-              payload = base64.b64decode(joined, validate=True)
-              print('decode mode: one split base64 stream')
-
-          target = Path('/tmp/flip-phone-assets.tar.gz')
-          target.write_bytes(payload)
-          print(f'decoded bytes={len(payload)} magic={payload[:8].hex()}')
+              raise last_error
           PY
+          gzip -t /tmp/flip-phone-assets.tar.gz
           tar -tzf /tmp/flip-phone-assets.tar.gz
           tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
           ls -lh public/assets/collectibles/flip-phone-*.webp
