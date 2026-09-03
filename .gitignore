@@ -5,3 +5,12 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+
+# High-resolution/raw generation inputs stay local unless deliberately archived elsewhere.
+assets-src/raw/
+
+# Optional atlas inspection output is not shipped by default.
+.asset-build/
+
+# Local background-removal model cache; verified and fetched on demand.
+.asset-models/

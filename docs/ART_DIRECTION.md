@@ -69,7 +69,9 @@ Allowed:
 Internal slice examples:
 
 - Camera Secret: cold cyan/cosmic translucent edition + Saturn/planet charm;
-- Flip Phone Secret: purple/music edition + altered faceplate/control/accessory language.
+- Flip Phone Secret: **Noir / Monochrome Edition** — smoked/piano-black shell, silver/chrome hardware, visible dark internals, monochrome Saturn-heart screen and restrained star/crescent identity marks.
+
+The Flip Phone Secret is deliberately not part of the pink standard-rarity progression.
 
 Public release Secret count/distribution is decided with the expanded roster.
 

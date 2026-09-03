@@ -7,6 +7,8 @@ This manifest has two scopes:
 
 The internal slice is not submitted publicly, so final store creatives are not a slice blocker.
 
+The executable collectible processing manifest lives at `assets-src/collectibles.manifest.json`; production commands and constraints are documented in `docs/ASSET_PIPELINE.md`.
+
 ---
 
 # 1. Internal slice collectible art — 10 runtime assets
@@ -14,12 +16,12 @@ The internal slice is not submitted publicly, so final store creatives are not a
 Runtime target:
 
 - transparent WebP;
-- ~1024×1024;
+- 1024×1024;
 - consistent framing/margins;
 - no baked reveal glow/particles/drop shadow;
 - same asset reused for reveal, Shelf and Library.
 
-Source master target: ~1536×1536 transparent where practical; never accept a final source below 1024×1024.
+Generation/source target: ~1536×1536 where practical; never accept a final source below 1024×1024. Raw generated art may arrive on a clean smooth background; accepted runtime output must have clean alpha.
 
 ```text
 public/assets/collectibles/camera-common.webp
@@ -32,7 +34,7 @@ public/assets/collectibles/flip-phone-common.webp
 public/assets/collectibles/flip-phone-rare.webp
 public/assets/collectibles/flip-phone-epic.webp
 public/assets/collectibles/flip-phone-legendary.webp
-public/assets/collectibles/flip-phone-secret-music.webp
+public/assets/collectibles/flip-phone-secret-noir.webp
 ```
 
 Runtime URLs remain `assets/collectibles/...` because Vite serves `public/` as the web root.
@@ -49,6 +51,18 @@ prompt/revision log
 4 standard rarity derivations
 Secret derivation where planned
 ```
+
+### Flip Phone slice family — locked
+
+```text
+Common     solid glossy pink
+Rare       translucent/frosted pink
+Epic       pearlescent/iridescent pink
+Legendary  clear shell + visible circuitry/internals
+Secret     Noir / Monochrome Edition
+```
+
+The Secret uses smoked/piano black + silver/chrome + monochrome Saturn-heart screen language and sits outside the standard material ladder.
 
 ---
 
@@ -174,7 +188,29 @@ No final icon/cover/localized store screenshots are required before internal rev
 
 ---
 
-# 7. Public release content factory
+# 7. Collectible processing / atlas policy
+
+Canonical slice runtime remains **one individual 1024×1024 WebP per collectible**.
+
+Project tooling now supports:
+
+```text
+raw generated source
+→ conservative background removal when needed
+→ trim
+→ normalized transparent canvas
+→ WebP export
+→ alpha/dimension/padding validation
+→ optional Phaser atlas build artifact
+```
+
+Commands are documented in `docs/ASSET_PIPELINE.md`.
+
+Atlas generation does **not** imply an immediate runtime migration. The optional atlas is used to measure packed dimensions/weight and prove the pipeline. A public build may later choose per-family/group atlases or individual/on-demand textures based on real mobile profiling.
+
+---
+
+# 8. Public release content factory
 
 After slice approval, each new base family normally adds:
 
@@ -210,7 +246,7 @@ Exact final number is open; update this manifest when the release roster is lock
 
 ---
 
-# 8. Release asset-loading implication
+# 9. Release asset-loading implication
 
 The slice can preload all reviewed slice assets because the pool is tiny.
 
@@ -219,7 +255,8 @@ A 10–24+ family release may contain 40–100+ collectible textures, so do not 
 Before release:
 
 - profile mobile decoded texture memory with the **real** expanded catalog;
-- choose grouped/on-demand family loading if profiling requires it;
+- compare individual textures against family/group atlas residency rather than assuming atlases are automatically better;
+- choose grouped/on-demand loading if profiling requires it;
 - derive 512/768 thumbnail/runtime variants from source masters if useful;
 - keep currently needed Opening/Collection transitions fast and avoid user-visible asset waits.
 
@@ -227,7 +264,7 @@ Do not build speculative streaming infrastructure before real asset dimensions/c
 
 ---
 
-# 9. Store assets — PUBLIC RELEASE ONLY
+# 10. Store assets — PUBLIC RELEASE ONLY
 
 Produce only after expanded release content and key visual are stable.
 
@@ -245,7 +282,7 @@ Prefer object-led creatives without baked localized title text unless final mark
 
 ---
 
-# 10. Store text — PUBLIC RELEASE ONLY
+# 11. Store text — PUBLIC RELEASE ONLY
 
 Prepare RU + EN after final title/content structure is chosen:
 
@@ -261,7 +298,7 @@ The internal slice can use working names only.
 
 ---
 
-# 11. Performance targets
+# 12. Performance targets
 
 Internal slice targets remain useful for catching bloat:
 

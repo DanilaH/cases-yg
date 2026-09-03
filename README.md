@@ -29,12 +29,29 @@ Even though content is tiny in the slice, these boundaries are implemented immed
 - adaptive Desktop/Mobile landscape layout;
 - data-driven gadget registry/Collection;
 - reviewed collectible/pouch/background/SFX manifests with safe procedural/synth fallbacks;
+- manifest-driven collectible preprocessing: alpha preservation / deterministic cutout / optional local U2NetP cutout → normalized canvas → WebP → validation;
+- optional Phaser atlas build tooling for profiling/inspection without forcing a runtime atlas migration;
 - deterministic debug scenarios for every critical reward path;
-- permanent CI for typecheck/tests/production build;
+- permanent CI for typecheck/tests/asset-tooling smoke test/production build;
 - Yandex Metrica adapter;
 - **Yandex ad adapter: interstitial + rewarded + sticky-banner boundary**;
 - platform pause/resume/audio behavior;
 - RU + EN architecture.
+
+## Asset commands
+
+```bash
+npm run assets:prepare
+npm run assets:validate
+npm run assets:atlas -- --family flip-phone
+npm run assets:selftest
+
+# Optional local AI cutout path for soft-shadow/complex sources
+npm run assets:model:u2netp
+npm run assets:ai:selftest
+```
+
+Raw generated collectible files go under the git-ignored `assets-src/raw/` tree. Accepted runtime exports remain individual transparent 1024×1024 WebPs in `public/assets/collectibles/`. The U2NetP model cache is also git-ignored and is never part of the game bundle. See `docs/ASSET_PIPELINE.md` before changing cutout thresholds/model weights or switching runtime loading to atlases.
 
 ## Slice gameplay configuration
 
@@ -58,6 +75,7 @@ These exact numbers are **slice balance only**. Release progression is re-simula
 - [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) — collectible visual language.
 - [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md) — repeatable family production workflow.
 - [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — slice assets + public content-factory implications.
+- [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md) — executable collectible cutout/normalize/WebP/validation/atlas workflow.
 - [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — four-stage execution plan.
 - [`docs/PREIMPLEMENTATION_AUDIT.md`](docs/PREIMPLEMENTATION_AUDIT.md) — amended independent audit.
 - [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — private slice acceptance checklist.
