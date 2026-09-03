@@ -21,6 +21,7 @@ export interface ProgressSnapshot {
 export interface SaveState extends ProgressSnapshot {
   version: typeof SAVE_VERSION;
   pendingReveal: PendingReveal | null;
+  /** @deprecated v1 compatibility only; runtime mute lives in the separate settings key. */
   muted: boolean;
 }
 

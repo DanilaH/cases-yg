@@ -11,6 +11,7 @@ import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../
 import { OpeningSession } from '../systems/openingSession';
 import { MathRandomSource } from '../systems/random';
 import { SaveRepository, type SaveState } from '../systems/save';
+import { persistMutedPreference } from '../systems/settings';
 import { isStandardCollectionComplete } from '../systems/signal';
 import {
   createCollectibleVisual,
@@ -309,6 +310,9 @@ export class OpeningScene extends Phaser.Scene {
       this.ignoreNextResultTap = true;
       const muted = audio.toggleMuted();
       button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);
+      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
+        console.warn('[settings] failed to persist mute preference', error);
+      });
     });
     root.add(button);
   }

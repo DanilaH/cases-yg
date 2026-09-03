@@ -8,6 +8,7 @@ import { getGameAudio } from '../systems/audio';
 import { buildCollectionSnapshot, type CollectionSnapshot, type FamilyCollectionSnapshot } from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { SaveRepository, type SaveState } from '../systems/save';
+import { persistMutedPreference } from '../systems/settings';
 import { createCollectibleVisual, RARITY_REVEAL_COLORS } from '../ui/openingVisuals';
 import { addCoverArt } from '../ui/staticArt';
 
