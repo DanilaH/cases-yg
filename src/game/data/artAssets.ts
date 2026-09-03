@@ -50,7 +50,11 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
   'camera-legendary',
   'camera-secret-cosmic',
 ]);
-export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>();
+export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
+  'pouch-body',
+  'pouch-tear-strip',
+  'pouch-star-tab',
+]);
 
 export const collectibleTextureKey = (collectibleId: string): string =>
   `${COLLECTIBLE_TEXTURE_PREFIX}${collectibleId}`;
