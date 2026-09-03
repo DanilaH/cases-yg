@@ -101,13 +101,15 @@ export class CollectionScene extends Phaser.Scene {
       this.renderLibrary(root);
     }
 
-    addCoverArt(
-      this,
-      root,
-      staticTextureKey('collection-foreground'),
-      metrics.logicalWidth,
-      LOGICAL_HEIGHT,
-    );
+    if (this.view === 'shelf') {
+      addCoverArt(
+        this,
+        root,
+        staticTextureKey('collection-foreground'),
+        metrics.logicalWidth,
+        LOGICAL_HEIGHT,
+      );
+    }
 
     root.add(
       this.add

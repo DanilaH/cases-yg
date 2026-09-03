@@ -92,7 +92,7 @@ public/assets/backgrounds/collection-foreground.webp
 
 Opening background: center-safe, decorative sides may crop. Runtime uses cover scaling across supported landscape ratios.
 
-Collection rear + foreground should be authored as an aligned pair so items feel placed inside a Y2K desk/shelf environment rather than pasted over one image. The foreground is a transparent depth layer and should keep the upper title/tab area transparent; it is rendered above collectibles but below Collection chrome.
+Collection rear + foreground should be authored as an aligned pair so items feel placed inside a Y2K desk/shelf environment rather than pasted over one image. The foreground is a transparent **Shelf-only** depth layer and should keep the upper title/tab area transparent; it is rendered above Shelf collectibles but below Collection chrome. Library intentionally does not use this foreground so catalog cards cannot be obscured by shelf furniture/decor.
 
 Enable reviewed environment layers through `AVAILABLE_STATIC_ART_IDS`.
 
