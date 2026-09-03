@@ -4,6 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 export const DEFAULT_MANIFEST_PATH = 'assets-src/collectibles.manifest.json';
+export const BACKGROUND_REMOVAL_MODES = ['auto', 'deterministic', 'ai', 'preserve'] as const;
 
 export const parseArgs = (argv) => {
   const args = new Map();
@@ -24,12 +25,28 @@ export const parseArgs = (argv) => {
 
 export const resolveRepoPath = (value) => path.resolve(process.cwd(), value);
 
+const assertBackgroundMode = (mode, context) => {
+  if (!BACKGROUND_REMOVAL_MODES.includes(mode)) {
+    throw new Error(`Invalid backgroundRemoval mode for ${context}: ${String(mode)}`);
+  }
+};
+
 export const loadManifest = async (manifestPath = DEFAULT_MANIFEST_PATH) => {
   const raw = await fs.readFile(resolveRepoPath(manifestPath), 'utf8');
   const manifest = JSON.parse(raw);
   if (manifest?.version !== 1 || !Array.isArray(manifest.assets) || typeof manifest.defaults !== 'object') {
     throw new Error(`Invalid asset manifest: ${manifestPath}`);
   }
+
+  if (manifest.defaults.backgroundRemoval !== undefined) {
+    assertBackgroundMode(manifest.defaults.backgroundRemoval, 'manifest defaults');
+  }
+  for (const entry of manifest.assets) {
+    if (entry?.options?.backgroundRemoval !== undefined) {
+      assertBackgroundMode(entry.options.backgroundRemoval, entry.id ?? 'unknown asset');
+    }
+  }
+
   return manifest;
 };
 
@@ -71,11 +88,10 @@ const bilinear = (topLeft, topRight, bottomLeft, bottomRight, x, y) => {
 };
 
 /**
- * Removes the clean generated backgrounds used by the collectible workflow.
- * A bilinear background-color model is learned from the four corners, then only
- * model-matching pixels connected to the image border are removed. Unlike a
- * local-gradient flood fill, this cannot wander through a smooth-colored object
- * after crossing one anti-aliased edge. Safety bounds make bad masks fail loudly.
+ * Removes clean generated backgrounds without ML. A bilinear background-color
+ * model is learned from the four corners, then only model-matching pixels that
+ * are connected to the image border are removed. Safety bounds make bad masks
+ * fail loudly instead of silently eating the collectible.
  */
 export const removeBorderBackground = async (
   input,
@@ -153,11 +169,10 @@ export const removeBorderBackground = async (
   if (foregroundRatio < foregroundMin || foregroundRatio > foregroundMax) {
     throw new Error(
       `Background removal produced unsafe foreground ratio ${(foregroundRatio * 100).toFixed(1)}%. ` +
-        'Use a cleaner source, adjust manifest tolerance, or provide an already-transparent cutout.',
+        'Use AI mode, a cleaner source, a per-item tolerance, or an already-transparent cutout.',
     );
   }
 
-  // One-pixel dilation protects anti-aliased object edges from an over-eager mask.
   const dilated = Buffer.from(mask);
   for (let y = 1; y < height - 1; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
@@ -183,6 +198,70 @@ export const removeBorderBackground = async (
   }
 
   return sharp(rgba, { raw: { width, height, channels } }).png().toBuffer();
+};
+
+const runAiBackgroundRemoval = async (input, options) => {
+  const { removeBackgroundWithU2Netp } = await import('./ai-background.mjs');
+  return removeBackgroundWithU2Netp(input, {
+    modelPath: options.aiModelPath,
+    maskLow: options.aiMaskLow,
+    maskHigh: options.aiMaskHigh,
+    maskGamma: options.aiMaskGamma,
+    edgeFeather: options.aiEdgeFeather,
+  });
+};
+
+const prepareCutout = async (sourceBuffer, options) => {
+  const usefulAlpha = await hasUsefulAlpha(sourceBuffer);
+  if (usefulAlpha) {
+    return {
+      buffer: await sharp(sourceBuffer).rotate().ensureAlpha().png().toBuffer(),
+      backgroundMethod: 'existing-alpha',
+    };
+  }
+
+  const mode = options.backgroundRemoval ?? (options.removeBackground === false ? 'preserve' : 'auto');
+  assertBackgroundMode(mode, 'resolved asset options');
+
+  if (mode === 'preserve') {
+    return {
+      buffer: await sharp(sourceBuffer).rotate().ensureAlpha().png().toBuffer(),
+      backgroundMethod: 'preserve',
+    };
+  }
+
+  if (mode === 'ai') {
+    return {
+      buffer: await runAiBackgroundRemoval(sourceBuffer, options),
+      backgroundMethod: 'ai-u2netp',
+    };
+  }
+
+  const deterministic = () =>
+    removeBorderBackground(sourceBuffer, {
+      colorTolerance: options.backgroundColorTolerance,
+      edgeFeather: options.edgeFeather,
+    });
+
+  if (mode === 'deterministic') {
+    return { buffer: await deterministic(), backgroundMethod: 'deterministic' };
+  }
+
+  try {
+    return { buffer: await deterministic(), backgroundMethod: 'deterministic' };
+  } catch (deterministicError) {
+    try {
+      return {
+        buffer: await runAiBackgroundRemoval(sourceBuffer, options),
+        backgroundMethod: 'ai-u2netp-fallback',
+      };
+    } catch (aiError) {
+      throw new AggregateError(
+        [deterministicError, aiError],
+        'Both deterministic and AI background removal failed for this asset',
+      );
+    }
+  }
 };
 
 const normalizeToCanvas = async (input, { canvas, padding, offsetX = 0, offsetY = 0, webpQuality }) => {
@@ -222,18 +301,15 @@ export const prepareCollectible = async (sourcePath, outputPath, options) => {
   const source = resolveRepoPath(sourcePath);
   const output = resolveRepoPath(outputPath);
   const sourceBuffer = await fs.readFile(source);
-  const usefulAlpha = await hasUsefulAlpha(sourceBuffer);
-  const cutout = options.removeBackground && !usefulAlpha
-    ? await removeBorderBackground(sourceBuffer, {
-        colorTolerance: options.backgroundColorTolerance,
-        edgeFeather: options.edgeFeather,
-      })
-    : await sharp(sourceBuffer).rotate().ensureAlpha().png().toBuffer();
-
-  const normalized = await normalizeToCanvas(cutout, options);
+  const cutout = await prepareCutout(sourceBuffer, options);
+  const normalized = await normalizeToCanvas(cutout.buffer, options);
   await fs.mkdir(path.dirname(output), { recursive: true });
   await fs.writeFile(output, normalized);
-  return { output, removedBackground: options.removeBackground && !usefulAlpha };
+  return {
+    output,
+    backgroundMethod: cutout.backgroundMethod,
+    removedBackground: cutout.backgroundMethod !== 'existing-alpha' && cutout.backgroundMethod !== 'preserve',
+  };
 };
 
 export const findAlphaBounds = async (filePath, threshold = 8) => {
