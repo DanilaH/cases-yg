@@ -8,7 +8,7 @@ This pipeline turns raw generated collectible images into consistent runtime ass
 - Atlas generation is available as an **optional build/inspection artifact**, but the runtime is **not switched to atlases yet**. Release-scale packing/loading is chosen after real mobile profiling.
 - `sharp` handles trim, resize, centering, WebP encoding, deterministic background cleanup and validation.
 - `free-tex-packer-core` creates optional Phaser-compatible WebP atlases.
-- Background removal uses a **hybrid two-tier pipeline**: cheap deterministic cleanup first for clean generated backgrounds, with an opt-in/local U2NetP fallback for soft shadows and other cases where thresholding is not safe enough.
+- Background removal uses a **hybrid two-tier pipeline**: cheap deterministic cleanup first for clean generated backgrounds, with an opt-in/local U2NetP fallback for difficult sources.
 - The AI runtime is tooling-only. It is an optional dependency and is not bundled into the game.
 
 ## Source/output layout
@@ -87,7 +87,7 @@ Run the normal deterministic tooling smoke test:
 npm run assets:selftest
 ```
 
-Run the opt-in AI cutout smoke test:
+Run the opt-in AI runtime/inference smoke test:
 
 ```bash
 npm run assets:model:u2netp
@@ -123,7 +123,8 @@ For each manifest entry the prepare step:
 5. scales the collectible proportionally inside the configured safe area;
 6. centers it on a transparent square canvas, with optional per-item optical offsets;
 7. exports WebP with alpha;
-8. writes to the exact runtime path declared in the manifest.
+8. validates the generated output before reporting success;
+9. writes to the exact runtime path declared in the manifest.
 
 Default slice output:
 
@@ -140,14 +141,12 @@ Manifest `backgroundRemoval` accepts:
 
 - `auto` — deterministic remover first; if its safety checks reject the result, retry with U2NetP;
 - `deterministic` — corner-model/border-connected cleanup only;
-- `ai` — U2NetP directly; use for known soft shadows/complex edges;
+- `ai` — U2NetP directly; use only after visual QA shows that deterministic cleanup is not good enough;
 - `preserve` — do not cut the background; mainly useful for diagnostics or already-specialized source workflows.
 
 An already-transparent source is always preserved rather than unnecessarily re-segmented.
 
-The current `flip-phone-secret-noir` manifest entry explicitly uses `ai`. The real generated Noir source has a soft warm drop shadow: raising deterministic color tolerance enough to remove that shadow starts damaging silver/light details, so a per-item AI route is safer than weakening the entire catalog pipeline.
-
-Important: `auto` falls back to AI when deterministic masking **fails its safety checks**. It cannot reliably diagnose every aesthetically bad halo. If visual inspection shows a subtle retained shadow, set that item to `backgroundRemoval: "ai"` instead of globally increasing deterministic tolerance.
+`auto` deliberately does **not** pretend it can detect every aesthetically bad halo. A deterministic mask may be structurally valid while still retaining a subtle warm shadow. When real-art visual QA catches that case, change only that manifest entry to `backgroundRemoval: "ai"`, rerun the pipeline and inspect the result. If the AI mask damages the object, use an already-transparent cutout instead. Do not weaken global thresholds around one difficult source.
 
 Per-item overrides live under `options`, for example:
 
@@ -164,7 +163,7 @@ Per-item overrides live under `options`, for example:
 }
 ```
 
-For deterministic sources, `backgroundColorTolerance` can be overridden per item. Lower it if a pale collectible edge is being removed; raise it cautiously if a genuinely smooth background remains. Do not tune global thresholds around one pathological source.
+For deterministic sources, `backgroundColorTolerance` can be overridden per item. Lower it if a pale collectible edge is being removed; raise it cautiously if a genuinely smooth background remains.
 
 ## AI implementation and model provenance
 
@@ -229,6 +228,6 @@ Permanent CI uses normal `npm ci`. Do **not** globally omit optional dependencie
 
 Ordinary CI executes `assets:selftest` but does not download the U2NetP model or run inference. This covers deterministic cutout, normalization, WebP validation and atlas generation while keeping network/model work out of every run. `onnxruntime-node` remains tooling-only and is never imported by the game bundle.
 
-The AI path has a separate opt-in `assets:ai:selftest`; it was verified with the pinned U2NetP model during implementation.
+The AI path has a separate opt-in `assets:ai:selftest`. That smoke test verifies the pinned model can be downloaded, loaded and executed and that it produces a structurally plausible alpha result. It deliberately does **not** certify semantic cutout quality on every art style; accepted production assets still pass visual QA.
 
 Real committed collectible outputs are additionally checked by `npm run assets:validate`; missing not-yet-produced slice assets are warnings until a family is explicitly validated with `--require-all`.
