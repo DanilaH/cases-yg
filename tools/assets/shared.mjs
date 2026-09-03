@@ -244,13 +244,13 @@ export const findAlphaBounds = async (filePath, threshold = 8) => {
   let maxX = -1;
   let maxY = -1;
   let transparent = 0;
-  let solid = 0;
+  let visible = 0;
 
   for (let y = 0; y < info.height; y += 1) {
     for (let x = 0; x < info.width; x += 1) {
       const alpha = data[(y * info.width + x) * info.channels + alphaIndex];
       if (alpha < 250) transparent += 1;
-      if (alpha >= 250) solid += 1;
+      if (alpha > threshold) visible += 1;
       if (alpha <= threshold) continue;
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -264,7 +264,7 @@ export const findAlphaBounds = async (filePath, threshold = 8) => {
     height: info.height,
     bounds: maxX >= 0 ? { minX, minY, maxX, maxY } : null,
     transparentRatio: transparent / (info.width * info.height),
-    solidRatio: solid / (info.width * info.height),
+    visibleRatio: visible / (info.width * info.height),
   };
 };
 
@@ -284,7 +284,7 @@ export const validateCollectible = async (
     errors.push(`expected ${canvas}x${canvas}, got ${metadata.width}x${metadata.height}`);
   }
   if (!metadata.hasAlpha || alpha.transparentRatio < 0.01) errors.push('missing meaningful transparency');
-  if (alpha.solidRatio < 0.02) errors.push('foreground is effectively empty');
+  if (alpha.visibleRatio < 0.02) errors.push('visible foreground is effectively empty');
   if (!alpha.bounds) {
     errors.push('no visible foreground pixels');
   } else {
