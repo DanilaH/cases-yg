@@ -22,14 +22,43 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p public/assets/collectibles
-          cat \
-            .asset-upload/flip-phone-assets/part-00.b64 \
-            .asset-upload/flip-phone-assets/part-01.b64 \
-            .asset-upload/flip-phone-assets/part-02.b64 \
-            .asset-upload/flip-phone-assets/part-03.b64 \
-            .asset-upload/flip-phone-assets/part-04.b64 \
-            .asset-upload/flip-phone-assets/part-05-06.b64 \
-            | base64 --decode > /tmp/flip-phone-assets.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+
+          parts = [
+              Path('.asset-upload/flip-phone-assets/part-00.b64'),
+              Path('.asset-upload/flip-phone-assets/part-01.b64'),
+              Path('.asset-upload/flip-phone-assets/part-02.b64'),
+              Path('.asset-upload/flip-phone-assets/part-03.b64'),
+              Path('.asset-upload/flip-phone-assets/part-04.b64'),
+              Path('.asset-upload/flip-phone-assets/part-05-06.b64'),
+          ]
+          texts = [''.join(p.read_text().split()) for p in parts]
+          decoded = []
+          all_individual = True
+          for p, text in zip(parts, texts):
+              print(f'{p.name}: chars={len(text)} padding={text.count("=")} tail={text[-8:]}')
+              try:
+                  decoded.append(base64.b64decode(text, validate=True))
+              except Exception as exc:
+                  print(f'{p.name}: not independently decodable: {exc}')
+                  all_individual = False
+                  break
+
+          if all_individual:
+              payload = b''.join(decoded)
+              print('decode mode: independently encoded chunks')
+          else:
+              joined = ''.join(texts)
+              payload = base64.b64decode(joined, validate=True)
+              print('decode mode: one split base64 stream')
+
+          target = Path('/tmp/flip-phone-assets.tar.gz')
+          target.write_bytes(payload)
+          print(f'decoded bytes={len(payload)} magic={payload[:8].hex()}')
+          PY
+          tar -tzf /tmp/flip-phone-assets.tar.gz
           tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
           ls -lh public/assets/collectibles/flip-phone-*.webp
       - run: npm ci
