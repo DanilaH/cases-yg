@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   AVAILABLE_COLLECTIBLE_ART_IDS,
@@ -11,10 +11,25 @@ import {
 import { AVAILABLE_SFX_CUES, getRuntimeSfxAssets } from '../src/game/data/audioAssets';
 import { SLICE_REGISTRY } from '../src/game/data/collectibles';
 
-afterEach(() => {
+const defaultCollectibleArtIds = [...AVAILABLE_COLLECTIBLE_ART_IDS];
+const defaultStaticArtIds = [...AVAILABLE_STATIC_ART_IDS];
+const defaultSfxCues = [...AVAILABLE_SFX_CUES];
+
+const replaceSetContents = <T>(target: Set<T>, values: readonly T[]): void => {
+  target.clear();
+  values.forEach((value) => target.add(value));
+};
+
+beforeEach(() => {
   AVAILABLE_COLLECTIBLE_ART_IDS.clear();
   AVAILABLE_STATIC_ART_IDS.clear();
   AVAILABLE_SFX_CUES.clear();
+});
+
+afterEach(() => {
+  replaceSetContents(AVAILABLE_COLLECTIBLE_ART_IDS, defaultCollectibleArtIds);
+  replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+  replaceSetContents(AVAILABLE_SFX_CUES, defaultSfxCues);
 });
 
 describe('runtime asset manifests', () => {
