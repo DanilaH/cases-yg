@@ -87,7 +87,7 @@ Status meanings:
 | Flip Phone standard progression | LOCKED FOR SLICE | solid glossy pink → translucent/frosted pink → pearlescent/iridescent pink → clear shell with visible circuitry/internals |
 | Flip Phone Secret | LOCKED FOR SLICE | Noir / Monochrome Edition: smoked/piano-black shell, visible dark internals, silver/chrome hardware, monochrome Saturn-heart display and restrained star/crescent identity |
 | Runtime export | LOCKED | transparent 1024×1024 WebP target; source master target 1536×1536 where practical |
-| Collectible preprocessing | LOCKED | manifest-driven `sharp` pipeline handles clean-background cutout, trim, optical offset, normalized transparent canvas, WebP export and validation; bad masks fail/review instead of being silently accepted |
+| Collectible preprocessing | LOCKED | manifest-driven pipeline preserves existing alpha, uses deterministic `sharp` cleanup for clean backgrounds and per-item local U2NetP segmentation for difficult soft-shadow sources, then trims, optically aligns, normalizes to a transparent canvas, exports WebP and validates; visual QA remains mandatory |
 | Atlas policy | LOCKED FOR SLICE | individual 1024 WebPs remain canonical runtime inputs; optional Phaser atlas generation is inspection/profiling tooling only until real release-scale memory/loading evidence justifies a runtime switch |
 | Expansion pipeline | LOCKED FOR RELEASE ARCHITECTURE | content registry, Collection rendering and loaders must accept additional families from data; never hard-code Camera/Flip Phone into core systems |
 
