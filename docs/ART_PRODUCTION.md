@@ -21,6 +21,23 @@ Purpose is not to finish public content. It is to prove:
 
 After direct user sign-off, move into batch production of additional families.
 
+### Flip Phone — current locked slice direction
+
+The accepted family uses one open, front-facing pink Y2K clamshell master with the same silhouette, hinge, screen frame, camera, circular navigation control and keypad across all standard rarities.
+
+Standard progression:
+
+- **Common** — solid glossy pink candy plastic, cream keypad, simple heart/star charm;
+- **Rare** — translucent/frosted pink shell, restrained glitter/translucency, slightly richer accessory/trim;
+- **Epic** — pearlescent/iridescent pink treatment, premium chrome/trim, richer but controlled accessory/detail layer;
+- **Legendary** — clear/near-clear shell with stylized visible circuitry/internals and premium metallic treatment.
+
+Secret:
+
+- **Noir / Monochrome Edition** — smoked/piano-black shell, visible dark internal pattern, silver/chrome hinge/navigation/camera accents, monochrome Saturn-heart screen, black-heart + chrome-star charm, restrained star/crescent identity marks.
+
+The Noir Secret is intentionally outside the pink material ladder. Do not turn it into a fifth standard rarity.
+
 ---
 
 # 2. Canonical family workflow — LOCKED
@@ -34,7 +51,7 @@ For **every** gadget family:
 5. derive Common/Rare/Epic/Legendary from that selected master;
 6. create Secret edition only if the content plan assigns one;
 7. clean alpha/artifacts;
-8. export runtime assets;
+8. export runtime assets through the project asset pipeline;
 9. log source/prompt/revision information;
 10. compare the completed family against existing catalog before accepting it.
 
@@ -72,12 +89,12 @@ Secret is not a fifth material tier.
 
 A Secret may alter ~15–25% of details/geometry while preserving family identity.
 
-It should have one strong edition concept: cosmic, music, prototype, themed faceplate, unusual accessory system, etc.
+It should have one strong edition concept: cosmic, noir/monochrome, prototype, themed faceplate, unusual accessory system, etc.
 
 The internal slice uses:
 
 - Cosmic Camera;
-- Music Flip Phone.
+- Noir / Monochrome Flip Phone.
 
 Public release Secret distribution is decided with the expanded roster. Do not mechanically create exactly one Secret for every family unless later product design calls for that.
 
@@ -85,11 +102,11 @@ Public release Secret distribution is decided with the expanded roster. Do not m
 
 # 5. Dimensions / exports
 
-Source masters:
+Generation/source input:
 
-- transparent square canvas;
 - target ~1536×1536 where generation/editing quality permits;
-- never accept final source below 1024×1024.
+- never accept final source below 1024×1024;
+- generation may arrive on a clean smooth background, but the accepted production output must have clean transparency.
 
 Default runtime hero export:
 
@@ -97,6 +114,8 @@ Default runtime hero export:
 - consistent object framing/margins;
 - enough transparent space for runtime glow/settle;
 - no baked reveal effects or conflicting drop shadows.
+
+Use `docs/ASSET_PIPELINE.md` and the project commands for background cleanup, normalization, WebP export, validation and optional atlas inspection.
 
 For the expanded release, create 512/768 derivatives from masters if profiling shows that full 1024 assets are wasteful for Collection thumbnails/mobile memory.
 
@@ -113,6 +132,8 @@ Final assets require:
 - no accidental logo/brand mark;
 - no photoreal/CGI drift;
 - no repaint during cleanup that changes the family style.
+
+The automated background remover is a convenience for clean generated backgrounds, not an excuse to accept a broken mask. If the cutout damages light body panels or accessories, provide a cleaner/already-transparent source and rerun normalization.
 
 ---
 
@@ -133,7 +154,7 @@ flip-phone-common.webp
 flip-phone-rare.webp
 flip-phone-epic.webp
 flip-phone-legendary.webp
-flip-phone-secret-music.webp
+flip-phone-secret-noir.webp
 ```
 
 Future family names follow the same pattern.
@@ -209,6 +230,7 @@ Once a real launch roster exists, profile before final export freeze:
 - startup preload;
 - Collection loading strategy;
 - mobile texture quality;
-- whether thumbnails should use derivatives.
+- whether thumbnails should use derivatives;
+- whether individual textures, per-family atlases or grouped/on-demand assets produce the best real-device result.
 
 The internal slice can preload everything; the public catalog should use the simplest loading plan that remains fast on real devices.
