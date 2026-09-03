@@ -14,7 +14,7 @@ This document separates reusable game/platform infrastructure from art/content p
 - Yandex Metrica adapter and semantic game/ad events;
 - responsive landscape layout and safe-area handling;
 - RU/EN localization and persistent mute;
-- permanent GitHub Actions CI (`npm ci --omit=optional`, typecheck, tests, deterministic asset-pipeline smoke test, production build);
+- permanent GitHub Actions CI (`npm ci`, typecheck, tests, deterministic asset-pipeline smoke test, production build);
 - deterministic debug controls for Common/Rare/Epic/Legendary, duplicate, SIGNAL LOCK reach/consume and Hidden Pocket;
 - debug collection seeding/reset and Yandex ad controls;
 - focused activity/ad/reward-engine/asset-manifest tests;
@@ -56,7 +56,7 @@ No scene/audio implementation rewrite is required when art arrives.
 6. Put reviewed MP3 files under `public/assets/audio/` and add their cue ids to `AVAILABLE_SFX_CUES`.
 7. Run CI. Missing/unapproved assets continue using procedural/synth fallback rather than becoming broken runtime references.
 
-`npm run assets:model:u2netp` prefetches/verifies the local model explicitly. `npm run assets:ai:selftest` exercises the AI path. Neither is required in ordinary CI because the AI runtime is tooling-only.
+`npm run assets:model:u2netp` prefetches/verifies the local model explicitly. `npm run assets:ai:selftest` exercises the AI path. Ordinary CI does not download the model or run inference; it still uses normal `npm ci` because Sharp's own platform binaries are optional packages and must remain installable.
 
 `npm run assets:atlas -- --family <id>` is available for packing/profiling experiments; its output is not the slice's canonical runtime asset path.
 
