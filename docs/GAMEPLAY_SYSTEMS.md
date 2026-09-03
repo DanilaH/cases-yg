@@ -98,7 +98,7 @@ Slice configuration:
 - from #4: independent 3% post-standard roll while at least one slice Secret remains;
 - always awards an undiscovered Secret;
 - no Secret duplicates;
-- exactly two slice Secrets: Cosmic Camera + Music Flip Phone;
+- exactly two slice Secrets: Cosmic Camera + Noir / Monochrome Flip Phone;
 - stops after 2/2.
 
 Animation target: ~0.9–1.1 s additional beat using the existing pouch.
