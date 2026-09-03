@@ -100,20 +100,32 @@ Public release Secret distribution is decided with the expanded roster. Do not m
 
 ---
 
-# 5. Dimensions / exports
+# 5. Dimensions / exports — LOCKED
 
 Generation/source input:
 
 - target ~1536×1536 where generation/editing quality permits;
-- never accept final source below 1024×1024;
-- generation may arrive on a clean smooth background, but the accepted production output must have clean transparency.
+- do not accept a visibly undersized or damaged source merely to hit a nominal dimension;
+- **source canvases may have different aspect ratios and dimensions** — no manual squaring or stretching is required before ingestion;
+- prefer already-transparent PNG/WebP sources when available;
+- the full object, including charm/strap/antenna/accessories, must be present and unclipped.
 
-Default runtime hero export:
+Examples such as `1024×1536`, `1236×1273` or `1224×1285` are valid production inputs. The project pipeline owns normalization.
 
-- transparent 1024×1024 WebP;
-- consistent object framing/margins;
+Canonical runtime hero export:
+
+- **1024×1024 WebP with alpha**;
+- aspect ratio preserved; non-uniform stretch is forbidden;
+- transparent excess trimmed before fitting;
+- **64 px safe transparent margin on every side**;
+- therefore maximum fitted content box is **896×896**;
+- geometric centering by default;
+- small per-item optical `offsetX` / `offsetY` corrections only where needed;
+- all variants in one family must have comparable perceived scale and the same canonical angle;
 - enough transparent space for runtime glow/settle;
 - no baked reveal effects or conflicting drop shadows.
+
+Do **not** hand-edit a final WebP to compensate for inconsistent framing. Fix the source/manifest offset and rerun the pipeline so the result remains reproducible.
 
 Use `docs/ASSET_PIPELINE.md` and the project commands for background cleanup, normalization, WebP export, validation and optional atlas inspection.
 
@@ -133,17 +145,27 @@ Final assets require:
 - no photoreal/CGI drift;
 - no repaint during cleanup that changes the family style.
 
-The project now has two cleanup paths. Use deterministic corner/background modeling for clean isolated sources; use per-item `backgroundRemoval: "ai"` for soft shadows or edges where increasing color tolerance would damage the collectible. The Noir Flip Phone is the first explicit AI-routed source for exactly this reason.
+The project has two cleanup paths. Use deterministic corner/background modeling for clean isolated sources; use per-item `backgroundRemoval: "ai"` only when a real source visually proves that deterministic cleanup is not sufficient. Already-transparent source art is preferred and is preserved without unnecessary segmentation.
 
 Neither path replaces visual review. If AI segmentation eats a pale/translucent panel or a small accessory, use a cleaner/already-transparent source rather than endlessly tuning one pathological image.
 
 ---
 
-# 7. Naming
+# 7. Naming — LOCKED
 
 Lowercase kebab-case stable semantic IDs.
 
-Examples:
+Canonical runtime scheme:
+
+```text
+<family>-common.webp
+<family>-rare.webp
+<family>-epic.webp
+<family>-legendary.webp
+<family>-secret-<edition>.webp
+```
+
+Slice examples:
 
 ```text
 camera-common.webp
@@ -159,9 +181,11 @@ flip-phone-legendary.webp
 flip-phone-secret-noir.webp
 ```
 
+Raw generated/exported filenames containing timestamps or arbitrary generation numbers are **not** production IDs. Map/rename them to the semantic source slots declared in `assets-src/collectibles.manifest.json` before processing.
+
 Future family names follow the same pattern.
 
-Working/source files may use revision suffixes, but runtime IDs should not contain arbitrary generation numbers.
+Working/source files may use revision suffixes in an external archive, but runtime IDs should not contain arbitrary generation numbers.
 
 ---
 
@@ -215,6 +239,7 @@ Before a family enters runtime/release content:
 - Legendary is obviously premium without detail soup;
 - variants align in scale/angle;
 - transparent edges are clean;
+- full silhouette/accessories stay inside the locked safe area;
 - motifs/charms do not mechanically repeat previous families;
 - Secret, if present, feels genuinely special;
 - asset weight is reasonable.
