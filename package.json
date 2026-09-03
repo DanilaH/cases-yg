@@ -15,7 +15,9 @@
     "assets:prepare": "node tools/assets/prepare-collectibles.mjs",
     "assets:validate": "node tools/assets/validate-collectibles.mjs",
     "assets:atlas": "node tools/assets/build-atlas.mjs",
-    "assets:selftest": "node tools/assets/self-test.mjs"
+    "assets:model:u2netp": "node tools/assets/fetch-u2netp.mjs",
+    "assets:selftest": "node tools/assets/self-test.mjs",
+    "assets:ai:selftest": "node tools/assets/ai-self-test.mjs"
   },
   "dependencies": {
     "phaser": "4.2.1"
@@ -28,5 +30,8 @@
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vitest": "4.1.11"
+  },
+  "optionalDependencies": {
+    "onnxruntime-node": "1.29.0"
   }
 }
