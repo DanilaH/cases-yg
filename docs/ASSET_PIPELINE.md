@@ -225,8 +225,10 @@ For a larger release, family/group atlases or on-demand individual textures are 
 
 ## CI
 
-Permanent CI runs with optional dependencies omitted and executes `assets:selftest`. This keeps normal verification lean while covering deterministic cutout, normalization, WebP validation and atlas generation.
+Permanent CI uses normal `npm ci`. Do **not** globally omit optional dependencies: `sharp` itself relies on platform-specific optional packages, so `npm ci --omit=optional` can break the deterministic image tooling we are trying to verify.
 
-The AI path has a separate opt-in `assets:ai:selftest`; it was verified with the pinned U2NetP model during implementation. It is intentionally not downloaded on every ordinary CI run.
+Ordinary CI executes `assets:selftest` but does not download the U2NetP model or run inference. This covers deterministic cutout, normalization, WebP validation and atlas generation while keeping network/model work out of every run. `onnxruntime-node` remains tooling-only and is never imported by the game bundle.
+
+The AI path has a separate opt-in `assets:ai:selftest`; it was verified with the pinned U2NetP model during implementation.
 
 Real committed collectible outputs are additionally checked by `npm run assets:validate`; missing not-yet-produced slice assets are warnings until a family is explicitly validated with `--require-all`.
