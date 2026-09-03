@@ -28,7 +28,7 @@ Even though content is tiny in the slice, these boundaries are implemented immed
 - injected safe storage + transactional `pendingReveal`;
 - adaptive Desktop/Mobile landscape layout;
 - data-driven gadget registry/Collection;
-- reviewed-art preload/fallback boundary;
+- reviewed collectible/pouch/background/SFX manifests with safe procedural/synth fallbacks;
 - deterministic debug scenarios for every critical reward path;
 - permanent CI for typecheck/tests/production build;
 - Yandex Metrica adapter;
