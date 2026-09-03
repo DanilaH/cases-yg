@@ -1,0 +1,75 @@
+name: Finalize Flip Phone Assets
+
+on:
+  push:
+    branches:
+      - feat/flip-phone-runtime-assets-final
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/flip-phone-runtime-assets-final
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Recover final runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets/collectibles
+          cat .asset-upload/flip-phone-final/part-*.b64 | tr -d '\n\r ' | base64 --decode > /tmp/flip-phone-assets.tar.gz
+          gzip -t /tmp/flip-phone-assets.tar.gz
+          tar -tzf /tmp/flip-phone-assets.tar.gz
+          tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
+          sha256sum public/assets/collectibles/flip-phone-*.webp
+          printf '%s  %s\n' \
+            '809bfb6b605ae53ccd5b98cac04000784759fbc32abe90eaeb8539966a6ce6e9' 'public/assets/collectibles/flip-phone-common.webp' \
+            '936660b2293e7fb358e2677e6baf3e3acb3ef6d028d4f617c91aaa8640f157ba' 'public/assets/collectibles/flip-phone-epic.webp' \
+            'a4d84131239ab8d3c3d406770baae5b3d9a18b0b2fd1fa15d7f813cf9c63343f' 'public/assets/collectibles/flip-phone-legendary.webp' \
+            '64c24040d6321809a5fe832194c670063910346bc273894b9501666119aaf448' 'public/assets/collectibles/flip-phone-rare.webp' \
+            'e7e6423f23efc374403c5b6c8e9753495693164e70515526d731492296a313bf' 'public/assets/collectibles/flip-phone-secret-noir.webp' \
+            | sha256sum --check --strict
+      - name: Enable reviewed Flip Phone art
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          old = 'export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>();'
+          new = '''export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
+            'flip-phone-common',
+            'flip-phone-rare',
+            'flip-phone-epic',
+            'flip-phone-legendary',
+            'flip-phone-secret-noir',
+          ]);'''
+          if old not in text:
+              raise SystemExit('Expected empty collectible art allowlist was not found')
+          path.write_text(text.replace(old, new))
+          PY
+      - run: npm ci
+      - run: npm run assets:validate -- --family flip-phone --require-all
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Commit clean integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -r .asset-upload/flip-phone-final
+          git rm .github/workflows/finalize-flip-phone-assets.yml
+          git add public/assets/collectibles/flip-phone-*.webp src/game/data/artAssets.ts
+          git commit -m 'Add final Flip Phone collectible assets'
+          git push origin HEAD:feat/flip-phone-runtime-assets-final
