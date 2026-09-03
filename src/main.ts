@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import { setPlatformRuntime } from './app/runtime';
 import { createDebugPanel } from './debug/createDebugPanel';
+import { getRuntimeSfxAssets } from './game/data/audioAssets';
 import { CollectionScene } from './game/scenes/CollectionScene';
 import { BootScene } from './game/scenes/BootScene';
 import { OpeningScene } from './game/scenes/OpeningScene';
@@ -16,6 +17,7 @@ const boot = async (): Promise<void> => {
   const messages = getMessages(platform.language);
   const removeDebugPanel = createDebugPanel(platform);
   const audio = getGameAudio();
+  await audio.preloadSamples(getRuntimeSfxAssets());
 
   document.documentElement.lang = platform.language;
   document.title = messages.appTitle;
