@@ -64,6 +64,10 @@ try {
   assert.ok(bounds, 'AI mask produced no visible bounds');
   const visibleWidth = bounds.maxX - bounds.minX + 1;
   const visibleHeight = bounds.maxY - bounds.minY + 1;
+  console.log(
+    `[assets] AI geometry: visible=${validation.alpha.visibleRatio.toFixed(3)} ` +
+      `bounds=${visibleWidth}x${visibleHeight} aspect=${(visibleHeight / visibleWidth).toFixed(3)}`,
+  );
   assert.ok(visibleHeight / visibleWidth > 1.4, 'AI mask lost the expected tall phone silhouette');
 
   console.log('[assets] AI cutout self-test passed');
