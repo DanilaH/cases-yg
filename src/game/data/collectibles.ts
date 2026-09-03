@@ -121,8 +121,8 @@ export const SLICE_FAMILIES: readonly GadgetFamilyDefinition[] = [
     },
     secrets: [
       {
-        id: 'flip-phone-secret-music',
-        assetPath: 'assets/collectibles/flip-phone-secret-music.webp',
+        id: 'flip-phone-secret-noir',
+        assetPath: 'assets/collectibles/flip-phone-secret-noir.webp',
         secret: true,
       },
     ],
