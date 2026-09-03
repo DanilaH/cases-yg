@@ -1,75 +1,68 @@
-name: Recover Flip Phone Assets
+name: Integrate Flip Phone Assets
 
 on:
   pull_request:
     branches:
       - main
+    paths:
+      - '.asset-upload/final/READY'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  recover:
+  integrate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@v6
         with:
           node-version: 22.12.0
           package-manager-cache: false
-      - name: Decode staged runtime payload
+      - name: Reassemble final runtime payload
         shell: bash
         run: |
           set -euo pipefail
+          cat .asset-upload/final/part-*.b64 \
+            | tr -d '\r\n\t ' \
+            | base64 --decode > /tmp/flip-phone-runtime-final.tar.gz
+          echo '2fb481965d97308aa3fde2ae160157128eda54aacbf9b2bb380da0b31139942d  /tmp/flip-phone-runtime-final.tar.gz' | sha256sum -c -
           mkdir -p public/assets/collectibles
-          python - <<'PY'
-          from pathlib import Path
-          import base64
-
-          parts = [
-              Path('.asset-upload/flip-phone-assets/part-00.b64'),
-              Path('.asset-upload/flip-phone-assets/part-01.b64'),
-              Path('.asset-upload/flip-phone-assets/part-02.b64'),
-              Path('.asset-upload/flip-phone-assets/part-03.b64'),
-              Path('.asset-upload/flip-phone-assets/part-04.b64'),
-              Path('.asset-upload/flip-phone-assets/part-05-06.b64'),
-          ]
-          alphabet = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
-          texts = []
-          for p in parts:
-              raw = p.read_text()
-              compact = ''.join(raw.split())
-              invalid = [(i, repr(ch)) for i, ch in enumerate(compact) if ch not in alphabet]
-              print(f'{p.name}: chars={len(compact)} mod4={len(compact)%4} padding={compact.count("=")} head={compact[:8]} tail={compact[-8:]} invalid={invalid[:12]}')
-              texts.append(compact)
-
-          joined = ''.join(texts)
-          clean = ''.join(ch for ch in joined if ch in alphabet)
-          print(f'joined chars={len(joined)} mod4={len(joined)%4}; clean chars={len(clean)} mod4={len(clean)%4}; removed={len(joined)-len(clean)}')
-          last_error = None
-          for pad in range(4):
-              candidate = clean + ('=' * pad)
-              try:
-                  payload = base64.b64decode(candidate, validate=True)
-                  print(f'base64 decoded with added padding={pad}; bytes={len(payload)} magic={payload[:8].hex()}')
-                  Path('/tmp/flip-phone-assets.tar.gz').write_bytes(payload)
-                  break
-              except Exception as exc:
-                  last_error = exc
-          else:
-              raise last_error
-          PY
-          gzip -t /tmp/flip-phone-assets.tar.gz
-          tar -tzf /tmp/flip-phone-assets.tar.gz
-          tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
+          tar -xzf /tmp/flip-phone-runtime-final.tar.gz -C public/assets/collectibles
           ls -lh public/assets/collectibles/flip-phone-*.webp
       - run: npm ci
-      - name: Validate recovered Flip Phone family
+      - name: Validate final Flip Phone family
         run: npm run assets:validate -- --family flip-phone --require-all
-      - name: Upload recovered runtime assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: flip-phone-runtime-assets
-          path: public/assets/collectibles/flip-phone-*.webp
-          if-no-files-found: error
-          retention-days: 1
+      - name: Enable reviewed runtime art
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          old = 'export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>();'
+          new = '''export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
+            'flip-phone-common',
+            'flip-phone-rare',
+            'flip-phone-epic',
+            'flip-phone-legendary',
+            'flip-phone-secret-noir',
+          ]);'''
+          if old not in text:
+              raise SystemExit('Expected empty collectible-art allowlist was not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit final runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -r .asset-upload
+          git rm .github/workflows/recover-flip-phone-assets.yml
+          git add public/assets/collectibles/flip-phone-*.webp src/game/data/artAssets.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Add final Flip Phone collectible family'
+          git push origin HEAD:${{ github.head_ref }}
