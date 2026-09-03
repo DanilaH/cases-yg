@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import { collectibleTextureKey } from '../data/artAssets';
+import { collectibleTextureKey, staticTextureKey } from '../data/artAssets';
 import type { StandardRarity } from '../data/collectibles';
 
 export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
@@ -12,33 +12,41 @@ export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
 
 export const SECRET_REVEAL_COLOR = 0x65f6ff;
 
+const POUCH_ART_DISPLAY_WIDTH = 374;
+const POUCH_TEAR_Y = -112;
+const POUCH_TAB_LOCAL_X = -145;
+const POUCH_TAB_TRAVEL = 263;
+
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Rectangle;
   strip: Phaser.GameObjects.Container;
-  tab: Phaser.GameObjects.Text;
+  tab: Phaser.GameObjects.Container;
   dragZone: Phaser.GameObjects.Zone;
   tabStartX: number;
   tabEndX: number;
 }
 
-export const createPouchVisual = (
+const addAlignedLayer = (
   scene: Phaser.Scene,
-  root: Phaser.GameObjects.Container,
-  x: number,
-  y: number,
-): PouchVisual => {
-  const group = scene.add.container(x, y);
+  container: Phaser.GameObjects.Container,
+  textureKey: string,
+): Phaser.GameObjects.Image => {
+  const image = scene.add.image(0, 8, textureKey).setOrigin(0.5);
+  image.setScale(POUCH_ART_DISPLAY_WIDTH / Math.max(1, image.width));
+  container.add(image);
+  return image;
+};
 
-  const shadow = scene.add.ellipse(0, 142, 310, 34, 0x08070c, 0.28);
-  const body = scene.add
-    .rectangle(0, 10, 360, 248, 0xa89ebd, 1)
-    .setStrokeStyle(4, 0xd8d0e7, 0.85);
-
+const addProceduralBody = (
+  scene: Phaser.Scene,
+  group: Phaser.GameObjects.Container,
+  body: Phaser.GameObjects.Rectangle,
+): void => {
+  body.setFillStyle(0xa89ebd, 1).setStrokeStyle(4, 0xd8d0e7, 0.85);
   const innerPanel = scene.add
     .rectangle(0, 22, 300, 168, 0xc7bdd8, 0.26)
     .setStrokeStyle(2, 0xe7e1ef, 0.25);
-
   const mysteryBadge = scene.add.circle(0, 6, 50, 0xe9e2f2, 0.9).setStrokeStyle(3, 0x716486, 0.75);
   const question = scene.add
     .text(0, 4, '?', {
@@ -65,51 +73,82 @@ export const createPouchVisual = (
   const silhouetteLeft = scene.add.rectangle(-82, 104, 44, 28, 0x675b78, 0.46).setOrigin(0.5);
   const silhouetteCenter = scene.add.rectangle(0, 104, 36, 36, 0x675b78, 0.46).setOrigin(0.5);
   const silhouetteRight = scene.add.rectangle(80, 104, 28, 46, 0x675b78, 0.46).setOrigin(0.5);
+  group.add([body, innerPanel, mysteryBadge, question, circuit, silhouetteLeft, silhouetteCenter, silhouetteRight]);
+};
 
-  const strip = scene.add.container(0, -112);
+const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Container): void => {
   const stripPlate = scene.add
-    .rectangle(0, 0, 360, 54, 0x9085a7, 1)
+    .rectangle(0, POUCH_TEAR_Y, 360, 54, 0x9085a7, 1)
     .setStrokeStyle(3, 0xd6cde3, 0.72);
   const tearLine = scene.add.graphics();
   tearLine.lineStyle(2, 0x5f5372, 0.72);
   for (let lineX = -112; lineX < 130; lineX += 22) {
-    tearLine.lineBetween(lineX, 8, Math.min(lineX + 12, 130), 8);
+    tearLine.lineBetween(lineX, POUCH_TEAR_Y + 8, Math.min(lineX + 12, 130), POUCH_TEAR_Y + 8);
   }
-
   const arrow = scene.add
-    .text(95, -11, '→', {
+    .text(95, POUCH_TEAR_Y - 11, '→', {
       color: '#5f5372',
       fontFamily: 'system-ui, sans-serif',
       fontSize: '26px',
       fontStyle: 'bold',
     })
     .setOrigin(0.5);
+  strip.add([stripPlate, tearLine, arrow]);
+};
 
-  const tabStartX = -145;
-  const tabEndX = 118;
-  const tab = scene.add
-    .text(tabStartX, -2, '★', {
-      color: '#8157d8',
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '54px',
-      fontStyle: 'bold',
-    })
-    .setOrigin(0.5);
-  const dragZone = scene.add.zone(tabStartX, 0, 94, 94).setInteractive({ useHandCursor: true });
+export const createPouchVisual = (
+  scene: Phaser.Scene,
+  root: Phaser.GameObjects.Container,
+  x: number,
+  y: number,
+): PouchVisual => {
+  const group = scene.add.container(x, y);
+  const shadow = scene.add.ellipse(0, 142, 310, 34, 0x08070c, 0.28);
+  const body = scene.add.rectangle(0, 10, 360, 248, 0xa89ebd, 0);
+  group.add(shadow);
 
-  strip.add([stripPlate, tearLine, arrow, tab, dragZone]);
-  group.add([
-    shadow,
-    body,
-    innerPanel,
-    mysteryBadge,
-    question,
-    circuit,
-    silhouetteLeft,
-    silhouetteCenter,
-    silhouetteRight,
-    strip,
-  ]);
+  const bodyTexture = staticTextureKey('pouch-body');
+  if (scene.textures.exists(bodyTexture)) {
+    group.add(body);
+    addAlignedLayer(scene, group, bodyTexture);
+  } else {
+    addProceduralBody(scene, group, body);
+  }
+
+  const strip = scene.add.container(0, 0);
+  const stripTexture = staticTextureKey('pouch-tear-strip');
+  if (scene.textures.exists(stripTexture)) {
+    addAlignedLayer(scene, strip, stripTexture);
+  } else {
+    addProceduralStrip(scene, strip);
+  }
+
+  // The tab wrapper moves as one unit, so both a full-canvas aligned art layer
+  // and the hit-zone follow the same deterministic drag travel.
+  const tabStartX = 0;
+  const tabEndX = POUCH_TAB_TRAVEL;
+  const tab = scene.add.container(tabStartX, 0);
+  const tabTexture = staticTextureKey('pouch-star-tab');
+  if (scene.textures.exists(tabTexture)) {
+    addAlignedLayer(scene, tab, tabTexture);
+  } else {
+    tab.add(
+      scene.add
+        .text(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y - 2, '★', {
+          color: '#8157d8',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '54px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0.5),
+    );
+  }
+  const dragZone = scene.add
+    .zone(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y, 94, 94)
+    .setInteractive({ useHandCursor: true });
+  tab.add(dragZone);
+  strip.add(tab);
+  group.add(strip);
   root.add(group);
 
   return {

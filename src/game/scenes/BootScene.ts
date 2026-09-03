@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import { getRuntimeCollectibleArt } from '../data/artAssets';
+import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
 import { SLICE_REGISTRY } from '../data/collectibles';
 
 export class BootScene extends Phaser.Scene {
@@ -10,6 +10,9 @@ export class BootScene extends Phaser.Scene {
 
   public preload(): void {
     for (const art of getRuntimeCollectibleArt(SLICE_REGISTRY)) {
+      this.load.image(art.textureKey, art.assetPath);
+    }
+    for (const art of getRuntimeStaticArt()) {
       this.load.image(art.textureKey, art.assetPath);
     }
   }

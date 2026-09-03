@@ -1,16 +1,6 @@
-export type SfxCue =
-  | 'tear'
-  | 'reveal-pop'
-  | 'common'
-  | 'rare'
-  | 'epic'
-  | 'legendary'
-  | 'duplicate'
-  | 'signal-gain'
-  | 'signal-lock'
-  | 'hidden-pocket'
-  | 'secret-reveal'
-  | 'collection-complete';
+import type { RuntimeSfxAsset, SfxCue } from '../data/audioAssets';
+
+export type { SfxCue } from '../data/audioAssets';
 
 interface ToneSpec {
   frequency: number;
@@ -66,6 +56,7 @@ const CUES: Readonly<Record<SfxCue, readonly ToneSpec[]>> = {
 
 class GameAudioController {
   private context: AudioContext | null = null;
+  private readonly samples = new Map<SfxCue, AudioBuffer>();
   private muted = false;
   private blocked = false;
 
@@ -90,6 +81,28 @@ class GameAudioController {
     if (blocked && this.context?.state === 'running') {
       void this.context.suspend();
     }
+  }
+
+  public async preloadSamples(assets: readonly RuntimeSfxAsset[]): Promise<void> {
+    if (assets.length === 0 || typeof AudioContext === 'undefined') return;
+    const context = this.getContext();
+    if (!context) return;
+
+    await Promise.all(
+      assets.map(async ({ cue, assetPath }) => {
+        try {
+          const response = await fetch(assetPath, { cache: 'force-cache' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const encoded = await response.arrayBuffer();
+          const decoded = await context.decodeAudioData(encoded);
+          this.samples.set(cue, decoded);
+        } catch (error: unknown) {
+          console.warn(`[audio] failed to preload ${cue}; synth fallback remains active`, error);
+        }
+      }),
+    );
   }
 
   public play(cue: SfxCue): void {
@@ -117,8 +130,20 @@ class GameAudioController {
 
   private schedule(context: AudioContext, cue: SfxCue): void {
     if (this.muted || this.blocked || context.state !== 'running') return;
-    const now = context.currentTime;
 
+    const sample = this.samples.get(cue);
+    if (sample) {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = sample;
+      gain.gain.value = 0.9;
+      source.connect(gain);
+      gain.connect(context.destination);
+      source.start();
+      return;
+    }
+
+    const now = context.currentTime;
     for (const spec of CUES[cue]) {
       const start = now + (spec.delay ?? 0);
       const end = start + spec.duration;
