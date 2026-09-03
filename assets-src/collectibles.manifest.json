@@ -5,7 +5,7 @@
     "padding": 64,
     "webpQuality": 90,
     "removeBackground": true,
-    "backgroundStepTolerance": 18,
+    "backgroundColorTolerance": 48,
     "edgeFeather": 0.8
   },
   "assets": [
