@@ -53,9 +53,21 @@ export const ensureU2NetpModel = async ({ force = false, modelPath = U2NETP_MODE
   const buffer = Buffer.from(await response.arrayBuffer());
   verifyModelBuffer(buffer);
   await fs.mkdir(path.dirname(absolute), { recursive: true });
-  const temporary = `${absolute}.${process.pid}.tmp`;
-  await fs.writeFile(temporary, buffer);
-  await fs.rename(temporary, absolute);
+
+  const temporary = `${absolute}.${process.pid}.${Date.now()}.tmp`;
+  await fs.rm(temporary, { force: true });
+  try {
+    await fs.writeFile(temporary, buffer);
+    if (force) {
+      // Windows does not consistently replace an existing destination via rename.
+      // Remove only after the freshly downloaded model has passed hash validation.
+      await fs.rm(absolute, { force: true });
+    }
+    await fs.rename(temporary, absolute);
+  } finally {
+    await fs.rm(temporary, { force: true });
+  }
+
   return absolute;
 };
 
