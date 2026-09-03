@@ -164,6 +164,21 @@ const normalizeMask = (prediction, { low = 0, high = 1, gamma = 1 } = {}) => {
   return output;
 };
 
+const assertPlausibleMask = (alpha, { foregroundMin = 0.04, foregroundMax = 0.9 } = {}) => {
+  let visible = 0;
+  for (const value of alpha) {
+    if (value > 8) visible += 1;
+  }
+  const ratio = visible / alpha.length;
+  if (ratio < foregroundMin || ratio > foregroundMax) {
+    throw new Error(
+      `U2NetP produced an unsafe visible foreground ratio ${(ratio * 100).toFixed(1)}%; ` +
+        'use a cleaner/already-transparent source or adjust the per-item AI mask settings.',
+    );
+  }
+  return ratio;
+};
+
 export const removeBackgroundWithU2Netp = async (
   input,
   {
@@ -218,6 +233,7 @@ export const removeBackgroundWithU2Netp = async (
   );
   if (edgeFeather > 0) alphaPipeline = alphaPipeline.blur(edgeFeather);
   const alpha = await alphaPipeline.raw().toBuffer();
+  assertPlausibleMask(alpha);
 
   const rgb = await sharp(source).removeAlpha().toColourspace('srgb').raw().toBuffer();
   const rgba = Buffer.alloc(metadata.width * metadata.height * 4);
