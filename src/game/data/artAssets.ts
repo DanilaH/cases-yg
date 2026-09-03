@@ -38,7 +38,13 @@ const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
  * 404s while allowing reviewed exports to replace procedural fallbacks without
  * changing scene code.
  */
-export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>();
+export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
+  'flip-phone-common',
+  'flip-phone-rare',
+  'flip-phone-epic',
+  'flip-phone-legendary',
+  'flip-phone-secret-noir',
+]);
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>();
 
 export const collectibleTextureKey = (collectibleId: string): string =>
