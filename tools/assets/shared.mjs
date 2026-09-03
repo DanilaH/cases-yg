@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 export const DEFAULT_MANIFEST_PATH = 'assets-src/collectibles.manifest.json';
-export const BACKGROUND_REMOVAL_MODES = ['auto', 'deterministic', 'ai', 'preserve'] as const;
+export const BACKGROUND_REMOVAL_MODES = Object.freeze(['auto', 'deterministic', 'ai', 'preserve']);
 
 export const parseArgs = (argv) => {
   const args = new Map();
