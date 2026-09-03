@@ -1,0 +1,57 @@
+name: Fix collection foreground scope
+
+on:
+  push:
+    branches:
+      - feat/asset-runtime-infrastructure
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/asset-runtime-infrastructure
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Limit shelf foreground to Shelf view
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          scene = Path('src/game/scenes/CollectionScene.ts')
+          text = scene.read_text()
+          old = """    addCoverArt(\n      this,\n      root,\n      staticTextureKey('collection-foreground'),\n      metrics.logicalWidth,\n      LOGICAL_HEIGHT,\n    );\n\n"""
+          new = """    if (this.view === 'shelf') {\n      addCoverArt(\n        this,\n        root,\n        staticTextureKey('collection-foreground'),\n        metrics.logicalWidth,\n        LOGICAL_HEIGHT,\n      );\n    }\n\n"""
+          if old in text:
+              text = text.replace(old, new, 1)
+          scene.write_text(text)
+
+          manifest = Path('docs/ASSET_MANIFEST.md')
+          text = manifest.read_text()
+          text = text.replace(
+              "The foreground is a transparent depth layer and should keep the upper title/tab area transparent; it is rendered above collectibles but below Collection chrome.",
+              "The foreground is a transparent **Shelf-only** depth layer and should keep the upper title/tab area transparent; it is rendered above Shelf collectibles but below Collection chrome. Library intentionally does not use this foreground so catalog cards cannot be obscured by shelf furniture/decor.",
+              1,
+          )
+          manifest.write_text(text)
+          PY
+      - name: Commit source fix if changed
+        run: |
+          if [ -z "$(git status --porcelain -- src/game/scenes/CollectionScene.ts docs/ASSET_MANIFEST.md)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/CollectionScene.ts docs/ASSET_MANIFEST.md
+          git commit -m "Scope Collection foreground to Shelf view"
+          git push
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
