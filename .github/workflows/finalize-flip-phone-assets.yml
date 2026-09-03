@@ -1,9 +1,9 @@
 name: Finalize Flip Phone Assets
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/flip-phone-runtime-assets-final
+      - main
 
 permissions:
   contents: write
