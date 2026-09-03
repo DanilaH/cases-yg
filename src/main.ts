@@ -7,6 +7,7 @@ import { CollectionScene } from './game/scenes/CollectionScene';
 import { BootScene } from './game/scenes/BootScene';
 import { OpeningScene } from './game/scenes/OpeningScene';
 import { getGameAudio } from './game/systems/audio';
+import { loadSettingsSafe } from './game/systems/settings';
 import { getMessages } from './i18n';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
@@ -17,7 +18,9 @@ const boot = async (): Promise<void> => {
   const messages = getMessages(platform.language);
   const removeDebugPanel = createDebugPanel(platform);
   const audio = getGameAudio();
+  const settings = await loadSettingsSafe(platform.storage);
   await audio.preloadSamples(getRuntimeSfxAssets());
+  audio.setMuted(settings.muted);
 
   document.documentElement.lang = platform.language;
   document.title = messages.appTitle;
