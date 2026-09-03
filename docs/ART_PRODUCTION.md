@@ -133,7 +133,9 @@ Final assets require:
 - no photoreal/CGI drift;
 - no repaint during cleanup that changes the family style.
 
-The automated background remover is a convenience for clean generated backgrounds, not an excuse to accept a broken mask. If the cutout damages light body panels or accessories, provide a cleaner/already-transparent source and rerun normalization.
+The project now has two cleanup paths. Use deterministic corner/background modeling for clean isolated sources; use per-item `backgroundRemoval: "ai"` for soft shadows or edges where increasing color tolerance would damage the collectible. The Noir Flip Phone is the first explicit AI-routed source for exactly this reason.
+
+Neither path replaces visual review. If AI segmentation eats a pale/translucent panel or a small accessory, use a cleaner/already-transparent source rather than endlessly tuning one pathological image.
 
 ---
 
