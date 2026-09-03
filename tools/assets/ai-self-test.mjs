@@ -58,6 +58,13 @@ try {
   assert.deepEqual(validation.errors, []);
   assert.ok(validation.alpha.transparentRatio > 0.1);
   assert.ok(validation.alpha.visibleRatio > 0.05);
+  assert.ok(validation.alpha.visibleRatio < 0.55, 'AI mask retained too much of the source background');
+
+  const bounds = validation.alpha.bounds;
+  assert.ok(bounds, 'AI mask produced no visible bounds');
+  const visibleWidth = bounds.maxX - bounds.minX + 1;
+  const visibleHeight = bounds.maxY - bounds.minY + 1;
+  assert.ok(visibleHeight / visibleWidth > 1.4, 'AI mask lost the expected tall phone silhouette');
 
   console.log('[assets] AI cutout self-test passed');
 } finally {
