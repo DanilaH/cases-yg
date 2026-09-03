@@ -42,7 +42,7 @@ try {
     padding: 24,
     webpQuality: 88,
     removeBackground: true,
-    backgroundStepTolerance: 18,
+    backgroundColorTolerance: 48,
     edgeFeather: 0.8,
   };
 
