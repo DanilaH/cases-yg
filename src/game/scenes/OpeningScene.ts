@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
+import { staticTextureKey } from '../data/artAssets';
 import { SLICE_BALANCE } from '../data/balance';
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
@@ -19,6 +20,7 @@ import {
   SECRET_REVEAL_COLOR,
   type PouchVisual,
 } from '../ui/openingVisuals';
+import { addCoverArt } from '../ui/staticArt';
 
 const LOGICAL_HEIGHT = 720;
 const POUCH_Y = 392;
@@ -144,12 +146,27 @@ export class OpeningScene extends Phaser.Scene {
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     this.root = root;
 
-    root.add(
-      this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x171421),
+    const background = addCoverArt(
+      this,
+      root,
+      staticTextureKey('opening-bg'),
+      metrics.logicalWidth,
+      LOGICAL_HEIGHT,
     );
-
-    const haze = this.add.ellipse(metrics.centerX, 330, Math.min(metrics.logicalWidth * 0.72, 920), 520, 0x4b365e, 0.22);
-    root.add(haze);
+    if (!background) {
+      root.add(
+        this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x171421),
+      );
+      const haze = this.add.ellipse(
+        metrics.centerX,
+        330,
+        Math.min(metrics.logicalWidth * 0.72, 920),
+        520,
+        0x4b365e,
+        0.22,
+      );
+      root.add(haze);
+    }
 
     root.add(
       this.add
@@ -328,7 +345,6 @@ export class OpeningScene extends Phaser.Scene {
     this.drag.progress = progress;
     const tabX = this.pouch.tabStartX + travel * progress;
     this.pouch.tab.setX(tabX);
-    this.pouch.dragZone.setX(tabX);
     this.pouch.strip.setAlpha(1 - progress * 0.08);
 
     if (progress >= 1) {
@@ -358,7 +374,7 @@ export class OpeningScene extends Phaser.Scene {
     this.setChromeEnabled(true);
     const pouch = this.pouch;
     this.tweens.add({
-      targets: [pouch.tab, pouch.dragZone],
+      targets: pouch.tab,
       x: pouch.tabStartX,
       duration: 170,
       ease: 'Sine.Out',
@@ -406,8 +422,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (recovered) {
       this.pouch.tab.setX(this.pouch.tabEndX);
-      this.pouch.dragZone.setX(this.pouch.tabEndX);
-    }
+      }
 
     await this.animateTearDetach(recovered);
     if (this.isSceneShutdown()) return;

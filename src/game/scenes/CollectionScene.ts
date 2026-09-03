@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
+import { staticTextureKey } from '../data/artAssets';
 import { SLICE_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
 import { buildCollectionSnapshot, type CollectionSnapshot, type FamilyCollectionSnapshot } from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { createCollectibleVisual, RARITY_REVEAL_COLORS } from '../ui/openingVisuals';
+import { addCoverArt } from '../ui/staticArt';
 
 const LOGICAL_HEIGHT = 720;
 const FAMILIES_PER_PAGE = 2;
@@ -70,10 +72,19 @@ export class CollectionScene extends Phaser.Scene {
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     this.root = root;
 
-    root.add(
-      this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x211b2c),
+    const background = addCoverArt(
+      this,
+      root,
+      staticTextureKey('collection-bg'),
+      metrics.logicalWidth,
+      LOGICAL_HEIGHT,
     );
-    root.add(this.add.ellipse(metrics.centerX, 375, Math.min(metrics.logicalWidth * 0.82, 1050), 610, 0x4c3a5d, 0.2));
+    if (!background) {
+      root.add(
+        this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x211b2c),
+      );
+      root.add(this.add.ellipse(metrics.centerX, 375, Math.min(metrics.logicalWidth * 0.82, 1050), 610, 0x4c3a5d, 0.2));
+    }
     return root;
   }
 
@@ -118,6 +129,14 @@ export class CollectionScene extends Phaser.Scene {
     } else {
       this.renderLibrary(root);
     }
+
+    addCoverArt(
+      this,
+      root,
+      staticTextureKey('collection-foreground'),
+      metrics.logicalWidth,
+      LOGICAL_HEIGHT,
+    );
 
     this.renderPager(root);
 
