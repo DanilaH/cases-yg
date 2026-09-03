@@ -83,7 +83,12 @@ Status meanings:
 | Family production rule | LOCKED | ~6–10 exploratory candidates → one canonical master → Common/Rare/Epic/Legendary derived from that master |
 | Rarity consistency | LOCKED | same geometry/camera/core controls per family; rarity mainly changes material/color/detail hierarchy |
 | Secret rule | LOCKED | outside normal rarity ladder; stronger special-edition treatment; can alter ~15–25% of details/geometry |
+| Flip Phone master | LOCKED FOR SLICE | one open front-facing pink Y2K clamshell master; silhouette, hinge, camera, screen frame, circular navigation control and keypad remain stable across standard rarities |
+| Flip Phone standard progression | LOCKED FOR SLICE | solid glossy pink → translucent/frosted pink → pearlescent/iridescent pink → clear shell with visible circuitry/internals |
+| Flip Phone Secret | LOCKED FOR SLICE | Noir / Monochrome Edition: smoked/piano-black shell, visible dark internals, silver/chrome hardware, monochrome Saturn-heart display and restrained star/crescent identity |
 | Runtime export | LOCKED | transparent 1024×1024 WebP target; source master target 1536×1536 where practical |
+| Collectible preprocessing | LOCKED | manifest-driven `sharp` pipeline handles clean-background cutout, trim, optical offset, normalized transparent canvas, WebP export and validation; bad masks fail/review instead of being silently accepted |
+| Atlas policy | LOCKED FOR SLICE | individual 1024 WebPs remain canonical runtime inputs; optional Phaser atlas generation is inspection/profiling tooling only until real release-scale memory/loading evidence justifies a runtime switch |
 | Expansion pipeline | LOCKED FOR RELEASE ARCHITECTURE | content registry, Collection rendering and loaders must accept additional families from data; never hard-code Camera/Flip Phone into core systems |
 
 ---
@@ -115,7 +120,7 @@ Status meanings:
 | Anti-reroll | LOCKED | full `pendingReveal` is persisted before presentation and committed once |
 | Data-driven content | LOCKED FOR RELEASE ARCHITECTURE | family IDs, variants, rarity data, Collection groups and asset paths come from config/registry rather than two-family conditionals |
 | Asset loading | LOCKED FOR SLICE | preload all slice-critical assets because only 10 collectibles exist |
-| Release asset loading | OPEN FOR RELEASE | after content expansion, profile and choose preload groups/lazy loading without introducing user-visible waits |
+| Release asset loading | OPEN FOR RELEASE | after content expansion, profile individual textures vs family/group atlases and preload groups/lazy loading without introducing user-visible waits |
 | React / physics / backend | LOCKED OUT BY DEFAULT | no React runtime, no physics, no backend unless a concrete release requirement appears |
 
 ---
@@ -144,6 +149,6 @@ Still locked out unless direction changes materially:
 
 ## Current stage
 
-> **GO: build the internal vertical slice now, with production-grade SDK/ads/data boundaries.**
+> **GO: finish internal slice production assets using the now-stable runtime and asset pipeline.**
 
 The slice is complete when it is stable and good enough for the user's hands-on review. It does **not** need store media, moderation or public behavioral traffic. After sign-off, immediately move into content expansion and release design rather than publishing the two-family build.
