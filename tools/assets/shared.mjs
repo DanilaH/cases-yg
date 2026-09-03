@@ -3,7 +3,6 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
-export const ROOT = process.cwd();
 export const DEFAULT_MANIFEST_PATH = 'assets-src/collectibles.manifest.json';
 
 export const parseArgs = (argv) => {
@@ -23,7 +22,7 @@ export const parseArgs = (argv) => {
   return args;
 };
 
-export const resolveRepoPath = (value) => path.resolve(ROOT, value);
+export const resolveRepoPath = (value) => path.resolve(process.cwd(), value);
 
 export const loadManifest = async (manifestPath = DEFAULT_MANIFEST_PATH) => {
   const raw = await fs.readFile(resolveRepoPath(manifestPath), 'utf8');
