@@ -44,6 +44,11 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
   'flip-phone-epic',
   'flip-phone-legendary',
   'flip-phone-secret-noir',
+  'camera-common',
+  'camera-rare',
+  'camera-epic',
+  'camera-legendary',
+  'camera-secret-cosmic',
 ]);
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>();
 
