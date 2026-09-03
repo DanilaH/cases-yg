@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - reopened
 
 permissions:
   contents: write
@@ -46,10 +48,9 @@ jobs:
           Path('/tmp/flip-phone-assets.tar.gz').write_bytes(payload)
           print(f'decoded={len(payload)} magic={payload[:8].hex()}')
           PY
+          printf '%s  %s\n' 'a0e96ef6708b8b67b8a84a8f50bf435420d8b5de1fcce9fc65e118144912e518' '/tmp/flip-phone-assets.tar.gz' | sha256sum --check --strict
           gzip -t /tmp/flip-phone-assets.tar.gz
-          tar -tzf /tmp/flip-phone-assets.tar.gz
           tar -xzf /tmp/flip-phone-assets.tar.gz -C public/assets/collectibles
-          sha256sum public/assets/collectibles/flip-phone-*.webp
           printf '%s  %s\n' \
             '809bfb6b605ae53ccd5b98cac04000784759fbc32abe90eaeb8539966a6ce6e9' 'public/assets/collectibles/flip-phone-common.webp' \
             '936660b2293e7fb358e2677e6baf3e3acb3ef6d028d4f617c91aaa8640f157ba' 'public/assets/collectibles/flip-phone-epic.webp' \
