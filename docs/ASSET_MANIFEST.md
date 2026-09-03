@@ -22,18 +22,22 @@ Runtime target:
 Source master target: ~1536×1536 transparent where practical; never accept a final source below 1024×1024.
 
 ```text
-assets/collectibles/camera-common.webp
-assets/collectibles/camera-rare.webp
-assets/collectibles/camera-epic.webp
-assets/collectibles/camera-legendary.webp
-assets/collectibles/camera-secret-cosmic.webp
+public/assets/collectibles/camera-common.webp
+public/assets/collectibles/camera-rare.webp
+public/assets/collectibles/camera-epic.webp
+public/assets/collectibles/camera-legendary.webp
+public/assets/collectibles/camera-secret-cosmic.webp
 
-assets/collectibles/flip-phone-common.webp
-assets/collectibles/flip-phone-rare.webp
-assets/collectibles/flip-phone-epic.webp
-assets/collectibles/flip-phone-legendary.webp
-assets/collectibles/flip-phone-secret-music.webp
+public/assets/collectibles/flip-phone-common.webp
+public/assets/collectibles/flip-phone-rare.webp
+public/assets/collectibles/flip-phone-epic.webp
+public/assets/collectibles/flip-phone-legendary.webp
+public/assets/collectibles/flip-phone-secret-music.webp
 ```
+
+Runtime URLs remain `assets/collectibles/...` because Vite serves `public/` as the web root.
+
+After an export is reviewed, enable its collectible id in `AVAILABLE_COLLECTIBLE_ART_IDS` in `src/game/data/artAssets.ts`. Until then the procedural item remains the fallback.
 
 Per family working material:
 
@@ -54,29 +58,43 @@ Existing visual reference:
 
 `docs/assets/package-mystery-pouch-v1.webp`
 
-Required aligned runtime layers:
+Required runtime files:
 
 ```text
-assets/package/pouch-body.webp
-assets/package/pouch-tear-strip.webp
-assets/package/pouch-star-tab.webp
+public/assets/package/pouch-body.webp
+public/assets/package/pouch-tear-strip.webp
+public/assets/package/pouch-star-tab.webp
 ```
 
-The slit/light is runtime-generated. Keep pivots/canvas alignment consistent so tab/strip can animate independently.
+**Layer export contract:**
+
+- all three WebPs use the **same transparent canvas dimensions**;
+- all three are exported from the exact same registration/origin — no per-layer trim, crop, resize or re-centering;
+- body contains only the persistent pouch body;
+- tear-strip contains only the detachable top strip/tear-line art;
+- star-tab contains only the movable star/tab art;
+- do not bake an external drop shadow into these layers; runtime owns the grounding shadow;
+- the runtime applies one shared scale to the aligned canvas, then translates the tab and strip containers independently.
+
+This common-canvas contract is what lets a new reviewed pouch set drop in without changing interaction math. The slit/light remains runtime-generated.
+
+Enable reviewed layers individually through `AVAILABLE_STATIC_ART_IDS` in `src/game/data/artAssets.ts`. Missing layers continue using procedural fallback.
 
 ---
 
 # 3. Internal scene/environment art — 3 runtime assets
 
 ```text
-assets/backgrounds/opening-bg.webp
-assets/backgrounds/collection-bg.webp
-assets/backgrounds/collection-foreground.webp
+public/assets/backgrounds/opening-bg.webp
+public/assets/backgrounds/collection-bg.webp
+public/assets/backgrounds/collection-foreground.webp
 ```
 
-Opening background: center-safe, decorative sides may crop.
+Opening background: center-safe, decorative sides may crop. Runtime uses cover scaling across supported landscape ratios.
 
-Collection: rear + foreground depth layer so items feel placed inside a Y2K desk/shelf environment rather than pasted over one image.
+Collection rear + foreground should be authored as an aligned pair so items feel placed inside a Y2K desk/shelf environment rather than pasted over one image. The foreground is a transparent depth layer and should keep the upper title/tab area transparent; it is rendered above collectibles but below Collection chrome.
+
+Enable reviewed environment layers through `AVAILABLE_STATIC_ART_IDS`.
 
 The slice environment may be composed for two hero items, but do not make final release architecture dependent on only two fixed slots. The release Collection environment/grouping may change after the public family count is chosen.
 
@@ -113,22 +131,24 @@ Runtime FX:
 
 # 5. Audio — internal slice
 
-Current SFX set:
+Final SFX paths:
 
 ```text
-tear.mp3
-reveal-pop.mp3
-rarity-common.mp3
-rarity-rare.mp3
-rarity-epic.mp3
-rarity-legendary.mp3
-duplicate.mp3
-signal-gain.mp3
-signal-lock.mp3
-hidden-pocket.mp3
-secret-reveal.mp3
-collection-complete.mp3
+public/assets/audio/tear.mp3
+public/assets/audio/reveal-pop.mp3
+public/assets/audio/rarity-common.mp3
+public/assets/audio/rarity-rare.mp3
+public/assets/audio/rarity-epic.mp3
+public/assets/audio/rarity-legendary.mp3
+public/assets/audio/duplicate.mp3
+public/assets/audio/signal-gain.mp3
+public/assets/audio/signal-lock.mp3
+public/assets/audio/hidden-pocket.mp3
+public/assets/audio/secret-reveal.mp3
+public/assets/audio/collection-complete.mp3
 ```
+
+Enable reviewed cues in `AVAILABLE_SFX_CUES` in `src/game/data/audioAssets.ts`. Enabled samples are prefetched/decoded before game ready and replace the synthesized cue one by one. Missing or failed samples retain the synth fallback, so integrating final sound does not require changing scene code.
 
 No background music requirement. Reuse/pitch base sounds where quality remains good.
 
@@ -192,16 +212,18 @@ Exact final number is open; update this manifest when the release roster is lock
 
 # 8. Release asset-loading implication
 
-The slice can preload all 10 collectibles.
+The slice can preload all reviewed slice assets because the pool is tiny.
 
 A 10–24+ family release may contain 40–100+ collectible textures, so do not assume the same preload strategy scales.
 
 Before release:
 
-- profile mobile decoded texture memory;
-- consider grouped/on-demand family loading;
+- profile mobile decoded texture memory with the **real** expanded catalog;
+- choose grouped/on-demand family loading if profiling requires it;
 - derive 512/768 thumbnail/runtime variants from source masters if useful;
 - keep currently needed Opening/Collection transitions fast and avoid user-visible asset waits.
+
+Do not build speculative streaming infrastructure before real asset dimensions/counts can be profiled.
 
 ---
 
