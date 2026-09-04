@@ -36,7 +36,20 @@ const SFX_ASSET_PATHS: Readonly<Record<SfxCue, string>> = {
 };
 
 /** Enable a cue only after the matching reviewed MP3 exists under public/. */
-export const AVAILABLE_SFX_CUES = new Set<SfxCue>();
+export const AVAILABLE_SFX_CUES = new Set<SfxCue>([
+  'tear',
+  'reveal-pop',
+  'common',
+  'rare',
+  'epic',
+  'legendary',
+  'duplicate',
+  'signal-gain',
+  'signal-lock',
+  'hidden-pocket',
+  'secret-reveal',
+  'collection-complete',
+]);
 
 export const getRuntimeSfxAssets = (): readonly RuntimeSfxAsset[] =>
   SFX_CUES.filter((cue) => AVAILABLE_SFX_CUES.has(cue)).map((cue) => ({
