@@ -3,6 +3,9 @@ import fs from 'node:fs/promises';
 
 const outDir = '/tmp/pouch-visual-audit';
 await fs.mkdir(outDir, { recursive: true });
+await fs.copyFile('public/assets/package/pouch-body.webp', `${outDir}/source-pouch-body.webp`);
+await fs.copyFile('public/assets/package/pouch-tear-strip.webp', `${outDir}/source-pouch-tear-strip.webp`);
+await fs.copyFile('public/assets/package/pouch-star-tab.webp', `${outDir}/source-pouch-star-tab.webp`);
 const errors = [];
 const failedRequests = [];
 
