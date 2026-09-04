@@ -21,7 +21,7 @@ jobs:
           node-version: 22.12.0
           cache: npm
       - run: npm ci
-      - name: Install Playwright driver and video helper
+      - name: Install Playwright driver and expose ffmpeg helper
         run: |
           set -euo pipefail
           mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
@@ -29,7 +29,9 @@ jobs:
           npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
           tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
           tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
-          npx playwright install ffmpeg
+          test -x "$(command -v ffmpeg)"
+          mkdir -p "$HOME/.cache/ms-playwright/ffmpeg-1011"
+          ln -sf "$(command -v ffmpeg)" "$HOME/.cache/ms-playwright/ffmpeg-1011/ffmpeg-linux"
       - name: Start Vite
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
