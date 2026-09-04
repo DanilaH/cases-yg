@@ -171,7 +171,8 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     if (this.phase === 'result' && this.lastReveal) {
-      this.renderResolvedResult(this.lastReveal);
+      const selectedCarouselIndex = this.resultCarouselIndex;
+      this.renderResolvedResult(this.lastReveal, selectedCarouselIndex);
       return;
     }
 
@@ -1160,6 +1161,7 @@ export class OpeningScene extends Phaser.Scene {
     pending: PendingReveal,
     root: Phaser.GameObjects.Container,
     metrics: LayoutMetrics,
+    selectedIndex = 1,
   ): void {
     if (!pending.hiddenPocket) return;
     const messages = getMessages(getPlatformRuntime().language);
@@ -1208,7 +1210,7 @@ export class OpeningScene extends Phaser.Scene {
     secretPage.setData('breathBaseScale', secretVisual.presentation.revealScale);
 
     this.resultCarouselItems = [standardPage, secretPage];
-    this.resultCarouselIndex = 1;
+    this.resultCarouselIndex = Phaser.Math.Clamp(selectedIndex, 0, this.resultCarouselItems.length - 1);
     this.resultCarouselDrag = null;
 
     this.resultCarouselDots = this.resultCarouselItems.map((_, index) => {
@@ -1476,7 +1478,7 @@ export class OpeningScene extends Phaser.Scene {
     );
   }
 
-  private renderResolvedResult(pending: PendingReveal): void {
+  private renderResolvedResult(pending: PendingReveal, selectedCarouselIndex?: number): void {
     if (!this.saveState || this.isSceneShutdown()) return;
     const root = this.createRoot();
     const metrics = this.metrics!;
@@ -1486,7 +1488,7 @@ export class OpeningScene extends Phaser.Scene {
     this.pouch = null;
 
     if (pending.hiddenPocket) {
-      this.renderHiddenPocketCarousel(pending, root, metrics);
+      this.renderHiddenPocketCarousel(pending, root, metrics, selectedCarouselIndex);
     } else {
       const standard = createCollectibleVisual(
         this,
