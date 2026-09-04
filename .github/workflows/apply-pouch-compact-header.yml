@@ -41,7 +41,7 @@ jobs:
 
           await edit('src/game/data/artAssets.ts', (text) => text
             .replace("  | 'pouch-top-header'\n", '')
-            .replace("  'pouch-top-header': 'assets/package/pouch-top-header.webp',\n", '')
+            .replace("  // Reuse the reviewed original strip source and crop the central hanger at\n  // runtime. This preserves the production art without introducing another\n  // derived binary asset into the runtime contract.\n  'pouch-top-header': 'assets/package/pouch-tear-strip.webp',\n", '')
             .replace("  'pouch-tear-strip': 'assets/package/pouch-tear-seam.webp',", "  'pouch-tear-strip': 'assets/package/pouch-tear-strip-compact.webp',")
             .replace("  'pouch-top-header',\n", ''));
 
