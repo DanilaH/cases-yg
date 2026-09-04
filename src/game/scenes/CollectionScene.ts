@@ -374,7 +374,9 @@ export class CollectionScene extends Phaser.Scene {
         );
         if (entry.owned) {
           const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8, entry.id);
-          visual.group.setScale(entry.secret ? 0.29 : 0.27);
+          visual.group.setScale(
+            family.id === 'flip-phone' ? (entry.secret ? 0.38 : 0.36) : entry.secret ? 0.29 : 0.27,
+          );
         } else {
           root.add(
             this.add

@@ -221,7 +221,7 @@ const createAssetCollectible = (
   textureKey: string,
 ): Phaser.GameObjects.Container => {
   const group = scene.add.container(0, 0);
-  const targetWidth = familyId === 'flip-phone' ? 190 : 246;
+  const targetWidth = familyId === 'flip-phone' ? 300 : 246;
   const image = scene.add.image(0, 0, textureKey).setOrigin(0.5);
   image.setScale(targetWidth / Math.max(1, image.width));
   const visualBottom = image.displayHeight / 2;

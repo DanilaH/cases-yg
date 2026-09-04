@@ -801,7 +801,11 @@ export class OpeningScene extends Phaser.Scene {
     const familyName = family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId;
     root.add(
       this.add
-        .text(metrics.centerX + 72, 490, `${familyName} · SECRET`, {
+        .text(
+          metrics.centerX + 72,
+          490,
+          `${familyName} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
+          {
           color: '#8df8ff',
           fontFamily: 'system-ui, sans-serif',
           fontSize: '22px',
@@ -940,7 +944,7 @@ export class OpeningScene extends Phaser.Scene {
           .text(
             metrics.centerX - 188,
             470,
-            `${standardFamily?.name[getPlatformRuntime().language] ?? pending.standard.familyId} · ${pending.standard.rarity.toUpperCase()}`,
+            `${standardFamily?.name[getPlatformRuntime().language] ?? pending.standard.familyId} · ${getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity]}`,
             {
               color: '#b9aec8',
               fontFamily: 'system-ui, sans-serif',
@@ -975,7 +979,11 @@ export class OpeningScene extends Phaser.Scene {
       const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
       root.add(
         this.add
-          .text(metrics.centerX + 72, 490, `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · SECRET`, {
+          .text(
+          metrics.centerX + 72,
+          490,
+          `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
+          {
             color: '#8df8ff',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '22px',
