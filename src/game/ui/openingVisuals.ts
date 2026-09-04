@@ -165,14 +165,17 @@ export const createPouchVisual = (
   const mouthLeft = -mouthWidth / 2;
   const mouthY = POUCH_PRESENTATION.tearLineY - 2;
   const mouth = scene.add
-    .rectangle(mouthLeft, mouthY, mouthWidth, 18, 0x17101f, 0)
-    .setOrigin(0, 0.5);
+    .rectangle(mouthLeft, mouthY, mouthWidth, 18, 0x17101f, 1)
+    .setOrigin(0, 0.5)
+    .setAlpha(0);
   const lowerLip = scene.add
-    .rectangle(mouthLeft, mouthY + 9, mouthWidth, 4, 0xd8c9e3, 0)
-    .setOrigin(0, 0.5);
+    .rectangle(mouthLeft, mouthY + 9, mouthWidth, 4, 0xd8c9e3, 1)
+    .setOrigin(0, 0.5)
+    .setAlpha(0);
   const innerGlow = scene.add
-    .rectangle(mouthLeft + 8, mouthY - 6, mouthWidth - 16, 2, 0xc995ff, 0)
-    .setOrigin(0, 0.5);
+    .rectangle(mouthLeft + 8, mouthY - 6, mouthWidth - 16, 2, 0xc995ff, 1)
+    .setOrigin(0, 0.5)
+    .setAlpha(0);
   bodyLayer.add([mouth, lowerLip, innerGlow]);
   group.add(bodyLayer);
 
