@@ -1,0 +1,61 @@
+name: Runtime Browser Audit Polished
+
+on:
+  push:
+    branches:
+      - audit/runtime-review-polished
+    paths:
+      - .github/scripts/runtime-audit.mjs
+      - .github/workflows/runtime-browser-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci
+      - name: Install Playwright driver without mutating lock tree
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node -e "import('playwright').then(() => console.log('playwright import ok'))"
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run browser audit
+        env:
+          AUDIT_OUT: /tmp/runtime-audit
+          PW_CHANNEL: chrome
+        run: node .github/scripts/runtime-audit.mjs
+      - name: Save Vite log
+        if: always()
+        run: |
+          mkdir -p /tmp/runtime-audit
+          cp /tmp/vite.log /tmp/runtime-audit/vite.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-browser-audit-polished
+          path: /tmp/runtime-audit
+          if-no-files-found: warn
+          retention-days: 2
