@@ -1,0 +1,28 @@
+name: Reveal Presentation V2 Diagnostics
+
+on:
+  push:
+    branches:
+      - audit/reveal-presentation-v2
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check pillow
+      - name: Measure production art
+        run: python tools/audit/presentation-diagnostics.py
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: presentation-v2-diagnostics
+          path: artifacts/presentation-v2-diagnostics
+          retention-days: 2
