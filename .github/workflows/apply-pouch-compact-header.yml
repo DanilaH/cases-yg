@@ -1,0 +1,86 @@
+name: Apply compact production pouch header
+
+on:
+  push:
+    branches:
+      - ops/pouch-compact-header-patch-2
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/pouch-visual-pass-2
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Crop reviewed strip art and simplify runtime composition
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          import sharp from 'sharp';
+
+          await sharp('public/assets/package/pouch-tear-strip.webp')
+            .extract({ left: 20, top: 54, width: 984, height: 235 })
+            .webp({ quality: 95, alphaQuality: 100, effort: 6, smartSubsample: true })
+            .toFile('public/assets/package/pouch-tear-strip-compact.webp');
+
+          const edit = async (path, transform) => {
+            const before = await fs.readFile(path, 'utf8');
+            const after = transform(before);
+            if (after === before) throw new Error(`No change produced for ${path}`);
+            await fs.writeFile(path, after);
+          };
+
+          await edit('src/game/data/artAssets.ts', (text) => text
+            .replace("  | 'pouch-top-header'\n", '')
+            .replace("  // Reuse the reviewed original strip source and crop the central hanger at\n  // runtime. This preserves the production art without introducing another\n  // derived binary asset into the runtime contract.\n  'pouch-top-header': 'assets/package/pouch-tear-strip.webp',\n", '')
+            .replace("  'pouch-tear-strip': 'assets/package/pouch-tear-seam.webp',", "  'pouch-tear-strip': 'assets/package/pouch-tear-strip-compact.webp',")
+            .replace("  'pouch-top-header',\n", ''));
+
+          await edit('src/game/data/presentation.ts', (text) => {
+            const start = text.indexOf('  // Phaser keeps crop geometry relative to the original 1024 source origin.');
+            const endMarker = '  strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,\n';
+            const end = text.indexOf(endMarker, start);
+            if (start < 0 || end < 0) throw new Error('Pouch header presentation block not found');
+            const replacement = [
+              '  // The reviewed tear-strip artwork is pre-cropped to its visible bounds,',
+              '  // so runtime placement uses normal visual coordinates instead of source-canvas offsets.',
+              '  strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,',
+              '',
+            ].join('\n');
+            return text.slice(0, start) + replacement + text.slice(end + endMarker.length);
+          });
+
+          await edit('src/game/ui/openingVisuals.ts', (text) => {
+            const start = text.indexOf('  // Reuse the original reviewed tear-strip art for the compact hanger.');
+            const end = text.indexOf('  const stripTexture = staticTextureKey(\'pouch-tear-strip\');', start);
+            if (start < 0 || end < 0) throw new Error('Runtime cropped-header block not found');
+            return text.slice(0, start) + text.slice(end);
+          });
+
+          await edit('tests/presentation.test.ts', (text) => text
+            .replace('uses a compact production header with independent seam and pull-tab geometry', 'uses a compact production tear strip with independent pull-tab geometry')
+            .replace('    expect(POUCH_PRESENTATION.header.displayWidth).toBeLessThan(POUCH_PRESENTATION.body.displayWidth * 0.7);\n', '')
+            .replace('    expect(POUCH_PRESENTATION.header.displayWidth).toBeGreaterThan(POUCH_PRESENTATION.tab.displayWidth * 0.8);\n', ''));
+          NODE
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit to feature branch
+        run: |
+          git diff --check
+          git config user.name DanilaH
+          git config user.email 41333602+DanilaH@users.noreply.github.com
+          git add public/assets/package/pouch-tear-strip-compact.webp src/game/data/artAssets.ts src/game/data/presentation.ts src/game/ui/openingVisuals.ts tests/presentation.test.ts
+          git commit -m "Use compact production pouch tear strip"
+          git push origin HEAD:fix/pouch-visual-pass-2
