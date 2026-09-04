@@ -6,6 +6,7 @@ export const en = {
     tearHint: 'Drag the star to tear →',
     resultLocked: 'Result locked',
     tapNext: 'Tap for next pouch',
+    swipeItems: 'Swipe items',
     saveLoadError: 'Save data could not be loaded. Reload to retry.',
     saveStageError: 'Could not save the reward. Try the tear again.',
     saveConfirmError: 'Reward shown, but save could not be confirmed. Reload to recover it safely.',
