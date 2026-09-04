@@ -75,6 +75,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Force Common', () => stageAndReload('common'));
   addButton('Force Rare', () => stageAndReload('rare'));
   addButton('Force Epic', () => stageAndReload('epic'));
+  addButton('Force Epic Phone', () => stageAndReload('epic-phone'));
   addButton('Force Legendary', () => stageAndReload('legendary'));
   addButton('Force Duplicate', () => stageAndReload('duplicate'));
   addButton('Reach SIGNAL LOCK', () => stageAndReload('signal-lock-reached'));

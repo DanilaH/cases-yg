@@ -6,6 +6,7 @@ import { SaveRepository, createInitialSaveState, type SaveState } from '../game/
 
 export type DebugRevealScenario =
   | StandardRarity
+  | 'epic-phone'
   | 'duplicate'
   | 'signal-lock-reached'
   | 'signal-lock-consumed'
@@ -29,6 +30,7 @@ const raritySample: Readonly<Record<StandardRarity, number>> = {
 };
 
 const cameraItemId = (rarity: StandardRarity): string => `camera-${rarity}`;
+const phoneItemId = (rarity: StandardRarity): string => `flip-phone-${rarity}`;
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 
@@ -45,6 +47,18 @@ const baseDebugState = (state: SaveState): SaveState => ({
 
 const prepareScenario = (state: SaveState, scenario: DebugRevealScenario): { state: SaveState; random: RandomSource } => {
   const base = baseDebugState(state);
+
+  if (scenario === 'epic-phone') {
+    return {
+      state: {
+        ...base,
+        signal: 0,
+        discoveredStandard: without(base.discoveredStandard, [phoneItemId('epic')]),
+      },
+      // Standard selection samples family first, then rarity, then Hidden Pocket.
+      random: new SequenceRandomSource([0.9, raritySample.epic, 0.99]),
+    };
+  }
 
   if (STANDARD_RARITIES.includes(scenario as StandardRarity)) {
     const rarity = scenario as StandardRarity;

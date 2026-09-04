@@ -17,6 +17,16 @@ describe('debug reveal scenarios', () => {
     expect(pending.hiddenPocket).toBeNull();
   });
 
+  it('forces an Epic Flip Phone for presentation review', async () => {
+    const pending = await stageDebugReveal(createRepository(), 'epic-phone');
+
+    expect(pending.standard.familyId).toBe('flip-phone');
+    expect(pending.standard.rarity).toBe('epic');
+    expect(pending.standard.collectibleId).toBe('flip-phone-epic');
+    expect(pending.standard.isNew).toBe(true);
+    expect(pending.hiddenPocket).toBeNull();
+  });
+
   it('forces an ordinary duplicate', async () => {
     const pending = await stageDebugReveal(createRepository(), 'duplicate');
 
@@ -48,6 +58,7 @@ describe('debug reveal scenarios', () => {
     expect(pending.hiddenPocket).not.toBeNull();
     expect(pending.hiddenPocket?.collectibleId).toBe('camera-secret-cosmic');
   });
+
   it('seeds a collection that is immediately reachable from Opening', async () => {
     const state = await seedDebugCollection(createRepository(), 'all');
 
@@ -55,5 +66,4 @@ describe('debug reveal scenarios', () => {
     expect(state.discoveredStandard).toHaveLength(8);
     expect(state.discoveredSecrets).toHaveLength(2);
   });
-
 });
