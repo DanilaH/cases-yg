@@ -1,0 +1,142 @@
+name: Apply Hands-on UX Fixes
+
+on:
+  push:
+    branches:
+      - fix/hands-on-ux-pass
+    paths:
+      - .github/workflows/apply-hands-on-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix-verify-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/hands-on-ux-pass
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: Rebuild aligned pouch layers from historical sources
+        run: |
+          python -m pip install --quiet pillow
+          mkdir -p /tmp/pouch-sources
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_10 AM (1).png' > '/tmp/pouch-sources/body.png'
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_11 AM (2).png' > '/tmp/pouch-sources/strip.png'
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_11 AM (3).png' > '/tmp/pouch-sources/star.png'
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          SIZE = (1254, 1254)
+          OUT = Path('public/assets/package')
+          OUT.mkdir(parents=True, exist_ok=True)
+
+          def keep_box(img: Image.Image, box: tuple[int, int, int, int]) -> Image.Image:
+              out = Image.new('RGBA', img.size, (0, 0, 0, 0))
+              piece = img.crop(box)
+              out.alpha_composite(piece, (box[0], box[1]))
+              return out
+
+          body = Image.open('/tmp/pouch-sources/body.png').convert('RGBA')
+          body = keep_box(body, (40, 35, 1215, 1210))
+
+          strip = Image.open('/tmp/pouch-sources/strip.png').convert('RGBA')
+          strip = keep_box(strip, (0, 0, 1254, 420))
+
+          star_src = Image.open('/tmp/pouch-sources/star.png').convert('RGBA')
+          star_src = keep_box(star_src, (0, 0, 560, 580))
+          bbox = star_src.getchannel('A').getbbox()
+          if not bbox:
+              raise SystemExit('star alpha bbox missing')
+          star_crop = star_src.crop(bbox)
+          target_width = 330
+          scale = target_width / star_crop.width
+          star_size = (target_width, round(star_crop.height * scale))
+          star_crop = star_crop.resize(star_size, Image.Resampling.LANCZOS)
+          star = Image.new('RGBA', SIZE, (0, 0, 0, 0))
+          star.alpha_composite(star_crop, (40, 18))
+
+          layers = {
+              'pouch-body.webp': body,
+              'pouch-tear-strip.webp': strip,
+              'pouch-star-tab.webp': star,
+          }
+          for filename, layer in layers.items():
+              layer = layer.resize((1024, 1024), Image.Resampling.LANCZOS)
+              layer.save(OUT / filename, format='WEBP', quality=92, method=6, exact=True)
+              print(filename, 'bbox=', layer.getchannel('A').getbbox())
+          PY
+
+      - name: Apply code fixes
+        run: python .github/scripts/apply-hands-on-fixes.py
+
+      - name: Verify project
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+
+      - name: Install Playwright driver without mutating lock tree
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node -e "import('playwright').then(() => console.log('playwright import ok'))"
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+
+      - name: Run hands-on browser audit
+        env:
+          AUDIT_OUT: /tmp/hands-on-audit
+          PW_CHANNEL: chrome
+        run: node .github/scripts/hands-on-audit.mjs
+
+      - name: Save audit logs
+        if: always()
+        run: |
+          mkdir -p /tmp/hands-on-audit
+          cp /tmp/vite.log /tmp/hands-on-audit/vite.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hands-on-ux-audit
+          path: /tmp/hands-on-audit
+          if-no-files-found: warn
+          retention-days: 2
+
+      - name: Commit verified product fixes and remove temporary audit tooling
+        run: |
+          rm -f .github/workflows/inspect-pouch-master.yml
+          rm -f .github/workflows/apply-hands-on-fixes.yml
+          rm -f .github/scripts/apply-hands-on-fixes.py
+          rm -f .github/scripts/hands-on-audit.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "Fix hands-on UX issues"
+          git push origin HEAD:fix/hands-on-ux-pass
