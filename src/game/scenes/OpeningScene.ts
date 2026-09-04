@@ -70,6 +70,15 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   public create(): void {
+    // Phaser reuses the Scene instance after Collection -> Opening. Shutdown is
+    // terminal only for the previous activation, so reset activation state here.
+    this.phase = 'booting';
+    this.drag = null;
+    this.resultCarouselDrag = null;
+    this.resultReady = false;
+    this.deferredResize = false;
+    this.ignoreNextResultTap = false;
+
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
 
