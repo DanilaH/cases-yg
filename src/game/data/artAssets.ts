@@ -25,7 +25,7 @@ export interface RuntimeStaticArt {
 
 const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'pouch-body': 'assets/package/pouch-body.webp',
-  'pouch-tear-strip': 'assets/package/pouch-tear-strip.webp',
+  'pouch-tear-strip': 'assets/package/pouch-tear-seam.webp',
   'pouch-star-tab': 'assets/package/pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
   'collection-bg': 'assets/backgrounds/collection-bg.webp',

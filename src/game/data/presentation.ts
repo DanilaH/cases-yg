@@ -70,20 +70,20 @@ export interface PouchLayerPresentation {
 export const POUCH_PRESENTATION = {
   groupY: 326,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // The production strip has a wider visible-alpha footprint than the body.
-  // Keep it intentionally narrower so the pouch body owns the silhouette.
-  strip: { x: 0, y: 4, displayWidth: 338 } satisfies PouchLayerPresentation,
-  // The star source uses the same 1024 canvas contract; resize and offset it
-  // independently so the visible star reads as the left pull handle.
-  tab: { x: -30, y: 4, displayWidth: 316 } satisfies PouchLayerPresentation,
+  // Runtime seam is intentionally only the narrow tear rail. It should overlap
+  // the body's own top foil edge instead of reading as a second package lid.
+  strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,
+  // The existing star source has large transparent padding. These offsets place
+  // the visible star on the left end of the seam and let it traverse the rail.
+  tab: { x: -62, y: 20, displayWidth: 286 } satisfies PouchLayerPresentation,
   shadowY: 286,
   shadowWidth: 358,
-  hitboxX: -135,
-  hitboxY: -112,
-  hitboxSize: 112,
-  tabTravel: 272,
-  dragThreshold: 252,
-  tearLineY: -78,
+  hitboxX: -158,
+  hitboxY: -83,
+  hitboxSize: 100,
+  tabTravel: 318,
+  dragThreshold: 294,
+  tearLineY: -82,
 } as const;
 
 export interface RevealFxPreset {
