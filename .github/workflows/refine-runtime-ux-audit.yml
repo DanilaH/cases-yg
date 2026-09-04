@@ -1,0 +1,90 @@
+name: Refine Runtime UX Audit Fixes
+
+on:
+  push:
+    branches:
+      - fix/runtime-ux-audit-pass
+    paths:
+      - .github/workflows/refine-runtime-ux-audit.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/runtime-ux-audit-pass
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: Apply browser-audit refinements
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/game/scenes/CollectionScene.ts')
+          s = p.read_text()
+          s = s.replace('topScrim.fillStyle(0x1b1425, 0.34);', 'topScrim.fillStyle(0x1b1425, 0.26);')
+          s = s.replace("const rowStartY = families.length === 1 ? 320 : 245;\n    const rowGap = 255;", "const rowStartY = families.length === 1 ? 330 : 270;\n    const rowGap = 245;")
+          old = ".text(metrics.safeLeft + 24, y - 80, family.name[getPlatformRuntime().language], {"
+          new = ".text(metrics.centerX, y - 100, family.name[getPlatformRuntime().language], {"
+          if old not in s:
+              raise SystemExit('Library family heading anchor not found')
+          s = s.replace(old, new, 1)
+          old_origin = """          })
+          .setOrigin(0, 0.5),
+      );
+
+      const entries = ["""
+          new_origin = """          })
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 3, true, true),
+      );
+
+      const entries = ["""
+          if old_origin not in s:
+              raise SystemExit('Library family heading origin not found')
+          s = s.replace(old_origin, new_origin, 1)
+          p.write_text(s)
+
+          p = Path('src/i18n/ru.ts')
+          s = p.read_text()
+          replacements = {
+              "secretDiscovered: 'SECRET НАЙДЕН'": "secretDiscovered: 'СЕКРЕТ НАЙДЕН'",
+              "secrets: 'Secrets'": "secrets: 'Секреты'",
+              "secret: 'SECRET'": "secret: 'СЕКРЕТ'",
+              "common: 'Common'": "common: 'Обычная'",
+              "rare: 'Rare'": "rare: 'Редкая'",
+              "epic: 'Epic'": "epic: 'Эпическая'",
+              "legendary: 'Legendary'": "legendary: 'Легендарная'",
+              "secret: 'Secret'": "secret: 'Секретная'",
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'RU localization entry not found: {old}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+
+      - name: Verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+
+      - name: Commit verified refinement and remove temporary workflow
+        run: |
+          rm .github/workflows/refine-runtime-ux-audit.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Refine compact collection UX"
+          git push origin HEAD:fix/runtime-ux-audit-pass
