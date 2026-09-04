@@ -105,7 +105,7 @@ export class CollectionScene extends Phaser.Scene {
     }
 
     const topScrim = this.add.graphics();
-    topScrim.fillStyle(0x1b1425, 0.34);
+    topScrim.fillStyle(0x1b1425, 0.26);
     topScrim.fillRoundedRect(metrics.centerX - 260, 22, 520, 138, 28);
     root.add(topScrim);
 
@@ -243,81 +243,81 @@ export class CollectionScene extends Phaser.Scene {
 
       root.add(
         this.add
-.text(x, 216, family.name[getPlatformRuntime().language], {
-  color: '#f8f2fd',
-  fontFamily: 'system-ui, sans-serif',
-  fontSize: '20px',
-  fontStyle: 'bold',
-})
-.setOrigin(0.5)
-.setShadow(0, 2, '#160f20', 4, true, true),
+          .text(x, 216, family.name[getPlatformRuntime().language], {
+            color: '#f8f2fd',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: '20px',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 4, true, true),
       );
 
       const featured = getShelfFeaturedOwned(family, familySnapshot);
       if (featured) {
         const visual = createCollectibleVisual(
-this,
-root,
-family.id,
-featured.rarity,
-x,
-360,
-featured.collectibleId,
+          this,
+          root,
+          family.id,
+          featured.rarity,
+          x,
+          360,
+          featured.collectibleId,
         );
         visual.group.setScale(featured.rarity === 'secret' ? 0.82 : 0.78);
         const featureColor = featured.rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[featured.rarity];
         root.add(
-this.add
-  .text(x, 510, `${messages.collection.bestOwned}: ${messages.rarity[featured.rarity]}`, {
-    color: `#${featureColor.toString(16).padStart(6, '0')}`,
-    fontFamily: 'system-ui, sans-serif',
-    fontSize: '15px',
-    fontStyle: 'bold',
-  })
-  .setOrigin(0.5)
-  .setShadow(0, 2, '#160f20', 4, true, true),
+          this.add
+            .text(x, 510, `${messages.collection.bestOwned}: ${messages.rarity[featured.rarity]}`, {
+              color: `#${featureColor.toString(16).padStart(6, '0')}`,
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '15px',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 4, true, true),
         );
       } else {
         root.add(this.add.circle(x, 360, 70, 0x251d2f, 0.5).setStrokeStyle(2, 0xe7d7f2, 0.18));
         root.add(
-this.add
-  .text(x, 352, '?', {
-    color: '#8a7a95',
-    fontFamily: 'system-ui, sans-serif',
-    fontSize: '70px',
-    fontStyle: 'bold',
-  })
-  .setOrigin(0.5)
-  .setShadow(0, 2, '#160f20', 4, true, true),
+          this.add
+            .text(x, 352, '?', {
+              color: '#8a7a95',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '70px',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 4, true, true),
         );
         root.add(
-this.add
-  .text(x, 505, messages.collection.emptyShelf, {
-    color: '#c1b5ca',
-    align: 'center',
-    fontFamily: 'system-ui, sans-serif',
-    fontSize: '14px',
-    wordWrap: { width: cardWidth - 42 },
-  })
-  .setOrigin(0.5)
-  .setShadow(0, 2, '#160f20', 3, true, true),
+          this.add
+            .text(x, 505, messages.collection.emptyShelf, {
+              color: '#c1b5ca',
+              align: 'center',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '14px',
+              wordWrap: { width: cardWidth - 42 },
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 3, true, true),
         );
       }
 
       root.add(
         this.add
-.text(
-  x,
-  542,
-  `${familySnapshot.standardCount}/${familySnapshot.standardTotal}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
-  {
-    color: '#ded3e8',
-    fontFamily: 'monospace',
-    fontSize: '13px',
-  },
-)
-.setOrigin(0.5)
-.setShadow(0, 2, '#160f20', 3, true, true),
+          .text(
+            x,
+            542,
+            `${familySnapshot.standardCount}/${familySnapshot.standardTotal}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
+            {
+              color: '#ded3e8',
+              fontFamily: 'monospace',
+              fontSize: '13px',
+            },
+          )
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 3, true, true),
       );
     });
   }
@@ -326,21 +326,22 @@ this.add
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const rowStartY = families.length === 1 ? 320 : 245;
-    const rowGap = 255;
+    const rowStartY = families.length === 1 ? 330 : 270;
+    const rowGap = 245;
 
     families.forEach((family, familyIndex) => {
       const familySnapshot = this.snapshot!.families.find(({ familyId }) => familyId === family.id)!;
       const y = rowStartY + familyIndex * rowGap;
       root.add(
         this.add
-          .text(metrics.safeLeft + 24, y - 80, family.name[getPlatformRuntime().language], {
+          .text(metrics.centerX, y - 100, family.name[getPlatformRuntime().language], {
             color: '#f4edf9',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '18px',
             fontStyle: 'bold',
           })
-          .setOrigin(0, 0.5),
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 3, true, true),
       );
 
       const entries = [
