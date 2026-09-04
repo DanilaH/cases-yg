@@ -34,6 +34,12 @@ describe('reveal presentation', () => {
     expect(MOTION_PRESENTATION.tearHintY).toBeGreaterThan(POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY);
   });
 
+  it('keeps the pouch visual center near the reward reveal center', () => {
+    const pouchVisualCenterY = POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.body.y;
+    expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('camera').revealY)).toBeLessThan(50);
+    expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
+  });
+
   it('keeps a sub-threshold carousel drag on the current page', () => {
     expect(resolveCarouselIndex(1, 2, RESULT_PRESENTATION.swipeThreshold - 1)).toBe(1);
     expect(resolveCarouselIndex(1, 2, -(RESULT_PRESENTATION.swipeThreshold - 1))).toBe(1);
