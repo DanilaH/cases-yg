@@ -21,11 +21,11 @@ jobs:
           node-version: 22.12.0
           cache: npm
       - name: Install project dependencies
-        run: npm ci
-      - name: Install Playwright Chromium
+        run: npm ci --omit=optional
+      - name: Install Playwright driver
         run: |
-          npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npm install --no-save --no-package-lock --omit=optional playwright@1.55.0
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
       - name: Start Vite
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
@@ -39,10 +39,13 @@ jobs:
       - name: Run browser audit
         env:
           AUDIT_OUT: /tmp/runtime-audit
+          PW_CHANNEL: chrome
         run: node .github/scripts/runtime-audit.mjs
       - name: Save Vite log
         if: always()
-        run: cp /tmp/vite.log /tmp/runtime-audit/vite.log || true
+        run: |
+          mkdir -p /tmp/runtime-audit
+          cp /tmp/vite.log /tmp/runtime-audit/vite.log || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
