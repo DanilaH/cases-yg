@@ -1,0 +1,37 @@
+name: Inspect Historical Pouch Master
+
+on:
+  push:
+    branches:
+      - fix/hands-on-ux-pass
+    paths:
+      - .github/workflows/inspect-pouch-master.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Restore historical master
+        run: |
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 2, 2026, 12_02_20 PM.png' > /tmp/pouch-master.png
+      - name: Inspect geometry
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          img = Image.open('/tmp/pouch-master.png').convert('RGBA')
+          alpha = img.getchannel('A')
+          print('size=', img.size)
+          print('alpha_bbox=', alpha.getbbox())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-pouch-master
+          path: /tmp/pouch-master.png
+          retention-days: 2
