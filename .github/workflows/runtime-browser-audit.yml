@@ -1,0 +1,52 @@
+name: Runtime Browser Audit
+
+on:
+  push:
+    branches:
+      - audit/runtime-review
+    paths:
+      - .github/scripts/runtime-audit.mjs
+      - .github/workflows/runtime-browser-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - name: Install project dependencies
+        run: npm ci
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run browser audit
+        env:
+          AUDIT_OUT: /tmp/runtime-audit
+        run: node .github/scripts/runtime-audit.mjs
+      - name: Save Vite log
+        if: always()
+        run: cp /tmp/vite.log /tmp/runtime-audit/vite.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-browser-audit
+          path: /tmp/runtime-audit
+          if-no-files-found: warn
+          retention-days: 2
