@@ -442,6 +442,7 @@ export class OpeningScene extends Phaser.Scene {
       if (!gesture || !this.metrics || pointer.id !== gesture.pointerId) return;
       this.resultCarouselDrag = null;
 
+      const moved = Math.hypot(gesture.deltaX, gesture.deltaY);
       if (gesture.startedInCarousel && this.resultCarouselItems.length > 1) {
         this.resultCarouselIndex = resolveCarouselIndex(
           this.resultCarouselIndex,
@@ -450,10 +451,16 @@ export class OpeningScene extends Phaser.Scene {
         );
         this.positionResultCarousel(0, true);
         if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);
+        if (
+          gesture.readyAtStart &&
+          this.resultReady &&
+          moved <= RESULT_PRESENTATION.tapMoveTolerance
+        ) {
+          this.continueFromResult();
+        }
         return;
       }
 
-      const moved = Math.hypot(gesture.deltaX, gesture.deltaY);
       if (
         gesture.readyAtStart &&
         this.resultReady &&
