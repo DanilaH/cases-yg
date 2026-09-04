@@ -68,27 +68,33 @@ export interface PouchLayerPresentation {
 }
 
 export const POUCH_PRESENTATION = {
-  groupY: 340,
-  body: { x: 0, y: 88, displayWidth: 410 } satisfies PouchLayerPresentation,
-  strip: { x: 0, y: 0, displayWidth: 376 } satisfies PouchLayerPresentation,
-  tab: { x: 0, y: 0, displayWidth: 376 } satisfies PouchLayerPresentation,
+  groupY: 326,
+  body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
+  // The production strip has a wider visible-alpha footprint than the body.
+  // Keep it intentionally narrower so the pouch body owns the silhouette.
+  strip: { x: 0, y: 4, displayWidth: 338 } satisfies PouchLayerPresentation,
+  // The star source uses the same 1024 canvas contract; resize and offset it
+  // independently so the visible star reads as the left pull handle.
+  tab: { x: -30, y: 4, displayWidth: 316 } satisfies PouchLayerPresentation,
   shadowY: 286,
-  shadowWidth: 350,
-  hitboxX: -125,
-  hitboxY: -135,
-  hitboxSize: 136,
-  tabTravel: 284,
-  dragThreshold: 260,
-  tearLineY: -92,
+  shadowWidth: 358,
+  hitboxX: -135,
+  hitboxY: -112,
+  hitboxSize: 112,
+  tabTravel: 272,
+  dragThreshold: 252,
+  tearLineY: -78,
 } as const;
 
 export interface RevealFxPreset {
+  backdropAlpha: number;
   flashAlpha: number;
   glowAlpha: number;
   ringScale: number;
   particleCount: number;
   particleDistance: number;
   particleDuration: number;
+  sparkleScale: number;
   overshootScale: number;
   introDuration: number;
   settleDuration: number;
@@ -98,71 +104,103 @@ export interface RevealFxPreset {
 
 export const REVEAL_FX_PRESETS: Readonly<Record<RevealRarity, RevealFxPreset>> = {
   common: {
-    flashAlpha: 0.18,
-    glowAlpha: 0.12,
-    ringScale: 1.35,
-    particleCount: 7,
-    particleDistance: 104,
-    particleDuration: 380,
-    overshootScale: 1.12,
-    introDuration: 330,
-    settleDuration: 130,
-    shake: 0,
+    backdropAlpha: 0.12,
+    flashAlpha: 0.28,
+    glowAlpha: 0.18,
+    ringScale: 1.5,
+    particleCount: 8,
+    particleDistance: 118,
+    particleDuration: 420,
+    sparkleScale: 1,
+    overshootScale: 1.13,
+    introDuration: 340,
+    settleDuration: 135,
+    shake: 0.0005,
     secondaryRing: false,
   },
   rare: {
-    flashAlpha: 0.23,
-    glowAlpha: 0.16,
-    ringScale: 1.5,
-    particleCount: 11,
-    particleDistance: 124,
-    particleDuration: 430,
-    overshootScale: 1.14,
-    introDuration: 350,
-    settleDuration: 135,
-    shake: 0.0008,
+    backdropAlpha: 0.15,
+    flashAlpha: 0.35,
+    glowAlpha: 0.24,
+    ringScale: 1.65,
+    particleCount: 12,
+    particleDistance: 142,
+    particleDuration: 470,
+    sparkleScale: 1.05,
+    overshootScale: 1.15,
+    introDuration: 360,
+    settleDuration: 140,
+    shake: 0.0012,
     secondaryRing: false,
   },
   epic: {
-    flashAlpha: 0.3,
-    glowAlpha: 0.22,
-    ringScale: 1.7,
-    particleCount: 16,
-    particleDistance: 154,
-    particleDuration: 500,
-    overshootScale: 1.16,
-    introDuration: 380,
-    settleDuration: 145,
-    shake: 0.0018,
+    backdropAlpha: 0.21,
+    flashAlpha: 0.46,
+    glowAlpha: 0.34,
+    ringScale: 1.9,
+    particleCount: 18,
+    particleDistance: 178,
+    particleDuration: 540,
+    sparkleScale: 1.18,
+    overshootScale: 1.18,
+    introDuration: 390,
+    settleDuration: 150,
+    shake: 0.0025,
     secondaryRing: true,
   },
   legendary: {
-    flashAlpha: 0.38,
-    glowAlpha: 0.3,
-    ringScale: 1.95,
-    particleCount: 23,
-    particleDistance: 188,
-    particleDuration: 590,
-    overshootScale: 1.18,
-    introDuration: 410,
-    settleDuration: 155,
-    shake: 0.0028,
+    backdropAlpha: 0.27,
+    flashAlpha: 0.58,
+    glowAlpha: 0.46,
+    ringScale: 2.15,
+    particleCount: 25,
+    particleDistance: 214,
+    particleDuration: 630,
+    sparkleScale: 1.28,
+    overshootScale: 1.21,
+    introDuration: 420,
+    settleDuration: 160,
+    shake: 0.0036,
     secondaryRing: true,
   },
   secret: {
-    flashAlpha: 0.44,
-    glowAlpha: 0.36,
-    ringScale: 2.15,
-    particleCount: 30,
-    particleDistance: 214,
-    particleDuration: 660,
-    overshootScale: 1.18,
-    introDuration: 430,
-    settleDuration: 160,
-    shake: 0.0032,
+    backdropAlpha: 0.31,
+    flashAlpha: 0.66,
+    glowAlpha: 0.56,
+    ringScale: 2.35,
+    particleCount: 32,
+    particleDistance: 242,
+    particleDuration: 700,
+    sparkleScale: 1.38,
+    overshootScale: 1.22,
+    introDuration: 445,
+    settleDuration: 165,
+    shake: 0.0042,
     secondaryRing: true,
   },
 };
+
+export const AMBIENT_PRESENTATION = {
+  count: 15,
+  minAlpha: 0.07,
+  maxAlpha: 0.17,
+  minRadius: 1.5,
+  maxRadius: 4.5,
+  minDuration: 6800,
+  maxDuration: 11200,
+  maxDriftX: 42,
+  maxDriftY: 24,
+} as const;
+
+export const MOTION_PRESENTATION = {
+  tearHintY: 662,
+  starPulseScale: 1.04,
+  starPulseDuration: 720,
+  resultPulseScale: 1.028,
+  resultPulseDuration: 620,
+  rewardBreathScale: 1.028,
+  rewardBreathDuration: 1200,
+} as const;
 
 export const RESULT_PRESENTATION = {
   panelY: 558,
