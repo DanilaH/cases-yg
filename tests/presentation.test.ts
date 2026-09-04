@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AMBIENT_PRESENTATION,
   COLLECTIBLE_PRESENTATION,
   getCarouselVisualState,
   getCollectiblePresentation,
+  MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
   RESULT_PRESENTATION,
@@ -24,9 +26,11 @@ describe('reveal presentation', () => {
   });
 
   it('uses independent measured pouch layer transforms', () => {
-    expect(POUCH_PRESENTATION.body.displayWidth).not.toBe(POUCH_PRESENTATION.strip.displayWidth);
+    expect(POUCH_PRESENTATION.strip.displayWidth).toBeLessThan(POUCH_PRESENTATION.body.displayWidth * 0.85);
+    expect(POUCH_PRESENTATION.tab.displayWidth).toBeLessThan(POUCH_PRESENTATION.strip.displayWidth);
     expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);
     expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(260);
+    expect(MOTION_PRESENTATION.tearHintY).toBeGreaterThan(POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY);
   });
 
   it('keeps a sub-threshold carousel drag on the current page', () => {
@@ -63,5 +67,16 @@ describe('reveal presentation', () => {
     expect(REVEAL_FX_PRESETS.legendary.particleDistance).toBeGreaterThan(REVEAL_FX_PRESETS.epic.particleDistance);
     expect(REVEAL_FX_PRESETS.secret.particleCount).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.particleCount);
     expect(REVEAL_FX_PRESETS.secret.glowAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.glowAlpha);
+    expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.rare.backdropAlpha);
+    expect(REVEAL_FX_PRESETS.secret.sparkleScale).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.sparkleScale);
+  });
+
+  it('keeps ambient and idle motion subtle and bounded', () => {
+    expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(20);
+    expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThan(1);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThan(1.08);
+    expect(MOTION_PRESENTATION.resultPulseScale).toBeLessThan(1.05);
+    expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);
   });
 });

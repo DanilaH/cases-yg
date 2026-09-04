@@ -6,9 +6,11 @@ import { staticTextureKey } from '../data/artAssets';
 import { SLICE_BALANCE } from '../data/balance';
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
 import {
+  AMBIENT_PRESENTATION,
   getCarouselSpacing,
   getCarouselVisualState,
   getCollectiblePresentation,
+  MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
   RESULT_PRESENTATION,
@@ -77,6 +79,9 @@ export class OpeningScene extends Phaser.Scene {
   private resultCarouselIndex = 0;
   private resultCarouselDrag: ResultCarouselDrag | null = null;
   private resultCarouselZone: Phaser.GameObjects.Zone | null = null;
+  private ambientParticles: Phaser.GameObjects.Arc[] = [];
+  private resultBreathTarget: Phaser.GameObjects.Container | null = null;
+  private resultBreathBaseScale = 1;
 
   public constructor() {
     super('OpeningScene');
@@ -173,6 +178,10 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private createRoot(): Phaser.GameObjects.Container {
+    this.stopStarPulse();
+    this.stopResultPanelPulse();
+    this.stopRewardBreathing();
+    this.clearAmbientMotion();
     this.root?.destroy(true);
     this.pouch = null;
     this.collectionButton = null;
@@ -211,6 +220,8 @@ export class OpeningScene extends Phaser.Scene {
       root.add(haze);
     }
 
+    this.addAmbientMotion(root, metrics);
+
     root.add(
       this.add
         .text(metrics.centerX, 62, getMessages(getPlatformRuntime().language).appTitle, {
@@ -223,6 +234,159 @@ export class OpeningScene extends Phaser.Scene {
     );
 
     return root;
+  }
+
+  private clearAmbientMotion(): void {
+    for (const particle of this.ambientParticles) {
+      this.tweens.killTweensOf(particle);
+    }
+    this.ambientParticles = [];
+  }
+
+  private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
+    const usableWidth = Math.max(160, metrics.logicalWidth - 120);
+    const colors = [0xf4e5ff, 0xb9efff, 0xffe7f2];
+    for (let index = 0; index < AMBIENT_PRESENTATION.count; index += 1) {
+      const radiusMix = (index % 4) / 3;
+      const alphaMix = (index % 5) / 4;
+      const radius = Phaser.Math.Linear(
+        AMBIENT_PRESENTATION.minRadius,
+        AMBIENT_PRESENTATION.maxRadius,
+        radiusMix,
+      );
+      const alpha = Phaser.Math.Linear(
+        AMBIENT_PRESENTATION.minAlpha,
+        AMBIENT_PRESENTATION.maxAlpha,
+        alphaMix,
+      );
+      const x = 60 + ((index * 173) % usableWidth);
+      const y = 122 + ((index * 97) % 470);
+      const particle = this.add.circle(x, y, radius, colors[index % colors.length], alpha);
+      root.add(particle);
+      this.ambientParticles.push(particle);
+
+      const driftX = (index % 2 === 0 ? 1 : -1) * (18 + (index % 4) * 8);
+      const driftY = -(10 + (index % 3) * 7);
+      const durationMix = (index % 6) / 5;
+      this.tweens.add({
+        targets: particle,
+        x: x + Phaser.Math.Clamp(driftX, -AMBIENT_PRESENTATION.maxDriftX, AMBIENT_PRESENTATION.maxDriftX),
+        y: y + Phaser.Math.Clamp(driftY, -AMBIENT_PRESENTATION.maxDriftY, AMBIENT_PRESENTATION.maxDriftY),
+        alpha: Math.min(0.24, alpha * 1.55),
+        duration: Phaser.Math.Linear(
+          AMBIENT_PRESENTATION.minDuration,
+          AMBIENT_PRESENTATION.maxDuration,
+          durationMix,
+        ),
+        delay: index * 110,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  private startStarPulse(): void {
+    if (!this.pouch || this.phase !== 'idle') return;
+    this.stopStarPulse();
+    this.tweens.add({
+      targets: this.pouch.tab,
+      scale: MOTION_PRESENTATION.starPulseScale,
+      alpha: 0.86,
+      duration: MOTION_PRESENTATION.starPulseDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopStarPulse(): void {
+    if (!this.pouch) return;
+    this.tweens.killTweensOf(this.pouch.tab);
+    this.pouch.tab.setScale(1).setAlpha(1);
+  }
+
+  private startResultPanelPulse(): void {
+    if (!this.resultActionPanel || !this.resultReady || this.phase !== 'result') return;
+    this.stopResultPanelPulse();
+    this.tweens.add({
+      targets: this.resultActionPanel,
+      scale: MOTION_PRESENTATION.resultPulseScale,
+      duration: MOTION_PRESENTATION.resultPulseDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopResultPanelPulse(): void {
+    if (!this.resultActionPanel) return;
+    this.tweens.killTweensOf(this.resultActionPanel);
+    this.resultActionPanel.setScale(1);
+  }
+
+  private startRewardBreathing(target: Phaser.GameObjects.Container, baseScale: number): void {
+    this.stopRewardBreathing();
+    this.resultBreathTarget = target;
+    this.resultBreathBaseScale = baseScale;
+    target.setScale(baseScale);
+    this.tweens.add({
+      targets: target,
+      scale: baseScale * MOTION_PRESENTATION.rewardBreathScale,
+      duration: MOTION_PRESENTATION.rewardBreathDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopRewardBreathing(): void {
+    if (!this.resultBreathTarget) return;
+    this.tweens.killTweensOf(this.resultBreathTarget);
+    this.resultBreathTarget.setScale(this.resultBreathBaseScale);
+    this.resultBreathTarget = null;
+    this.resultBreathBaseScale = 1;
+  }
+
+  private syncCarouselRewardBreathing(): void {
+    this.stopRewardBreathing();
+    const activePage = this.resultCarouselItems[this.resultCarouselIndex];
+    if (!activePage) return;
+    const target = activePage.getData('breathTarget') as Phaser.GameObjects.Container | undefined;
+    const baseScale = Number(activePage.getData('breathBaseScale') ?? 1);
+    if (target) this.startRewardBreathing(target, baseScale);
+  }
+
+  private createRevealBackdrop(alpha: number, duration: number): void {
+    if (!this.root || !this.metrics) return;
+    const backdrop = this.add
+      .rectangle(
+        this.metrics.centerX,
+        LOGICAL_HEIGHT / 2,
+        this.metrics.logicalWidth,
+        LOGICAL_HEIGHT,
+        0x120c1b,
+        0,
+      )
+      .setOrigin(0.5);
+    this.root.add(backdrop);
+    this.tweens.add({
+      targets: backdrop,
+      alpha,
+      duration: 90,
+      ease: 'Sine.Out',
+      onComplete: () => {
+        if (!backdrop.active) return;
+        this.tweens.add({
+          targets: backdrop,
+          alpha: 0,
+          delay: 120,
+          duration: duration + 140,
+          ease: 'Sine.In',
+          onComplete: () => backdrop.destroy(),
+        });
+      },
+    });
   }
 
   private renderIdle(message?: string): void {
@@ -244,9 +408,10 @@ export class OpeningScene extends Phaser.Scene {
 
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
+    this.startStarPulse();
 
     const tearHint = this.add
-      .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {
+      .text(metrics.centerX, MOTION_PRESENTATION.tearHintY, getMessages(getPlatformRuntime().language).opening.tearHint, {
         color: '#efe7f6',
         backgroundColor: '#2a2037',
         padding: { x: 14, y: 8 },
@@ -260,7 +425,7 @@ export class OpeningScene extends Phaser.Scene {
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, 648, message, {
+          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY - 42, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
@@ -374,6 +539,7 @@ export class OpeningScene extends Phaser.Scene {
   private beginDrag(pointer: Phaser.Input.Pointer): void {
     if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;
 
+    this.stopStarPulse();
     this.phase = 'dragging';
     this.drag = {
       pointerId: pointer.id,
@@ -450,6 +616,7 @@ export class OpeningScene extends Phaser.Scene {
           gesture.deltaX,
         );
         this.positionResultCarousel(0, true);
+        this.syncCarouselRewardBreathing();
         if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);
         if (
           gesture.readyAtStart &&
@@ -485,6 +652,9 @@ export class OpeningScene extends Phaser.Scene {
       x: pouch.tabStartX,
       duration: 170,
       ease: 'Sine.Out',
+      onComplete: () => {
+        if (this.phase === 'idle') this.startStarPulse();
+      },
     });
     this.tweens.add({
       targets: pouch.strip,
@@ -497,6 +667,7 @@ export class OpeningScene extends Phaser.Scene {
   private async completeTear(firstInteraction: boolean): Promise<void> {
     if (this.phase !== 'dragging' || !this.session) return;
 
+    this.stopStarPulse();
     this.phase = 'revealing';
     this.drag = null;
     this.pouch?.dragZone.disableInteractive();
@@ -611,21 +782,22 @@ export class OpeningScene extends Phaser.Scene {
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
     const presentation = getCollectiblePresentation(pending.standard.familyId);
     const fx = REVEAL_FX_PRESETS[pending.standard.rarity];
+    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
     const heroX = this.metrics!.centerX;
     const heroY = presentation.revealY;
     const finalScale = presentation.revealScale;
 
     getGameAudio().play('reveal-pop');
 
-    const halo = this.add.circle(heroX, heroY, 118, color, fx.glowAlpha).setScale(0.42);
-    const flash = this.add.circle(heroX, heroY, 86, color, fx.flashAlpha).setScale(0.28);
+    const halo = this.add.circle(heroX, heroY, 136, color, fx.glowAlpha).setScale(0.4);
+    const flash = this.add.circle(heroX, heroY, 102, color, fx.flashAlpha).setScale(0.3);
     root.add([halo, flash]);
-    const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.16);
+    const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.38);
     if (fx.secondaryRing) {
       const secondary = createRevealRing(this, root, heroX, heroY, color)
         .setScale(0.3)
-        .setAlpha(0.38)
-        .setStrokeStyle(3, color, 0.5);
+        .setAlpha(0.5)
+        .setStrokeStyle(4, color, 0.68);
       this.tweens.add({
         targets: secondary,
         scale: fx.ringScale * 1.25,
@@ -654,6 +826,7 @@ export class OpeningScene extends Phaser.Scene {
       fx.particleCount,
       fx.particleDistance,
       fx.particleDuration,
+      fx.sparkleScale,
     );
 
     this.tweens.add({
@@ -867,16 +1040,17 @@ export class OpeningScene extends Phaser.Scene {
 
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
-    const halo = this.add.circle(heroX, heroY, 132, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);
-    const flash = this.add.circle(heroX, heroY, 96, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.26);
+    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
+    const halo = this.add.circle(heroX, heroY, 150, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);
+    const flash = this.add.circle(heroX, heroY, 112, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.28);
     root.add([halo, flash]);
     const ring = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
       .setScale(0.42)
-      .setAlpha(0.38);
+      .setAlpha(0.54);
     const secondary = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
       .setScale(0.25)
-      .setAlpha(0.3)
-      .setStrokeStyle(3, SECRET_REVEAL_COLOR, 0.5);
+      .setAlpha(0.46)
+      .setStrokeStyle(4, SECRET_REVEAL_COLOR, 0.68);
 
     getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
@@ -896,6 +1070,7 @@ export class OpeningScene extends Phaser.Scene {
       fx.particleCount,
       fx.particleDistance,
       fx.particleDuration,
+      fx.sparkleScale,
     );
 
     this.tweens.add({
@@ -986,6 +1161,8 @@ export class OpeningScene extends Phaser.Scene {
     );
     standardVisual.group.setScale(standardVisual.presentation.revealScale);
     standardPage.setData('sideScale', standardVisual.presentation.carouselSideScale);
+    standardPage.setData('breathTarget', standardVisual.group);
+    standardPage.setData('breathBaseScale', standardVisual.presentation.revealScale);
 
     const secretPage = this.add.container(0, getCollectiblePresentation(pending.hiddenPocket.familyId).revealY);
     root.add(secretPage);
@@ -1000,6 +1177,8 @@ export class OpeningScene extends Phaser.Scene {
     );
     secretVisual.group.setScale(secretVisual.presentation.revealScale);
     secretPage.setData('sideScale', secretVisual.presentation.carouselSideScale);
+    secretPage.setData('breathTarget', secretVisual.group);
+    secretPage.setData('breathBaseScale', secretVisual.presentation.revealScale);
 
     this.resultCarouselItems = [standardPage, secretPage];
     this.resultCarouselIndex = 1;
@@ -1023,6 +1202,8 @@ export class OpeningScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     this.resultCarouselZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.phase !== 'result' || this.resultCarouselItems.length < 2) return;
+      this.stopResultPanelPulse();
+      this.stopRewardBreathing();
       this.resultCarouselDrag = {
         pointerId: pointer.id,
         startPointerX: pointer.x,
@@ -1035,6 +1216,7 @@ export class OpeningScene extends Phaser.Scene {
     });
     root.add(this.resultCarouselZone);
     this.positionResultCarousel(0, false);
+    this.syncCarouselRewardBreathing();
   }
 
   private positionResultCarousel(dragOffset = 0, animate = false): void {
@@ -1078,19 +1260,22 @@ export class OpeningScene extends Phaser.Scene {
     count: number,
     distance: number,
     duration: number,
+    sizeScale = 1,
   ): void {
     if (!this.root) return;
     const root = this.root;
     for (let index = 0; index < count; index += 1) {
       const angle = (Math.PI * 2 * index) / count + 0.12 * (index % 3);
       const distanceJitter = distance * (0.74 + (index % 4) * 0.09);
-      const sparkle = this.add.circle(
-        x,
-        y,
-        index % 3 === 0 ? 6 : index % 2 === 0 ? 4 : 3,
-        color,
-        0.94,
-      );
+      const sparkle = this.add
+        .circle(
+          x,
+          y,
+          (index % 3 === 0 ? 7 : index % 2 === 0 ? 5 : 3.5) * sizeScale,
+          color,
+          1,
+        )
+        .setStrokeStyle(1.5, 0xffffff, 0.46);
       root.add(sparkle);
       this.tweens.add({
         targets: sparkle,
@@ -1173,6 +1358,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private renderResultActionPanel(pending: PendingReveal): void {
     if (!this.root || !this.metrics || this.phase !== 'result') return;
+    this.stopResultPanelPulse();
     this.resultActionPanel?.destroy(true);
 
     const messages = getMessages(getPlatformRuntime().language);
@@ -1238,6 +1424,7 @@ export class OpeningScene extends Phaser.Scene {
     panel.add([background, title, status, hint, actionZone]);
     this.root.add(panel);
     this.resultActionPanel = panel;
+    if (this.resultReady) this.startResultPanelPulse();
   }
 
   private continueFromResult(): void {
@@ -1284,6 +1471,7 @@ export class OpeningScene extends Phaser.Scene {
         pending.standard.collectibleId,
       );
       standard.group.setScale(standard.presentation.revealScale);
+      this.startRewardBreathing(standard.group, standard.presentation.revealScale);
     }
 
     this.renderResultActionPanel(pending);
