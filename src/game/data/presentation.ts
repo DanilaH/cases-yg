@@ -73,8 +73,10 @@ export const POUCH_PRESENTATION = {
   // as soon as the collectible appeared.
   groupY: 246,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // Runtime seam is intentionally only the narrow tear rail. It should overlap
-  // the body's own top foil edge instead of reading as a second package lid.
+  // A cropped production header restores the original hanger silhouette without
+  // bringing back the oversized full-width lid that dominated early iterations.
+  header: { x: 0, y: -104, displayWidth: 270 } satisfies PouchLayerPresentation,
+  // Runtime seam remains a narrow tear rail across the body/header junction.
   strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,
   // The existing star source has large transparent padding. These offsets place
   // the visible star on the left end of the seam and let it traverse the rail.
