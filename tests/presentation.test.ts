@@ -25,9 +25,7 @@ describe('reveal presentation', () => {
     expect(Math.abs(getCollectiblePresentation('flip-phone').artOffsetX)).toBeLessThan(12);
   });
 
-  it('uses a compact production header with independent seam and pull-tab geometry', () => {
-    expect(POUCH_PRESENTATION.header.displayWidth).toBeLessThan(POUCH_PRESENTATION.body.displayWidth * 0.7);
-    expect(POUCH_PRESENTATION.header.displayWidth).toBeGreaterThan(POUCH_PRESENTATION.tab.displayWidth * 0.8);
+  it('uses a compact production tear strip with independent pull-tab geometry', () => {
     expect(POUCH_PRESENTATION.strip.displayWidth).toBeLessThanOrEqual(POUCH_PRESENTATION.body.displayWidth * 0.9);
     expect(POUCH_PRESENTATION.tab.displayWidth).toBeLessThan(POUCH_PRESENTATION.strip.displayWidth);
     expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);

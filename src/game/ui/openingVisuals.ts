@@ -176,28 +176,6 @@ export const createPouchVisual = (
 
   const strip = scene.add.container(0, 0);
 
-  // Reuse the original reviewed tear-strip art for the compact hanger. Crop out
-  // only the central purple hanger from its 1024 source canvas so we retain the
-  // authored foil/material treatment without the oversized full-width lid.
-  const headerTexture = staticTextureKey('pouch-top-header');
-  if (scene.textures.exists(headerTexture)) {
-    const cropX = 242;
-    const cropY = 50;
-    const cropWidth = 541;
-    const cropHeight = 187;
-    const headerImage = scene.add
-      .image(POUCH_PRESENTATION.header.x, POUCH_PRESENTATION.header.y, headerTexture)
-      .setOrigin(0.5)
-      .setCrop(cropX, cropY, cropWidth, cropHeight);
-    headerImage.setScale(POUCH_PRESENTATION.header.displayWidth / cropWidth);
-    strip.add(headerImage);
-  } else {
-    const fallbackHeader = scene.add
-      .rectangle(0, POUCH_PRESENTATION.header.y, 250, 76, 0x9b62d1, 1)
-      .setStrokeStyle(3, 0xe5d8f2, 0.85);
-    strip.add(fallbackHeader);
-  }
-
   const stripTexture = staticTextureKey('pouch-tear-strip');
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {

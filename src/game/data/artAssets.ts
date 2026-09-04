@@ -5,7 +5,6 @@ const STATIC_TEXTURE_PREFIX = 'art:static:';
 
 export type StaticArtId =
   | 'pouch-body'
-  | 'pouch-top-header'
   | 'pouch-tear-strip'
   | 'pouch-star-tab'
   | 'opening-bg'
@@ -26,11 +25,7 @@ export interface RuntimeStaticArt {
 
 const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'pouch-body': 'assets/package/pouch-body.webp',
-  // Reuse the reviewed original strip source and crop the central hanger at
-  // runtime. This preserves the production art without introducing another
-  // derived binary asset into the runtime contract.
-  'pouch-top-header': 'assets/package/pouch-tear-strip.webp',
-  'pouch-tear-strip': 'assets/package/pouch-tear-seam.webp',
+  'pouch-tear-strip': 'assets/package/pouch-tear-strip-compact.webp',
   'pouch-star-tab': 'assets/package/pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
   'collection-bg': 'assets/backgrounds/collection-bg.webp',
@@ -57,7 +52,6 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
 ]);
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
-  'pouch-top-header',
   'pouch-tear-strip',
   'pouch-star-tab',
   'opening-bg',

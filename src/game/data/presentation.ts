@@ -73,12 +73,9 @@ export const POUCH_PRESENTATION = {
   // as soon as the collectible appeared.
   groupY: 246,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // Phaser keeps crop geometry relative to the original 1024 source origin.
-  // This source-space Y places the visible cropped hanger center at roughly -104
-  // logical px, completing the silhouette without restoring the oversized lid.
-  header: { x: 0, y: 80, displayWidth: 270 } satisfies PouchLayerPresentation,
-  // Runtime seam remains a narrow tear rail across the body/header junction.
-  strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,
+  // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
+  // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
+  strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,
   // The existing star source has large transparent padding. These offsets place
   // the visible star on the left end of the seam and let it traverse the rail.
   tab: { x: -62, y: 20, displayWidth: 286 } satisfies PouchLayerPresentation,
