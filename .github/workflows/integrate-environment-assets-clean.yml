@@ -19,44 +19,73 @@ jobs:
           ref: feat/environment-runtime-assets-clean
           fetch-depth: 0
 
+      - name: Install image tooling
+        run: python -m pip install --disable-pip-version-check --quiet Pillow
+
       - name: Prepare environment runtime assets
-        shell: bash
+        shell: python
         run: |
-          set -euo pipefail
-          mkdir -p public/assets/backgrounds
+          from pathlib import Path
+          from PIL import Image, ImageOps, ImageStat
 
-          # Confirm the three generated source roles before conversion.
-          test "$(magick identify -format '%[channels]' 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png')" != "srgb"
+          WIDTH, HEIGHT = 1728, 720
+          assets = [
+              {
+                  'id': 'opening-bg',
+                  'source': Path('incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png'),
+                  'output': Path('public/assets/backgrounds/opening-bg.webp'),
+                  'expected_size': (1942, 809),
+                  'transparent': False,
+              },
+              {
+                  'id': 'collection-bg',
+                  'source': Path('incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png'),
+                  'output': Path('public/assets/backgrounds/collection-bg.webp'),
+                  'expected_size': (1916, 821),
+                  'transparent': False,
+              },
+              {
+                  'id': 'collection-foreground',
+                  'source': Path('incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png'),
+                  'output': Path('public/assets/backgrounds/collection-foreground.webp'),
+                  'expected_size': (1942, 809),
+                  'transparent': True,
+              },
+          ]
 
-          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png' \
-            -resize '1728x720^' -gravity center -extent 1728x720 \
-            -quality 88 public/assets/backgrounds/opening-bg.webp
+          Path('public/assets/backgrounds').mkdir(parents=True, exist_ok=True)
 
-          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png' \
-            -resize '1728x720^' -gravity center -extent 1728x720 \
-            -quality 88 public/assets/backgrounds/collection-bg.webp
+          for asset in assets:
+              with Image.open(asset['source']) as source:
+                  if source.size != asset['expected_size']:
+                      raise SystemExit(f"{asset['id']}: unexpected source size {source.size}, expected {asset['expected_size']}")
+                  has_alpha = 'A' in source.getbands()
+                  if asset['transparent'] != has_alpha:
+                      raise SystemExit(f"{asset['id']}: unexpected alpha state; mode={source.mode}")
 
-          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png' \
-            -resize '1728x720^' -gravity center -extent 1728x720 \
-            -quality 88 public/assets/backgrounds/collection-foreground.webp
+                  fitted = ImageOps.fit(
+                      source,
+                      (WIDTH, HEIGHT),
+                      method=Image.Resampling.LANCZOS,
+                      centering=(0.5, 0.5),
+                  )
+                  fitted = fitted.convert('RGBA' if asset['transparent'] else 'RGB')
+                  fitted.save(asset['output'], 'WEBP', quality=88, method=6, exact=True)
 
-          for file in opening-bg collection-bg collection-foreground; do
-            dims="$(magick identify -format '%wx%h' "public/assets/backgrounds/${file}.webp")"
-            test "$dims" = '1728x720'
-            size="$(stat -c%s "public/assets/backgrounds/${file}.webp")"
-            echo "${file}: 1728x720; $((size / 1024)) KB"
-          done
+              with Image.open(asset['output']) as exported:
+                  if exported.size != (WIDTH, HEIGHT):
+                      raise SystemExit(f"{asset['id']}: bad runtime dimensions {exported.size}")
+                  if asset['transparent']:
+                      alpha = exported.getchannel('A')
+                      if alpha.getextrema() != (0, 255):
+                          raise SystemExit(f"{asset['id']}: foreground alpha range is {alpha.getextrema()}")
+                      top_mean = ImageStat.Stat(alpha.crop((0, 0, WIDTH, 200))).mean[0]
+                      if top_mean > 12:
+                          raise SystemExit(f"{asset['id']}: upper UI zone too opaque: {top_mean}")
+                      print(f"{asset['id']}: upper alpha mean {top_mean:.4f}")
 
-          alpha_range="$(magick public/assets/backgrounds/collection-foreground.webp -alpha extract -format '%[fx:minima],%[fx:maxima]' info:)"
-          test "$alpha_range" = '0,1'
-          top_alpha="$(magick public/assets/backgrounds/collection-foreground.webp -crop 1728x200+0+0 +repage -alpha extract -format '%[fx:mean]' info:)"
-          python - "$top_alpha" <<'PY'
-          import sys
-          mean = float(sys.argv[1])
-          if mean > 0.05:
-              raise SystemExit(f'foreground upper UI zone too opaque: {mean}')
-          print(f'foreground upper alpha mean: {mean:.6f}')
-          PY
+              kb = asset['output'].stat().st_size / 1024
+              print(f"{asset['id']}: {asset['expected_size'][0]}x{asset['expected_size'][1]} -> {WIDTH}x{HEIGHT}; {kb:.0f} KB")
 
       - name: Enable reviewed environment art
         shell: python
