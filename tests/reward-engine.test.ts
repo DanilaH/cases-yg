@@ -8,7 +8,7 @@ import {
   type GadgetFamilyDefinition,
   type StandardRarity,
 } from '../src/game/data/collectibles';
-import { buildCollectionSnapshot } from '../src/game/systems/collection';
+import { buildCollectionSnapshot, getShelfFeaturedOwned } from '../src/game/systems/collection';
 import { createPendingReveal } from '../src/game/systems/drops';
 import {
   commitPendingRevealState,
@@ -309,4 +309,20 @@ describe('slice reward engine', () => {
     expect(snapshot.families.map(({ familyId }) => familyId)).toContain('mp3-player');
     expect(snapshot.standardTotal).toBe(12);
   });
+  it('features an owned Secret on the shelf ahead of Legendary', () => {
+    const family = SLICE_REGISTRY.families[0]!;
+    const state: SaveState = {
+      ...createInitialSaveState(),
+      discoveredStandard: [family.standard.legendary.id],
+      discoveredSecrets: [family.secrets[0]!.id],
+    };
+    const snapshot = buildCollectionSnapshot(SLICE_REGISTRY, state);
+    const familySnapshot = snapshot.families.find(({ familyId }) => familyId === family.id)!;
+
+    expect(getShelfFeaturedOwned(family, familySnapshot)).toEqual({
+      collectibleId: family.secrets[0]!.id,
+      rarity: 'secret',
+    });
+  });
+
 });
