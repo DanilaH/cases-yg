@@ -26,8 +26,7 @@ export interface PouchVisual {
   strip: Phaser.GameObjects.Container;
   tab: Phaser.GameObjects.Container;
   dragZone: Phaser.GameObjects.Zone;
-  revealOccluder: Phaser.GameObjects.Container;
-  revealOccluderUsed: boolean;
+  revealOcclusionUsed: boolean;
   tabStartX: number;
   tabEndX: number;
 }
@@ -96,10 +95,10 @@ const addProceduralBody = (
 
 const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Container): void => {
   const stripPlate = scene.add
-    .rectangle(0, POUCH_PRESENTATION.tearLineY - 8, 320, 64, 0x9085a7, 1)
-    .setStrokeStyle(3, 0xd6cde3, 0.72);
+    .rectangle(0, POUCH_PRESENTATION.tearLineY - 5, 320, 42, 0xa79eb5, 1)
+    .setStrokeStyle(3, 0xe7e1ef, 0.78);
   const tearLine = scene.add.graphics();
-  tearLine.lineStyle(2, 0x5f5372, 0.72);
+  tearLine.lineStyle(2, 0x705f83, 0.7);
   for (let lineX = -112; lineX < 130; lineX += 22) {
     tearLine.lineBetween(
       lineX,
@@ -109,10 +108,10 @@ const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Conta
     );
   }
   const arrow = scene.add
-    .text(136, POUCH_PRESENTATION.tearLineY - 18, '→', {
-      color: '#5f5372',
+    .text(136, POUCH_PRESENTATION.tearLineY - 14, '→', {
+      color: '#665477',
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '24px',
+      fontSize: '22px',
       fontStyle: 'bold',
     })
     .setOrigin(0.5);
@@ -158,28 +157,25 @@ export const createPouchVisual = (
     addProceduralBody(scene, bodyLayer, body);
   }
 
-  // The opening lives at the actual top seam of the body. It is deliberately a
-  // narrow slit, not a framed panel on the pouch face. The slit grows left to
-  // right while the body drops a few pixels away from the tear strip.
-  const mouthWidth = 286;
-  const mouthLeft = -mouthWidth / 2;
-  const mouthY = POUCH_PRESENTATION.tearLineY - 2;
-  const mouth = scene.add
-    .rectangle(mouthLeft, mouthY, mouthWidth, 18, 0x17101f, 1)
-    .setOrigin(0, 0.5)
-    .setAlpha(0);
+  // There is deliberately no dark synthetic mouth. Opening is represented by
+  // the real background gap created as the body separates from the removable
+  // top, with only subtle foil edge highlights appearing during drag.
+  const openingWidth = 286;
+  const openingLeft = -openingWidth / 2;
+  const openingY = POUCH_PRESENTATION.tearLineY + 3;
   const lowerLip = scene.add
-    .rectangle(mouthLeft, mouthY + 9, mouthWidth, 4, 0xd8c9e3, 1)
+    .rectangle(openingLeft, openingY, openingWidth, 3, 0xd9d0e3, 1)
     .setOrigin(0, 0.5)
     .setAlpha(0);
   const innerGlow = scene.add
-    .rectangle(mouthLeft + 8, mouthY - 6, mouthWidth - 16, 2, 0xc995ff, 1)
+    .rectangle(openingLeft + 10, openingY - 3, openingWidth - 20, 2, 0xb98bda, 1)
     .setOrigin(0, 0.5)
     .setAlpha(0);
-  bodyLayer.add([mouth, lowerLip, innerGlow]);
+  bodyLayer.add([lowerLip, innerGlow]);
   group.add(bodyLayer);
 
   const strip = scene.add.container(0, 0);
+
   const stripTexture = staticTextureKey('pouch-tear-strip');
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
@@ -220,16 +216,6 @@ export const createPouchVisual = (
   group.add(strip);
   root.add(group);
 
-  // Duplicate only the pouch body as a short-lived foreground occluder. During
-  // reveal it is brought above the newly-created collectible, so the reward
-  // visibly emerges from inside the opened pouch instead of being pasted over
-  // the intact front artwork.
-  const revealOccluder = scene.add.container(x, y).setAlpha(0);
-  if (scene.textures.exists(bodyTexture)) {
-    addPouchLayer(scene, revealOccluder, bodyTexture, POUCH_PRESENTATION.body);
-  }
-  root.add(revealOccluder);
-
   const visual: PouchVisual = {
     group,
     body,
@@ -237,8 +223,7 @@ export const createPouchVisual = (
     strip,
     tab,
     dragZone,
-    revealOccluder,
-    revealOccluderUsed: false,
+    revealOcclusionUsed: false,
     tabStartX,
     tabEndX,
   };
@@ -257,22 +242,18 @@ export const createPouchVisual = (
     );
     const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
 
-    bodyLayer.setY(progress * 16);
-    tab.setY(progress * 10);
-    mouth.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.96);
-    lowerLip.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.86);
-    innerGlow.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.7);
+    bodyLayer.setY(progress * 9);
+    tab.setY(progress * 4);
+    lowerLip.setAlpha(progress * 0.72);
+    innerGlow.setAlpha(progress * 0.48);
 
     if (stripImage) {
       const sourceWidth = Math.max(1, stripImage.width);
       const sourceHeight = Math.max(1, stripImage.height);
-      // Leave a small tail attached to the star at full travel; that tail exits
-      // with the tab during detach and makes the gesture read as tearing off a
-      // strip rather than simply erasing one texture.
       const remainingFraction = 1 - rawProgress * 0.88;
       const remainingWidth = Math.max(1, Math.round(sourceWidth * remainingFraction));
-      const cropX = Math.max(0, sourceWidth - remainingWidth);
-      stripImage.setCrop(cropX, 0, remainingWidth, sourceHeight);
+      const stripCropX = Math.max(0, sourceWidth - remainingWidth);
+      stripImage.setCrop(stripCropX, 0, remainingWidth, sourceHeight);
     }
   };
   scene.events.on(Phaser.Scenes.Events.UPDATE, syncTearVisual);
@@ -280,8 +261,6 @@ export const createPouchVisual = (
     scene.events.off(Phaser.Scenes.Events.UPDATE, syncTearVisual);
   });
 
-  // The instructional hint is part of the pouch interaction. Fade it as soon
-  // as the user grabs the star; restore it only when a short drag is cancelled.
   const hideHint = (): void => {
     const hint = findTearHint(root);
     if (!hint) return;
@@ -409,21 +388,16 @@ export const createCollectibleVisual = (
   if (
     pouch &&
     pouch.group.active &&
-    !pouch.revealOccluderUsed &&
-    pouch.revealOccluder.length > 0
+    pouch.group.alpha > 0.01 &&
+    !pouch.revealOcclusionUsed
   ) {
-    pouch.revealOccluderUsed = true;
-    pouch.revealOccluder
-      .setPosition(pouch.group.x, pouch.group.y + pouch.bodyLayer.y)
-      .setAlpha(1);
-    root.bringToTop(pouch.revealOccluder);
-    scene.tweens.add({
-      targets: pouch.revealOccluder,
-      y: pouch.revealOccluder.y + 18,
-      alpha: 0,
-      delay: 120,
-      duration: 360,
-      ease: 'Cubic.In',
+    pouch.revealOcclusionUsed = true;
+    // Use the real pouch as the foreground occluder. The previous duplicate body
+    // produced a visible "two pouches fading" artifact during the reveal.
+    root.bringToTop(pouch.group);
+    scene.time.delayedCall(175, () => {
+      if (!root.active || !group.active) return;
+      root.bringToTop(group);
     });
   }
 

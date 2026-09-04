@@ -68,11 +68,14 @@ export interface PouchLayerPresentation {
 }
 
 export const POUCH_PRESENTATION = {
-  groupY: 326,
+  // Keep the pouch visual center near the reward's reveal position. The previous
+  // lower placement made the scene jump upward by roughly a hundred logical px
+  // as soon as the collectible appeared.
+  groupY: 246,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // Runtime seam is intentionally only the narrow tear rail. It should overlap
-  // the body's own top foil edge instead of reading as a second package lid.
-  strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,
+  // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
+  // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
+  strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,
   // The existing star source has large transparent padding. These offsets place
   // the visible star on the left end of the seam and let it traverse the rail.
   tab: { x: -62, y: 20, displayWidth: 286 } satisfies PouchLayerPresentation,

@@ -25,13 +25,19 @@ describe('reveal presentation', () => {
     expect(Math.abs(getCollectiblePresentation('flip-phone').artOffsetX)).toBeLessThan(12);
   });
 
-  it('uses an integrated pouch seam with independent pull-tab geometry', () => {
+  it('uses a compact production tear strip with independent pull-tab geometry', () => {
     expect(POUCH_PRESENTATION.strip.displayWidth).toBeLessThanOrEqual(POUCH_PRESENTATION.body.displayWidth * 0.9);
     expect(POUCH_PRESENTATION.tab.displayWidth).toBeLessThan(POUCH_PRESENTATION.strip.displayWidth);
     expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);
     expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(300);
     expect(POUCH_PRESENTATION.dragThreshold).toBeLessThan(POUCH_PRESENTATION.tabTravel);
     expect(MOTION_PRESENTATION.tearHintY).toBeGreaterThan(POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY);
+  });
+
+  it('keeps the pouch visual center near the reward reveal center', () => {
+    const pouchVisualCenterY = POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.body.y;
+    expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('camera').revealY)).toBeLessThan(50);
+    expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
   });
 
   it('keeps a sub-threshold carousel drag on the current page', () => {
