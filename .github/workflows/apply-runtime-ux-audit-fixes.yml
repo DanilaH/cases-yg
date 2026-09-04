@@ -1,0 +1,328 @@
+name: Apply Runtime UX Audit Fixes
+
+on:
+  push:
+    branches:
+      - fix/runtime-ux-audit-pass
+    paths:
+      - .github/workflows/apply-runtime-ux-audit-fixes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/runtime-ux-audit-pass
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: Apply audited runtime fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected snippet not found in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Debug collection seed must expose the Collection button on a fresh save.
+          replace_once(
+              'src/debug/debugScenarios.ts',
+              """  const next: SaveState = {\n    ...current,\n    pendingReveal: null,\n""",
+              """  const next: SaveState = {\n    ...current,\n    totalOpens: Math.max(1, current.totalOpens),\n    pendingReveal: null,\n""",
+          )
+
+          # Shelf featured-item logic: Secret outranks Legendary > Epic > Rare > Common.
+          p = Path('src/game/systems/collection.ts')
+          text = p.read_text()
+          text = text.replace(
+              "import type { ContentRegistry, StandardRarity } from '../data/collectibles';",
+              "import type { ContentRegistry, GadgetFamilyDefinition, StandardRarity } from '../data/collectibles';",
+          )
+          marker = 'export interface CollectionSnapshot {'
+          if marker not in text:
+              raise SystemExit('collection.ts marker missing')
+          helper = """export interface ShelfFeaturedOwnedCollectible {\n  collectibleId: string;\n  rarity: StandardRarity | 'secret';\n}\n\nconst SHELF_STANDARD_PRIORITY: readonly StandardRarity[] = ['legendary', 'epic', 'rare', 'common'];\n\nexport const getShelfFeaturedOwned = (\n  family: GadgetFamilyDefinition,\n  snapshot: FamilyCollectionSnapshot,\n): ShelfFeaturedOwnedCollectible | null => {\n  const ownedSecret = family.secrets.find((secret) => snapshot.secretOwned.includes(secret.id));\n  if (ownedSecret) {\n    return { collectibleId: ownedSecret.id, rarity: 'secret' };\n  }\n\n  for (const rarity of SHELF_STANDARD_PRIORITY) {\n    if (snapshot.standardOwned[rarity]) {\n      return { collectibleId: family.standard[rarity].id, rarity };\n    }\n  }\n\n  return null;\n};\n\n"""
+          text = text.replace(marker, helper + marker, 1)
+          p.write_text(text)
+
+          # Star hit-zone must follow the actual isolated star art, not the procedural fallback coordinates.
+          replace_once(
+              'src/game/ui/openingVisuals.ts',
+              "const POUCH_TAB_LOCAL_X = -145;",
+              "const POUCH_TAB_LOCAL_X = -114;\nconst POUCH_TAB_LOCAL_Y = -99;\nconst POUCH_TAB_HIT_SIZE = 152;",
+          )
+          replace_once(
+              'src/game/ui/openingVisuals.ts',
+              ".text(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y - 2, '★'",
+              ".text(POUCH_TAB_LOCAL_X, POUCH_TAB_LOCAL_Y, '★'",
+          )
+          replace_once(
+              'src/game/ui/openingVisuals.ts',
+              ".zone(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y, 94, 94)",
+              ".zone(POUCH_TAB_LOCAL_X, POUCH_TAB_LOCAL_Y, POUCH_TAB_HIT_SIZE, POUCH_TAB_HIT_SIZE)",
+          )
+
+          # Collection: lighten the old procedural cards, add readable top chrome, and feature Secrets correctly.
+          p = Path('src/game/scenes/CollectionScene.ts')
+          text = p.read_text()
+          text = text.replace(
+              "import { buildCollectionSnapshot, type CollectionSnapshot, type FamilyCollectionSnapshot } from '../systems/collection';",
+              "import { buildCollectionSnapshot, getShelfFeaturedOwned, type CollectionSnapshot } from '../systems/collection';",
+          )
+          text = text.replace(
+              "import { createCollectibleVisual, RARITY_REVEAL_COLORS } from '../ui/openingVisuals';",
+              "import { createCollectibleVisual, RARITY_REVEAL_COLORS, SECRET_REVEAL_COLOR } from '../ui/openingVisuals';",
+          )
+          old_helper = """const highestOwnedRarity = (snapshot: FamilyCollectionSnapshot): StandardRarity | null => {\n  for (const rarity of ['legendary', 'epic', 'rare', 'common'] as const) {\n    if (snapshot.standardOwned[rarity]) return rarity;\n  }\n  return null;\n};\n\n"""
+          if old_helper not in text:
+              raise SystemExit('old shelf priority helper missing')
+          text = text.replace(old_helper, '', 1)
+
+          foreground_block = """    if (this.view === 'shelf') {\n      addCoverArt(\n        this,\n        root,\n        staticTextureKey('collection-foreground'),\n        metrics.logicalWidth,\n        LOGICAL_HEIGHT,\n      );\n    }\n\n"""
+          if foreground_block not in text:
+              raise SystemExit('collection foreground block missing')
+          text = text.replace(
+              foreground_block,
+              foreground_block
+              + """    const topScrim = this.add.graphics();\n    topScrim.fillStyle(0x1b1425, 0.34);\n    topScrim.fillRoundedRect(metrics.centerX - 260, 22, 520, 138, 28);\n    root.add(topScrim);\n\n""",
+              1,
+          )
+          text = text.replace(
+              """        })\n        .setOrigin(0.5),\n    );\n\n    root.add(\n      this.add\n        .text(\n""",
+              """        })\n        .setOrigin(0.5)\n        .setShadow(0, 2, '#120d19', 4, true, true),\n    );\n\n    root.add(\n      this.add\n        .text(\n""",
+              1,
+          )
+          text = text.replace(
+              """        )\n        .setOrigin(0.5),\n    );\n\n    this.createTab(root, metrics.centerX - 78, 128, 'shelf', messages.collection.shelf);\n""",
+              """        )\n        .setOrigin(0.5)\n        .setShadow(0, 2, '#120d19', 3, true, true),\n    );\n\n    this.createTab(root, metrics.centerX - 78, 128, 'shelf', messages.collection.shelf);\n""",
+              1,
+          )
+
+          start = text.index('  private renderShelf(root: Phaser.GameObjects.Container): void {')
+          end = text.index('\n  private renderLibrary', start)
+          new_shelf = r'''  private renderShelf(root: Phaser.GameObjects.Container): void {
+    const metrics = this.metrics!;
+    const messages = getMessages(getPlatformRuntime().language);
+    const families = this.visibleFamilies();
+    const cardWidth = Math.min(300, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 28);
+    const gap = 44;
+    const totalWidth = cardWidth * families.length + gap * Math.max(0, families.length - 1);
+    const startX = metrics.centerX - totalWidth / 2 + cardWidth / 2;
+
+    families.forEach((family, index) => {
+      const familySnapshot = this.snapshot!.families.find(({ familyId }) => familyId === family.id)!;
+      const x = startX + index * (cardWidth + gap);
+
+      const glass = this.add.graphics();
+      glass.fillStyle(0x251b33, 0.14);
+      glass.fillRoundedRect(x - cardWidth / 2, 188, cardWidth, 372, 28);
+      glass.lineStyle(1.5, 0xe8d8f7, 0.2);
+      glass.strokeRoundedRect(x - cardWidth / 2, 188, cardWidth, 372, 28);
+      root.add(glass);
+
+      root.add(
+        this.add
+          .text(x, 216, family.name[getPlatformRuntime().language], {
+            color: '#f8f2fd',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: '20px',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 4, true, true),
+      );
+
+      const featured = getShelfFeaturedOwned(family, familySnapshot);
+      if (featured) {
+        const visual = createCollectibleVisual(
+          this,
+          root,
+          family.id,
+          featured.rarity,
+          x,
+          360,
+          featured.collectibleId,
+        );
+        visual.group.setScale(featured.rarity === 'secret' ? 0.82 : 0.78);
+        const featureColor = featured.rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[featured.rarity];
+        root.add(
+          this.add
+            .text(x, 510, `${messages.collection.bestOwned}: ${messages.rarity[featured.rarity]}`, {
+              color: `#${featureColor.toString(16).padStart(6, '0')}`,
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '15px',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 4, true, true),
+        );
+      } else {
+        root.add(this.add.circle(x, 360, 70, 0x251d2f, 0.5).setStrokeStyle(2, 0xe7d7f2, 0.18));
+        root.add(
+          this.add
+            .text(x, 352, '?', {
+              color: '#8a7a95',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '70px',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 4, true, true),
+        );
+        root.add(
+          this.add
+            .text(x, 505, messages.collection.emptyShelf, {
+              color: '#c1b5ca',
+              align: 'center',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '14px',
+              wordWrap: { width: cardWidth - 42 },
+            })
+            .setOrigin(0.5)
+            .setShadow(0, 2, '#160f20', 3, true, true),
+        );
+      }
+
+      root.add(
+        this.add
+          .text(
+            x,
+            542,
+            `${familySnapshot.standardCount}/${familySnapshot.standardTotal}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
+            {
+              color: '#ded3e8',
+              fontFamily: 'monospace',
+              fontSize: '13px',
+            },
+          )
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#160f20', 3, true, true),
+      );
+    });
+  }
+'''
+          text = text[:start] + new_shelf + text[end:]
+          p.write_text(text)
+
+          # Opening readability: make bottom hints/results readable over the light desk while preserving art.
+          p = Path('src/game/scenes/OpeningScene.ts')
+          text = p.read_text()
+          text = text.replace(
+              '  private standardResultLabels: Phaser.GameObjects.Text[] = [];',
+              '  private standardResultLabels: Phaser.GameObjects.Text[] = [];\n  private standardResultScrim: Phaser.GameObjects.Graphics | null = null;',
+              1,
+          )
+          text = text.replace(
+              '    this.standardResultLabels = [];\n    const metrics = createLayoutMetrics',
+              '    this.standardResultLabels = [];\n    this.standardResultScrim = null;\n    const metrics = createLayoutMetrics',
+              1,
+          )
+          old_hint = """    root.add(\n      this.add\n        .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {\n          color: '#d8cdea',\n          fontFamily: 'system-ui, sans-serif',\n          fontSize: '18px',\n        })\n        .setOrigin(0.5),\n    );\n"""
+          new_hint = """    const tearHint = this.add\n      .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {\n        color: '#efe7f6',\n        backgroundColor: '#2a2037',\n        padding: { x: 14, y: 8 },\n        fontFamily: 'system-ui, sans-serif',\n        fontSize: '18px',\n      })\n      .setOrigin(0.5)\n      .setShadow(0, 2, '#120d19', 3, true, true);\n    root.add(tearHint);\n"""
+          if old_hint not in text:
+              raise SystemExit('Opening tear hint block missing')
+          text = text.replace(old_hint, new_hint, 1)
+
+          text = text.replace(
+              '    for (const label of this.standardResultLabels) label.destroy();\n\n    const title = this.add',
+              '    for (const label of this.standardResultLabels) label.destroy();\n    this.standardResultScrim?.destroy();\n\n    const title = this.add',
+              1,
+          )
+          text = text.replace(
+              """      })\n      .setOrigin(0.5);\n\n    const messages = getMessages(getPlatformRuntime().language);\n""",
+              """      })\n      .setOrigin(0.5)\n      .setShadow(0, 2, '#120d19', 4, true, true);\n\n    const messages = getMessages(getPlatformRuntime().language);\n""",
+              1,
+          )
+          text = text.replace(
+              """      })\n      .setOrigin(0.5);\n\n    this.standardResultLabels = [title, statusText];\n    root.add(this.standardResultLabels);\n""",
+              """      })\n      .setOrigin(0.5)\n      .setShadow(0, 2, '#120d19', 4, true, true);\n\n    const scrimWidth = Math.max(title.width, statusText.width) + 36;\n    const scrim = this.add.graphics();\n    scrim.fillStyle(0x21172e, 0.68);\n    scrim.fillRoundedRect(x - scrimWidth / 2, y - 18, scrimWidth, 78, 18);\n    scrim.lineStyle(1, 0xf0ddff, 0.18);\n    scrim.strokeRoundedRect(x - scrimWidth / 2, y - 18, scrimWidth, 78, 18);\n\n    this.standardResultScrim = scrim;\n    this.standardResultLabels = [title, statusText];\n    root.add([scrim, ...this.standardResultLabels]);\n""",
+              1,
+          )
+          text = text.replace(
+              '    for (const label of this.standardResultLabels) label.destroy();\n    this.standardResultLabels = [];\n\n    const hiddenLabel = this.add',
+              '    for (const label of this.standardResultLabels) label.destroy();\n    this.standardResultLabels = [];\n    this.standardResultScrim?.destroy();\n    this.standardResultScrim = null;\n\n    const hiddenLabel = this.add',
+              1,
+          )
+          old_prompt = """      .text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {\n        color: '#d5cae5',\n        fontFamily: 'system-ui, sans-serif',\n        fontSize: '17px',\n      })\n      .setOrigin(0.5)\n      .setAlpha(0.6);\n"""
+          new_prompt = """      .text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {\n        color: '#eee6f5',\n        backgroundColor: '#2a2037',\n        padding: { x: 12, y: 7 },\n        fontFamily: 'system-ui, sans-serif',\n        fontSize: '17px',\n      })\n      .setOrigin(0.5)\n      .setShadow(0, 2, '#120d19', 3, true, true)\n      .setAlpha(0.8);\n"""
+          if old_prompt not in text:
+              raise SystemExit('Opening result prompt block missing')
+          text = text.replace(old_prompt, new_prompt, 1)
+
+          # Give all Hidden Pocket result labels a dark halo over the light tabletop.
+          standard_hidden = """          .setOrigin(0.5)\n          .setAlpha(0.72),\n"""
+          text = text.replace(
+              standard_hidden,
+              """          .setOrigin(0.5)\n          .setShadow(0, 2, '#120d19', 4, true, true)\n          .setAlpha(0.82),\n""",
+              1,
+          )
+          text = text.replace(
+              """          })\n          .setOrigin(0.5),\n      );\n      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);\n""",
+              """          })\n          .setOrigin(0.5)\n          .setShadow(0, 2, '#120d19', 4, true, true),\n      );\n      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);\n""",
+              1,
+          )
+          text = text.replace(
+              """          })\n          .setOrigin(0.5),\n      );\n      root.add(\n        this.add\n          .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {\n""",
+              """          })\n          .setOrigin(0.5)\n          .setShadow(0, 2, '#120d19', 4, true, true),\n      );\n      root.add(\n        this.add\n          .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {\n""",
+              1,
+          )
+          text = text.replace(
+              """          })\n          .setOrigin(0.5),\n      );\n    } else {\n""",
+              """          })\n          .setOrigin(0.5)\n          .setShadow(0, 2, '#120d19', 4, true, true),\n      );\n    } else {\n""",
+              1,
+          )
+          p.write_text(text)
+
+          # Regression tests for the two logic defects caught by the audit.
+          p = Path('tests/debug-scenarios.test.ts')
+          text = p.read_text().replace(
+              "import { stageDebugReveal } from '../src/debug/debugScenarios';",
+              "import { seedDebugCollection, stageDebugReveal } from '../src/debug/debugScenarios';",
+              1,
+          )
+          test = """\n  it('seeds a collection that is immediately reachable from Opening', async () => {\n    const state = await seedDebugCollection(createRepository(), 'all');\n\n    expect(state.totalOpens).toBeGreaterThan(0);\n    expect(state.discoveredStandard).toHaveLength(8);\n    expect(state.discoveredSecrets).toHaveLength(2);\n  });\n"""
+          text = text[:text.rfind('\n});')] + test + text[text.rfind('\n});'):]
+          p.write_text(text)
+
+          p = Path('tests/reward-engine.test.ts')
+          text = p.read_text().replace(
+              "import { buildCollectionSnapshot } from '../src/game/systems/collection';",
+              "import { buildCollectionSnapshot, getShelfFeaturedOwned } from '../src/game/systems/collection';",
+              1,
+          )
+          test = """\n  it('features an owned Secret on the shelf ahead of Legendary', () => {\n    const family = SLICE_REGISTRY.families[0]!;\n    const state: SaveState = {\n      ...createInitialSaveState(),\n      discoveredStandard: [family.standard.legendary.id],\n      discoveredSecrets: [family.secrets[0]!.id],\n    };\n    const snapshot = buildCollectionSnapshot(SLICE_REGISTRY, state);\n    const familySnapshot = snapshot.families.find(({ familyId }) => familyId === family.id)!;\n\n    expect(getShelfFeaturedOwned(family, familySnapshot)).toEqual({\n      collectibleId: family.secrets[0]!.id,\n      rarity: 'secret',\n    });\n  });\n"""
+          text = text[:text.rfind('\n});')] + test + text[text.rfind('\n});'):]
+          p.write_text(text)
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Asset self-test
+        run: npm run assets:selftest
+      - name: Asset validation
+        run: npm run assets:validate
+      - name: Build
+        run: npm run build
+
+      - name: Commit verified fixes and remove temporary workflow
+        run: |
+          rm .github/workflows/apply-runtime-ux-audit-fixes.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix runtime UX issues found in audit"
+          git push origin HEAD:fix/runtime-ux-audit-pass
