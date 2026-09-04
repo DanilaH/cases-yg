@@ -790,9 +790,12 @@ export class OpeningScene extends Phaser.Scene {
 
     getGameAudio().play('reveal-pop');
 
-    const halo = this.add.circle(heroX, heroY, 136, color, fx.glowAlpha).setScale(0.4);
-    const flash = this.add.circle(heroX, heroY, 102, color, fx.flashAlpha).setScale(0.3);
-    root.add([halo, flash]);
+    const halo = this.add.circle(heroX, heroY, 144, color, fx.glowAlpha).setScale(0.36);
+    const flash = this.add.circle(heroX, heroY, 108, color, fx.flashAlpha).setScale(0.24);
+    const coreFlash = this.add
+      .circle(heroX, heroY, 64, 0xffffff, Math.min(0.58, fx.flashAlpha * 0.72))
+      .setScale(0.18);
+    root.add([halo, flash, coreFlash]);
     const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.38);
     if (fx.secondaryRing) {
       const secondary = createRevealRing(this, root, heroX, heroY, color)
@@ -857,6 +860,14 @@ export class OpeningScene extends Phaser.Scene {
       duration: Math.max(300, fx.introDuration - 20),
       ease: 'Cubic.Out',
       onComplete: () => flash.destroy(),
+    });
+    this.tweens.add({
+      targets: coreFlash,
+      scale: 3.1,
+      alpha: 0,
+      duration: Math.max(330, fx.introDuration + 40),
+      ease: 'Cubic.Out',
+      onComplete: () => coreFlash.destroy(),
     });
     this.tweens.add({
       targets: ring,
@@ -1046,9 +1057,12 @@ export class OpeningScene extends Phaser.Scene {
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
     this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
-    const halo = this.add.circle(heroX, heroY, 150, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);
-    const flash = this.add.circle(heroX, heroY, 112, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.28);
-    root.add([halo, flash]);
+    const halo = this.add.circle(heroX, heroY, 158, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.34);
+    const flash = this.add.circle(heroX, heroY, 118, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.22);
+    const coreFlash = this.add
+      .circle(heroX, heroY, 70, 0xffffff, Math.min(0.64, fx.flashAlpha * 0.78))
+      .setScale(0.16);
+    root.add([halo, flash, coreFlash]);
     const ring = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
       .setScale(0.42)
       .setAlpha(0.54);
@@ -1093,6 +1107,14 @@ export class OpeningScene extends Phaser.Scene {
       duration: fx.introDuration,
       ease: 'Cubic.Out',
       onComplete: () => flash.destroy(),
+    });
+    this.tweens.add({
+      targets: coreFlash,
+      scale: 3.4,
+      alpha: 0,
+      duration: fx.introDuration + 70,
+      ease: 'Cubic.Out',
+      onComplete: () => coreFlash.destroy(),
     });
     this.tweens.add({
       targets: ring,
