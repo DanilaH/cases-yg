@@ -41,6 +41,13 @@ describe('reveal presentation', () => {
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
   });
 
+  it('keeps idle vertical rhythm away from both the title and bottom edge', () => {
+    expect(POUCH_PRESENTATION.groupY).toBeGreaterThanOrEqual(260);
+    expect(MOTION_PRESENTATION.tearHintY - (POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY)).toBeGreaterThan(60);
+    expect(MOTION_PRESENTATION.tearHintY).toBeLessThanOrEqual(640);
+    expect(RESULT_PRESENTATION.panelY).toBeGreaterThan(560);
+  });
+
   it('keeps reveal emergence on one stable z-order path', () => {
     expect(REVEAL_MOTION_PRESENTATION.emergeOffsetY).toBeGreaterThan(100);
     expect(REVEAL_MOTION_PRESENTATION.pouchExitOffsetY).toBeGreaterThan(80);

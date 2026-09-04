@@ -39,7 +39,7 @@ export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresen
     shelfSecretScale: 0.82,
     libraryScale: 0.27,
     librarySecretScale: 0.29,
-    revealY: 308,
+    revealY: 318,
   },
   'flip-phone': {
     assetWidth: 300,
@@ -54,7 +54,7 @@ export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresen
     shelfSecretScale: 0.73,
     libraryScale: 0.36,
     librarySecretScale: 0.38,
-    revealY: 296,
+    revealY: 310,
   },
 };
 
@@ -71,7 +71,7 @@ export const POUCH_PRESENTATION = {
   // Keep the pouch visual center near the reward's reveal position. The previous
   // lower placement made the scene jump upward by roughly a hundred logical px
   // as soon as the collectible appeared.
-  groupY: 246,
+  groupY: 266,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
   // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
   // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
@@ -196,7 +196,7 @@ export const AMBIENT_PRESENTATION = {
 } as const;
 
 export const MOTION_PRESENTATION = {
-  tearHintY: 662,
+  tearHintY: 632,
   starPulseScale: 1.04,
   starPulseDuration: 720,
   resultPulseScale: 1.028,
@@ -216,7 +216,7 @@ export const REVEAL_MOTION_PRESENTATION = {
 } as const;
 
 export const RESULT_PRESENTATION = {
-  panelY: 558,
+  panelY: 568,
   panelHeight: 112,
   panelMaxWidth: 430,
   panelMinWidth: 330,
