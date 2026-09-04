@@ -24,7 +24,7 @@ jobs:
       - run: npm ci
 
       - name: Apply targeted correction
-        run: python scripts/apply-hands-on-v2-correction.py
+        run: python scripts/apply-hands-on-v2-correction-v2.py
 
       - run: npm run typecheck
       - run: npm test
@@ -36,8 +36,9 @@ jobs:
         run: |
           rm .github/workflows/hands-on-v2-correction.yml
           rm scripts/apply-hands-on-v2-correction.py
+          rm scripts/apply-hands-on-v2-correction-v2.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts tests/presentation.test.ts .github/workflows/hands-on-v2-correction.yml scripts/apply-hands-on-v2-correction.py
+          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts tests/presentation.test.ts .github/workflows/hands-on-v2-correction.yml scripts/apply-hands-on-v2-correction.py scripts/apply-hands-on-v2-correction-v2.py
           git commit -m "Apply hands-on V2 correction pass"
           git push origin HEAD:fix/hands-on-v2-correction
