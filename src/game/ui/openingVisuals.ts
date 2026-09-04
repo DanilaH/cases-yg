@@ -176,13 +176,21 @@ export const createPouchVisual = (
 
   const strip = scene.add.container(0, 0);
 
-  // Restore the recognizable production hanger as a compact center element.
-  // It stays physically intact while the tear rail is pulled, then leaves with
-  // the strip during detach. This avoids the progress-bar look of the temporary
-  // procedural cap and preserves the original pouch silhouette.
+  // Reuse the original reviewed tear-strip art for the compact hanger. Crop out
+  // only the central purple hanger from its 1024 source canvas so we retain the
+  // authored foil/material treatment without the oversized full-width lid.
   const headerTexture = staticTextureKey('pouch-top-header');
   if (scene.textures.exists(headerTexture)) {
-    addPouchLayer(scene, strip, headerTexture, POUCH_PRESENTATION.header);
+    const cropX = 242;
+    const cropY = 50;
+    const cropWidth = 541;
+    const cropHeight = 187;
+    const headerImage = scene.add
+      .image(POUCH_PRESENTATION.header.x, POUCH_PRESENTATION.header.y, headerTexture)
+      .setOrigin(0.5)
+      .setCrop(cropX, cropY, cropWidth, cropHeight);
+    headerImage.setScale(POUCH_PRESENTATION.header.displayWidth / cropWidth);
+    strip.add(headerImage);
   } else {
     const fallbackHeader = scene.add
       .rectangle(0, POUCH_PRESENTATION.header.y, 250, 76, 0x9b62d1, 1)
@@ -264,12 +272,10 @@ export const createPouchVisual = (
     if (stripImage) {
       const sourceWidth = Math.max(1, stripImage.width);
       const sourceHeight = Math.max(1, stripImage.height);
-      // The rail disappears behind the moving star; the compact hanger remains
-      // intact until the whole top assembly detaches at the threshold.
       const remainingFraction = 1 - rawProgress * 0.88;
       const remainingWidth = Math.max(1, Math.round(sourceWidth * remainingFraction));
-      const cropX = Math.max(0, sourceWidth - remainingWidth);
-      stripImage.setCrop(cropX, 0, remainingWidth, sourceHeight);
+      const stripCropX = Math.max(0, sourceWidth - remainingWidth);
+      stripImage.setCrop(stripCropX, 0, remainingWidth, sourceHeight);
     }
   };
   scene.events.on(Phaser.Scenes.Events.UPDATE, syncTearVisual);
@@ -331,7 +337,7 @@ const createFlipPhone = (scene: Phaser.Scene, accentColor: number): Phaser.GameO
     .rectangle(0, 66, 154, 116, accentColor, 1)
     .setStrokeStyle(5, 0xffffff, 0.38);
   const hinge = scene.add.rectangle(0, 7, 170, 18, 0x38323f, 0.92).setStrokeStyle(2, 0xffffff, 0.22);
-  const screen = scene.add.rectangle(0, -54, 104, 66, 0x262630, 1).setStrokeStyle(4, 0xffffff, 0.3);
+  const screen = scene.add.rectangle(0, -54, 104, 66, 0x262630, 1).setStrokeStyle(4, 0xece5f4, 0.4);
   const screenGlow = scene.add.rectangle(0, -54, 84, 48, accentColor, 0.36);
   const nav = scene.add.circle(0, 50, 20, 0xeee8f4, 0.72).setStrokeStyle(3, 0x493f55, 0.42);
   const keyLeft = scene.add.circle(-45, 84, 7, 0xeee8f4, 0.58);
