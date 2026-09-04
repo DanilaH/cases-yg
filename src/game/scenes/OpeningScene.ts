@@ -425,7 +425,7 @@ export class OpeningScene extends Phaser.Scene {
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY + 42, message, {
+          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY - 42, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
