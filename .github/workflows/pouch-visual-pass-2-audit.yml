@@ -1,0 +1,52 @@
+name: Pouch Visual Pass 2 Audit
+
+on:
+  push:
+    branches:
+      - audit/pouch-visual-pass-2-2
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install Playwright driver and video helper
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node node_modules/playwright/cli.js install ffmpeg
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Capture pouch states and video
+        run: node .github/scripts/pouch-visual-pass-2-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pouch-visual-pass-2-audit-2
+          path: /tmp/pouch-visual-pass-2
+          if-no-files-found: warn
+          retention-days: 2
