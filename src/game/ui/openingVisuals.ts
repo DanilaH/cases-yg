@@ -392,13 +392,10 @@ export const createCollectibleVisual = (
     !pouch.revealOcclusionUsed
   ) {
     pouch.revealOcclusionUsed = true;
-    // Use the real pouch as the foreground occluder. The previous duplicate body
-    // produced a visible "two pouches fading" artifact during the reveal.
+    // Establish the reveal order once, before the collectible becomes visible.
+    // The pouch stays above the reward until it fades away; there is no delayed
+    // bringToTop swap, so the reward cannot visibly jump between z-layers.
     root.bringToTop(pouch.group);
-    scene.time.delayedCall(175, () => {
-      if (!root.active || !group.active) return;
-      root.bringToTop(group);
-    });
   }
 
   return { group, accentColor, presentation };

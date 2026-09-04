@@ -13,6 +13,7 @@ import {
   MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
+  REVEAL_MOTION_PRESENTATION,
   RESULT_PRESENTATION,
   resolveCarouselIndex,
 } from '../data/presentation';
@@ -814,10 +815,22 @@ export class OpeningScene extends Phaser.Scene {
       pending.standard.familyId,
       pending.standard.rarity,
       heroX,
-      POUCH_Y + 74,
+      POUCH_Y + REVEAL_MOTION_PRESENTATION.emergeOffsetY,
       pending.standard.collectibleId,
     );
     visual.group.setScale(finalScale * 0.3).setAlpha(0);
+
+    // Keep z-order stable: the reward remains behind the pouch while both move.
+    // The pouch exits downward and fades, uncovering the reward continuously.
+    this.tweens.add({
+      targets: pouch.group,
+      y: pouch.group.y + REVEAL_MOTION_PRESENTATION.pouchExitOffsetY,
+      scale: REVEAL_MOTION_PRESENTATION.pouchExitScale,
+      alpha: 0,
+      delay: REVEAL_MOTION_PRESENTATION.pouchExitDelay,
+      duration: REVEAL_MOTION_PRESENTATION.pouchExitDuration,
+      ease: 'Cubic.InOut',
+    });
 
     this.spawnSparkles(
       heroX,
@@ -866,14 +879,6 @@ export class OpeningScene extends Phaser.Scene {
       });
     });
 
-    this.tweens.add({
-      targets: pouch.group,
-      y: pouch.group.y + 72,
-      scale: 0.92,
-      alpha: 0,
-      duration: 190,
-      ease: 'Cubic.In',
-    });
 
     await new Promise<void>((resolve) => {
       this.tweens.add({

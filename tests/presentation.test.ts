@@ -8,6 +8,7 @@ import {
   MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
+  REVEAL_MOTION_PRESENTATION,
   RESULT_PRESENTATION,
   resolveCarouselIndex,
 } from '../src/game/data/presentation';
@@ -38,6 +39,14 @@ describe('reveal presentation', () => {
     const pouchVisualCenterY = POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.body.y;
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('camera').revealY)).toBeLessThan(50);
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
+  });
+
+  it('keeps reveal emergence on one stable z-order path', () => {
+    expect(REVEAL_MOTION_PRESENTATION.emergeOffsetY).toBeGreaterThan(100);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitOffsetY).toBeGreaterThan(80);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitScale).toBeLessThan(1);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitDelay).toBeLessThan(150);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitDuration).toBeGreaterThanOrEqual(280);
   });
 
   it('keeps a sub-threshold carousel drag on the current page', () => {

@@ -205,6 +205,16 @@ export const MOTION_PRESENTATION = {
   rewardBreathDuration: 1200,
 } as const;
 
+export const REVEAL_MOTION_PRESENTATION = {
+  // The collectible stays behind the pouch for the entire emergence. The pouch
+  // moves/fades away instead of swapping z-order mid-animation.
+  emergeOffsetY: 132,
+  pouchExitOffsetY: 104,
+  pouchExitScale: 0.93,
+  pouchExitDelay: 90,
+  pouchExitDuration: 330,
+} as const;
+
 export const RESULT_PRESENTATION = {
   panelY: 558,
   panelHeight: 112,
