@@ -54,6 +54,9 @@ export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
   'pouch-tear-strip',
   'pouch-star-tab',
+  'opening-bg',
+  'collection-bg',
+  'collection-foreground',
 ]);
 
 export const collectibleTextureKey = (collectibleId: string): string =>
