@@ -21,7 +21,7 @@ jobs:
           node-version: 22.12.0
           cache: npm
       - name: Install project dependencies
-        run: npm ci --omit=optional
+        run: npm ci
       - name: Install Playwright driver without mutating lock tree
         run: |
           set -euo pipefail
