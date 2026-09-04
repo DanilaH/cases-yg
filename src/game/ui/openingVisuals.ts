@@ -158,24 +158,22 @@ export const createPouchVisual = (
     addProceduralBody(scene, bodyLayer, body);
   }
 
-  // A small real interior appears behind the seam while the star travels. The
-  // body shifts down at the same time, so the interaction reads as opening a
-  // pouch rather than sliding an unrelated decal over a static image.
+  // The opening lives at the actual top seam of the body. It is deliberately a
+  // narrow slit, not a framed panel on the pouch face. The slit grows left to
+  // right while the body drops a few pixels away from the tear strip.
   const mouthWidth = 286;
   const mouthLeft = -mouthWidth / 2;
-  const mouthY = POUCH_PRESENTATION.tearLineY + 68;
-  const mouthRim = scene.add
-    .rectangle(mouthLeft - 5, mouthY, mouthWidth + 10, 40, 0xd8c9e3, 0)
-    .setOrigin(0, 0.5)
-    .setStrokeStyle(2, 0xf3ecf8, 0.72);
+  const mouthY = POUCH_PRESENTATION.tearLineY - 2;
   const mouth = scene.add
-    .rectangle(mouthLeft, mouthY + 2, mouthWidth, 28, 0x17101f, 0)
-    .setOrigin(0, 0.5)
-    .setStrokeStyle(2, 0x6d4a88, 0.86);
-  const innerGlow = scene.add
-    .rectangle(mouthLeft + 8, mouthY - 8, mouthWidth - 16, 3, 0xc995ff, 0)
+    .rectangle(mouthLeft, mouthY, mouthWidth, 18, 0x17101f, 0)
     .setOrigin(0, 0.5);
-  bodyLayer.add([mouthRim, mouth, innerGlow]);
+  const lowerLip = scene.add
+    .rectangle(mouthLeft, mouthY + 9, mouthWidth, 4, 0xd8c9e3, 0)
+    .setOrigin(0, 0.5);
+  const innerGlow = scene.add
+    .rectangle(mouthLeft + 8, mouthY - 6, mouthWidth - 16, 2, 0xc995ff, 0)
+    .setOrigin(0, 0.5);
+  bodyLayer.add([mouth, lowerLip, innerGlow]);
   group.add(bodyLayer);
 
   const strip = scene.add.container(0, 0);
@@ -256,15 +254,20 @@ export const createPouchVisual = (
     );
     const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
 
-    bodyLayer.setY(progress * 14);
-    mouthRim.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.9);
+    bodyLayer.setY(progress * 16);
+    tab.setY(progress * 10);
     mouth.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.96);
-    innerGlow.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.72);
+    lowerLip.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.86);
+    innerGlow.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.7);
 
     if (stripImage) {
       const sourceWidth = Math.max(1, stripImage.width);
       const sourceHeight = Math.max(1, stripImage.height);
-      const remainingWidth = Math.max(1, Math.round(sourceWidth * (1 - rawProgress)));
+      // Leave a small tail attached to the star at full travel; that tail exits
+      // with the tab during detach and makes the gesture read as tearing off a
+      // strip rather than simply erasing one texture.
+      const remainingFraction = 1 - rawProgress * 0.88;
+      const remainingWidth = Math.max(1, Math.round(sourceWidth * remainingFraction));
       const cropX = Math.max(0, sourceWidth - remainingWidth);
       stripImage.setCrop(cropX, 0, remainingWidth, sourceHeight);
     }
