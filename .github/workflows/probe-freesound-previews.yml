@@ -1,0 +1,53 @@
+name: Probe Candidate SFX Previews
+
+on:
+  push:
+    branches:
+      - feat/final-sfx-set
+    paths:
+      - .github/workflows/probe-freesound-previews.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Probe Freesound preview access
+        shell: python
+        run: |
+          import html
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          ids = [590343, 531512, 511485, 452998, 450612, 531510, 719971, 683181, 683184, 683185, 677858, 635665, 817466]
+          out = Path('/tmp/sfx-probe')
+          out.mkdir(parents=True, exist_ok=True)
+
+          for sound_id in ids:
+              page_url = f'https://freesound.org/s/{sound_id}/'
+              req = urllib.request.Request(page_url, headers={'User-Agent': 'Mozilla/5.0'})
+              raw = urllib.request.urlopen(req, timeout=30).read().decode('utf-8', errors='replace')
+              text = html.unescape(raw).replace('\\/', '/')
+              urls = re.findall(r'https://cdn\.freesound\.org/previews/[^"\'<> ]+?\.mp3', text)
+              urls = list(dict.fromkeys(urls))
+              if not urls:
+                  raise SystemExit(f'{sound_id}: no mp3 preview URL found')
+              url = urls[0]
+              target = out / f'{sound_id}.mp3'
+              req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+              target.write_bytes(urllib.request.urlopen(req, timeout=30).read())
+              print(f'{sound_id}: {url} -> {target.stat().st_size} bytes')
+      - name: Inspect downloaded previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ffmpeg
+          command -v ffprobe
+          for f in /tmp/sfx-probe/*.mp3; do
+            printf '%s: ' "$(basename "$f")"
+            ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"
+          done
