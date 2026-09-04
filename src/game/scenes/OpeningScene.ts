@@ -52,6 +52,7 @@ export class OpeningScene extends Phaser.Scene {
   private ignoreNextResultTap = false;
   private firstInteractionTracked = false;
   private standardResultLabels: Phaser.GameObjects.Text[] = [];
+  private standardResultScrim: Phaser.GameObjects.Graphics | null = null;
 
   public constructor() {
     super('OpeningScene');
@@ -142,6 +143,7 @@ export class OpeningScene extends Phaser.Scene {
     this.collectionButton = null;
     this.resultPrompt = null;
     this.standardResultLabels = [];
+    this.standardResultScrim = null;
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -203,15 +205,17 @@ export class OpeningScene extends Phaser.Scene {
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
 
-    root.add(
-      this.add
-        .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {
-          color: '#d8cdea',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '18px',
-        })
-        .setOrigin(0.5),
-    );
+    const tearHint = this.add
+      .text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {
+        color: '#efe7f6',
+        backgroundColor: '#2a2037',
+        padding: { x: 14, y: 8 },
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#120d19', 3, true, true);
+    root.add(tearHint);
 
     if (message) {
       root.add(
@@ -609,6 +613,7 @@ export class OpeningScene extends Phaser.Scene {
     const color = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
 
     for (const label of this.standardResultLabels) label.destroy();
+    this.standardResultScrim?.destroy();
 
     const title = this.add
       .text(x, y, `${familyName} · ${rarity}`, {
@@ -617,7 +622,8 @@ export class OpeningScene extends Phaser.Scene {
         fontSize: '22px',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#120d19', 4, true, true);
 
     const messages = getMessages(getPlatformRuntime().language);
     let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
@@ -637,10 +643,19 @@ export class OpeningScene extends Phaser.Scene {
         fontSize: '16px',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#120d19', 4, true, true);
 
+    const scrimWidth = Math.max(title.width, statusText.width) + 36;
+    const scrim = this.add.graphics();
+    scrim.fillStyle(0x21172e, 0.68);
+    scrim.fillRoundedRect(x - scrimWidth / 2, y - 18, scrimWidth, 78, 18);
+    scrim.lineStyle(1, 0xf0ddff, 0.18);
+    scrim.strokeRoundedRect(x - scrimWidth / 2, y - 18, scrimWidth, 78, 18);
+
+    this.standardResultScrim = scrim;
     this.standardResultLabels = [title, statusText];
-    root.add(this.standardResultLabels);
+    root.add([scrim, ...this.standardResultLabels]);
   }
 
   private async animateHiddenPocket(
@@ -657,6 +672,8 @@ export class OpeningScene extends Phaser.Scene {
 
     for (const label of this.standardResultLabels) label.destroy();
     this.standardResultLabels = [];
+    this.standardResultScrim?.destroy();
+    this.standardResultScrim = null;
 
     const hiddenLabel = this.add
       .text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {
@@ -869,12 +886,15 @@ export class OpeningScene extends Phaser.Scene {
     this.resultPrompt?.destroy();
     this.resultPrompt = this.add
       .text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {
-        color: '#d5cae5',
+        color: '#eee6f5',
+        backgroundColor: '#2a2037',
+        padding: { x: 12, y: 7 },
         fontFamily: 'system-ui, sans-serif',
         fontSize: '17px',
       })
       .setOrigin(0.5)
-      .setAlpha(0.6);
+      .setShadow(0, 2, '#120d19', 3, true, true)
+      .setAlpha(0.8);
     this.root.add(this.resultPrompt);
   }
 
@@ -928,7 +948,8 @@ export class OpeningScene extends Phaser.Scene {
             },
           )
           .setOrigin(0.5)
-          .setAlpha(0.72),
+          .setShadow(0, 2, '#120d19', 4, true, true)
+          .setAlpha(0.82),
       );
       const secret = createCollectibleVisual(
         this,
@@ -948,7 +969,8 @@ export class OpeningScene extends Phaser.Scene {
             fontSize: '22px',
             fontStyle: 'bold',
           })
-          .setOrigin(0.5),
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#120d19', 4, true, true),
       );
       const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
       root.add(
@@ -959,7 +981,8 @@ export class OpeningScene extends Phaser.Scene {
             fontSize: '22px',
             fontStyle: 'bold',
           })
-          .setOrigin(0.5),
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#120d19', 4, true, true),
       );
       root.add(
         this.add
@@ -969,7 +992,8 @@ export class OpeningScene extends Phaser.Scene {
             fontSize: '16px',
             fontStyle: 'bold',
           })
-          .setOrigin(0.5),
+          .setOrigin(0.5)
+          .setShadow(0, 2, '#120d19', 4, true, true),
       );
     } else {
       const standard = createCollectibleVisual(

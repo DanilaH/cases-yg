@@ -14,7 +14,9 @@ export const SECRET_REVEAL_COLOR = 0x65f6ff;
 
 const POUCH_ART_DISPLAY_WIDTH = 374;
 const POUCH_TEAR_Y = -112;
-const POUCH_TAB_LOCAL_X = -145;
+const POUCH_TAB_LOCAL_X = -114;
+const POUCH_TAB_LOCAL_Y = -99;
+const POUCH_TAB_HIT_SIZE = 152;
 const POUCH_TAB_TRAVEL = 263;
 
 export interface PouchVisual {
@@ -134,7 +136,7 @@ export const createPouchVisual = (
   } else {
     tab.add(
       scene.add
-        .text(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y - 2, '★', {
+        .text(POUCH_TAB_LOCAL_X, POUCH_TAB_LOCAL_Y, '★', {
           color: '#8157d8',
           fontFamily: 'system-ui, sans-serif',
           fontSize: '54px',
@@ -144,7 +146,7 @@ export const createPouchVisual = (
     );
   }
   const dragZone = scene.add
-    .zone(POUCH_TAB_LOCAL_X, POUCH_TEAR_Y, 94, 94)
+    .zone(POUCH_TAB_LOCAL_X, POUCH_TAB_LOCAL_Y, POUCH_TAB_HIT_SIZE, POUCH_TAB_HIT_SIZE)
     .setInteractive({ useHandCursor: true });
   tab.add(dragZone);
   strip.add(tab);

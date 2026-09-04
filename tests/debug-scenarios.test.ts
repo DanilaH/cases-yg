@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { stageDebugReveal } from '../src/debug/debugScenarios';
+import { seedDebugCollection, stageDebugReveal } from '../src/debug/debugScenarios';
 import { SLICE_BALANCE } from '../src/game/data/balance';
 import { SaveRepository } from '../src/game/systems/save';
 import { MemoryStorageAdapter } from './helpers';
@@ -48,4 +48,12 @@ describe('debug reveal scenarios', () => {
     expect(pending.hiddenPocket).not.toBeNull();
     expect(pending.hiddenPocket?.collectibleId).toBe('camera-secret-cosmic');
   });
+  it('seeds a collection that is immediately reachable from Opening', async () => {
+    const state = await seedDebugCollection(createRepository(), 'all');
+
+    expect(state.totalOpens).toBeGreaterThan(0);
+    expect(state.discoveredStandard).toHaveLength(8);
+    expect(state.discoveredSecrets).toHaveLength(2);
+  });
+
 });

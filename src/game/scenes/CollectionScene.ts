@@ -5,11 +5,11 @@ import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { SLICE_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
-import { buildCollectionSnapshot, type CollectionSnapshot, type FamilyCollectionSnapshot } from '../systems/collection';
+import { buildCollectionSnapshot, getShelfFeaturedOwned, type CollectionSnapshot } from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { persistMutedPreference } from '../systems/settings';
-import { createCollectibleVisual, RARITY_REVEAL_COLORS } from '../ui/openingVisuals';
+import { createCollectibleVisual, RARITY_REVEAL_COLORS, SECRET_REVEAL_COLOR } from '../ui/openingVisuals';
 import { addCoverArt } from '../ui/staticArt';
 
 const LOGICAL_HEIGHT = 720;
@@ -17,13 +17,6 @@ const FAMILIES_PER_PAGE = 2;
 const RARITIES: readonly StandardRarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 type CollectionView = 'shelf' | 'library';
-
-const highestOwnedRarity = (snapshot: FamilyCollectionSnapshot): StandardRarity | null => {
-  for (const rarity of ['legendary', 'epic', 'rare', 'common'] as const) {
-    if (snapshot.standardOwned[rarity]) return rarity;
-  }
-  return null;
-};
 
 export class CollectionScene extends Phaser.Scene {
   private root: Phaser.GameObjects.Container | null = null;
@@ -111,6 +104,11 @@ export class CollectionScene extends Phaser.Scene {
       );
     }
 
+    const topScrim = this.add.graphics();
+    topScrim.fillStyle(0x1b1425, 0.34);
+    topScrim.fillRoundedRect(metrics.centerX - 260, 22, 520, 138, 28);
+    root.add(topScrim);
+
     root.add(
       this.add
         .text(metrics.centerX, 48, messages.collection.title, {
@@ -119,7 +117,8 @@ export class CollectionScene extends Phaser.Scene {
           fontSize: '30px',
           fontStyle: 'bold',
         })
-        .setOrigin(0.5),
+        .setOrigin(0.5)
+        .setShadow(0, 2, '#120d19', 4, true, true),
     );
 
     root.add(
@@ -134,7 +133,8 @@ export class CollectionScene extends Phaser.Scene {
             fontSize: '15px',
           },
         )
-        .setOrigin(0.5),
+        .setOrigin(0.5)
+        .setShadow(0, 2, '#120d19', 3, true, true),
     );
 
     this.createTab(root, metrics.centerX - 78, 128, 'shelf', messages.collection.shelf);
@@ -225,88 +225,99 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const cardWidth = Math.min(320, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 22);
-    const gap = 34;
+    const cardWidth = Math.min(300, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 28);
+    const gap = 44;
     const totalWidth = cardWidth * families.length + gap * Math.max(0, families.length - 1);
     const startX = metrics.centerX - totalWidth / 2 + cardWidth / 2;
 
     families.forEach((family, index) => {
       const familySnapshot = this.snapshot!.families.find(({ familyId }) => familyId === family.id)!;
       const x = startX + index * (cardWidth + gap);
-      const card = this.add
-        .rectangle(x, 380, cardWidth, 392, 0x342a42, 0.92)
-        .setStrokeStyle(2, 0x6a5a7d, 0.72);
-      root.add(card);
+
+      const glass = this.add.graphics();
+      glass.fillStyle(0x251b33, 0.14);
+      glass.fillRoundedRect(x - cardWidth / 2, 188, cardWidth, 372, 28);
+      glass.lineStyle(1.5, 0xe8d8f7, 0.2);
+      glass.strokeRoundedRect(x - cardWidth / 2, 188, cardWidth, 372, 28);
+      root.add(glass);
+
       root.add(
         this.add
-          .text(x, 210, family.name[getPlatformRuntime().language], {
-            color: '#f4edf9',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '20px',
-            fontStyle: 'bold',
-          })
-          .setOrigin(0.5),
+.text(x, 216, family.name[getPlatformRuntime().language], {
+  color: '#f8f2fd',
+  fontFamily: 'system-ui, sans-serif',
+  fontSize: '20px',
+  fontStyle: 'bold',
+})
+.setOrigin(0.5)
+.setShadow(0, 2, '#160f20', 4, true, true),
       );
 
-      const best = highestOwnedRarity(familySnapshot);
-      if (best) {
-        const visual = createCollectibleVisual(this, root, family.id, best, x, 365, family.standard[best].id);
-        visual.group.setScale(0.78);
+      const featured = getShelfFeaturedOwned(family, familySnapshot);
+      if (featured) {
+        const visual = createCollectibleVisual(
+this,
+root,
+family.id,
+featured.rarity,
+x,
+360,
+featured.collectibleId,
+        );
+        visual.group.setScale(featured.rarity === 'secret' ? 0.82 : 0.78);
+        const featureColor = featured.rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[featured.rarity];
         root.add(
-          this.add
-            .text(x, 518, `${messages.collection.bestOwned}: ${messages.rarity[best]}`, {
-              color: `#${RARITY_REVEAL_COLORS[best].toString(16).padStart(6, '0')}`,
-              fontFamily: 'system-ui, sans-serif',
-              fontSize: '15px',
-              fontStyle: 'bold',
-            })
-            .setOrigin(0.5),
+this.add
+  .text(x, 510, `${messages.collection.bestOwned}: ${messages.rarity[featured.rarity]}`, {
+    color: `#${featureColor.toString(16).padStart(6, '0')}`,
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: '15px',
+    fontStyle: 'bold',
+  })
+  .setOrigin(0.5)
+  .setShadow(0, 2, '#160f20', 4, true, true),
         );
       } else {
-        root.add(this.add.circle(x, 365, 76, 0x282130, 0.85).setStrokeStyle(3, 0x5c4e69, 0.7));
+        root.add(this.add.circle(x, 360, 70, 0x251d2f, 0.5).setStrokeStyle(2, 0xe7d7f2, 0.18));
         root.add(
-          this.add
-            .text(x, 355, '?', {
-              color: '#756681',
-              fontFamily: 'system-ui, sans-serif',
-              fontSize: '76px',
-              fontStyle: 'bold',
-            })
-            .setOrigin(0.5),
+this.add
+  .text(x, 352, '?', {
+    color: '#8a7a95',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: '70px',
+    fontStyle: 'bold',
+  })
+  .setOrigin(0.5)
+  .setShadow(0, 2, '#160f20', 4, true, true),
         );
         root.add(
-          this.add
-            .text(x, 505, messages.collection.emptyShelf, {
-              color: '#a99bb5',
-              align: 'center',
-              fontFamily: 'system-ui, sans-serif',
-              fontSize: '14px',
-              wordWrap: { width: cardWidth - 36 },
-            })
-            .setOrigin(0.5),
+this.add
+  .text(x, 505, messages.collection.emptyShelf, {
+    color: '#c1b5ca',
+    align: 'center',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: '14px',
+    wordWrap: { width: cardWidth - 42 },
+  })
+  .setOrigin(0.5)
+  .setShadow(0, 2, '#160f20', 3, true, true),
         );
       }
 
-      if (familySnapshot.secretOwned.length > 0) {
-        root.add(
-          this.add
-            .text(x, 556, `✦ ${messages.collection.secret}`, {
-              color: '#8df8ff',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              fontStyle: 'bold',
-            })
-            .setOrigin(0.5),
-        );
-      }
       root.add(
         this.add
-          .text(x, 588, `${familySnapshot.standardCount}/${familySnapshot.standardTotal}`, {
-            color: '#c8bbd4',
-            fontFamily: 'monospace',
-            fontSize: '14px',
-          })
-          .setOrigin(0.5),
+.text(
+  x,
+  542,
+  `${familySnapshot.standardCount}/${familySnapshot.standardTotal}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
+  {
+    color: '#ded3e8',
+    fontFamily: 'monospace',
+    fontSize: '13px',
+  },
+)
+.setOrigin(0.5)
+.setShadow(0, 2, '#160f20', 3, true, true),
       );
     });
   }

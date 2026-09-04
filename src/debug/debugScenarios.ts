@@ -139,6 +139,7 @@ export const seedDebugCollection = async (
   const current = await repository.load();
   const next: SaveState = {
     ...current,
+    totalOpens: Math.max(1, current.totalOpens),
     pendingReveal: null,
     discoveredStandard: SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id),
     discoveredSecrets:
