@@ -97,9 +97,12 @@ describe('reveal presentation', () => {
   it('keeps ambient and idle motion subtle and bounded', () => {
     expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(20);
     expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);
-    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThan(1);
-    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThan(1.08);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThanOrEqual(1.06);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThanOrEqual(1.08);
+    expect(MOTION_PRESENTATION.resultPulseScale).toBeGreaterThanOrEqual(1.035);
     expect(MOTION_PRESENTATION.resultPulseScale).toBeLessThan(1.05);
+    expect(MOTION_PRESENTATION.resultPulseDuration).toBeLessThan(250);
+    expect(MOTION_PRESENTATION.resultPulseRepeatDelay).toBeGreaterThan(400);
     expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);
   });
 });

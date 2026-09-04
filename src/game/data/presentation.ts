@@ -197,10 +197,11 @@ export const AMBIENT_PRESENTATION = {
 
 export const MOTION_PRESENTATION = {
   tearHintY: 632,
-  starPulseScale: 1.04,
-  starPulseDuration: 720,
-  resultPulseScale: 1.028,
-  resultPulseDuration: 620,
+  starPulseScale: 1.07,
+  starPulseDuration: 520,
+  resultPulseScale: 1.04,
+  resultPulseDuration: 180,
+  resultPulseRepeatDelay: 520,
   rewardBreathScale: 1.028,
   rewardBreathDuration: 1200,
 } as const;

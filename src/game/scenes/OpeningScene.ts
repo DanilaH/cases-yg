@@ -293,7 +293,6 @@ export class OpeningScene extends Phaser.Scene {
     this.tweens.add({
       targets: this.pouch.tab,
       scale: MOTION_PRESENTATION.starPulseScale,
-      alpha: 0.86,
       duration: MOTION_PRESENTATION.starPulseDuration,
       yoyo: true,
       repeat: -1,
@@ -316,7 +315,8 @@ export class OpeningScene extends Phaser.Scene {
       duration: MOTION_PRESENTATION.resultPulseDuration,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.InOut',
+      repeatDelay: MOTION_PRESENTATION.resultPulseRepeatDelay,
+      ease: 'Sine.Out',
     });
   }
 
