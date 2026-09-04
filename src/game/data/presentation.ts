@@ -73,9 +73,10 @@ export const POUCH_PRESENTATION = {
   // as soon as the collectible appeared.
   groupY: 246,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // A cropped production header restores the original hanger silhouette without
-  // bringing back the oversized full-width lid that dominated early iterations.
-  header: { x: 0, y: -104, displayWidth: 270 } satisfies PouchLayerPresentation,
+  // Phaser keeps crop geometry relative to the original 1024 source origin.
+  // This source-space Y places the visible cropped hanger center at roughly -104
+  // logical px, completing the silhouette without restoring the oversized lid.
+  header: { x: 0, y: 80, displayWidth: 270 } satisfies PouchLayerPresentation,
   // Runtime seam remains a narrow tear rail across the body/header junction.
   strip: { x: 0, y: -82, displayWidth: 360 } satisfies PouchLayerPresentation,
   // The existing star source has large transparent padding. These offsets place
