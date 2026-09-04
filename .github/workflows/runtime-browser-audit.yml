@@ -22,9 +22,15 @@ jobs:
           cache: npm
       - name: Install project dependencies
         run: npm ci --omit=optional
-      - name: Install Playwright driver
+      - name: Install Playwright driver without mutating lock tree
         run: |
-          npm install --no-save --no-package-lock --omit=optional playwright@1.55.0
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node -e "import('playwright').then(() => console.log('playwright import ok'))"
           command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
       - name: Start Vite
         run: |
