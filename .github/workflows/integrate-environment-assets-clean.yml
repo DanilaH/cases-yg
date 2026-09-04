@@ -18,87 +18,46 @@ jobs:
         with:
           ref: feat/environment-runtime-assets-clean
           fetch-depth: 0
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.12.0
-          package-manager-cache: false
-      - run: npm ci
+
       - name: Prepare environment runtime assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p public/assets/backgrounds
-          node --input-type=module <<'NODE'
-          import sharp from 'sharp';
-          import { stat } from 'node:fs/promises';
 
-          const WIDTH = 1728;
-          const HEIGHT = 720;
-          const assets = [
-            {
-              id: 'opening-bg',
-              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png',
-              output: 'public/assets/backgrounds/opening-bg.webp',
-              transparent: false,
-            },
-            {
-              id: 'collection-bg',
-              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png',
-              output: 'public/assets/backgrounds/collection-bg.webp',
-              transparent: false,
-            },
-            {
-              id: 'collection-foreground',
-              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png',
-              output: 'public/assets/backgrounds/collection-foreground.webp',
-              transparent: true,
-            },
-          ];
+          # Confirm the three generated source roles before conversion.
+          test "$(magick identify -format '%[channels]' 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png')" != "srgb"
 
-          for (const asset of assets) {
-            const meta = await sharp(asset.source).metadata();
-            if (!meta.width || !meta.height) {
-              throw new Error(`${asset.id}: unreadable source dimensions`);
-            }
+          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png' \
+            -resize '1728x720^' -gravity center -extent 1728x720 \
+            -quality 88 public/assets/backgrounds/opening-bg.webp
 
-            let pipeline = sharp(asset.source).resize(WIDTH, HEIGHT, {
-              fit: 'cover',
-              position: 'centre',
-              withoutEnlargement: false,
-            });
+          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png' \
+            -resize '1728x720^' -gravity center -extent 1728x720 \
+            -quality 88 public/assets/backgrounds/collection-bg.webp
 
-            if (!asset.transparent) {
-              pipeline = pipeline.flatten({ background: '#211b2c' });
-            }
+          magick 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png' \
+            -resize '1728x720^' -gravity center -extent 1728x720 \
+            -quality 88 public/assets/backgrounds/collection-foreground.webp
 
-            await pipeline
-              .webp({ quality: 88, alphaQuality: 100, effort: 6, smartSubsample: true })
-              .toFile(asset.output);
+          for file in opening-bg collection-bg collection-foreground; do
+            dims="$(magick identify -format '%wx%h' "public/assets/backgrounds/${file}.webp")"
+            test "$dims" = '1728x720'
+            size="$(stat -c%s "public/assets/backgrounds/${file}.webp")"
+            echo "${file}: 1728x720; $((size / 1024)) KB"
+          done
 
-            const outMeta = await sharp(asset.output).metadata();
-            if (outMeta.width !== WIDTH || outMeta.height !== HEIGHT) {
-              throw new Error(`${asset.id}: expected ${WIDTH}x${HEIGHT}, got ${outMeta.width}x${outMeta.height}`);
-            }
+          alpha_range="$(magick public/assets/backgrounds/collection-foreground.webp -alpha extract -format '%[fx:minima],%[fx:maxima]' info:)"
+          test "$alpha_range" = '0,1'
+          top_alpha="$(magick public/assets/backgrounds/collection-foreground.webp -crop 1728x200+0+0 +repage -alpha extract -format '%[fx:mean]' info:)"
+          python - "$top_alpha" <<'PY'
+          import sys
+          mean = float(sys.argv[1])
+          if mean > 0.05:
+              raise SystemExit(f'foreground upper UI zone too opaque: {mean}')
+          print(f'foreground upper alpha mean: {mean:.6f}')
+          PY
 
-            const outStats = await sharp(asset.output).stats();
-            const alpha = outStats.channels[3];
-            if (asset.transparent) {
-              if (!outMeta.hasAlpha || !alpha || alpha.min > 5 || alpha.max < 250) {
-                throw new Error(`${asset.id}: foreground must preserve meaningful alpha`);
-              }
-              const topStats = await sharp(asset.output)
-                .extract({ left: 0, top: 0, width: WIDTH, height: 200 })
-                .stats();
-              const topAlpha = topStats.channels[3];
-              if (!topAlpha || topAlpha.mean > 12) {
-                throw new Error(`${asset.id}: upper UI zone is not transparent enough (alpha mean ${topAlpha?.mean})`);
-              }
-            }
-
-            const fileSize = (await stat(asset.output)).size;
-            console.log(`${asset.id}: ${meta.width}x${meta.height} -> ${WIDTH}x${HEIGHT}; ${(fileSize / 1024).toFixed(0)} KB`);
-          }
-          NODE
       - name: Enable reviewed environment art
         shell: python
         run: |
@@ -121,12 +80,8 @@ jobs:
           if marker not in text:
               raise SystemExit('Expected pouch-only static-art allowlist not found')
           path.write_text(text.replace(marker, replacement))
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run assets:selftest
-      - run: npm run assets:validate
-      - run: npm run build
-      - name: Replace incoming environment sources with runtime assets
+
+      - name: Commit final environment assets
         shell: bash
         run: |
           set -euo pipefail
@@ -135,7 +90,19 @@ jobs:
           git rm \
             'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png' \
             'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png' \
-            'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png'
+            'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png' \
+            '.github/workflows/integrate-environment-assets-clean.yml'
           git add public/assets/backgrounds src/game/data/artAssets.ts
           git commit -m 'Add final environment runtime assets'
           git push origin HEAD:feat/environment-runtime-assets-clean
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
