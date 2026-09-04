@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "artifacts" / "presentation-v2-diagnostics"
@@ -104,11 +104,9 @@ def build_pouch_diagnostic(stats: list[dict]):
         canvas_size = (max_w, max_h)
 
     composite = Image.new("RGBA", canvas_size, (24, 20, 31, 255))
-    tints = [(255, 120, 160, 180), (120, 220, 255, 180), (255, 220, 100, 220)]
-    for img, tint in zip(images, tints):
+    for img in images:
         layer = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         layer.alpha_composite(img, (0, 0))
-        # Preserve source colors but keep overlay readable.
         composite.alpha_composite(layer)
 
     draw = ImageDraw.Draw(composite, "RGBA")
@@ -121,12 +119,11 @@ def build_pouch_diagnostic(stats: list[dict]):
         draw.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), fill=color)
         draw.text((s["bbox"][0] + 8, s["bbox"][1] + 8), label, fill=color)
 
-    # Current runtime geometry transformed to source-canvas coordinates.
     display_width = 374
     source_w = canvas_size[0]
     source_h = canvas_size[1]
     scale = display_width / source_w
-    # Runtime full-canvas layer anchor is image(0, 8). Inverse map local positions back to source pixels.
+
     def local_to_source(x: float, y: float) -> tuple[float, float]:
         return (x / scale + source_w / 2, (y - 8) / scale + source_h / 2)
 
@@ -136,7 +133,6 @@ def build_pouch_diagnostic(stats: list[dict]):
     draw.rectangle((hx0, hy0, hx1, hy1), outline=(80, 255, 120, 255), width=4)
     draw.text((hx0 + 6, hy0 + 6), "current hitbox", fill=(80, 255, 120, 255))
 
-    # Tear line is approximately the runtime strip center around y=-112 and star travel 0 -> 263.
     sx0, sy = local_to_source(-126, -112)
     sx1, _ = local_to_source(-126 + 263, -112)
     draw.line((sx0, sy, sx1, sy), fill=(255, 255, 255, 255), width=5)
@@ -145,6 +141,30 @@ def build_pouch_diagnostic(stats: list[dict]):
     draw.text((sx0, sy + 12), "current tear travel", fill=(255, 255, 255, 255))
 
     composite.save(OUT / "pouch-diagnostic.png")
+
+
+def build_pouch_layers_montage(stats: list[dict]):
+    labels = ["BODY", "TEAR STRIP", "STAR TAB"]
+    tiles: list[Image.Image] = []
+    for s, label in zip(stats, labels):
+        image = Image.open(ROOT / s["path"]).convert("RGBA")
+        bg = Image.new("RGBA", image.size, (28, 24, 36, 255))
+        bg.alpha_composite(image)
+        draw = ImageDraw.Draw(bg, "RGBA")
+        draw_bbox(draw, s["bbox"], (255, 100, 150, 255), 5)
+        draw_bbox(draw, s["robust_bbox_2_98"], (80, 220, 255, 220), 3)
+        bg.thumbnail((440, 440), Image.Resampling.LANCZOS)
+        tile = Image.new("RGBA", (460, 500), (20, 17, 26, 255))
+        tile.alpha_composite(bg, ((460 - bg.width) // 2, 20))
+        text = ImageDraw.Draw(tile)
+        text.text((16, 462), label, fill=(245, 240, 255, 255))
+        text.text((16, 480), str(s["bbox"]), fill=(180, 220, 255, 255))
+        tiles.append(tile)
+
+    montage = Image.new("RGBA", (len(tiles) * 460, 500), (16, 14, 20, 255))
+    for i, tile in enumerate(tiles):
+        montage.alpha_composite(tile, (i * 460, 0))
+    montage.save(OUT / "pouch-layers-montage.png")
 
 
 def build_phone_montage(stats: list[dict]):
@@ -162,7 +182,6 @@ def build_phone_montage(stats: list[dict]):
         draw.line((rcx - 18, rcy, rcx + 18, rcy), fill=(80, 255, 120, 255), width=4)
         draw.line((rcx, rcy - 18, rcx, rcy + 18), fill=(80, 255, 120, 255), width=4)
         bg.thumbnail((360, 360), Image.Resampling.LANCZOS)
-        label_h = 44
         tile = Image.new("RGBA", (360, 404), (24, 20, 31, 255))
         tile.alpha_composite(bg, ((360 - bg.width) // 2, 0))
         ImageDraw.Draw(tile).text((10, 370), Path(s["path"]).stem, fill=(245, 240, 255, 255))
@@ -182,6 +201,7 @@ def main():
     payload = {"pouch": pouch_stats, "phones": phone_stats}
     (OUT / "measurements.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     build_pouch_diagnostic(pouch_stats)
+    build_pouch_layers_montage(pouch_stats)
     build_phone_montage(phone_stats)
     print(json.dumps(payload, indent=2))
 
