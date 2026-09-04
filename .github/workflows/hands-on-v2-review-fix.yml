@@ -1,0 +1,49 @@
+name: Hands-on V2 review fix
+
+on:
+  push:
+    branches:
+      - fix/hands-on-v2-correction
+    paths:
+      - .github/workflows/hands-on-v2-review-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Keep save-stage error inside the viewport
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/game/scenes/OpeningScene.ts')
+          text = p.read_text()
+          old = '          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY + 42, message, {'
+          new = '          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY - 42, message, {'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one error-message placement, got {text.count(old)}')
+          p.write_text(text.replace(old, new, 1))
+          PY
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit review fix and remove temporary workflow
+        run: |
+          rm .github/workflows/hands-on-v2-review-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/game/scenes/OpeningScene.ts .github/workflows/hands-on-v2-review-fix.yml
+          git commit -m "Fix idle error message placement"
+          git push origin HEAD:fix/hands-on-v2-correction
