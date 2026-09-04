@@ -1,4 +1,4 @@
-name: Inspect Historical Pouch Master
+name: Inspect Historical Pouch Sources
 
 on:
   push:
@@ -17,21 +17,25 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Restore historical master
+      - name: Restore historical pouch sources
         run: |
-          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 2, 2026, 12_02_20 PM.png' > /tmp/pouch-master.png
+          mkdir -p /tmp/pouch-sources
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 2, 2026, 12_02_20 PM.png' > '/tmp/pouch-sources/0-master.png'
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_10 AM (1).png' > '/tmp/pouch-sources/1.png'
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_11 AM (2).png' > '/tmp/pouch-sources/2.png'
+          git show '72e300b6d494320598ff1a6a08eeb3cf2195a98a:incoming/ChatGPT Image Sep 4, 2026, 12_25_11 AM (3).png' > '/tmp/pouch-sources/3.png'
       - name: Inspect geometry
         run: |
           python -m pip install --quiet pillow
           python - <<'PY'
           from PIL import Image
-          img = Image.open('/tmp/pouch-master.png').convert('RGBA')
-          alpha = img.getchannel('A')
-          print('size=', img.size)
-          print('alpha_bbox=', alpha.getbbox())
+          from pathlib import Path
+          for p in sorted(Path('/tmp/pouch-sources').glob('*.png')):
+              img = Image.open(p).convert('RGBA')
+              print(p.name, 'size=', img.size, 'alpha_bbox=', img.getchannel('A').getbbox())
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: historical-pouch-master
-          path: /tmp/pouch-master.png
+          name: historical-pouch-sources
+          path: /tmp/pouch-sources
           retention-days: 2
