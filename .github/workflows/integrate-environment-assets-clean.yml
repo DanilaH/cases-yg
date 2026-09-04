@@ -30,6 +30,7 @@ jobs:
           mkdir -p public/assets/backgrounds
           node --input-type=module <<'NODE'
           import sharp from 'sharp';
+          import { stat } from 'node:fs/promises';
 
           const WIDTH = 1728;
           const HEIGHT = 720;
@@ -42,13 +43,13 @@ jobs:
             },
             {
               id: 'collection-bg',
-              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png',
+              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png',
               output: 'public/assets/backgrounds/collection-bg.webp',
               transparent: false,
             },
             {
               id: 'collection-foreground',
-              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png',
+              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png',
               output: 'public/assets/backgrounds/collection-foreground.webp',
               transparent: true,
             },
@@ -94,8 +95,8 @@ jobs:
               }
             }
 
-            const fileSize = (await import('node:fs/promises')).stat(asset.output).then((s) => s.size);
-            console.log(`${asset.id}: ${meta.width}x${meta.height} -> ${WIDTH}x${HEIGHT}; ${(await fileSize / 1024).toFixed(0)} KB`);
+            const fileSize = (await stat(asset.output)).size;
+            console.log(`${asset.id}: ${meta.width}x${meta.height} -> ${WIDTH}x${HEIGHT}; ${(fileSize / 1024).toFixed(0)} KB`);
           }
           NODE
       - name: Enable reviewed environment art
