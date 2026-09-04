@@ -1,0 +1,27 @@
+name: Runtime Audit Snapshot
+
+on:
+  push:
+    branches:
+      - audit/runtime-review
+    paths:
+      - .github/workflows/runtime-audit-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Pack repository snapshot
+        run: |
+          set -euo pipefail
+          tar --exclude=.git --exclude=node_modules -czf /tmp/cases-yg-main.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cases-yg-runtime-audit
+          path: /tmp/cases-yg-main.tar.gz
+          if-no-files-found: error
+          retention-days: 1
