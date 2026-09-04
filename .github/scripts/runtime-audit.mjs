@@ -17,6 +17,7 @@ const report = {
 
 const browser = await chromium.launch({
   headless: true,
+  channel: process.env.PW_CHANNEL || undefined,
   args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
 });
 
@@ -90,7 +91,6 @@ const openCollectionByCanvas = async (page) => {
   await hideDebugPanel(page);
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('No viewport');
-  // Collection button is anchored to safeRight/safeBottom in the bottom-right corner.
   await page.mouse.click(viewport.width - 90, viewport.height - 48);
   await page.waitForTimeout(650);
 };
@@ -124,7 +124,6 @@ const dragPouchTab = async (page) => {
   await page.mouse.up();
 };
 
-// Main interactive audit in English, standard 16:9.
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: 'en-US' });
   const page = await context.newPage();
@@ -171,7 +170,6 @@ const dragPouchTab = async (page) => {
   await context.close();
 }
 
-// Responsive opening snapshots at the real min and max landscape widths.
 for (const viewport of [
   { width: 900, height: 720, name: '09-opening-min-landscape-900x720' },
   { width: 1728, height: 720, name: '10-opening-wide-1728x720' },
@@ -187,7 +185,6 @@ for (const viewport of [
   await context.close();
 }
 
-// Russian compact landscape: seed a full collection and inspect text density/overflow.
 {
   const context = await browser.newContext({ viewport: { width: 1024, height: 768 }, locale: 'ru-RU' });
   const page = await context.newPage();
@@ -203,7 +200,6 @@ for (const viewport of [
   await context.close();
 }
 
-// Portrait should gate gameplay completely.
 {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
   const page = await context.newPage();
