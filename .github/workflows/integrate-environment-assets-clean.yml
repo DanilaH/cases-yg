@@ -1,0 +1,140 @@
+name: Integrate Environment Assets Clean
+
+on:
+  push:
+    branches:
+      - feat/environment-runtime-assets-clean
+    paths:
+      - .github/workflows/integrate-environment-assets-clean.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/environment-runtime-assets-clean
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Prepare environment runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets/backgrounds
+          node --input-type=module <<'NODE'
+          import sharp from 'sharp';
+
+          const WIDTH = 1728;
+          const HEIGHT = 720;
+          const assets = [
+            {
+              id: 'opening-bg',
+              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png',
+              output: 'public/assets/backgrounds/opening-bg.webp',
+              transparent: false,
+            },
+            {
+              id: 'collection-bg',
+              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png',
+              output: 'public/assets/backgrounds/collection-bg.webp',
+              transparent: false,
+            },
+            {
+              id: 'collection-foreground',
+              source: 'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png',
+              output: 'public/assets/backgrounds/collection-foreground.webp',
+              transparent: true,
+            },
+          ];
+
+          for (const asset of assets) {
+            const meta = await sharp(asset.source).metadata();
+            if (!meta.width || !meta.height) {
+              throw new Error(`${asset.id}: unreadable source dimensions`);
+            }
+
+            let pipeline = sharp(asset.source).resize(WIDTH, HEIGHT, {
+              fit: 'cover',
+              position: 'centre',
+              withoutEnlargement: false,
+            });
+
+            if (!asset.transparent) {
+              pipeline = pipeline.flatten({ background: '#211b2c' });
+            }
+
+            await pipeline
+              .webp({ quality: 88, alphaQuality: 100, effort: 6, smartSubsample: true })
+              .toFile(asset.output);
+
+            const outMeta = await sharp(asset.output).metadata();
+            if (outMeta.width !== WIDTH || outMeta.height !== HEIGHT) {
+              throw new Error(`${asset.id}: expected ${WIDTH}x${HEIGHT}, got ${outMeta.width}x${outMeta.height}`);
+            }
+
+            const outStats = await sharp(asset.output).stats();
+            const alpha = outStats.channels[3];
+            if (asset.transparent) {
+              if (!outMeta.hasAlpha || !alpha || alpha.min > 5 || alpha.max < 250) {
+                throw new Error(`${asset.id}: foreground must preserve meaningful alpha`);
+              }
+              const topStats = await sharp(asset.output)
+                .extract({ left: 0, top: 0, width: WIDTH, height: 200 })
+                .stats();
+              const topAlpha = topStats.channels[3];
+              if (!topAlpha || topAlpha.mean > 12) {
+                throw new Error(`${asset.id}: upper UI zone is not transparent enough (alpha mean ${topAlpha?.mean})`);
+              }
+            }
+
+            const fileSize = (await import('node:fs/promises')).stat(asset.output).then((s) => s.size);
+            console.log(`${asset.id}: ${meta.width}x${meta.height} -> ${WIDTH}x${HEIGHT}; ${(await fileSize / 1024).toFixed(0)} KB`);
+          }
+          NODE
+      - name: Enable reviewed environment art
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          marker = """export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
+            'pouch-body',
+            'pouch-tear-strip',
+            'pouch-star-tab',
+          ]);"""
+          replacement = """export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
+            'pouch-body',
+            'pouch-tear-strip',
+            'pouch-star-tab',
+            'opening-bg',
+            'collection-bg',
+            'collection-foreground',
+          ]);"""
+          if marker not in text:
+              raise SystemExit('Expected pouch-only static-art allowlist not found')
+          path.write_text(text.replace(marker, replacement))
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Replace incoming environment sources with runtime assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm \
+            'incoming/ChatGPT Image Sep 4, 2026, 11_34_44 AM.png' \
+            'incoming/ChatGPT Image Sep 4, 2026, 11_35_06 AM.png' \
+            'incoming/ChatGPT Image Sep 4, 2026, 11_35_27 AM.png'
+          git add public/assets/backgrounds src/game/data/artAssets.ts
+          git commit -m 'Add final environment runtime assets'
+          git push origin HEAD:feat/environment-runtime-assets-clean
