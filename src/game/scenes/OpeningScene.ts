@@ -36,6 +36,12 @@ interface DragState {
   progress: number;
 }
 
+interface ResultCarouselDrag {
+  pointerId: number;
+  startPointerX: number;
+  deltaX: number;
+}
+
 export class OpeningScene extends Phaser.Scene {
   private phase: OpeningPhase = 'booting';
   private root: Phaser.GameObjects.Container | null = null;
@@ -53,12 +59,26 @@ export class OpeningScene extends Phaser.Scene {
   private firstInteractionTracked = false;
   private standardResultLabels: Phaser.GameObjects.Text[] = [];
   private standardResultScrim: Phaser.GameObjects.Graphics | null = null;
+  private resultCarouselItems: Phaser.GameObjects.Container[] = [];
+  private resultCarouselDots: Phaser.GameObjects.Arc[] = [];
+  private resultCarouselIndex = 0;
+  private resultCarouselDrag: ResultCarouselDrag | null = null;
+  private resultCarouselZone: Phaser.GameObjects.Zone | null = null;
 
   public constructor() {
     super('OpeningScene');
   }
 
   public create(): void {
+    // Phaser reuses the Scene instance after Collection -> Opening. Shutdown is
+    // terminal only for the previous activation, so reset activation state here.
+    this.phase = 'booting';
+    this.drag = null;
+    this.resultCarouselDrag = null;
+    this.resultReady = false;
+    this.deferredResize = false;
+    this.ignoreNextResultTap = false;
+
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
 
@@ -144,6 +164,11 @@ export class OpeningScene extends Phaser.Scene {
     this.resultPrompt = null;
     this.standardResultLabels = [];
     this.standardResultScrim = null;
+    this.resultCarouselItems = [];
+    this.resultCarouselDots = [];
+    this.resultCarouselIndex = 0;
+    this.resultCarouselDrag = null;
+    this.resultCarouselZone = null;
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -344,6 +369,14 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
+    if (this.phase === 'result' && this.resultCarouselDrag && this.metrics) {
+      if (pointer.id !== this.resultCarouselDrag.pointerId) return;
+      const delta = (pointer.x - this.resultCarouselDrag.startPointerX) / this.metrics.scale;
+      this.resultCarouselDrag.deltaX = Phaser.Math.Clamp(delta, -220, 220);
+      this.positionResultCarousel(this.resultCarouselDrag.deltaX, false);
+      return;
+    }
+
     if (this.phase !== 'dragging' || !this.drag || !this.pouch || !this.metrics) return;
     if (pointer.id !== this.drag.pointerId) return;
 
@@ -367,8 +400,20 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
-    if (this.phase === 'result' && this.resultReady) {
-      this.renderIdle();
+    if (this.phase === 'result') {
+      if (this.resultCarouselDrag && this.metrics && pointer.id === this.resultCarouselDrag.pointerId) {
+        const delta = this.resultCarouselDrag.deltaX;
+        this.resultCarouselDrag = null;
+        if (Math.abs(delta) >= 72) {
+          const direction = delta < 0 ? 1 : -1;
+          this.resultCarouselIndex = Phaser.Math.Clamp(
+            this.resultCarouselIndex + direction,
+            0,
+            Math.max(0, this.resultCarouselItems.length - 1),
+          );
+        }
+        this.positionResultCarousel(0, true);
+      }
       return;
     }
 
@@ -598,11 +643,31 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) getGameAudio().play('duplicate');
-    if (pending.signal.gain > 0) getGameAudio().play('signal-gain');
-    if (pending.signal.lockReached || pending.signal.lockConsumed) getGameAudio().play('signal-lock');
+    if (!pending.standard.isNew) {
+      this.time.delayedCall(90, () => getGameAudio().play('duplicate'));
+    }
+    if (pending.signal.gain > 0) {
+      this.time.delayedCall(170, () => getGameAudio().play('signal-gain'));
+    }
+    if (pending.signal.lockReached || pending.signal.lockConsumed) {
+      this.time.delayedCall(250, () => getGameAudio().play('signal-lock'));
+    }
     this.addStandardResultLabels(pending, heroX, 492);
     return visual.group;
+  }
+
+  private getStandardResultStatus(pending: PendingReveal): string {
+    const messages = getMessages(getPlatformRuntime().language);
+    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
+    if (pending.signal.lockConsumed) {
+      status += ` · ${messages.opening.signalLock}`;
+    } else if (pending.signal.gain > 0) {
+      status += ` · +${pending.signal.gain} SIGNAL`;
+    }
+    if (pending.signal.lockReached) {
+      status += ` · ${messages.opening.locked}`;
+    }
+    return status;
   }
 
   private addStandardResultLabels(pending: PendingReveal, x: number, y: number): void {
@@ -615,36 +680,23 @@ export class OpeningScene extends Phaser.Scene {
     for (const label of this.standardResultLabels) label.destroy();
     this.standardResultScrim?.destroy();
 
-    const title = this.add
-      .text(x, y, `${familyName} · ${rarity}`, {
-        color,
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '22px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setShadow(0, 2, '#120d19', 4, true, true);
+    const title = this.add.text(x, y, `${familyName} · ${rarity}`, {
+      color,
+      stroke: '#160f20',
+      strokeThickness: 3,
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '22px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-    const messages = getMessages(getPlatformRuntime().language);
-    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
-    if (pending.signal.lockConsumed) {
-      status += ` · ${messages.opening.signalLock}`;
-    } else if (pending.signal.gain > 0) {
-      status += ` · +${pending.signal.gain} SIGNAL`;
-    }
-    if (pending.signal.lockReached) {
-      status += ` · ${messages.opening.locked}`;
-    }
-
-    const statusText = this.add
-      .text(x, y + 34, status, {
-        color: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setShadow(0, 2, '#120d19', 4, true, true);
+    const statusText = this.add.text(x, y + 34, this.getStandardResultStatus(pending), {
+      color: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
     const scrimWidth = Math.max(title.width, statusText.width) + 36;
     const scrim = this.add.graphics();
@@ -667,6 +719,7 @@ export class OpeningScene extends Phaser.Scene {
     const root = this.root;
     const metrics = this.metrics;
     const pouch = this.pouch;
+    const carouselSpacing = Math.min(420, Math.max(340, metrics.logicalWidth * 0.38));
     await this.wait(320);
     getGameAudio().play('hidden-pocket');
 
@@ -675,23 +728,27 @@ export class OpeningScene extends Phaser.Scene {
     this.standardResultScrim?.destroy();
     this.standardResultScrim = null;
 
-    const hiddenLabel = this.add
-      .text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {
+    const hiddenLabel = this.add.text(
+      metrics.centerX,
+      126,
+      getMessages(getPlatformRuntime().language).opening.hiddenPocket,
+      {
         color: '#8df8ff',
+        stroke: '#160f20',
+        strokeThickness: 3,
         fontFamily: 'monospace',
         fontSize: '22px',
         fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0);
+      },
+    ).setOrigin(0.5).setAlpha(0);
     root.add(hiddenLabel);
 
     this.tweens.add({
       targets: standardVisual,
-      x: metrics.centerX - 188,
-      y: 344,
-      scale: 0.52,
-      alpha: 0.62,
+      x: metrics.centerX - carouselSpacing,
+      y: 318,
+      scale: 0.72,
+      alpha: 0.34,
       duration: 260,
       ease: 'Cubic.Out',
     });
@@ -732,9 +789,9 @@ export class OpeningScene extends Phaser.Scene {
       });
     });
 
-    const flash = this.add.circle(metrics.centerX + 72, 322, 90, SECRET_REVEAL_COLOR, 0.22).setScale(0.3);
+    const flash = this.add.circle(metrics.centerX, 322, 90, SECRET_REVEAL_COLOR, 0.22).setScale(0.3);
     root.add(flash);
-    const ring = createRevealRing(this, root, metrics.centerX + 72, 318, SECRET_REVEAL_COLOR)
+    const ring = createRevealRing(this, root, metrics.centerX, 318, SECRET_REVEAL_COLOR)
       .setScale(0.5)
       .setAlpha(0.2);
     getGameAudio().play('secret-reveal');
@@ -743,12 +800,12 @@ export class OpeningScene extends Phaser.Scene {
       root,
       pending.hiddenPocket.familyId,
       'secret',
-      metrics.centerX + 72,
+      metrics.centerX,
       POUCH_Y + 42,
       pending.hiddenPocket.collectibleId,
     );
     secret.group.setScale(0.26).setAlpha(0);
-    this.spawnSparkles(metrics.centerX + 72, 318, SECRET_REVEAL_COLOR, 11);
+    this.spawnSparkles(metrics.centerX, 318, SECRET_REVEAL_COLOR, 11);
 
     this.tweens.add({
       targets: flash,
@@ -800,29 +857,188 @@ export class OpeningScene extends Phaser.Scene {
     const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
     const familyName = family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId;
     root.add(
-      this.add
-        .text(
-          metrics.centerX + 72,
-          490,
-          `${familyName} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
-          {
+      this.add.text(
+        metrics.centerX,
+        490,
+        `${familyName} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
+        {
           color: '#8df8ff',
+          stroke: '#160f20',
+          strokeThickness: 3,
           fontFamily: 'system-ui, sans-serif',
           fontSize: '22px',
           fontStyle: 'bold',
-        })
-        .setOrigin(0.5),
+        },
+      ).setOrigin(0.5),
     );
     root.add(
-      this.add
-        .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {
+      this.add.text(
+        metrics.centerX,
+        524,
+        getMessages(getPlatformRuntime().language).opening.secretDiscovered,
+        {
           color: '#f5f0ff',
+          stroke: '#160f20',
+          strokeThickness: 2,
           fontFamily: 'monospace',
           fontSize: '16px',
           fontStyle: 'bold',
-        })
-        .setOrigin(0.5),
+        },
+      ).setOrigin(0.5),
     );
+  }
+
+  private renderHiddenPocketCarousel(
+    pending: PendingReveal,
+    root: Phaser.GameObjects.Container,
+    metrics: LayoutMetrics,
+  ): void {
+    if (!pending.hiddenPocket) return;
+    const language = getPlatformRuntime().language;
+    const messages = getMessages(language);
+
+    root.add(
+      this.add.text(metrics.centerX, 126, messages.opening.hiddenPocket, {
+        color: '#8df8ff',
+        stroke: '#160f20',
+        strokeThickness: 3,
+        fontFamily: 'monospace',
+        fontSize: '22px',
+        fontStyle: 'bold',
+      }).setOrigin(0.5),
+    );
+
+    const standardPage = this.add.container(0, 0);
+    root.add(standardPage);
+    const standardVisual = createCollectibleVisual(
+      this,
+      standardPage,
+      pending.standard.familyId,
+      pending.standard.rarity,
+      0,
+      316,
+      pending.standard.collectibleId,
+    );
+    standardVisual.group.setScale(1);
+    const standardFamily = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    const standardTitle = this.add.text(
+      0,
+      492,
+      `${standardFamily?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,
+      {
+        color: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
+        stroke: '#160f20',
+        strokeThickness: 3,
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+      },
+    ).setOrigin(0.5);
+    const standardStatus = this.add.text(0, 526, this.getStandardResultStatus(pending), {
+      color: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const standardScrim = this.add.graphics();
+    const standardScrimWidth = Math.max(standardTitle.width, standardStatus.width) + 36;
+    standardScrim.fillStyle(0x21172e, 0.68);
+    standardScrim.fillRoundedRect(-standardScrimWidth / 2, 474, standardScrimWidth, 78, 18);
+    standardScrim.lineStyle(1, 0xf0ddff, 0.18);
+    standardScrim.strokeRoundedRect(-standardScrimWidth / 2, 474, standardScrimWidth, 78, 18);
+    standardPage.add([standardScrim, standardTitle, standardStatus]);
+
+    const secretPage = this.add.container(0, 0);
+    root.add(secretPage);
+    const secretVisual = createCollectibleVisual(
+      this,
+      secretPage,
+      pending.hiddenPocket.familyId,
+      'secret',
+      0,
+      316,
+      pending.hiddenPocket.collectibleId,
+    );
+    secretVisual.group.setScale(1);
+    const secretFamily = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
+    const secretTitle = this.add.text(
+      0,
+      492,
+      `${secretFamily?.name[language] ?? pending.hiddenPocket.familyId} · ${messages.rarity.secret}`,
+      {
+        color: '#8df8ff',
+        stroke: '#160f20',
+        strokeThickness: 3,
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+      },
+    ).setOrigin(0.5);
+    const secretStatus = this.add.text(0, 526, messages.opening.secretDiscovered, {
+      color: '#f5f0ff',
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const secretScrim = this.add.graphics();
+    const secretScrimWidth = Math.max(secretTitle.width, secretStatus.width) + 36;
+    secretScrim.fillStyle(0x21172e, 0.68);
+    secretScrim.fillRoundedRect(-secretScrimWidth / 2, 474, secretScrimWidth, 78, 18);
+    secretScrim.lineStyle(1, 0x8df8ff, 0.22);
+    secretScrim.strokeRoundedRect(-secretScrimWidth / 2, 474, secretScrimWidth, 78, 18);
+    secretPage.add([secretScrim, secretTitle, secretStatus]);
+
+    this.resultCarouselItems = [standardPage, secretPage];
+    this.resultCarouselIndex = 1;
+    this.resultCarouselDrag = null;
+
+    this.resultCarouselDots = this.resultCarouselItems.map((_, index) => {
+      const dot = this.add.circle(metrics.centerX + (index - 0.5) * 22, 574, 5, 0xece4f6, 0.35);
+      root.add(dot);
+      return dot;
+    });
+
+    const zoneWidth = Math.min(760, metrics.logicalWidth - 150);
+    this.resultCarouselZone = this.add
+      .zone(metrics.centerX, 350, zoneWidth, 420)
+      .setInteractive({ useHandCursor: true });
+    this.resultCarouselZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.phase !== 'result' || this.resultCarouselItems.length < 2) return;
+      this.resultCarouselDrag = {
+        pointerId: pointer.id,
+        startPointerX: pointer.x,
+        deltaX: 0,
+      };
+    });
+    root.add(this.resultCarouselZone);
+    this.positionResultCarousel(0, false);
+  }
+
+  private positionResultCarousel(dragOffset = 0, animate = false): void {
+    if (!this.metrics || this.resultCarouselItems.length === 0) return;
+    const spacing = Math.min(420, Math.max(340, this.metrics.logicalWidth * 0.38));
+    this.resultCarouselItems.forEach((item, index) => {
+      const targetX = this.metrics!.centerX + (index - this.resultCarouselIndex) * spacing + dragOffset;
+      const alpha = index === this.resultCarouselIndex ? 1 : 0.34;
+      if (animate) {
+        this.tweens.add({
+          targets: item,
+          x: targetX,
+          alpha,
+          duration: 180,
+          ease: 'Cubic.Out',
+        });
+      } else {
+        item.setX(targetX).setAlpha(alpha);
+      }
+    });
+    this.resultCarouselDots.forEach((dot, index) => {
+      dot.setFillStyle(index === this.resultCarouselIndex ? 0x8df8ff : 0xece4f6, index === this.resultCarouselIndex ? 0.95 : 0.35);
+    });
   }
 
   private spawnSparkles(x: number, y: number, color: number, count: number): void {
@@ -897,8 +1113,13 @@ export class OpeningScene extends Phaser.Scene {
         fontSize: '17px',
       })
       .setOrigin(0.5)
-      .setShadow(0, 2, '#120d19', 3, true, true)
-      .setAlpha(0.8);
+      .setAlpha(0.8)
+      .setInteractive({ useHandCursor: true });
+    this.resultPrompt.on('pointerup', () => {
+      if (this.phase !== 'result' || !this.resultReady) return;
+      this.resultCarouselDrag = null;
+      this.renderIdle();
+    });
     this.root.add(this.resultPrompt);
   }
 
@@ -928,81 +1149,7 @@ export class OpeningScene extends Phaser.Scene {
     this.pouch = null;
 
     if (pending.hiddenPocket) {
-      const standard = createCollectibleVisual(
-        this,
-        root,
-        pending.standard.familyId,
-        pending.standard.rarity,
-        metrics.centerX - 188,
-        344,
-        pending.standard.collectibleId,
-      );
-      standard.group.setScale(0.52).setAlpha(0.62);
-      const standardFamily = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
-      root.add(
-        this.add
-          .text(
-            metrics.centerX - 188,
-            470,
-            `${standardFamily?.name[getPlatformRuntime().language] ?? pending.standard.familyId} · ${getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity]}`,
-            {
-              color: '#b9aec8',
-              fontFamily: 'system-ui, sans-serif',
-              fontSize: '14px',
-            },
-          )
-          .setOrigin(0.5)
-          .setShadow(0, 2, '#120d19', 4, true, true)
-          .setAlpha(0.82),
-      );
-      const secret = createCollectibleVisual(
-        this,
-        root,
-        pending.hiddenPocket.familyId,
-        'secret',
-        metrics.centerX + 72,
-        314,
-        pending.hiddenPocket.collectibleId,
-      );
-      secret.group.setScale(1);
-      root.add(
-        this.add
-          .text(metrics.centerX, 126, getMessages(getPlatformRuntime().language).opening.hiddenPocket, {
-            color: '#8df8ff',
-            fontFamily: 'monospace',
-            fontSize: '22px',
-            fontStyle: 'bold',
-          })
-          .setOrigin(0.5)
-          .setShadow(0, 2, '#120d19', 4, true, true),
-      );
-      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
-      root.add(
-        this.add
-          .text(
-          metrics.centerX + 72,
-          490,
-          `${family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
-          {
-            color: '#8df8ff',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '22px',
-            fontStyle: 'bold',
-          })
-          .setOrigin(0.5)
-          .setShadow(0, 2, '#120d19', 4, true, true),
-      );
-      root.add(
-        this.add
-          .text(metrics.centerX + 72, 524, getMessages(getPlatformRuntime().language).opening.secretDiscovered, {
-            color: '#f5f0ff',
-            fontFamily: 'monospace',
-            fontSize: '16px',
-            fontStyle: 'bold',
-          })
-          .setOrigin(0.5)
-          .setShadow(0, 2, '#120d19', 4, true, true),
-      );
+      this.renderHiddenPocketCarousel(pending, root, metrics);
     } else {
       const standard = createCollectibleVisual(
         this,

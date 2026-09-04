@@ -135,11 +135,16 @@ class GameAudioController {
     if (sample) {
       const source = context.createBufferSource();
       const gain = context.createGain();
+      const start = context.currentTime;
+      const tail = Math.min(0.12, Math.max(0.05, sample.duration * 0.1));
+      const fadeStart = start + Math.max(0, sample.duration - tail);
       source.buffer = sample;
-      gain.gain.value = 0.9;
+      gain.gain.setValueAtTime(0.72, start);
+      gain.gain.setValueAtTime(0.72, fadeStart);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + sample.duration);
       source.connect(gain);
       gain.connect(context.destination);
-      source.start();
+      source.start(start);
       return;
     }
 
