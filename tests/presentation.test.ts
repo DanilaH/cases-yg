@@ -8,6 +8,7 @@ import {
   MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
+  REVEAL_MOTION_PRESENTATION,
   RESULT_PRESENTATION,
   resolveCarouselIndex,
 } from '../src/game/data/presentation';
@@ -38,6 +39,21 @@ describe('reveal presentation', () => {
     const pouchVisualCenterY = POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.body.y;
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('camera').revealY)).toBeLessThan(50);
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
+  });
+
+  it('keeps idle vertical rhythm away from both the title and bottom edge', () => {
+    expect(POUCH_PRESENTATION.groupY).toBeGreaterThanOrEqual(260);
+    expect(MOTION_PRESENTATION.tearHintY - (POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY)).toBeGreaterThan(60);
+    expect(MOTION_PRESENTATION.tearHintY).toBeLessThanOrEqual(640);
+    expect(RESULT_PRESENTATION.panelY).toBeGreaterThan(560);
+  });
+
+  it('keeps reveal emergence on one stable z-order path', () => {
+    expect(REVEAL_MOTION_PRESENTATION.emergeOffsetY).toBeGreaterThan(100);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitOffsetY).toBeGreaterThan(80);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitScale).toBeLessThan(1);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitDelay).toBeLessThan(150);
+    expect(REVEAL_MOTION_PRESENTATION.pouchExitDuration).toBeGreaterThanOrEqual(280);
   });
 
   it('keeps a sub-threshold carousel drag on the current page', () => {
@@ -76,14 +92,20 @@ describe('reveal presentation', () => {
     expect(REVEAL_FX_PRESETS.secret.glowAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.glowAlpha);
     expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.rare.backdropAlpha);
     expect(REVEAL_FX_PRESETS.secret.sparkleScale).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.sparkleScale);
+    expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThanOrEqual(0.28);
+    expect(REVEAL_FX_PRESETS.legendary.flashAlpha).toBeGreaterThanOrEqual(0.7);
+    expect(REVEAL_FX_PRESETS.secret.particleDuration).toBeGreaterThanOrEqual(800);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {
     expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(20);
     expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);
-    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThan(1);
-    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThan(1.08);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThanOrEqual(1.06);
+    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThanOrEqual(1.08);
+    expect(MOTION_PRESENTATION.resultPulseScale).toBeGreaterThanOrEqual(1.035);
     expect(MOTION_PRESENTATION.resultPulseScale).toBeLessThan(1.05);
+    expect(MOTION_PRESENTATION.resultPulseDuration).toBeLessThan(250);
+    expect(MOTION_PRESENTATION.resultPulseRepeatDelay).toBeGreaterThan(400);
     expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);
   });
 });
