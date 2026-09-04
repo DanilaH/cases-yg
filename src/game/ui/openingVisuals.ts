@@ -157,10 +157,9 @@ export const createPouchVisual = (
     addProceduralBody(scene, bodyLayer, body);
   }
 
-  // Do not paint a dark "mouth" over the artwork. The package opening is the
-  // actual gap created when the body drops away from the tear header. These two
-  // subtle edge highlights only help that gap read as foil instead of a black UI
-  // rectangle.
+  // There is deliberately no dark synthetic mouth. Opening is represented by
+  // the real background gap created as the body separates from the removable
+  // top, with only subtle foil edge highlights appearing during drag.
   const openingWidth = 286;
   const openingLeft = -openingWidth / 2;
   const openingY = POUCH_PRESENTATION.tearLineY + 3;
@@ -177,21 +176,19 @@ export const createPouchVisual = (
 
   const strip = scene.add.container(0, 0);
 
-  // Restore a compact top silhouette. The previous full source artwork was too
-  // dominant, while the seam-only version looked chopped off. This low foil cap
-  // completes the pouch without recreating the oversized second lid.
-  const headerWidth = 342;
-  const compactHeader = scene.add.container(0, 0);
-  const headerBase = scene.add
-    .rectangle(0, POUCH_PRESENTATION.tearLineY - 18, headerWidth, 34, 0xb7afc2, 1)
-    .setStrokeStyle(3, 0xf1edf5, 0.86);
-  const headerHighlight = scene.add
-    .rectangle(0, POUCH_PRESENTATION.tearLineY - 25, headerWidth - 14, 10, 0xe8e3ec, 0.68)
-    .setStrokeStyle(1, 0xffffff, 0.34);
-  const headerAccent = scene.add
-    .rectangle(0, POUCH_PRESENTATION.tearLineY - 2, headerWidth - 22, 3, 0xa56bd2, 0.5);
-  compactHeader.add([headerBase, headerHighlight, headerAccent]);
-  strip.add(compactHeader);
+  // Restore the recognizable production hanger as a compact center element.
+  // It stays physically intact while the tear rail is pulled, then leaves with
+  // the strip during detach. This avoids the progress-bar look of the temporary
+  // procedural cap and preserves the original pouch silhouette.
+  const headerTexture = staticTextureKey('pouch-top-header');
+  if (scene.textures.exists(headerTexture)) {
+    addPouchLayer(scene, strip, headerTexture, POUCH_PRESENTATION.header);
+  } else {
+    const fallbackHeader = scene.add
+      .rectangle(0, POUCH_PRESENTATION.header.y, 250, 76, 0x9b62d1, 1)
+      .setStrokeStyle(3, 0xe5d8f2, 0.85);
+    strip.add(fallbackHeader);
+  }
 
   const stripTexture = staticTextureKey('pouch-tear-strip');
   let stripImage: Phaser.GameObjects.Image | null = null;
@@ -259,24 +256,16 @@ export const createPouchVisual = (
     );
     const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
 
-    // A small physical separation is enough: the background itself becomes the
-    // opening, so no synthetic dark bar is ever visible.
     bodyLayer.setY(progress * 9);
     tab.setY(progress * 4);
     lowerLip.setAlpha(progress * 0.72);
     innerGlow.setAlpha(progress * 0.48);
 
-    // Tear the compact header from left to right while keeping its right edge in
-    // place. This makes the star read as pulling material away instead of merely
-    // sliding over a static lid.
-    const headerRemaining = Math.max(0.08, 1 - rawProgress * 0.92);
-    compactHeader
-      .setScale(headerRemaining, 1)
-      .setX((1 - headerRemaining) * headerWidth * 0.5);
-
     if (stripImage) {
       const sourceWidth = Math.max(1, stripImage.width);
       const sourceHeight = Math.max(1, stripImage.height);
+      // The rail disappears behind the moving star; the compact hanger remains
+      // intact until the whole top assembly detaches at the threshold.
       const remainingFraction = 1 - rawProgress * 0.88;
       const remainingWidth = Math.max(1, Math.round(sourceWidth * remainingFraction));
       const cropX = Math.max(0, sourceWidth - remainingWidth);
@@ -342,7 +331,7 @@ const createFlipPhone = (scene: Phaser.Scene, accentColor: number): Phaser.GameO
     .rectangle(0, 66, 154, 116, accentColor, 1)
     .setStrokeStyle(5, 0xffffff, 0.38);
   const hinge = scene.add.rectangle(0, 7, 170, 18, 0x38323f, 0.92).setStrokeStyle(2, 0xffffff, 0.22);
-  const screen = scene.add.rectangle(0, -54, 104, 66, 0x262630, 1).setStrokeStyle(4, 0xece5f4, 0.4);
+  const screen = scene.add.rectangle(0, -54, 104, 66, 0x262630, 1).setStrokeStyle(4, 0xffffff, 0.3);
   const screenGlow = scene.add.rectangle(0, -54, 84, 48, accentColor, 0.36);
   const nav = scene.add.circle(0, 50, 20, 0xeee8f4, 0.72).setStrokeStyle(3, 0x493f55, 0.42);
   const keyLeft = scene.add.circle(-45, 84, 7, 0xeee8f4, 0.58);
