@@ -26,7 +26,10 @@ export interface RuntimeStaticArt {
 
 const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'pouch-body': 'assets/package/pouch-body.webp',
-  'pouch-top-header': 'assets/package/pouch-top-header.webp',
+  // Reuse the reviewed original strip source and crop the central hanger at
+  // runtime. This preserves the production art without introducing another
+  // derived binary asset into the runtime contract.
+  'pouch-top-header': 'assets/package/pouch-tear-strip.webp',
   'pouch-tear-strip': 'assets/package/pouch-tear-seam.webp',
   'pouch-star-tab': 'assets/package/pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
