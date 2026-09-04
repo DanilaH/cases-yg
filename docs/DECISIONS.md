@@ -129,6 +129,26 @@ Status meanings:
 
 ---
 
+## Visual QA / acceptance workflow
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Acceptance states | LOCKED | **technical green ≠ visual approved ≠ hands-on approved**. CI/runtime correctness is necessary but never proof that the scene looks or feels good. |
+| Canvas rule | LOCKED | Phaser canvas DOM/runtime checks can prove that the app rendered and interacted without errors, but they do not count as visual QA. |
+| Static visual gate | LOCKED | Any visual/layout change must be reviewed from real browser screenshots of the exact candidate revision at representative target viewports before merge. |
+| Motion visual gate | LOCKED | Any animation/interaction/effect change must additionally be reviewed from a real browser video capture or sufficiently dense frame sequence covering the whole interaction, including settled/ready states. |
+| Artifact review | LOCKED | A browser audit is not considered visually passed merely because screenshots/video were generated. The reviewer must actually open and inspect the artifacts. |
+| Unproven effect rule | LOCKED | If capture timing/sampling does not clearly show an intended visual effect, status is **unverified**, not passed. Fix the capture or strengthen/fix the effect before approval. |
+| Autonomous defect handling | LOCKED | Obvious composition, overlap, hierarchy, centering, transition or effect defects visible in captures are blockers and should be corrected autonomously without waiting for user hands-on. |
+| Exact-revision rule | LOCKED | Visual approval must correspond to the exact PR/head revision intended for merge. Stale captures from an earlier revision do not approve later code. |
+| Interaction-state coverage | LOCKED | Capture must include the states relevant to the change: idle, active gesture/drag where applicable, transition/reveal, ready/result, and responsive/carousel variants where applicable. |
+| User hands-on role | LOCKED | User hands-on remains the final authority for tactile feel, pacing, repeated-use fatigue and audio/motion impression; it is not the first line of defense against obvious visual defects that captures can expose. |
+| Merge rule | LOCKED | Visual changes may merge only after technical validation passes **and** visual artifacts have been explicitly reviewed with no known blocking visual defect. |
+
+This gate exists specifically because a green CI/browser-runtime audit previously allowed visibly broken pouch composition to survive multiple iterations. The process must prevent that failure mode from recurring.
+
+---
+
 ## Systems deferred to release expansion
 
 These are **not permanently rejected** just because they are absent from the internal slice:
