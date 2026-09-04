@@ -1,0 +1,348 @@
+from pathlib import Path
+import re
+
+
+def replace_once(path: str, old: str, new: str) -> None:
+    p = Path(path)
+    text = p.read_text()
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{path}: expected one match, got {count}: {old[:80]!r}')
+    p.write_text(text.replace(old, new, 1))
+
+
+def regex_once(path: str, pattern: str, replacement: str) -> None:
+    p = Path(path)
+    text = p.read_text()
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    if count != 1:
+        raise SystemExit(f'{path}: expected one regex match, got {count}: {pattern[:80]!r}')
+    p.write_text(updated)
+
+
+presentation = 'src/game/data/presentation.ts'
+replace_once(
+    presentation,
+    """export const POUCH_PRESENTATION = {\n  groupY: 340,\n  body: { x: 0, y: 88, displayWidth: 410 } satisfies PouchLayerPresentation,\n  strip: { x: 0, y: 0, displayWidth: 376 } satisfies PouchLayerPresentation,\n  tab: { x: 0, y: 0, displayWidth: 376 } satisfies PouchLayerPresentation,\n  shadowY: 286,\n  shadowWidth: 350,\n  hitboxX: -125,\n  hitboxY: -135,\n  hitboxSize: 136,\n  tabTravel: 284,\n  dragThreshold: 260,\n  tearLineY: -92,\n} as const;""",
+    """export const POUCH_PRESENTATION = {\n  groupY: 326,\n  body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,\n  // The production strip has a wider visible-alpha footprint than the body.\n  // Keep it intentionally narrower so the pouch body owns the silhouette.\n  strip: { x: 0, y: 4, displayWidth: 338 } satisfies PouchLayerPresentation,\n  // The star source uses the same 1024 canvas contract; resize and offset it\n  // independently so the visible star reads as the left pull handle.\n  tab: { x: -30, y: 4, displayWidth: 316 } satisfies PouchLayerPresentation,\n  shadowY: 286,\n  shadowWidth: 358,\n  hitboxX: -135,\n  hitboxY: -112,\n  hitboxSize: 112,\n  tabTravel: 272,\n  dragThreshold: 252,\n  tearLineY: -78,\n} as const;""",
+)
+
+replace_once(
+    presentation,
+    """export interface RevealFxPreset {\n  flashAlpha: number;\n  glowAlpha: number;\n  ringScale: number;\n  particleCount: number;\n  particleDistance: number;\n  particleDuration: number;\n  overshootScale: number;\n  introDuration: number;\n  settleDuration: number;\n  shake: number;\n  secondaryRing: boolean;\n}""",
+    """export interface RevealFxPreset {\n  backdropAlpha: number;\n  flashAlpha: number;\n  glowAlpha: number;\n  ringScale: number;\n  particleCount: number;\n  particleDistance: number;\n  particleDuration: number;\n  sparkleScale: number;\n  overshootScale: number;\n  introDuration: number;\n  settleDuration: number;\n  shake: number;\n  secondaryRing: boolean;\n}""",
+)
+
+regex_once(
+    presentation,
+    r"export const REVEAL_FX_PRESETS: Readonly<Record<RevealRarity, RevealFxPreset>> = \{.*?\n\};\n\nexport const RESULT_PRESENTATION",
+    """export const REVEAL_FX_PRESETS: Readonly<Record<RevealRarity, RevealFxPreset>> = {\n  common: {\n    backdropAlpha: 0.12,\n    flashAlpha: 0.28,\n    glowAlpha: 0.18,\n    ringScale: 1.5,\n    particleCount: 8,\n    particleDistance: 118,\n    particleDuration: 420,\n    sparkleScale: 1,\n    overshootScale: 1.13,\n    introDuration: 340,\n    settleDuration: 135,\n    shake: 0.0005,\n    secondaryRing: false,\n  },\n  rare: {\n    backdropAlpha: 0.15,\n    flashAlpha: 0.35,\n    glowAlpha: 0.24,\n    ringScale: 1.65,\n    particleCount: 12,\n    particleDistance: 142,\n    particleDuration: 470,\n    sparkleScale: 1.05,\n    overshootScale: 1.15,\n    introDuration: 360,\n    settleDuration: 140,\n    shake: 0.0012,\n    secondaryRing: false,\n  },\n  epic: {\n    backdropAlpha: 0.21,\n    flashAlpha: 0.46,\n    glowAlpha: 0.34,\n    ringScale: 1.9,\n    particleCount: 18,\n    particleDistance: 178,\n    particleDuration: 540,\n    sparkleScale: 1.18,\n    overshootScale: 1.18,\n    introDuration: 390,\n    settleDuration: 150,\n    shake: 0.0025,\n    secondaryRing: true,\n  },\n  legendary: {\n    backdropAlpha: 0.27,\n    flashAlpha: 0.58,\n    glowAlpha: 0.46,\n    ringScale: 2.15,\n    particleCount: 25,\n    particleDistance: 214,\n    particleDuration: 630,\n    sparkleScale: 1.28,\n    overshootScale: 1.21,\n    introDuration: 420,\n    settleDuration: 160,\n    shake: 0.0036,\n    secondaryRing: true,\n  },\n  secret: {\n    backdropAlpha: 0.31,\n    flashAlpha: 0.66,\n    glowAlpha: 0.56,\n    ringScale: 2.35,\n    particleCount: 32,\n    particleDistance: 242,\n    particleDuration: 700,\n    sparkleScale: 1.38,\n    overshootScale: 1.22,\n    introDuration: 445,\n    settleDuration: 165,\n    shake: 0.0042,\n    secondaryRing: true,\n  },\n};\n\nexport const AMBIENT_PRESENTATION = {\n  count: 15,\n  minAlpha: 0.07,\n  maxAlpha: 0.17,\n  minRadius: 1.5,\n  maxRadius: 4.5,\n  minDuration: 6800,\n  maxDuration: 11200,\n  maxDriftX: 42,\n  maxDriftY: 24,\n} as const;\n\nexport const MOTION_PRESENTATION = {\n  tearHintY: 662,\n  starPulseScale: 1.04,\n  starPulseDuration: 720,\n  resultPulseScale: 1.028,\n  resultPulseDuration: 620,\n  rewardBreathScale: 1.028,\n  rewardBreathDuration: 1200,\n} as const;\n\nexport const RESULT_PRESENTATION""",
+)
+
+scene = 'src/game/scenes/OpeningScene.ts'
+replace_once(
+    scene,
+    """  getCarouselSpacing,\n  getCarouselVisualState,\n  getCollectiblePresentation,\n  POUCH_PRESENTATION,\n  REVEAL_FX_PRESETS,\n  RESULT_PRESENTATION,""",
+    """  AMBIENT_PRESENTATION,\n  getCarouselSpacing,\n  getCarouselVisualState,\n  getCollectiblePresentation,\n  MOTION_PRESENTATION,\n  POUCH_PRESENTATION,\n  REVEAL_FX_PRESETS,\n  RESULT_PRESENTATION,""",
+)
+
+replace_once(
+    scene,
+    """  private resultCarouselDrag: ResultCarouselDrag | null = null;\n  private resultCarouselZone: Phaser.GameObjects.Zone | null = null;""",
+    """  private resultCarouselDrag: ResultCarouselDrag | null = null;\n  private resultCarouselZone: Phaser.GameObjects.Zone | null = null;\n  private ambientParticles: Phaser.GameObjects.Arc[] = [];\n  private resultBreathTarget: Phaser.GameObjects.Container | null = null;\n  private resultBreathBaseScale = 1;""",
+)
+
+replace_once(
+    scene,
+    """  private createRoot(): Phaser.GameObjects.Container {\n    this.root?.destroy(true);""",
+    """  private createRoot(): Phaser.GameObjects.Container {\n    this.stopStarPulse();\n    this.stopResultPanelPulse();\n    this.stopRewardBreathing();\n    this.clearAmbientMotion();\n    this.root?.destroy(true);""",
+)
+
+replace_once(
+    scene,
+    """    root.add(\n      this.add\n        .text(metrics.centerX, 62,""",
+    """    this.addAmbientMotion(root, metrics);\n\n    root.add(\n      this.add\n        .text(metrics.centerX, 62,""",
+)
+
+helpers = r'''  private clearAmbientMotion(): void {
+    for (const particle of this.ambientParticles) {
+      this.tweens.killTweensOf(particle);
+    }
+    this.ambientParticles = [];
+  }
+
+  private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
+    const usableWidth = Math.max(160, metrics.logicalWidth - 120);
+    const colors = [0xf4e5ff, 0xb9efff, 0xffe7f2];
+    for (let index = 0; index < AMBIENT_PRESENTATION.count; index += 1) {
+      const radiusMix = (index % 4) / 3;
+      const alphaMix = (index % 5) / 4;
+      const radius = Phaser.Math.Linear(
+        AMBIENT_PRESENTATION.minRadius,
+        AMBIENT_PRESENTATION.maxRadius,
+        radiusMix,
+      );
+      const alpha = Phaser.Math.Linear(
+        AMBIENT_PRESENTATION.minAlpha,
+        AMBIENT_PRESENTATION.maxAlpha,
+        alphaMix,
+      );
+      const x = 60 + ((index * 173) % usableWidth);
+      const y = 122 + ((index * 97) % 470);
+      const particle = this.add.circle(x, y, radius, colors[index % colors.length], alpha);
+      root.add(particle);
+      this.ambientParticles.push(particle);
+
+      const driftX = (index % 2 === 0 ? 1 : -1) * (18 + (index % 4) * 8);
+      const driftY = -(10 + (index % 3) * 7);
+      const durationMix = (index % 6) / 5;
+      this.tweens.add({
+        targets: particle,
+        x: x + Phaser.Math.Clamp(driftX, -AMBIENT_PRESENTATION.maxDriftX, AMBIENT_PRESENTATION.maxDriftX),
+        y: y + Phaser.Math.Clamp(driftY, -AMBIENT_PRESENTATION.maxDriftY, AMBIENT_PRESENTATION.maxDriftY),
+        alpha: Math.min(0.24, alpha * 1.55),
+        duration: Phaser.Math.Linear(
+          AMBIENT_PRESENTATION.minDuration,
+          AMBIENT_PRESENTATION.maxDuration,
+          durationMix,
+        ),
+        delay: index * 110,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  private startStarPulse(): void {
+    if (!this.pouch || this.phase !== 'idle') return;
+    this.stopStarPulse();
+    this.tweens.add({
+      targets: this.pouch.tab,
+      scale: MOTION_PRESENTATION.starPulseScale,
+      alpha: 0.86,
+      duration: MOTION_PRESENTATION.starPulseDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopStarPulse(): void {
+    if (!this.pouch) return;
+    this.tweens.killTweensOf(this.pouch.tab);
+    this.pouch.tab.setScale(1).setAlpha(1);
+  }
+
+  private startResultPanelPulse(): void {
+    if (!this.resultActionPanel || !this.resultReady || this.phase !== 'result') return;
+    this.stopResultPanelPulse();
+    this.tweens.add({
+      targets: this.resultActionPanel,
+      scale: MOTION_PRESENTATION.resultPulseScale,
+      duration: MOTION_PRESENTATION.resultPulseDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopResultPanelPulse(): void {
+    if (!this.resultActionPanel) return;
+    this.tweens.killTweensOf(this.resultActionPanel);
+    this.resultActionPanel.setScale(1);
+  }
+
+  private startRewardBreathing(target: Phaser.GameObjects.Container, baseScale: number): void {
+    this.stopRewardBreathing();
+    this.resultBreathTarget = target;
+    this.resultBreathBaseScale = baseScale;
+    target.setScale(baseScale);
+    this.tweens.add({
+      targets: target,
+      scale: baseScale * MOTION_PRESENTATION.rewardBreathScale,
+      duration: MOTION_PRESENTATION.rewardBreathDuration,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
+  private stopRewardBreathing(): void {
+    if (!this.resultBreathTarget) return;
+    this.tweens.killTweensOf(this.resultBreathTarget);
+    this.resultBreathTarget.setScale(this.resultBreathBaseScale);
+    this.resultBreathTarget = null;
+    this.resultBreathBaseScale = 1;
+  }
+
+  private syncCarouselRewardBreathing(): void {
+    this.stopRewardBreathing();
+    const activePage = this.resultCarouselItems[this.resultCarouselIndex];
+    if (!activePage) return;
+    const target = activePage.getData('breathTarget') as Phaser.GameObjects.Container | undefined;
+    const baseScale = Number(activePage.getData('breathBaseScale') ?? 1);
+    if (target) this.startRewardBreathing(target, baseScale);
+  }
+
+  private createRevealBackdrop(alpha: number, duration: number): void {
+    if (!this.root || !this.metrics) return;
+    const backdrop = this.add
+      .rectangle(
+        this.metrics.centerX,
+        LOGICAL_HEIGHT / 2,
+        this.metrics.logicalWidth,
+        LOGICAL_HEIGHT,
+        0x120c1b,
+        0,
+      )
+      .setOrigin(0.5);
+    this.root.add(backdrop);
+    this.tweens.add({
+      targets: backdrop,
+      alpha,
+      duration: 90,
+      ease: 'Sine.Out',
+      onComplete: () => {
+        if (!backdrop.active) return;
+        this.tweens.add({
+          targets: backdrop,
+          alpha: 0,
+          delay: 120,
+          duration: duration + 140,
+          ease: 'Sine.In',
+          onComplete: () => backdrop.destroy(),
+        });
+      },
+    });
+  }
+
+'''
+replace_once(scene, "  private renderIdle(message?: string): void {", helpers + "  private renderIdle(message?: string): void {")
+
+replace_once(
+    scene,
+    """    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);\n    this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));""",
+    """    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);\n    this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));\n    this.startStarPulse();""",
+)
+replace_once(scene, ".text(metrics.centerX, 610, getMessages(getPlatformRuntime().language).opening.tearHint, {", ".text(metrics.centerX, MOTION_PRESENTATION.tearHintY, getMessages(getPlatformRuntime().language).opening.tearHint, {")
+replace_once(scene, ".text(metrics.centerX, 648, message, {", ".text(metrics.centerX, MOTION_PRESENTATION.tearHintY + 42, message, {")
+
+replace_once(
+    scene,
+    """  private beginDrag(pointer: Phaser.Input.Pointer): void {\n    if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;\n\n    this.phase = 'dragging';""",
+    """  private beginDrag(pointer: Phaser.Input.Pointer): void {\n    if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;\n\n    this.stopStarPulse();\n    this.phase = 'dragging';""",
+)
+
+replace_once(
+    scene,
+    """    this.tweens.add({\n      targets: pouch.tab,\n      x: pouch.tabStartX,\n      duration: 170,\n      ease: 'Sine.Out',\n    });""",
+    """    this.tweens.add({\n      targets: pouch.tab,\n      x: pouch.tabStartX,\n      duration: 170,\n      ease: 'Sine.Out',\n      onComplete: () => {\n        if (this.phase === 'idle') this.startStarPulse();\n      },\n    });""",
+)
+
+replace_once(
+    scene,
+    """  private async completeTear(firstInteraction: boolean): Promise<void> {\n    if (this.phase !== 'dragging' || !this.session) return;\n\n    this.phase = 'revealing';""",
+    """  private async completeTear(firstInteraction: boolean): Promise<void> {\n    if (this.phase !== 'dragging' || !this.session) return;\n\n    this.stopStarPulse();\n    this.phase = 'revealing';""",
+)
+
+replace_once(
+    scene,
+    """    const fx = REVEAL_FX_PRESETS[pending.standard.rarity];\n    const heroX = this.metrics!.centerX;""",
+    """    const fx = REVEAL_FX_PRESETS[pending.standard.rarity];\n    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);\n    const heroX = this.metrics!.centerX;""",
+)
+replace_once(scene, "const halo = this.add.circle(heroX, heroY, 118, color, fx.glowAlpha).setScale(0.42);", "const halo = this.add.circle(heroX, heroY, 136, color, fx.glowAlpha).setScale(0.4);")
+replace_once(scene, "const flash = this.add.circle(heroX, heroY, 86, color, fx.flashAlpha).setScale(0.28);", "const flash = this.add.circle(heroX, heroY, 102, color, fx.flashAlpha).setScale(0.3);")
+replace_once(scene, "const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.16);", "const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.38);")
+replace_once(scene, ".setAlpha(0.38)\n        .setStrokeStyle(3, color, 0.5);", ".setAlpha(0.5)\n        .setStrokeStyle(4, color, 0.68);")
+replace_once(
+    scene,
+    """      fx.particleDistance,\n      fx.particleDuration,\n    );""",
+    """      fx.particleDistance,\n      fx.particleDuration,\n      fx.sparkleScale,\n    );""",
+)
+
+replace_once(
+    scene,
+    """    const heroX = metrics.centerX;\n    const heroY = secretPresentation.revealY;\n    const halo = this.add.circle(heroX, heroY, 132, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);""",
+    """    const heroX = metrics.centerX;\n    const heroY = secretPresentation.revealY;\n    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);\n    const halo = this.add.circle(heroX, heroY, 150, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);""",
+)
+replace_once(scene, "const flash = this.add.circle(heroX, heroY, 96, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.26);", "const flash = this.add.circle(heroX, heroY, 112, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.28);")
+replace_once(scene, ".setScale(0.42)\n      .setAlpha(0.38);", ".setScale(0.42)\n      .setAlpha(0.54);")
+replace_once(scene, ".setAlpha(0.3)\n      .setStrokeStyle(3, SECRET_REVEAL_COLOR, 0.5);", ".setAlpha(0.46)\n      .setStrokeStyle(4, SECRET_REVEAL_COLOR, 0.68);")
+secret_call = """      fx.particleDistance,\n      fx.particleDuration,\n    );"""
+if Path(scene).read_text().count(secret_call) != 1:
+    raise SystemExit('expected exactly one remaining secret sparkle call')
+replace_once(scene, secret_call, """      fx.particleDistance,\n      fx.particleDuration,\n      fx.sparkleScale,\n    );""")
+
+replace_once(
+    scene,
+    """    standardVisual.group.setScale(standardVisual.presentation.revealScale);\n    standardPage.setData('sideScale', standardVisual.presentation.carouselSideScale);""",
+    """    standardVisual.group.setScale(standardVisual.presentation.revealScale);\n    standardPage.setData('sideScale', standardVisual.presentation.carouselSideScale);\n    standardPage.setData('breathTarget', standardVisual.group);\n    standardPage.setData('breathBaseScale', standardVisual.presentation.revealScale);""",
+)
+replace_once(
+    scene,
+    """    secretVisual.group.setScale(secretVisual.presentation.revealScale);\n    secretPage.setData('sideScale', secretVisual.presentation.carouselSideScale);""",
+    """    secretVisual.group.setScale(secretVisual.presentation.revealScale);\n    secretPage.setData('sideScale', secretVisual.presentation.carouselSideScale);\n    secretPage.setData('breathTarget', secretVisual.group);\n    secretPage.setData('breathBaseScale', secretVisual.presentation.revealScale);""",
+)
+replace_once(
+    scene,
+    """      this.resultCarouselDrag = {\n        pointerId: pointer.id,""",
+    """      this.stopResultPanelPulse();\n      this.stopRewardBreathing();\n      this.resultCarouselDrag = {\n        pointerId: pointer.id,""",
+)
+replace_once(scene, "    this.positionResultCarousel(0, false);\n  }\n\n  private positionResultCarousel", "    this.positionResultCarousel(0, false);\n    this.syncCarouselRewardBreathing();\n  }\n\n  private positionResultCarousel")
+
+replace_once(
+    scene,
+    """        this.positionResultCarousel(0, true);\n        if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);""",
+    """        this.positionResultCarousel(0, true);\n        this.syncCarouselRewardBreathing();\n        if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);""",
+)
+
+replace_once(
+    scene,
+    """  private spawnSparkles(\n    x: number,\n    y: number,\n    color: number,\n    count: number,\n    distance: number,\n    duration: number,\n  ): void {""",
+    """  private spawnSparkles(\n    x: number,\n    y: number,\n    color: number,\n    count: number,\n    distance: number,\n    duration: number,\n    sizeScale = 1,\n  ): void {""",
+)
+replace_once(
+    scene,
+    """      const sparkle = this.add.circle(\n        x,\n        y,\n        index % 3 === 0 ? 6 : index % 2 === 0 ? 4 : 3,\n        color,\n        0.94,\n      );""",
+    """      const sparkle = this.add\n        .circle(\n          x,\n          y,\n          (index % 3 === 0 ? 7 : index % 2 === 0 ? 5 : 3.5) * sizeScale,\n          color,\n          1,\n        )\n        .setStrokeStyle(1.5, 0xffffff, 0.46);""",
+)
+
+replace_once(
+    scene,
+    """  private renderResultActionPanel(pending: PendingReveal): void {\n    if (!this.root || !this.metrics || this.phase !== 'result') return;\n    this.resultActionPanel?.destroy(true);""",
+    """  private renderResultActionPanel(pending: PendingReveal): void {\n    if (!this.root || !this.metrics || this.phase !== 'result') return;\n    this.stopResultPanelPulse();\n    this.resultActionPanel?.destroy(true);""",
+)
+replace_once(
+    scene,
+    """    this.root.add(panel);\n    this.resultActionPanel = panel;\n  }""",
+    """    this.root.add(panel);\n    this.resultActionPanel = panel;\n    if (this.resultReady) this.startResultPanelPulse();\n  }""",
+)
+
+replace_once(
+    scene,
+    """      standard.group.setScale(standard.presentation.revealScale);\n    }\n\n    this.renderResultActionPanel(pending);""",
+    """      standard.group.setScale(standard.presentation.revealScale);\n      this.startRewardBreathing(standard.group, standard.presentation.revealScale);\n    }\n\n    this.renderResultActionPanel(pending);""",
+)
+
+tests = 'tests/presentation.test.ts'
+replace_once(
+    tests,
+    """  COLLECTIBLE_PRESENTATION,\n  getCarouselVisualState,""",
+    """  AMBIENT_PRESENTATION,\n  COLLECTIBLE_PRESENTATION,\n  getCarouselVisualState,""",
+)
+replace_once(
+    tests,
+    """  getCollectiblePresentation,\n  POUCH_PRESENTATION,""",
+    """  getCollectiblePresentation,\n  MOTION_PRESENTATION,\n  POUCH_PRESENTATION,""",
+)
+replace_once(
+    tests,
+    """    expect(POUCH_PRESENTATION.body.displayWidth).not.toBe(POUCH_PRESENTATION.strip.displayWidth);\n    expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);\n    expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(260);""",
+    """    expect(POUCH_PRESENTATION.strip.displayWidth).toBeLessThan(POUCH_PRESENTATION.body.displayWidth * 0.85);\n    expect(POUCH_PRESENTATION.tab.displayWidth).toBeLessThan(POUCH_PRESENTATION.strip.displayWidth);\n    expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);\n    expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(260);\n    expect(MOTION_PRESENTATION.tearHintY).toBeGreaterThan(POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY);""",
+)
+replace_once(
+    tests,
+    """    expect(REVEAL_FX_PRESETS.secret.particleCount).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.particleCount);\n    expect(REVEAL_FX_PRESETS.secret.glowAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.glowAlpha);\n  });""",
+    """    expect(REVEAL_FX_PRESETS.secret.particleCount).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.particleCount);\n    expect(REVEAL_FX_PRESETS.secret.glowAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.glowAlpha);\n    expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThan(REVEAL_FX_PRESETS.rare.backdropAlpha);\n    expect(REVEAL_FX_PRESETS.secret.sparkleScale).toBeGreaterThan(REVEAL_FX_PRESETS.legendary.sparkleScale);\n  });\n\n  it('keeps ambient and idle motion subtle and bounded', () => {\n    expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(20);\n    expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);\n    expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThan(1);\n    expect(MOTION_PRESENTATION.starPulseScale).toBeLessThan(1.08);\n    expect(MOTION_PRESENTATION.resultPulseScale).toBeLessThan(1.05);\n    expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);\n  });""",
+)
