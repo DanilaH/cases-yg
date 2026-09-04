@@ -4,6 +4,7 @@ import { collectibleTextureKey, staticTextureKey } from '../data/artAssets';
 import type { StandardRarity } from '../data/collectibles';
 import {
   getCollectiblePresentation,
+  MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   type CollectiblePresentation,
   type PouchLayerPresentation,
@@ -21,9 +22,12 @@ export const SECRET_REVEAL_COLOR = 0x65f6ff;
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Rectangle;
+  bodyLayer: Phaser.GameObjects.Container;
   strip: Phaser.GameObjects.Container;
   tab: Phaser.GameObjects.Container;
   dragZone: Phaser.GameObjects.Zone;
+  revealOccluder: Phaser.GameObjects.Container;
+  revealOccluderUsed: boolean;
   tabStartX: number;
   tabEndX: number;
 }
@@ -92,7 +96,7 @@ const addProceduralBody = (
 
 const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Container): void => {
   const stripPlate = scene.add
-    .rectangle(0, POUCH_PRESENTATION.tearLineY - 8, 360, 74, 0x9085a7, 1)
+    .rectangle(0, POUCH_PRESENTATION.tearLineY - 8, 320, 64, 0x9085a7, 1)
     .setStrokeStyle(3, 0xd6cde3, 0.72);
   const tearLine = scene.add.graphics();
   tearLine.lineStyle(2, 0x5f5372, 0.72);
@@ -105,14 +109,26 @@ const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Conta
     );
   }
   const arrow = scene.add
-    .text(145, POUCH_PRESENTATION.tearLineY - 18, '→', {
+    .text(136, POUCH_PRESENTATION.tearLineY - 18, '→', {
       color: '#5f5372',
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '26px',
+      fontSize: '24px',
       fontStyle: 'bold',
     })
     .setOrigin(0.5);
   strip.add([stripPlate, tearLine, arrow]);
+};
+
+const findTearHint = (root: Phaser.GameObjects.Container): Phaser.GameObjects.Text | null => {
+  for (const child of root.list) {
+    if (
+      child instanceof Phaser.GameObjects.Text &&
+      Math.abs(child.y - MOTION_PRESENTATION.tearHintY) < 1
+    ) {
+      return child;
+    }
+  }
+  return null;
 };
 
 export const createPouchVisual = (
@@ -130,21 +146,43 @@ export const createPouchVisual = (
     0x08070c,
     0.28,
   );
-  const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
   group.add(shadow);
 
+  const bodyLayer = scene.add.container(0, 0);
+  const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
   const bodyTexture = staticTextureKey('pouch-body');
   if (scene.textures.exists(bodyTexture)) {
-    group.add(body);
-    addPouchLayer(scene, group, bodyTexture, POUCH_PRESENTATION.body);
+    bodyLayer.add(body);
+    addPouchLayer(scene, bodyLayer, bodyTexture, POUCH_PRESENTATION.body);
   } else {
-    addProceduralBody(scene, group, body);
+    addProceduralBody(scene, bodyLayer, body);
   }
+
+  // A small real interior appears behind the seam while the star travels. The
+  // body shifts down at the same time, so the interaction reads as opening a
+  // pouch rather than sliding an unrelated decal over a static image.
+  const mouthWidth = 286;
+  const mouthLeft = -mouthWidth / 2;
+  const mouthY = POUCH_PRESENTATION.tearLineY + 68;
+  const mouthRim = scene.add
+    .rectangle(mouthLeft - 5, mouthY, mouthWidth + 10, 40, 0xd8c9e3, 0)
+    .setOrigin(0, 0.5)
+    .setStrokeStyle(2, 0xf3ecf8, 0.72);
+  const mouth = scene.add
+    .rectangle(mouthLeft, mouthY + 2, mouthWidth, 28, 0x17101f, 0)
+    .setOrigin(0, 0.5)
+    .setStrokeStyle(2, 0x6d4a88, 0.86);
+  const innerGlow = scene.add
+    .rectangle(mouthLeft + 8, mouthY - 8, mouthWidth - 16, 3, 0xc995ff, 0)
+    .setOrigin(0, 0.5);
+  bodyLayer.add([mouthRim, mouth, innerGlow]);
+  group.add(bodyLayer);
 
   const strip = scene.add.container(0, 0);
   const stripTexture = staticTextureKey('pouch-tear-strip');
+  let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
-    addPouchLayer(scene, strip, stripTexture, POUCH_PRESENTATION.strip);
+    stripImage = addPouchLayer(scene, strip, stripTexture, POUCH_PRESENTATION.strip);
   } else {
     addProceduralStrip(scene, strip);
   }
@@ -161,12 +199,13 @@ export const createPouchVisual = (
         .text(POUCH_PRESENTATION.hitboxX, POUCH_PRESENTATION.hitboxY, '★', {
           color: '#8157d8',
           fontFamily: 'system-ui, sans-serif',
-          fontSize: '72px',
+          fontSize: '68px',
           fontStyle: 'bold',
         })
         .setOrigin(0.5),
     );
   }
+
   const dragZone = scene.add
     .zone(
       POUCH_PRESENTATION.hitboxX,
@@ -180,15 +219,83 @@ export const createPouchVisual = (
   group.add(strip);
   root.add(group);
 
-  return {
+  // Duplicate only the pouch body as a short-lived foreground occluder. During
+  // reveal it is brought above the newly-created collectible, so the reward
+  // visibly emerges from inside the opened pouch instead of being pasted over
+  // the intact front artwork.
+  const revealOccluder = scene.add.container(x, y).setAlpha(0);
+  if (scene.textures.exists(bodyTexture)) {
+    addPouchLayer(scene, revealOccluder, bodyTexture, POUCH_PRESENTATION.body);
+  }
+  root.add(revealOccluder);
+
+  const visual: PouchVisual = {
     group,
     body,
+    bodyLayer,
     strip,
     tab,
     dragZone,
+    revealOccluder,
+    revealOccluderUsed: false,
     tabStartX,
     tabEndX,
   };
+  root.setData('activePouchVisual', visual);
+
+  const syncTearVisual = (): void => {
+    if (!group.active || !tab.active) {
+      scene.events.off(Phaser.Scenes.Events.UPDATE, syncTearVisual);
+      return;
+    }
+
+    const rawProgress = Phaser.Math.Clamp(
+      (tab.x - tabStartX) / Math.max(1, tabEndX - tabStartX),
+      0,
+      1,
+    );
+    const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+
+    bodyLayer.setY(progress * 14);
+    mouthRim.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.9);
+    mouth.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.96);
+    innerGlow.setScale(Math.max(0.001, progress), 1).setAlpha(progress * 0.72);
+
+    if (stripImage) {
+      const sourceWidth = Math.max(1, stripImage.width);
+      const sourceHeight = Math.max(1, stripImage.height);
+      const remainingWidth = Math.max(1, Math.round(sourceWidth * (1 - rawProgress)));
+      const cropX = Math.max(0, sourceWidth - remainingWidth);
+      stripImage.setCrop(cropX, 0, remainingWidth, sourceHeight);
+    }
+  };
+  scene.events.on(Phaser.Scenes.Events.UPDATE, syncTearVisual);
+  group.once('destroy', () => {
+    scene.events.off(Phaser.Scenes.Events.UPDATE, syncTearVisual);
+  });
+
+  // The instructional hint is part of the pouch interaction. Fade it as soon
+  // as the user grabs the star; restore it only when a short drag is cancelled.
+  const hideHint = (): void => {
+    const hint = findTearHint(root);
+    if (!hint) return;
+    scene.tweens.killTweensOf(hint);
+    scene.tweens.add({ targets: hint, alpha: 0, duration: 90, ease: 'Sine.Out' });
+  };
+  const restoreHintAfterCancelledDrag = (): void => {
+    if (!group.active || tab.x >= tabEndX - 1) return;
+    const hint = findTearHint(root);
+    if (!hint) return;
+    scene.tweens.killTweensOf(hint);
+    scene.tweens.add({ targets: hint, alpha: 1, delay: 150, duration: 130, ease: 'Sine.Out' });
+  };
+  dragZone.on('pointerdown', hideHint);
+  scene.input.on('pointerup', restoreHintAfterCancelledDrag);
+  group.once('destroy', () => {
+    scene.input.off('pointerup', restoreHintAfterCancelledDrag);
+  });
+
+  return visual;
 };
 
 export interface CollectibleVisual {
@@ -291,6 +398,29 @@ export const createCollectibleVisual = (
 
   group.setPosition(x, y);
   root.add(group);
+
+  const pouch = root.getData('activePouchVisual') as PouchVisual | undefined;
+  if (
+    pouch &&
+    pouch.group.active &&
+    !pouch.revealOccluderUsed &&
+    pouch.revealOccluder.length > 0
+  ) {
+    pouch.revealOccluderUsed = true;
+    pouch.revealOccluder
+      .setPosition(pouch.group.x, pouch.group.y + pouch.bodyLayer.y)
+      .setAlpha(1);
+    root.bringToTop(pouch.revealOccluder);
+    scene.tweens.add({
+      targets: pouch.revealOccluder,
+      y: pouch.revealOccluder.y + 18,
+      alpha: 0,
+      delay: 120,
+      duration: 360,
+      ease: 'Cubic.In',
+    });
+  }
+
   return { group, accentColor, presentation };
 };
 
