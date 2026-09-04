@@ -92,6 +92,7 @@ const shot = async (name) => {
   return bytes;
 };
 
+// Idle pouch and measured half drag.
 let metrics = await openGame();
 await shot('01-idle-pouch-1280');
 await dragPouch(metrics, 0.5);
@@ -100,19 +101,26 @@ await shot('02-pouch-half-drag-1280');
 await page.mouse.up();
 await page.waitForTimeout(300);
 
-metrics = await openGame({ force: 'Force Epic Phone' });
+// Real non-recovered reveal: capture the visual burst shortly after a full tear.
+metrics = await openGame();
 await dragPouch(metrics, 1);
-await page.waitForTimeout(2400);
-await shot('03-epic-phone-result-1280');
+await page.waitForTimeout(280);
+await shot('03-normal-reveal-burst');
+await page.waitForTimeout(1500);
+await shot('04-normal-result');
+
+// Forced scenarios stage a pending reward and reload; the game then recovers it automatically.
+metrics = await openGame({ force: 'Force Epic Phone' });
+await page.waitForTimeout(1200);
+await shot('05-epic-phone-result-1280');
 
 await page.mouse.click(metrics.sx(metrics.centerX + 330), metrics.sy(650));
 await page.waitForTimeout(700);
-await shot('04-background-tap-next-pouch');
+await shot('06-background-tap-next-pouch');
 
 metrics = await openGame({ force: 'Force Hidden Pocket' });
-await dragPouch(metrics, 1);
-await page.waitForTimeout(3400);
-await shot('05-hidden-secret-selected');
+await page.waitForTimeout(1200);
+await shot('07-hidden-secret-selected');
 
 const carouselY = metrics.sy(326);
 const carouselX = metrics.sx(metrics.centerX);
@@ -120,22 +128,21 @@ await page.mouse.move(carouselX, carouselY);
 await page.mouse.down();
 await page.mouse.move(carouselX + metrics.scale * 145, carouselY, { steps: 12 });
 await page.waitForTimeout(120);
-await shot('06-hidden-mid-drag');
+await shot('08-hidden-mid-drag');
 await page.mouse.up();
 await page.waitForTimeout(350);
-await shot('07-hidden-standard-selected');
+await shot('09-hidden-standard-selected');
 
 await page.mouse.click(metrics.sx(metrics.centerX), metrics.sy(558));
 await page.waitForTimeout(700);
-await shot('08-panel-tap-next-pouch');
+await shot('10-panel-tap-next-pouch');
 
 metrics = await openGame({ width: 900, height: 720, force: 'Force Epic Phone' });
-await dragPouch(metrics, 1);
-await page.waitForTimeout(2400);
-await shot('09-epic-phone-900x720');
+await page.waitForTimeout(1200);
+await shot('11-epic-phone-900x720');
 
 metrics = await openGame({ width: 1728, height: 720 });
-await shot('10-idle-pouch-1728x720');
+await shot('12-idle-pouch-1728x720');
 
 await context.close();
 
@@ -153,16 +160,9 @@ await waitForGameReady(ruPage);
 await clickReloadingDebugAction(ruPage, 'Reset save');
 await clickReloadingDebugAction(ruPage, 'Force Hidden Pocket');
 await hideDebug(ruPage);
-const ruMetrics = layout(1024, 720);
-const ruStartX = ruMetrics.sx(ruMetrics.centerX - 125);
-const ruStartY = ruMetrics.sy(340 - 135);
-await ruPage.mouse.move(ruStartX, ruStartY);
-await ruPage.mouse.down();
-await ruPage.mouse.move(ruStartX + ruMetrics.scale * 270, ruStartY, { steps: 16 });
-await ruPage.mouse.up();
-await ruPage.waitForTimeout(3400);
-const ruBytes = await ruPage.screenshot({ path: path.join(outDir, '11-hidden-ru-1024x720.png'), fullPage: true });
-report.scenarios.push({ name: '11-hidden-ru-1024x720', screenshotBytes: ruBytes.length });
+await ruPage.waitForTimeout(1200);
+const ruBytes = await ruPage.screenshot({ path: path.join(outDir, '13-hidden-ru-1024x720.png'), fullPage: true });
+report.scenarios.push({ name: '13-hidden-ru-1024x720', screenshotBytes: ruBytes.length });
 await ruContext.close();
 
 await fs.writeFile(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2));
