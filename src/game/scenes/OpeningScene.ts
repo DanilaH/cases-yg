@@ -5,6 +5,15 @@ import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { SLICE_BALANCE } from '../data/balance';
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
+import {
+  getCarouselSpacing,
+  getCarouselVisualState,
+  getCollectiblePresentation,
+  POUCH_PRESENTATION,
+  REVEAL_FX_PRESETS,
+  RESULT_PRESENTATION,
+  resolveCarouselIndex,
+} from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
@@ -24,8 +33,8 @@ import {
 import { addCoverArt } from '../ui/staticArt';
 
 const LOGICAL_HEIGHT = 720;
-const POUCH_Y = 392;
-const DRAG_THRESHOLD = 238;
+const POUCH_Y = POUCH_PRESENTATION.groupY;
+const DRAG_THRESHOLD = POUCH_PRESENTATION.dragThreshold;
 const RESULT_HOLD_MS = 600;
 
 type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'failed' | 'shutdown';
@@ -39,7 +48,11 @@ interface DragState {
 interface ResultCarouselDrag {
   pointerId: number;
   startPointerX: number;
+  startPointerY: number;
   deltaX: number;
+  deltaY: number;
+  startedInCarousel: boolean;
+  readyAtStart: boolean;
 }
 
 export class OpeningScene extends Phaser.Scene {
@@ -48,7 +61,7 @@ export class OpeningScene extends Phaser.Scene {
   private metrics: LayoutMetrics | null = null;
   private pouch: PouchVisual | null = null;
   private collectionButton: Phaser.GameObjects.Text | null = null;
-  private resultPrompt: Phaser.GameObjects.Text | null = null;
+  private resultActionPanel: Phaser.GameObjects.Container | null = null;
   private drag: DragState | null = null;
   private session: OpeningSession | null = null;
   private saveState: SaveState | null = null;
@@ -82,6 +95,7 @@ export class OpeningScene extends Phaser.Scene {
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
 
+    this.input.on('pointerdown', this.handlePointerDown, this);
     this.input.on('pointermove', this.handlePointerMove, this);
     this.input.on('pointerup', this.handlePointerUp, this);
     this.scale.on('resize', this.handleResize, this);
@@ -127,6 +141,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private handleShutdown(): void {
     this.phase = 'shutdown';
+    this.input.off('pointerdown', this.handlePointerDown, this);
     this.input.off('pointermove', this.handlePointerMove, this);
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
@@ -161,7 +176,7 @@ export class OpeningScene extends Phaser.Scene {
     this.root?.destroy(true);
     this.pouch = null;
     this.collectionButton = null;
-    this.resultPrompt = null;
+    this.resultActionPanel = null;
     this.standardResultLabels = [];
     this.standardResultScrim = null;
     this.resultCarouselItems = [];
@@ -368,12 +383,34 @@ export class OpeningScene extends Phaser.Scene {
     this.setChromeEnabled(false);
   }
 
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.phase !== 'result') return;
+    if (this.resultCarouselDrag?.pointerId === pointer.id) return;
+    this.resultCarouselDrag = {
+      pointerId: pointer.id,
+      startPointerX: pointer.x,
+      startPointerY: pointer.y,
+      deltaX: 0,
+      deltaY: 0,
+      startedInCarousel: false,
+      readyAtStart: this.resultReady,
+    };
+  }
+
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
     if (this.phase === 'result' && this.resultCarouselDrag && this.metrics) {
       if (pointer.id !== this.resultCarouselDrag.pointerId) return;
-      const delta = (pointer.x - this.resultCarouselDrag.startPointerX) / this.metrics.scale;
-      this.resultCarouselDrag.deltaX = Phaser.Math.Clamp(delta, -220, 220);
-      this.positionResultCarousel(this.resultCarouselDrag.deltaX, false);
+      const deltaX = (pointer.x - this.resultCarouselDrag.startPointerX) / this.metrics.scale;
+      const deltaY = (pointer.y - this.resultCarouselDrag.startPointerY) / this.metrics.scale;
+      this.resultCarouselDrag.deltaX = Phaser.Math.Clamp(
+        deltaX,
+        -RESULT_PRESENTATION.dragClamp,
+        RESULT_PRESENTATION.dragClamp,
+      );
+      this.resultCarouselDrag.deltaY = deltaY;
+      if (this.resultCarouselDrag.startedInCarousel && this.resultCarouselItems.length > 1) {
+        this.positionResultCarousel(this.resultCarouselDrag.deltaX, false);
+      }
       return;
     }
 
@@ -401,18 +438,28 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     if (this.phase === 'result') {
-      if (this.resultCarouselDrag && this.metrics && pointer.id === this.resultCarouselDrag.pointerId) {
-        const delta = this.resultCarouselDrag.deltaX;
-        this.resultCarouselDrag = null;
-        if (Math.abs(delta) >= 72) {
-          const direction = delta < 0 ? 1 : -1;
-          this.resultCarouselIndex = Phaser.Math.Clamp(
-            this.resultCarouselIndex + direction,
-            0,
-            Math.max(0, this.resultCarouselItems.length - 1),
-          );
-        }
+      const gesture = this.resultCarouselDrag;
+      if (!gesture || !this.metrics || pointer.id !== gesture.pointerId) return;
+      this.resultCarouselDrag = null;
+
+      if (gesture.startedInCarousel && this.resultCarouselItems.length > 1) {
+        this.resultCarouselIndex = resolveCarouselIndex(
+          this.resultCarouselIndex,
+          this.resultCarouselItems.length,
+          gesture.deltaX,
+        );
         this.positionResultCarousel(0, true);
+        if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);
+        return;
+      }
+
+      const moved = Math.hypot(gesture.deltaX, gesture.deltaY);
+      if (
+        gesture.readyAtStart &&
+        this.resultReady &&
+        moved <= RESULT_PRESENTATION.tapMoveTolerance
+      ) {
+        this.continueFromResult();
       }
       return;
     }
@@ -480,12 +527,17 @@ export class OpeningScene extends Phaser.Scene {
     await this.animateTearDetach(recovered);
     if (this.isSceneShutdown()) return;
 
-    const standardVisual = await this.animateStandardReveal(pending);
-    if (this.isSceneShutdown()) return;
-
-    if (pending.hiddenPocket) {
-      await this.animateHiddenPocket(pending, standardVisual);
+    if (recovered) {
+      await this.animateRecoveredReveal(pending);
       if (this.isSceneShutdown()) return;
+    } else {
+      const standardVisual = await this.animateStandardReveal(pending);
+      if (this.isSceneShutdown()) return;
+
+      if (pending.hiddenPocket) {
+        await this.animateHiddenPocket(pending, standardVisual);
+        if (this.isSceneShutdown()) return;
+      }
     }
 
     let committed: SaveState | null = null;
@@ -515,10 +567,7 @@ export class OpeningScene extends Phaser.Scene {
     await this.wait(RESULT_HOLD_MS);
     if (this.phase !== 'result') return;
     this.resultReady = true;
-    if (this.resultPrompt) {
-      this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext);
-      this.resultPrompt.setAlpha(1);
-    }
+    this.renderResultActionPanel(pending);
   }
 
   private async animateTearDetach(recovered: boolean): Promise<void> {
@@ -551,96 +600,112 @@ export class OpeningScene extends Phaser.Scene {
 
   private async animateStandardReveal(pending: PendingReveal): Promise<Phaser.GameObjects.Container> {
     const root = this.root!;
-    const metrics = this.metrics!;
     const pouch = this.pouch!;
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
-    getGameAudio().play('reveal-pop');
-    const heroX = metrics.centerX;
-    const heroY = 320;
+    const presentation = getCollectiblePresentation(pending.standard.familyId);
+    const fx = REVEAL_FX_PRESETS[pending.standard.rarity];
+    const heroX = this.metrics!.centerX;
+    const heroY = presentation.revealY;
+    const finalScale = presentation.revealScale;
 
-    const flash = this.add.circle(heroX, POUCH_Y - 16, 82, color, 0.18).setScale(0.25);
-    root.add(flash);
-    const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.55).setAlpha(0);
+    getGameAudio().play('reveal-pop');
+
+    const halo = this.add.circle(heroX, heroY, 118, color, fx.glowAlpha).setScale(0.42);
+    const flash = this.add.circle(heroX, heroY, 86, color, fx.flashAlpha).setScale(0.28);
+    root.add([halo, flash]);
+    const ring = createRevealRing(this, root, heroX, heroY, color).setScale(0.48).setAlpha(0.16);
+    if (fx.secondaryRing) {
+      const secondary = createRevealRing(this, root, heroX, heroY, color)
+        .setScale(0.3)
+        .setAlpha(0.38)
+        .setStrokeStyle(3, color, 0.5);
+      this.tweens.add({
+        targets: secondary,
+        scale: fx.ringScale * 1.25,
+        alpha: 0,
+        duration: fx.particleDuration + 120,
+        ease: 'Cubic.Out',
+        onComplete: () => secondary.destroy(),
+      });
+    }
+
     const visual = createCollectibleVisual(
       this,
       root,
       pending.standard.familyId,
       pending.standard.rarity,
       heroX,
-      POUCH_Y + 52,
+      POUCH_Y + 74,
       pending.standard.collectibleId,
     );
-    visual.group.setScale(0.24).setAlpha(0);
+    visual.group.setScale(finalScale * 0.3).setAlpha(0);
 
-    this.spawnSparkles(heroX, heroY, color, pending.standard.rarity === 'legendary' ? 10 : 7);
+    this.spawnSparkles(
+      heroX,
+      heroY,
+      color,
+      fx.particleCount,
+      fx.particleDistance,
+      fx.particleDuration,
+    );
 
-    void new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: flash,
-        scale: 3.1,
-        alpha: 0,
-        duration: 280,
-        ease: 'Cubic.Out',
-        onComplete: () => {
-          flash.destroy();
-          resolve();
-        },
-      });
+    this.tweens.add({
+      targets: halo,
+      scale: 2.8,
+      alpha: 0,
+      duration: fx.particleDuration + 80,
+      ease: 'Cubic.Out',
+      onComplete: () => halo.destroy(),
     });
-
-    void new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: ring,
-        scale: 1.35,
-        alpha: 0.65,
-        duration: 240,
-        yoyo: true,
-        ease: 'Sine.Out',
-        onComplete: () => {
-          ring.destroy();
-          resolve();
-        },
-      });
+    this.tweens.add({
+      targets: flash,
+      scale: 3.8,
+      alpha: 0,
+      duration: Math.max(300, fx.introDuration - 20),
+      ease: 'Cubic.Out',
+      onComplete: () => flash.destroy(),
+    });
+    this.tweens.add({
+      targets: ring,
+      scale: fx.ringScale,
+      alpha: 0,
+      duration: fx.particleDuration,
+      ease: 'Cubic.Out',
+      onComplete: () => ring.destroy(),
     });
 
     await new Promise<void>((resolve) => {
       this.tweens.add({
         targets: visual.group,
         y: heroY,
-        scale: 1.07,
+        scale: finalScale * fx.overshootScale,
         alpha: 1,
-        duration: 370,
+        duration: fx.introDuration,
         ease: 'Back.Out',
         onComplete: () => resolve(),
       });
     });
 
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: pouch.group,
-        y: pouch.group.y + 82,
-        scale: 0.92,
-        alpha: 0,
-        duration: 220,
-        ease: 'Cubic.In',
-        onComplete: () => resolve(),
-      });
+    this.tweens.add({
+      targets: pouch.group,
+      y: pouch.group.y + 72,
+      scale: 0.92,
+      alpha: 0,
+      duration: 190,
+      ease: 'Cubic.In',
     });
 
     await new Promise<void>((resolve) => {
       this.tweens.add({
         targets: visual.group,
-        scale: 1,
-        y: heroY - 4,
-        duration: 140,
+        scale: finalScale,
+        duration: fx.settleDuration,
         ease: 'Sine.Out',
         onComplete: () => resolve(),
       });
     });
 
-    if (pending.standard.rarity === 'epic' || pending.standard.rarity === 'legendary') {
-      this.cameras.main.shake(85, pending.standard.rarity === 'legendary' ? 0.0025 : 0.0017);
-    }
+    if (fx.shake > 0) this.cameras.main.shake(100, fx.shake);
 
     getGameAudio().play(pending.standard.rarity);
     if (!pending.standard.isNew) {
@@ -652,8 +717,37 @@ export class OpeningScene extends Phaser.Scene {
     if (pending.signal.lockReached || pending.signal.lockConsumed) {
       this.time.delayedCall(250, () => getGameAudio().play('signal-lock'));
     }
-    this.addStandardResultLabels(pending, heroX, 492);
     return visual.group;
+  }
+
+  private async animateRecoveredReveal(pending: PendingReveal): Promise<void> {
+    if (!this.root || !this.metrics) return;
+    this.pouch?.group.setAlpha(0);
+    const familyId = pending.hiddenPocket?.familyId ?? pending.standard.familyId;
+    const rarity = pending.hiddenPocket ? 'secret' : pending.standard.rarity;
+    const collectibleId = pending.hiddenPocket?.collectibleId ?? pending.standard.collectibleId;
+    const presentation = getCollectiblePresentation(familyId);
+    const visual = createCollectibleVisual(
+      this,
+      this.root,
+      familyId,
+      rarity,
+      this.metrics.centerX,
+      presentation.revealY,
+      collectibleId,
+    );
+    visual.group.setScale(presentation.revealScale * 0.9).setAlpha(0);
+    await new Promise<void>((resolve) => {
+      this.tweens.add({
+        targets: visual.group,
+        scale: presentation.revealScale,
+        alpha: 1,
+        duration: 180,
+        ease: 'Sine.Out',
+        onComplete: () => resolve(),
+      });
+    });
+    await this.wait(90);
   }
 
   private getStandardResultStatus(pending: PendingReveal): string {
@@ -714,19 +808,17 @@ export class OpeningScene extends Phaser.Scene {
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
   ): Promise<void> {
-    if (!pending.hiddenPocket || !this.root || !this.metrics || !this.pouch) return;
+    if (!pending.hiddenPocket || !this.root || !this.metrics) return;
 
     const root = this.root;
     const metrics = this.metrics;
-    const pouch = this.pouch;
-    const carouselSpacing = Math.min(420, Math.max(340, metrics.logicalWidth * 0.38));
-    await this.wait(320);
-    getGameAudio().play('hidden-pocket');
+    const spacing = getCarouselSpacing(metrics.logicalWidth);
+    const standardPresentation = getCollectiblePresentation(pending.standard.familyId);
+    const secretPresentation = getCollectiblePresentation(pending.hiddenPocket.familyId);
+    const fx = REVEAL_FX_PRESETS.secret;
 
-    for (const label of this.standardResultLabels) label.destroy();
-    this.standardResultLabels = [];
-    this.standardResultScrim?.destroy();
-    this.standardResultScrim = null;
+    await this.wait(260);
+    getGameAudio().play('hidden-pocket');
 
     const hiddenLabel = this.add.text(
       metrics.centerX,
@@ -743,27 +835,16 @@ export class OpeningScene extends Phaser.Scene {
     ).setOrigin(0.5).setAlpha(0);
     root.add(hiddenLabel);
 
-    this.tweens.add({
-      targets: standardVisual,
-      x: metrics.centerX - carouselSpacing,
-      y: 318,
-      scale: 0.72,
-      alpha: 0.34,
-      duration: 260,
-      ease: 'Cubic.Out',
-    });
-
-    pouch.group.setPosition(metrics.centerX, POUCH_Y + 92).setScale(0.9).setAlpha(0.8);
-    pouch.strip.setAlpha(0);
-
     await Promise.all([
       new Promise<void>((resolve) => {
         this.tweens.add({
-          targets: pouch.group,
-          y: POUCH_Y + 36,
-          alpha: 1,
-          duration: 210,
-          ease: 'Back.Out',
+          targets: standardVisual,
+          x: metrics.centerX - spacing,
+          y: standardPresentation.revealY,
+          scale: standardPresentation.revealScale * standardPresentation.carouselSideScale,
+          alpha: RESULT_PRESENTATION.sideAlpha,
+          duration: 260,
+          ease: 'Cubic.Out',
           onComplete: () => resolve(),
         });
       }),
@@ -771,121 +852,99 @@ export class OpeningScene extends Phaser.Scene {
         this.tweens.add({
           targets: hiddenLabel,
           alpha: 1,
-          duration: 160,
+          duration: 170,
           onComplete: () => resolve(),
         });
       }),
     ]);
 
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: pouch.group,
-        angle: 3,
-        duration: 55,
-        yoyo: true,
-        repeat: 2,
-        ease: 'Sine.InOut',
-        onComplete: () => resolve(),
-      });
-    });
+    const heroX = metrics.centerX;
+    const heroY = secretPresentation.revealY;
+    const halo = this.add.circle(heroX, heroY, 132, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.38);
+    const flash = this.add.circle(heroX, heroY, 96, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.26);
+    root.add([halo, flash]);
+    const ring = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
+      .setScale(0.42)
+      .setAlpha(0.38);
+    const secondary = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
+      .setScale(0.25)
+      .setAlpha(0.3)
+      .setStrokeStyle(3, SECRET_REVEAL_COLOR, 0.5);
 
-    const flash = this.add.circle(metrics.centerX, 322, 90, SECRET_REVEAL_COLOR, 0.22).setScale(0.3);
-    root.add(flash);
-    const ring = createRevealRing(this, root, metrics.centerX, 318, SECRET_REVEAL_COLOR)
-      .setScale(0.5)
-      .setAlpha(0.2);
     getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
       this,
       root,
       pending.hiddenPocket.familyId,
       'secret',
-      metrics.centerX,
-      POUCH_Y + 42,
+      heroX,
+      heroY + 88,
       pending.hiddenPocket.collectibleId,
     );
-    secret.group.setScale(0.26).setAlpha(0);
-    this.spawnSparkles(metrics.centerX, 318, SECRET_REVEAL_COLOR, 11);
+    secret.group.setScale(secretPresentation.revealScale * 0.28).setAlpha(0);
+    this.spawnSparkles(
+      heroX,
+      heroY,
+      SECRET_REVEAL_COLOR,
+      fx.particleCount,
+      fx.particleDistance,
+      fx.particleDuration,
+    );
 
     this.tweens.add({
-      targets: flash,
-      scale: 3.3,
+      targets: halo,
+      scale: 3.2,
       alpha: 0,
-      duration: 320,
+      duration: fx.particleDuration + 100,
+      ease: 'Cubic.Out',
+      onComplete: () => halo.destroy(),
+    });
+    this.tweens.add({
+      targets: flash,
+      scale: 4,
+      alpha: 0,
+      duration: fx.introDuration,
       ease: 'Cubic.Out',
       onComplete: () => flash.destroy(),
     });
     this.tweens.add({
       targets: ring,
-      scale: 1.55,
+      scale: fx.ringScale,
       alpha: 0,
-      duration: 420,
+      duration: fx.particleDuration,
       ease: 'Cubic.Out',
       onComplete: () => ring.destroy(),
+    });
+    this.tweens.add({
+      targets: secondary,
+      scale: fx.ringScale * 1.25,
+      alpha: 0,
+      duration: fx.particleDuration + 140,
+      ease: 'Cubic.Out',
+      onComplete: () => secondary.destroy(),
     });
 
     await new Promise<void>((resolve) => {
       this.tweens.add({
         targets: secret.group,
-        y: 314,
-        scale: 1.06,
+        y: heroY,
+        scale: secretPresentation.revealScale * fx.overshootScale,
         alpha: 1,
-        duration: 410,
+        duration: fx.introDuration,
         ease: 'Back.Out',
         onComplete: () => resolve(),
       });
     });
-
-    this.tweens.add({
-      targets: pouch.group,
-      y: POUCH_Y + 108,
-      alpha: 0,
-      duration: 180,
-      ease: 'Cubic.In',
-    });
     await new Promise<void>((resolve) => {
       this.tweens.add({
         targets: secret.group,
-        scale: 1,
-        duration: 120,
+        scale: secretPresentation.revealScale,
+        duration: fx.settleDuration,
         ease: 'Sine.Out',
         onComplete: () => resolve(),
       });
     });
-
-    this.cameras.main.shake(105, 0.0024);
-    const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
-    const familyName = family?.name[getPlatformRuntime().language] ?? pending.hiddenPocket.familyId;
-    root.add(
-      this.add.text(
-        metrics.centerX,
-        490,
-        `${familyName} · ${getMessages(getPlatformRuntime().language).rarity.secret}`,
-        {
-          color: '#8df8ff',
-          stroke: '#160f20',
-          strokeThickness: 3,
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '22px',
-          fontStyle: 'bold',
-        },
-      ).setOrigin(0.5),
-    );
-    root.add(
-      this.add.text(
-        metrics.centerX,
-        524,
-        getMessages(getPlatformRuntime().language).opening.secretDiscovered,
-        {
-          color: '#f5f0ff',
-          stroke: '#160f20',
-          strokeThickness: 2,
-          fontFamily: 'monospace',
-          fontSize: '16px',
-          fontStyle: 'bold',
-        },
-      ).setOrigin(0.5),
-    );
+    this.cameras.main.shake(110, fx.shake);
   }
 
   private renderHiddenPocketCarousel(
@@ -894,8 +953,7 @@ export class OpeningScene extends Phaser.Scene {
     metrics: LayoutMetrics,
   ): void {
     if (!pending.hiddenPocket) return;
-    const language = getPlatformRuntime().language;
-    const messages = getMessages(language);
+    const messages = getMessages(getPlatformRuntime().language);
 
     root.add(
       this.add.text(metrics.centerX, 126, messages.opening.hiddenPocket, {
@@ -908,7 +966,7 @@ export class OpeningScene extends Phaser.Scene {
       }).setOrigin(0.5),
     );
 
-    const standardPage = this.add.container(0, 0);
+    const standardPage = this.add.container(0, getCollectiblePresentation(pending.standard.familyId).revealY);
     root.add(standardPage);
     const standardVisual = createCollectibleVisual(
       this,
@@ -916,41 +974,13 @@ export class OpeningScene extends Phaser.Scene {
       pending.standard.familyId,
       pending.standard.rarity,
       0,
-      316,
+      0,
       pending.standard.collectibleId,
     );
-    standardVisual.group.setScale(1);
-    const standardFamily = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
-    const standardTitle = this.add.text(
-      0,
-      492,
-      `${standardFamily?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,
-      {
-        color: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
-        stroke: '#160f20',
-        strokeThickness: 3,
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '22px',
-        fontStyle: 'bold',
-      },
-    ).setOrigin(0.5);
-    const standardStatus = this.add.text(0, 526, this.getStandardResultStatus(pending), {
-      color: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
-      stroke: '#160f20',
-      strokeThickness: 2,
-      fontFamily: 'monospace',
-      fontSize: '16px',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    const standardScrim = this.add.graphics();
-    const standardScrimWidth = Math.max(standardTitle.width, standardStatus.width) + 36;
-    standardScrim.fillStyle(0x21172e, 0.68);
-    standardScrim.fillRoundedRect(-standardScrimWidth / 2, 474, standardScrimWidth, 78, 18);
-    standardScrim.lineStyle(1, 0xf0ddff, 0.18);
-    standardScrim.strokeRoundedRect(-standardScrimWidth / 2, 474, standardScrimWidth, 78, 18);
-    standardPage.add([standardScrim, standardTitle, standardStatus]);
+    standardVisual.group.setScale(standardVisual.presentation.revealScale);
+    standardPage.setData('sideScale', standardVisual.presentation.carouselSideScale);
 
-    const secretPage = this.add.container(0, 0);
+    const secretPage = this.add.container(0, getCollectiblePresentation(pending.hiddenPocket.familyId).revealY);
     root.add(secretPage);
     const secretVisual = createCollectibleVisual(
       this,
@@ -958,60 +988,42 @@ export class OpeningScene extends Phaser.Scene {
       pending.hiddenPocket.familyId,
       'secret',
       0,
-      316,
+      0,
       pending.hiddenPocket.collectibleId,
     );
-    secretVisual.group.setScale(1);
-    const secretFamily = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
-    const secretTitle = this.add.text(
-      0,
-      492,
-      `${secretFamily?.name[language] ?? pending.hiddenPocket.familyId} · ${messages.rarity.secret}`,
-      {
-        color: '#8df8ff',
-        stroke: '#160f20',
-        strokeThickness: 3,
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '22px',
-        fontStyle: 'bold',
-      },
-    ).setOrigin(0.5);
-    const secretStatus = this.add.text(0, 526, messages.opening.secretDiscovered, {
-      color: '#f5f0ff',
-      stroke: '#160f20',
-      strokeThickness: 2,
-      fontFamily: 'monospace',
-      fontSize: '16px',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    const secretScrim = this.add.graphics();
-    const secretScrimWidth = Math.max(secretTitle.width, secretStatus.width) + 36;
-    secretScrim.fillStyle(0x21172e, 0.68);
-    secretScrim.fillRoundedRect(-secretScrimWidth / 2, 474, secretScrimWidth, 78, 18);
-    secretScrim.lineStyle(1, 0x8df8ff, 0.22);
-    secretScrim.strokeRoundedRect(-secretScrimWidth / 2, 474, secretScrimWidth, 78, 18);
-    secretPage.add([secretScrim, secretTitle, secretStatus]);
+    secretVisual.group.setScale(secretVisual.presentation.revealScale);
+    secretPage.setData('sideScale', secretVisual.presentation.carouselSideScale);
 
     this.resultCarouselItems = [standardPage, secretPage];
     this.resultCarouselIndex = 1;
     this.resultCarouselDrag = null;
 
     this.resultCarouselDots = this.resultCarouselItems.map((_, index) => {
-      const dot = this.add.circle(metrics.centerX + (index - 0.5) * 22, 574, 5, 0xece4f6, 0.35);
+      const dot = this.add.circle(
+        metrics.centerX + (index - 0.5) * 22,
+        RESULT_PRESENTATION.carouselDotY,
+        5,
+        0xece4f6,
+        0.35,
+      );
       root.add(dot);
       return dot;
     });
 
     const zoneWidth = Math.min(760, metrics.logicalWidth - 150);
     this.resultCarouselZone = this.add
-      .zone(metrics.centerX, 350, zoneWidth, 420)
+      .zone(metrics.centerX, 326, zoneWidth, 320)
       .setInteractive({ useHandCursor: true });
     this.resultCarouselZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.phase !== 'result' || this.resultCarouselItems.length < 2) return;
       this.resultCarouselDrag = {
         pointerId: pointer.id,
         startPointerX: pointer.x,
+        startPointerY: pointer.y,
         deltaX: 0,
+        deltaY: 0,
+        startedInCarousel: true,
+        readyAtStart: this.resultReady,
       };
     });
     root.add(this.resultCarouselZone);
@@ -1020,42 +1032,66 @@ export class OpeningScene extends Phaser.Scene {
 
   private positionResultCarousel(dragOffset = 0, animate = false): void {
     if (!this.metrics || this.resultCarouselItems.length === 0) return;
-    const spacing = Math.min(420, Math.max(340, this.metrics.logicalWidth * 0.38));
+    const spacing = getCarouselSpacing(this.metrics.logicalWidth);
     this.resultCarouselItems.forEach((item, index) => {
-      const targetX = this.metrics!.centerX + (index - this.resultCarouselIndex) * spacing + dragOffset;
-      const alpha = index === this.resultCarouselIndex ? 1 : 0.34;
+      const sideScale = Number(item.getData('sideScale') ?? 0.72);
+      const state = getCarouselVisualState(
+        index,
+        this.resultCarouselIndex,
+        dragOffset,
+        spacing,
+        sideScale,
+      );
+      const targetX = this.metrics!.centerX + state.xOffset;
       if (animate) {
         this.tweens.add({
           targets: item,
           x: targetX,
-          alpha,
-          duration: 180,
+          scale: state.scaleMultiplier,
+          alpha: state.alpha,
+          duration: 190,
           ease: 'Cubic.Out',
         });
       } else {
-        item.setX(targetX).setAlpha(alpha);
+        item.setX(targetX).setScale(state.scaleMultiplier).setAlpha(state.alpha);
       }
     });
     this.resultCarouselDots.forEach((dot, index) => {
-      dot.setFillStyle(index === this.resultCarouselIndex ? 0x8df8ff : 0xece4f6, index === this.resultCarouselIndex ? 0.95 : 0.35);
+      dot.setFillStyle(
+        index === this.resultCarouselIndex ? 0x8df8ff : 0xece4f6,
+        index === this.resultCarouselIndex ? 0.95 : 0.35,
+      );
     });
   }
 
-  private spawnSparkles(x: number, y: number, color: number, count: number): void {
+  private spawnSparkles(
+    x: number,
+    y: number,
+    color: number,
+    count: number,
+    distance: number,
+    duration: number,
+  ): void {
     if (!this.root) return;
     const root = this.root;
     for (let index = 0; index < count; index += 1) {
-      const angle = (Math.PI * 2 * index) / count + 0.18;
-      const distance = 82 + (index % 3) * 24;
-      const sparkle = this.add.circle(x, y, index % 2 === 0 ? 5 : 3, color, 0.9);
+      const angle = (Math.PI * 2 * index) / count + 0.12 * (index % 3);
+      const distanceJitter = distance * (0.74 + (index % 4) * 0.09);
+      const sparkle = this.add.circle(
+        x,
+        y,
+        index % 3 === 0 ? 6 : index % 2 === 0 ? 4 : 3,
+        color,
+        0.94,
+      );
       root.add(sparkle);
       this.tweens.add({
         targets: sparkle,
-        x: x + Math.cos(angle) * distance,
-        y: y + Math.sin(angle) * distance,
+        x: x + Math.cos(angle) * distanceJitter,
+        y: y + Math.sin(angle) * distanceJitter * 0.78 - 12,
         alpha: 0,
-        scale: 0.25,
-        duration: 380 + (index % 3) * 70,
+        scale: 0.18,
+        duration: duration + (index % 4) * 34,
         ease: 'Cubic.Out',
         onComplete: () => sparkle.destroy(),
       });
@@ -1101,26 +1137,106 @@ export class OpeningScene extends Phaser.Scene {
     }
   }
 
-  private addResultPrompt(): void {
-    if (!this.root || !this.metrics) return;
-    this.resultPrompt?.destroy();
-    this.resultPrompt = this.add
-      .text(this.metrics.centerX, 646, getMessages(getPlatformRuntime().language).opening.resultLocked, {
-        color: '#eee6f5',
-        backgroundColor: '#2a2037',
-        padding: { x: 12, y: 7 },
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '17px',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0.8)
+  private getResultPanelCopy(pending: PendingReveal): {
+    title: string;
+    status: string;
+    titleColor: string;
+    statusColor: string;
+  } {
+    const language = getPlatformRuntime().language;
+    const messages = getMessages(language);
+    if (pending.hiddenPocket && this.resultCarouselIndex === 1) {
+      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
+      return {
+        title: `${family?.name[language] ?? pending.hiddenPocket.familyId} · ${messages.rarity.secret}`,
+        status: messages.opening.secretDiscovered,
+        titleColor: '#8df8ff',
+        statusColor: '#f5f0ff',
+      };
+    }
+
+    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    return {
+      title: `${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,
+      status: this.getStandardResultStatus(pending),
+      titleColor: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
+      statusColor: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
+    };
+  }
+
+  private renderResultActionPanel(pending: PendingReveal): void {
+    if (!this.root || !this.metrics || this.phase !== 'result') return;
+    this.resultActionPanel?.destroy(true);
+
+    const messages = getMessages(getPlatformRuntime().language);
+    const copy = this.getResultPanelCopy(pending);
+    const panel = this.add.container(this.metrics.centerX, RESULT_PRESENTATION.panelY);
+    const title = this.add.text(0, -34, copy.title, {
+      color: copy.titleColor,
+      stroke: '#160f20',
+      strokeThickness: 3,
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '22px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const status = this.add.text(0, -3, copy.status, {
+      color: copy.statusColor,
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: 'monospace',
+      fontSize: '15px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const readyHint = pending.hiddenPocket
+      ? `↔ ${messages.opening.swipeItems} · ${messages.opening.tapNext}`
+      : messages.opening.tapNext;
+    const hint = this.add.text(0, 34, this.resultReady ? readyHint : messages.opening.resultLocked, {
+      color: this.resultReady ? '#ffffff' : '#bfb3ca',
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: pending.hiddenPocket ? '13px' : '15px',
+      fontStyle: this.resultReady ? 'bold' : 'normal',
+    }).setOrigin(0.5);
+
+    const desiredWidth = Math.max(title.width, status.width, hint.width) + 46;
+    const panelWidth = Phaser.Math.Clamp(
+      desiredWidth,
+      RESULT_PRESENTATION.panelMinWidth,
+      Math.min(RESULT_PRESENTATION.panelMaxWidth, this.metrics.logicalWidth - 120),
+    );
+    const background = this.add.graphics();
+    background.fillStyle(0x21172e, 0.82);
+    background.fillRoundedRect(
+      -panelWidth / 2,
+      -RESULT_PRESENTATION.panelHeight / 2,
+      panelWidth,
+      RESULT_PRESENTATION.panelHeight,
+      22,
+    );
+    background.lineStyle(1.5, 0xf0ddff, 0.24);
+    background.strokeRoundedRect(
+      -panelWidth / 2,
+      -RESULT_PRESENTATION.panelHeight / 2,
+      panelWidth,
+      RESULT_PRESENTATION.panelHeight,
+      22,
+    );
+    const actionZone = this.add
+      .zone(0, 0, panelWidth, RESULT_PRESENTATION.panelHeight)
       .setInteractive({ useHandCursor: true });
-    this.resultPrompt.on('pointerup', () => {
+    actionZone.on('pointerdown', () => {
       if (this.phase !== 'result' || !this.resultReady) return;
-      this.resultCarouselDrag = null;
-      this.renderIdle();
+      this.continueFromResult();
     });
-    this.root.add(this.resultPrompt);
+
+    panel.add([background, title, status, hint, actionZone]);
+    this.root.add(panel);
+    this.resultActionPanel = panel;
+  }
+
+  private continueFromResult(): void {
+    if (this.phase !== 'result' || !this.resultReady) return;
+    this.resultCarouselDrag = null;
+    this.renderIdle();
   }
 
   private addLockedSaveFailure(): void {
@@ -1157,17 +1273,13 @@ export class OpeningScene extends Phaser.Scene {
         pending.standard.familyId,
         pending.standard.rarity,
         metrics.centerX,
-        316,
+        getCollectiblePresentation(pending.standard.familyId).revealY,
         pending.standard.collectibleId,
       );
-      standard.group.setScale(1);
-      this.addStandardResultLabels(pending, metrics.centerX, 492);
+      standard.group.setScale(standard.presentation.revealScale);
     }
 
-    this.addResultPrompt();
-    if (this.resultReady && this.resultPrompt) {
-      this.resultPrompt.setText(getMessages(getPlatformRuntime().language).opening.tapNext).setAlpha(1);
-    }
+    this.renderResultActionPanel(pending);
   }
 
   private isSceneShutdown(): boolean {

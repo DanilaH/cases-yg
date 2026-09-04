@@ -266,7 +266,9 @@ export class CollectionScene extends Phaser.Scene {
           360,
           featured.collectibleId,
         );
-        visual.group.setScale(featured.rarity === 'secret' ? 0.82 : 0.78);
+        visual.group.setScale(
+          featured.rarity === 'secret' ? visual.presentation.shelfSecretScale : visual.presentation.shelfScale,
+        );
         const featureColor = featured.rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[featured.rarity];
         root.add(
           this.add
@@ -377,7 +379,7 @@ export class CollectionScene extends Phaser.Scene {
         if (entry.owned) {
           const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8, entry.id);
           visual.group.setScale(
-            family.id === 'flip-phone' ? (entry.secret ? 0.38 : 0.36) : entry.secret ? 0.29 : 0.27,
+            entry.secret ? visual.presentation.librarySecretScale : visual.presentation.libraryScale,
           );
         } else {
           root.add(
