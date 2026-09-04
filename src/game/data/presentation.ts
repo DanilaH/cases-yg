@@ -68,7 +68,10 @@ export interface PouchLayerPresentation {
 }
 
 export const POUCH_PRESENTATION = {
-  groupY: 326,
+  // Keep the pouch visual center near the reward's reveal position. The previous
+  // lower placement made the scene jump upward by roughly a hundred logical px
+  // as soon as the collectible appeared.
+  groupY: 246,
   body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
   // Runtime seam is intentionally only the narrow tear rail. It should overlap
   // the body's own top foil edge instead of reading as a second package lid.
