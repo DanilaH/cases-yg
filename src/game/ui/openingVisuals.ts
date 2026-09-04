@@ -14,9 +14,9 @@ export const SECRET_REVEAL_COLOR = 0x65f6ff;
 
 const POUCH_ART_DISPLAY_WIDTH = 374;
 const POUCH_TEAR_Y = -112;
-const POUCH_TAB_LOCAL_X = -114;
-const POUCH_TAB_LOCAL_Y = -99;
-const POUCH_TAB_HIT_SIZE = 152;
+const POUCH_TAB_LOCAL_X = -126;
+const POUCH_TAB_LOCAL_Y = -126;
+const POUCH_TAB_HIT_SIZE = 140;
 const POUCH_TAB_TRAVEL = 263;
 
 export interface PouchVisual {
@@ -222,11 +222,14 @@ const createAssetCollectible = (
 ): Phaser.GameObjects.Container => {
   const group = scene.add.container(0, 0);
   const targetWidth = familyId === 'flip-phone' ? 300 : 246;
-  const image = scene.add.image(0, 0, textureKey).setOrigin(0.5);
+  // The phone art includes a long charm on the left, so centering the full 1024 canvas
+  // makes the phone body read too far right. Offset the rendered art around the body pivot.
+  const artOffsetX = familyId === 'flip-phone' ? -24 : 0;
+  const image = scene.add.image(artOffsetX, 0, textureKey).setOrigin(0.5);
   image.setScale(targetWidth / Math.max(1, image.width));
   const visualBottom = image.displayHeight / 2;
   const shadowWidth = familyId === 'flip-phone' ? 170 : 220;
-  const shadow = scene.add.ellipse(0, visualBottom - 8, shadowWidth, 28, 0x050408, 0.2);
+  const shadow = scene.add.ellipse(artOffsetX, visualBottom - 8, shadowWidth, 28, 0x050408, 0.2);
   group.add([shadow, image]);
   image.setDepth(1);
   return group;

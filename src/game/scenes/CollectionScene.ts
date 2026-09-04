@@ -153,12 +153,14 @@ export class CollectionScene extends Phaser.Scene {
       })
       .setOrigin(0, 1)
       .setInteractive({ useHandCursor: true });
-    back.on('pointerup', () => {
+    back.on('pointerdown', () => {
+      back.disableInteractive().setAlpha(0.65);
       getPlatformRuntime().analytics.track('collection_return', {
         view: this.view,
         standardCount: this.snapshot?.standardCount ?? 0,
       });
-      this.scene.start('OpeningScene');
+      // Defer scene replacement until the current pointer dispatch has completed.
+      this.time.delayedCall(0, () => this.scene.start('OpeningScene'));
     });
     root.add(back);
   }
