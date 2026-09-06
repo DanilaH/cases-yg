@@ -27,41 +27,45 @@ Before upload, the exact candidate revision must pass:
 Lite-specific automated coverage must include:
 
 - Basic/Charged profile selection;
+- Basic normal roll cannot produce Legendary;
+- Charged normal roll can produce Legendary;
+- independent collectible rarity + CHIPS-cache resolution;
 - insufficient-CHIPS Charged rejection without mutation;
-- atomic Charged cost + reward transaction;
+- atomic Charged cost + base/cache/recycle reward transaction;
 - duplicate recycle CHIPS;
 - 4-segment Signal lock;
-- Drop-scoped NEW guarantee;
+- exact legacy Signal mapping `min(4, floor(oldSignal / 25))`;
+- Drop-scoped NEW guarantee preserving selected pouch rarity profile;
 - save migration from pre-Lite state;
-- pending reveal recovery/idempotency with wallet fields;
+- pending reveal recovery/idempotency with wallet/cache fields;
 - rewarded dev CHIPS exactly-once path.
 
 ## DRAFT — boot / LoadingAPI
 
-1. Upload the exact Lite V2 production build as a Yandex Games draft.
-2. Open it through the Yandex debug environment; append `debug=1` if needed.
+1. Upload exact Lite V2 production build as a Yandex Games draft.
+2. Open through Yandex debug environment; append `debug=1` if needed.
 3. Confirm platform debug says `Platform: yandex`, not `mock`.
 4. Confirm loader disappears only after storage + initial scene are ready.
 5. Reload repeatedly and confirm no double-ready or visible late-init jump.
-6. Confirm an existing pre-Lite save migrates without losing discovered collectibles/Secrets.
+6. Confirm existing pre-Lite save migrates without losing discovered collectibles/Secrets.
 
 ## DRAFT — pause / resume and audio
 
 1. Start an opening so gameplay is active.
 2. Trigger normal Yandex pause/resume behavior through overlay/tab/ad flow.
 3. Confirm gameplay/input/tweens are blocked appropriately.
-4. Confirm Phaser/Web Audio SFX stay silent through the blocked interval.
+4. Confirm Phaser/Web Audio SFX stay silent through blocked interval.
 5. Confirm return does not leave stuck input, duplicate tweens or stale reward HUD state.
 
 ## DRAFT — interstitial
 
-Use the debug interstitial action.
+Use debug interstitial action.
 
 Expected:
 
 - gameplay/audio block for ad interval;
 - successful open/close resolves;
-- no-fill/throttle/error releases the blocker;
+- no-fill/throttle/error releases blocker;
 - another fullscreen request while one is active is rejected safely;
 - analytics records request/result events.
 
@@ -69,18 +73,18 @@ Never request interstitial during active tear/reveal.
 
 ## DRAFT — rewarded
 
-After Lite V2 Signal migration, the technical rewarded probe must use a **clearly dev-only CHIPS grant**, not `+25 Signal`.
+After Lite V2 Signal migration, technical rewarded probe must use a **clearly dev-only CHIPS grant**, not `+25 Signal`.
 
 Expected:
 
 - reward grants only from rewarded completion callback, never close alone;
-- one ad call can persist the CHIPS grant at most once even if callbacks repeat;
-- reload preserves the grant;
+- one ad call can persist CHIPS grant at most once even if callbacks repeat;
+- reload preserves grant;
 - persistence failure returns an error instead of claiming success;
 - close/error releases gameplay/audio safely;
-- no Signal pity mutation occurs as a side effect of the technical ad probe.
+- no Signal pity mutation occurs as a side effect of technical ad probe.
 
-The dev CHIPS amount is not the final public rewarded economy.
+The dev CHIPS amount is not final public rewarded economy.
 
 ## DRAFT — sticky banner boundary
 
@@ -96,58 +100,65 @@ Expected:
 ## DRAFT — interrupted Basic reveal recovery
 
 1. Start a Basic opening.
-2. Reload/close during reveal before the result returns to idle.
+2. Reload/close during reveal before result returns to idle.
 3. Reopen draft.
 4. Confirm staged `pendingReveal` is recovered rather than rerolled.
-5. Confirm collectible/CHIPS/Signal/Hidden Pocket outcome commits exactly once.
+5. Confirm collectible/base CHIPS/cache bonus/recycle/Signal/Hidden Pocket outcome commits exactly once.
 6. Confirm opening count increments once.
 
-Repeat with duplicate/recycle and Hidden Pocket paths where practical through debug tooling.
+Repeat with a forced large cache outcome, duplicate/recycle and Hidden Pocket paths through debug tooling.
 
 ## DRAFT — interrupted Charged reveal recovery — CRITICAL
 
-This is a new Lite V2 release blocker.
+This is a Lite V2 release blocker.
 
 1. Ensure wallet can afford Charged.
 2. Record CHIPS before opening.
-3. Choose Charged and complete the tear.
-4. Reload/close at several points during its reward sequence.
-5. Reopen draft.
+3. Force or obtain a known cache outcome where useful.
+4. Choose Charged and complete tear.
+5. Reload/close at several points during reward sequence.
+6. Reopen draft.
 
 Expected:
 
-- the same Charged transaction is recovered;
+- same Charged transaction is recovered;
 - CHIPS cost is not charged twice;
-- cost is not lost without preserving the rolled reward;
-- base/recycle CHIPS rewards are not granted twice;
+- cost is not lost without preserving rolled reward;
+- base/cache/recycle CHIPS rewards are not granted twice;
+- same cache tier/amount is preserved rather than rerolled;
 - same collectible/Hidden Pocket outcome is preserved;
-- final wallet equals the transaction's deterministic committed value;
-- active Drop/profile remains the one stored in the transaction.
+- final wallet equals transaction's deterministic committed value;
+- active Drop/profile remains the one stored in transaction.
 
-This must be tested in the actual Yandex storage environment, not only localStorage.
+This must be tested in actual Yandex storage environment, not only localStorage.
 
 ## DRAFT — Signal migration / lock
 
-With a migrated legacy save and/or debug seed:
+With migrated legacy saves and/or debug seeds:
 
-- partial old Signal converts according to the explicitly chosen migration rule;
-- old fully armed Signal does not silently lose the lock;
+- `0–24→0`, `25–49→1`, `50–74→2`, `75–99→3`, `100→4/LOCK`;
+- boundary values `24/25/49/50/74/75/99/100` resolve exactly;
+- old fully armed Signal remains armed;
 - one duplicate fills exactly one Lite segment;
 - `4/4` arms lock;
-- next standard roll returns an undiscovered item in the active Drop when one exists;
+- next standard roll returns an undiscovered item in active Drop when one exists;
+- Basic SIGNAL LOCK result still obeys Basic rarity access (no Legendary);
+- Charged SIGNAL LOCK preserves Charged rarity advantage among missing candidates;
 - lock resets after consumption;
-- complete active Drop does not consume/waste the armed lock.
+- complete active Drop does not consume/waste armed lock.
 
-## DRAFT — CHIPS / Charged UI
+## DRAFT — CHIPS / cache / Charged UI
 
 Confirm at representative hosted sizes:
 
-- CHIPS HUD remains visible and readable;
-- reward token flight ends at the correct HUD destination;
+- CHIPS HUD remains visible/readable;
+- normal payout token flight ends at correct HUD destination;
+- large cache payout uses bounded visual tokens and readable counter animation rather than sprite spam;
 - wallet display ends at committed value even if animation is interrupted;
-- crossing affordability triggers clear Charged-ready feedback once;
+- crossing affordability through normal payout triggers clear Charged-ready feedback once;
+- crossing affordability through a cache jump also triggers it once;
 - Charged cannot be opened when balance is insufficient;
-- no modal/store is required for the Basic/Charged choice.
+- no modal/store is required for Basic/Charged choice.
 
 ## DRAFT — Metrica
 
@@ -159,6 +170,7 @@ first_package_interaction
 pouch_open_started
 reveal_complete
 chips_earned
+chips_cache_hit
 duplicate_recycled
 signal_lock_reached
 signal_lock_consumed
@@ -175,6 +187,6 @@ Confirm `reachGoal` traffic in Yandex tooling and confirm `debug=1` does not for
 
 Do not mark Yandex DRAFT validation complete from CI or local visual audits.
 
-The pass is complete only when the exact hosted Lite V2 build proves:
+The pass is complete only when exact hosted Lite V2 build proves:
 
-> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + ads + audio + analytics are all safe in the real Yandex environment.**
+> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache persistence + ads + audio + analytics are all safe in the real Yandex environment.**
