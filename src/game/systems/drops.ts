@@ -120,7 +120,7 @@ const chooseNormalStandard = (
   const family = chooseFamily(registry.families, balance, random);
   const rarity = chooseRarity(balance.standardRarityWeights, random);
   const collectible = family.standard[rarity];
-  return { familyId: family.id, rarity, collectible };
+  return { familyId: family.id, lootPoolId: family.dropId, rarity, collectible };
 };
 
 const chooseSignalLockedStandard = (
@@ -140,7 +140,7 @@ const chooseSignalLockedStandard = (
 
   const rarity = chooseRarity(balance.signal.lateLockRarityWeights, random);
   const family = chooseFamily(registry.families, balance, random);
-  return { familyId: family.id, rarity, collectible: family.standard[rarity] };
+  return { familyId: family.id, lootPoolId: family.dropId, rarity, collectible: family.standard[rarity] };
 };
 
 const chooseHiddenPocket = (
