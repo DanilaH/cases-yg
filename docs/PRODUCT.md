@@ -6,76 +6,79 @@
 
 > **Open mystery tech → reveal a stylized Y2K gadget → discover rarity → improve a visible collection → repeat.**
 
-The tactile opener and collectible desirability remain the product core. **Gameplay Loop Lite V2** adds one compact meta-goal around that opener:
+The tactile opener and collectible desirability remain the product core. The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is not trying to become a full idle/incremental economy. Lite V2 exists to make repeated openings feel more rewarding and purposeful with minimal development burden.
+The project is deliberately **not** a full idle/incremental economy. The meta-loop exists to make repeated openings purposeful without creating a high-production systems burden.
 
 ---
 
 ## 2. Current execution stages — LOCKED
 
-### Stage A — internal vertical slice baseline — COMPLETE ENOUGH TO EXTEND
+### Stage A — internal vertical slice baseline — COMPLETE
 
-The Camera + Flip Phone slice has established:
+Camera + Flip Phone established:
 
 - pouch tear/reveal interaction;
-- rarity presentation;
-- Hidden Pocket carousel;
+- rarity presentation + Hidden Pocket carousel;
 - Collection baseline;
-- save/recovery transaction model;
+- transactional save/recovery;
 - responsive landscape presentation;
 - asset production pipeline;
-- platform/ads/analytics boundaries;
-- browser visual-QA workflow.
+- Yandex/ads/analytics boundaries;
+- exact-revision browser visual-QA workflow.
 
-The current two-family build remains private and is not the public release.
+The two-family build remains private and is not the public release.
 
-### Stage B — Gameplay Loop Lite V2 — NEXT
+### Stage B — Gameplay Loop Lite V2 — IMPLEMENTED, VALIDATION IN PROGRESS
 
-Add only:
+Current runtime contains:
 
 - global CHIPS wallet + HUD transfer feedback;
-- guaranteed base CHIPS on every pouch plus an independent rare CHIPS-cache roll;
-- automatic duplicate recycle → CHIPS + Signal;
-- simplified 4-segment Signal pity;
-- one Charged Pouch tier bought with CHIPS;
-- distinct Basic/Charged rarity access and balance profiles;
-- Drop/loot-pool identifiers in data so future content can scale without a global mega-pool.
+- guaranteed base CHIPS + independent cache roll;
+- duplicate auto-recycle → CHIPS + Signal;
+- 4-segment Signal pity;
+- Basic/Charged selection directly in Opening;
+- separate pouch rarity/economy/Hidden Pocket profiles;
+- Drop/loot-pool-aware reward resolution;
+- versioned save migration;
+- atomic Charged cost/reward recovery;
+- deterministic tests/debug scenarios;
+- exact-revision screenshot/video audit coverage.
 
-Do not add idle timers, offline income, passive production, prestige, upgrade trees or multi-standard drops in this stage.
+Technical and visual gates are green. **Direct repeated hands-on is still pending** and is the current product gate.
 
-After implementation, run the same exact-revision browser visual gate plus direct hands-on repetition test.
+### Stage C — real Yandex DRAFT validation — NEXT AFTER HANDS-ON
 
-### Stage C — real Yandex DRAFT validation
-
-After Lite V2 hands-on acceptance, validate the real hosted runtime before content expansion:
+Validate the hosted runtime before content expansion:
 
 - SDK boot / `LoadingAPI.ready()`;
 - pause/resume/audio lifecycle;
-- storage + interrupted reveal recovery;
+- safe storage and migrated saves;
+- interrupted Basic and Charged reveal recovery;
+- retained Signal-lock edge + following Charged consumption;
 - interstitial/rewarded/sticky boundaries;
-- analytics where configured;
-- Lite V2 wallet/Charged transaction recovery in hosted conditions.
+- rewarded exactly-once dev CHIPS grant;
+- analytics/Metrica where configured.
 
-CI and local browser automation cannot replace this gate.
+CI/local browser automation cannot replace this gate.
 
-### Stage D — content/release build
+### Stage D — content/release build — BLOCKED ON STAGE C
 
-Only after the loop and hosted platform path are proven:
+Only after loop feel and hosted platform behavior are proven:
 
 - materially expand gadget families;
-- group content into themed Drops/loot pools rather than one ever-growing global pool;
-- expose a Drop selector only when more than one Drop exists;
+- group content into themed Drops/loot pools;
+- expose Drop selection only when Drop #2 exists;
 - scale Collection around the real roster;
-- re-simulate Basic/Charged rarity, CHIPS, Signal and Hidden Pocket balance;
+- re-simulate/tune economy at content scale;
 - finalize monetization choices;
 - produce final store creative after release content/key visual stabilizes.
 
 ### Stage E — public Yandex release
 
-Final moderation/store/release hardening happens only on the expanded content build.
+Final moderation/store/release hardening happens on the expanded content build.
 
 ---
 
@@ -93,20 +96,19 @@ Target visual hypothesis remains:
 
 ---
 
-## 4. Core interaction — LOCKED
-
-The physical opener does not change for Lite V2:
+## 4. Current core interaction
 
 1. Mystery Pouch is ready.
-2. Player grabs the star tear-tab.
-3. One short left-to-right drag completes the tear.
-4. Complete reward transaction is predetermined/persisted.
-5. CHIPS/reward presentation begins from the pouch.
-6. One standard gadget reveals with rarity + NEW/duplicate state.
-7. Duplicate may auto-recycle into CHIPS + Signal.
-8. Hidden Pocket may add an automatic Secret beat.
-9. Resource rewards visibly transfer to HUD.
-10. Player advances, opens Collection, or chooses Charged when affordable.
+2. Player chooses Basic or affordable Charged.
+3. Player grabs the star tear-tab.
+4. One short left-to-right drag completes the tear.
+5. Complete reward transaction is already predetermined/persisted.
+6. Base CHIPS and optional cache bonus are presented.
+7. One standard gadget reveals with rarity + NEW/duplicate state.
+8. Duplicate auto-recycles into CHIPS + Signal.
+9. Hidden Pocket may add one Secret reveal.
+10. Resources resolve into HUD; result becomes actionable.
+11. Player repeats or opens Collection.
 
 Compact form:
 
@@ -116,174 +118,154 @@ No physics or multistage tactile simulation.
 
 ---
 
-## 5. Lite V2 progression philosophy
+## 5. Progression model — CURRENT RUNTIME
 
-Every opening moves visible progress because Basic never becomes a currency-only empty interaction:
+Every Basic opening gives:
 
-- **standard collectible** → always the hero reward;
-- **new collectible** → Collection progress;
-- **base CHIPS** → predictable progress toward Charged Pouch;
-- **rare CHIPS cache** → occasional large wallet spike;
-- **duplicate** → recycle CHIPS + Signal pity;
-- **Hidden Pocket** → rare Secret surprise.
+- one standard collectible;
+- guaranteed base CHIPS;
+- an independent chance of a CHIPS cache bonus;
+- optional Hidden Pocket after onboarding.
 
-CHIPS and Signal have deliberately different meanings:
+Duplicates additionally give:
 
-- **CHIPS** = spendable progress toward a better pouch;
-- **Signal** = non-spendable duplicate protection.
+- rarity-dependent recycle CHIPS;
+- `+1` Signal, capped at `4/4`.
 
-The player-facing Signal rule is intentionally simple but respects pouch access:
+At `4/4`, `SIGNAL LOCK` guarantees NEW only if the selected pouch has an eligible undiscovered standard candidate. If Basic has no eligible NEW because only Legendary remains, Basic resolves normally and Signal stays armed; the UI communicates `SIGNAL LOCK · CHARGED`.
 
-> **4 duplicates → the next standard roll with an eligible undiscovered item is NEW.**
+CHIPS and Signal have different jobs:
 
-Normally that means the next opening. If Basic has no eligible NEW because only Legendary remains, Basic keeps opening normally and Signal stays armed. The UI should make the state explicit, e.g. `SIGNAL LOCK · CHARGED`; Charged then consumes the lock on an eligible Legendary result.
+- **CHIPS** = spendable progress toward a stronger pouch;
+- **Signal** = non-spendable protection against duplicate streaks.
 
-The current runtime still uses the older 0–100 Signal implementation until Lite V2 is coded. Migration is locked to `min(4, floor(oldSignal / 25))`, preserving an old fully armed lock without rounding partial progress upward.
+Legacy 0–100 Signal saves migrate with:
+
+```text
+newSignal = min(4, floor(oldSignal / 25))
+```
 
 ---
 
-## 6. Basic vs Charged — LOCKED STRUCTURE
+## 6. Basic vs Charged — CURRENT PROVISIONAL TUNING
 
 ### Basic Pouch
 
-- free/unlimited in Lite V2;
-- always one standard collectible roll;
-- always guaranteed base CHIPS;
-- independent chance of a larger CHIPS cache bonus;
-- Common + Rare + a small Epic chance;
-- **no Legendary from the Basic standard table, including under Signal Lock**;
-- lower Hidden Pocket chance, but Secret remains possible as a very rare jackpot;
-- current onboarding protection retained within Basic's allowed rarity set.
-
-Basic therefore stays pleasant and can still surprise the player, but it does not provide the top standard rarity.
+- free/unlimited;
+- base CHIPS: `6–10`;
+- standard rarity weights Common/Rare/Epic/Legendary: `72 / 25 / 3 / 0`;
+- Hidden Pocket chance from opening #4: `1.5%`;
+- never standard-rolls Legendary, including under Signal pity.
 
 ### Charged Pouch
 
-- purchased with global CHIPS;
-- selected directly from Opening UI when affordable; no store screen;
-- one standard collectible roll;
-- stronger normal CHIPS payout/cache profile;
-- materially stronger Rare/Epic odds;
-- **Legendary is available from the Charged standard table**;
-- higher Hidden Pocket chance.
+- cost: `60 CHIPS`;
+- base CHIPS: `18–24`;
+- rarity weights: `35 / 40 / 20 / 5`;
+- Hidden Pocket chance from opening #4: `6%`;
+- preserves materially stronger Rare/Epic access and non-zero Legendary access under Signal.
 
-Charged is the main route to Epic/Legendary progression rather than merely a tiny percentage buff over Basic. SIGNAL LOCK preserves this distinction rather than bypassing it.
+Duplicate recycle values are Common/Rare/Epic/Legendary = `2 / 4 / 8 / 15 CHIPS`.
 
-Exact CHIPS cost, base payout ranges, cache probabilities/amounts, duplicate recycle payouts, rarity weights and Hidden Pocket odds remain tuning values to lock from simulation + hands-on.
+Both pouch profiles independently roll cache tiers. Mega currently pays `120–180 CHIPS`; it is intentionally rare and may fund multiple future Charged openings.
 
-The economy invariant is already locked: over repeated play, Charged must be a **net CHIPS sink in expectation**. A very rare cache may still fund several Charged openings and create a memorable jackpot moment.
-
-Lite V2 does **not** introduce two or three standard collectibles per pouch. “More loot” is achieved cheaply through visible CHIPS/cache presentation + one hero collectible + optional Hidden Pocket.
+These numbers are **implemented starting values, not release-locked balance**. Deterministic analysis of the current config keeps Charged a net CHIPS sink even in the all-duplicate case. Hands-on/content-scale simulation may tune the values without changing the mechanics.
 
 ---
 
 ## 7. Two independent luck axes
 
-Collectible quality and CHIPS payout are intentionally independent.
+Collectible rarity and CHIPS-cache luck are separate rolls.
 
-A Basic opening can therefore produce combinations such as:
+Possible combinations include:
 
-- Common + huge CHIPS cache;
+- Common + Mega Cache;
 - Rare + normal CHIPS;
-- Epic + small CHIPS;
-- ordinary collectible + rare Hidden Pocket Secret.
+- Epic + small/no cache bonus;
+- ordinary standard result + rare Hidden Pocket Secret.
 
-This adds meaningful variation without requiring more collectible drops or more gameplay systems.
-
-Duplicate rarity may affect the **recycle rebate**, but the pouch's CHIPS cache is not derived from collectible rarity.
+This creates reward variance without adding multi-standard drops or more currencies.
 
 ---
 
 ## 8. Content growth strategy — LOCKED ARCHITECTURE
 
-Camera and Flip Phone are the first two production families, not the final game.
+Camera and Flip Phone are the first production families, not the final game.
 
-Candidate future families include:
+Candidate future families include MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics and other suitable Y2K archetypes.
 
-- MP3 player;
-- pager;
-- mini camcorder;
-- handheld console;
-- PDA / pocket organizer;
-- portable disc / MiniDisc-like player;
-- pocket radio;
-- virtual-pet-like electronic;
-- additional Y2K pocket-tech archetypes discovered during production/research.
-
-As the catalog grows, do **not** put every collectible into one global loot table.
-
-Instead:
+As the catalog grows:
 
 - families belong to themed Drops / loot pools;
-- Basic and Charged roll inside the active Drop;
-- Signal Lock guarantees NEW inside the active Drop only among items eligible for the selected pouch;
-- if the selected pouch has no eligible missing item, the lock remains armed rather than bypassing rarity gates;
+- Basic and Charged resolve inside the active Drop;
+- Signal Lock targets NEW only inside the active Drop and selected-pouch eligibility;
 - CHIPS and Signal remain global;
 - selector stays hidden while only one Drop exists;
-- a rough future heuristic is ~3–5 families per Drop, adjusted to the real roster.
+- rough 3–5 families per Drop is a heuristic, not a commitment.
 
-This gives each content expansion a fresh completion surface without changing the core gameplay loop.
+Do not create one global mega-pool.
 
 ---
 
 ## 9. Collection fantasy
 
-Visual direction remains a cozy illustrated Y2K shelf/desk/display.
+Current roles remain:
 
-Current slice:
+> **Shelf = attractive best finds. Library = exhaustive ownership/completion view.**
 
-- Shelf shows the best owned Camera/Flip Phone;
-- Library shows all current variants.
-
-As content grows:
-
-- Collection remains data-driven;
-- Drops become the natural high-level grouping;
-- exact pages/shelves/filtering are introduced only when the roster requires them;
-- targeted family-specific acquisition is deferred until real completion friction proves it necessary.
+When multiple Drops actually exist, add the minimum grouping/navigation required by the real roster. Do not redesign Collection pre-emptively.
 
 ---
 
 ## 10. Monetization philosophy
 
-The public product is intended to be ad-supported, but ads do not define the gameplay economy.
+Public product remains ad-supported, but ads do not define the gameplay economy.
 
-Rules remain:
+Rules:
 
-- rewarded is optional and clearly names the reward;
+- rewarded is optional and explicit;
 - interstitial only at logical pauses outside active tear/reveal;
 - ad failure never blocks gameplay;
 - fullscreen/rewarded pauses gameplay/audio correctly;
 - no artificial energy scarcity solely to force ads.
 
-The old dev-only `+25 Signal` rewarded probe is a legacy slice plumbing test. Once Lite V2 replaces Signal with 4 segments, dev reward validation should use CHIPS instead of directly mutating pity state.
-
-Final public ad reward/cadence is tuned after Lite V2 and the expanded content economy exist.
+The old `+25 Signal` dev probe is gone from the current design path; the debug rewarded probe grants CHIPS for exactly-once plumbing validation. Final public reward/cadence remains release tuning.
 
 ---
 
-## 11. Scope guardrails — IMPORTANT
+## 11. Current hands-on questions
 
-Lite V2 explicitly excludes:
+The next player test should answer only what automation cannot:
 
-- Basic Pouch regeneration timers / energy;
+- does Basic → CHIPS → Charged create a genuine “one more pouch” pull?
+- does Charged feel worth saving for?
+- are CHIPS/cache/recycle/Signal understandable without explanation?
+- does `SIGNAL LOCK · CHARGED` make the exceptional Legendary-only state clear?
+- are ordinary openings still pleasant after 20–50 repetitions?
+- does the extra economy sequencing add friction?
+- does the `CHARGED POUCH READY` milestone feel useful rather than interruptive?
+
+If the loop works, **stop adding meta systems**.
+
+---
+
+## 12. Scope guardrails
+
+Explicitly excluded from the current phase:
+
+- Basic energy/regeneration timers;
 - offline income;
-- passive CHIPS/min from Collection;
-- Overcharge;
-- Archive level;
+- passive CHIPS/min;
+- Overcharge / Archive levels;
 - upgrade/set-bonus trees;
-- shop screen;
+- shop scene;
 - multiple spendable currencies;
 - multiple standard collectibles per pouch;
 - prestige/reset;
-- auto-open / x5 opening;
+- auto-open/x5;
 - crafting/merge/trading/market;
 - large minigame suite;
 - real-time 3D;
-- backend/live-service infrastructure without a proven requirement.
+- speculative backend/live-service infrastructure.
 
-These are not rejected forever. They are excluded because the current product problem is much smaller:
-
-> **make repeated pouch opening pleasant enough that the player wants one more opening, without turning a low-production game into a multi-week systems project.**
-
-The release should become **content-rich and loop-rich, not system-bloated**.
+> **The release should become content-rich and loop-rich, not system-bloated.**
