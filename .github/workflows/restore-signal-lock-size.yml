@@ -1,0 +1,31 @@
+name: Restore compact Signal lock size
+
+on:
+  push:
+    branches:
+      - fix/pre-hands-on-visual-cleanup
+    paths:
+      - .github/workflows/restore-signal-lock-size.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/pre-hands-on-visual-cleanup
+      - name: Restore readable waiting-state label size
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i "s/fontSize: waitingForCharged ? '7px' : '10px'/fontSize: waitingForCharged ? '8px' : '10px'/" src/game/scenes/OpeningScene.ts
+          rm .github/workflows/restore-signal-lock-size.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Keep charged Signal lock readable'
+          git push origin HEAD:fix/pre-hands-on-visual-cleanup
