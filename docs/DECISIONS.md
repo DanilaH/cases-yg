@@ -8,11 +8,14 @@ Status meanings:
 - **CURRENT RUNTIME** — implemented behavior in current `main`.
 - **LOCKED NEXT** — evidence-backed behavior approved for the immediate correction pass but not merged yet.
 - **COMPLETE** — implementation/asset work is integrated and has passed its technical gate.
+- **OPEN** — required future gate/work item that has not been completed yet.
+- **CONDITIONAL** — allowed only when the named review/acceptance condition requires it.
 - **OPEN FOR TUNING** — implemented concept; numbers/pacing may change from evidence.
 - **OPEN FOR RELEASE** — deliberately deferred until larger content scale exists.
 - **HYPOTHESIS** — useful working assumption, not a commitment.
 - **PARKED** — not current scope; revisit only for a proven problem.
-- **LOCKED OUT** — excluded unless product direction changes materially.
+- **PARKED NEXT CANDIDATE** — deliberately outside the current pass but an explicit candidate to revisit after its acceptance gate.
+- **LOCKED OUT / LOCKED OUT FOR THIS PASS** — excluded globally or for the named current pass unless new evidence explicitly reopens it.
 
 ---
 
