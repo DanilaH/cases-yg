@@ -98,9 +98,8 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
 };
 
 /**
- * Temporary scene compatibility view while the Phase 1.4 HUD pass is still pending.
- * It exposes only aliases for Lite V2 values; the old 60/28/10/2 + 0..100 model no
- * longer exists as active balance behavior.
+ * Compatibility aliases for older call sites that still read the Basic profile through
+ * the pre-Lite `SLICE_BALANCE` shape. All values resolve from the active Lite V2 config.
  */
 export const SLICE_BALANCE = {
   ...LITE_V2_BALANCE,
