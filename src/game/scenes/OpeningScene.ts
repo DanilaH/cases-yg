@@ -731,28 +731,32 @@ export class OpeningScene extends Phaser.Scene {
         fontSize: '8px',
       });
       card.add([background, marker, titleText, subtitleText]);
-      card.setSize(width, height).setInteractive({ useHandCursor: true });
+      const hitTarget = this.add
+        .zone(railX + width / 2, y + height / 2, width, height)
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
       const idleAlpha = available ? (selected ? 1 : 0.84) : OPENING_FEEL_PRESENTATION.railUnavailableAlpha;
       card.setAlpha(idleAlpha);
       card.setData('available', available);
       card.setData('idleAlpha', idleAlpha);
       card.setData('pouchType', pouchType);
-      card.on('pointerover', () => {
+      card.setData('hitTarget', hitTarget);
+      hitTarget.on('pointerover', () => {
         if (this.phase !== 'idle') return;
         this.tweens.killTweensOf(card);
         this.tweens.add({ targets: card, scale: 1.025, duration: 90, ease: 'Sine.Out' });
       });
-      card.on('pointerout', () => {
+      hitTarget.on('pointerout', () => {
         if (this.phase !== 'idle') return;
         this.tweens.killTweensOf(card);
         this.tweens.add({ targets: card, scale: 1, duration: 110, ease: 'Sine.Out' });
       });
-      card.on('pointerdown', () => {
+      hitTarget.on('pointerdown', () => {
         if (this.phase !== 'idle') return;
         this.tweens.killTweensOf(card);
         this.tweens.add({ targets: card, scale: 0.985, duration: 55, ease: 'Sine.Out' });
       });
-      card.on('pointerup', () => {
+      hitTarget.on('pointerup', () => {
         if (this.phase !== 'idle') return;
         if (!available) {
           this.showUnavailableChargedFeedback(card);
@@ -760,7 +764,7 @@ export class OpeningScene extends Phaser.Scene {
         }
         this.selectPouchType(pouchType, card);
       });
-      root.add(card);
+      root.add([card, hitTarget]);
       this.pouchSelectorButtons.push(card);
       return card;
     };
@@ -945,12 +949,9 @@ export class OpeningScene extends Phaser.Scene {
 
     for (const button of this.pouchSelectorButtons) {
       const idleAlpha = Number(button.getData('idleAlpha') ?? 1);
+      const hitTarget = button.getData('hitTarget') as Phaser.GameObjects.Zone | undefined;
       button.setAlpha(enabled ? idleAlpha : 0.16);
-      if (enabled) {
-        button.setInteractive({ useHandCursor: true });
-      } else {
-        button.disableInteractive();
-      }
+      if (hitTarget?.input) hitTarget.input.enabled = enabled;
     }
   }
 
