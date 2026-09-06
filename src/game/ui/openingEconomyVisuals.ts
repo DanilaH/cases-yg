@@ -24,6 +24,37 @@ export const createChipToken = (
   return token;
 };
 
+export const createFlyingChipToken = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  scale = 1,
+): Phaser.GameObjects.Rectangle =>
+  scene.add
+    .rectangle(x, y, 12, 12, CHIPS_ACCENT, 0.98)
+    .setRotation(Math.PI / 4)
+    .setScale(scale)
+    .setStrokeStyle(1.5, 0xffffff, 0.74);
+
+export const createSignalToken = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  waitingForCharged = false,
+): Phaser.GameObjects.Rectangle =>
+  scene.add
+    .rectangle(x, y, 17, 8, waitingForCharged ? CHARGED_ACCENT : CHIPS_ACCENT, 0.96)
+    .setStrokeStyle(1, 0xffffff, 0.62);
+
+export const createHudShimmer = (
+  scene: Phaser.Scene,
+  height: number,
+): Phaser.GameObjects.Rectangle =>
+  scene.add
+    .rectangle(10, height / 2, 14, Math.max(18, height - 14), 0xffffff, 0.055)
+    .setRotation(0.18)
+    .setBlendMode(Phaser.BlendModes.ADD);
+
 export const createChargedAura = (
   scene: Phaser.Scene,
   root: Phaser.GameObjects.Container,
