@@ -1,4 +1,4 @@
-import type { BalanceConfig } from '../data/balance';
+import type { LiteBalanceConfig, PouchType } from '../data/balance';
 import type { ContentRegistry } from '../data/collectibles';
 import { createPendingReveal, type PendingReveal } from './drops';
 import type { RandomSource } from './random';
@@ -17,7 +17,7 @@ export const createRevealTransactionId = (): string => {
 export interface OpeningSessionOptions {
   repository: SaveRepository;
   registry: ContentRegistry;
-  balance: BalanceConfig;
+  balance: LiteBalanceConfig;
   random: RandomSource;
   createTransactionId?: TransactionIdFactory;
 }
@@ -28,7 +28,9 @@ const sameStrings = (left: readonly string[], right: readonly string[]): boolean
 const matchesCommittedPending = (state: SaveState, pending: PendingReveal): boolean =>
   state.pendingReveal === null &&
   state.totalOpens === pending.commit.totalOpens &&
+  state.chips === pending.commit.chips &&
   state.signal === pending.commit.signal &&
+  state.activeLootPoolId === pending.commit.activeLootPoolId &&
   state.stats.duplicates === pending.commit.stats.duplicates &&
   state.stats.hiddenPockets === pending.commit.stats.hiddenPockets &&
   sameStrings(state.discoveredStandard, pending.commit.discoveredStandard) &&
@@ -58,7 +60,7 @@ export class OpeningSession {
     return this.getState().pendingReveal;
   }
 
-  public async prepareReveal(): Promise<PendingReveal> {
+  public async prepareReveal(pouchType: PouchType = 'basic'): Promise<PendingReveal> {
     const current = this.getState();
     if (current.pendingReveal) {
       return current.pendingReveal;
@@ -70,6 +72,7 @@ export class OpeningSession {
       balance: this.options.balance,
       random: this.options.random,
       transactionId: this.createTransactionId(),
+      pouchType,
     });
 
     try {

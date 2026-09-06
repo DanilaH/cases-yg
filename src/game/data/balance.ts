@@ -1,59 +1,5 @@
 import type { StandardRarity } from './collectibles';
 
-export interface BalanceConfig {
-  standardRarityWeights: Readonly<Record<StandardRarity, number>>;
-  familyWeights: Readonly<Record<string, number>>;
-  onboarding: {
-    protectedOpenings: number;
-    secondOpeningDifferentFamily: boolean;
-  };
-  signal: {
-    threshold: number;
-    duplicateGains: Readonly<Record<StandardRarity, number>>;
-    lateLockRarityWeights: Readonly<Record<StandardRarity, number>>;
-  };
-  hiddenPocket: {
-    startOpening: number;
-    chance: number;
-  };
-}
-
-export const SLICE_BALANCE: BalanceConfig = {
-  standardRarityWeights: {
-    common: 60,
-    rare: 28,
-    epic: 10,
-    legendary: 2,
-  },
-  familyWeights: {
-    camera: 1,
-    'flip-phone': 1,
-  },
-  onboarding: {
-    protectedOpenings: 3,
-    secondOpeningDifferentFamily: true,
-  },
-  signal: {
-    threshold: 100,
-    duplicateGains: {
-      common: 25,
-      rare: 20,
-      epic: 15,
-      legendary: 10,
-    },
-    lateLockRarityWeights: {
-      common: 0,
-      rare: 60,
-      epic: 30,
-      legendary: 10,
-    },
-  },
-  hiddenPocket: {
-    startOpening: 4,
-    chance: 0.03,
-  },
-};
-
 export const POUCH_TYPES = ['basic', 'charged'] as const;
 export type PouchType = (typeof POUCH_TYPES)[number];
 
@@ -150,3 +96,20 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
     },
   },
 };
+
+/**
+ * Temporary scene compatibility view while the Phase 1.4 HUD pass is still pending.
+ * It exposes only aliases for Lite V2 values; the old 60/28/10/2 + 0..100 model no
+ * longer exists as active balance behavior.
+ */
+export const SLICE_BALANCE = {
+  ...LITE_V2_BALANCE,
+  standardRarityWeights: LITE_V2_BALANCE.pouchProfiles.basic.rarityWeights,
+  signal: {
+    threshold: LITE_V2_BALANCE.signalThreshold,
+  },
+  hiddenPocket: {
+    startOpening: LITE_V2_BALANCE.hiddenPocketStartOpening,
+    chance: LITE_V2_BALANCE.pouchProfiles.basic.hiddenPocketChance,
+  },
+} as const;
