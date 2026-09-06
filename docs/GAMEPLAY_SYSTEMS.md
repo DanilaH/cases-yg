@@ -1,66 +1,84 @@
 # Gameplay systems
 
-This is the canonical specification for the **implemented current gameplay loop**. Balance numbers are provisional runtime tuning unless explicitly marked locked.
+This is the canonical specification for the implemented gameplay loop plus the evidence-backed Opening Feel Correction currently queued for implementation. Balance numbers are provisional runtime tuning unless explicitly marked locked.
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → save CHIPS → Charged Pouch → better roll → repeat**
 
-The product goal remains simple: every opening should feel useful without turning the game into a large idle/economy system.
+The product goal remains simple: every opening should feel useful and tactile without turning the game into a large idle/economy system.
 
 ---
 
-# 1. Core opener — CURRENT RUNTIME
+# 1. Core opener
 
-Primary interaction:
+## Current runtime mechanics
 
 1. choose Basic or Charged;
 2. show Mystery Pouch;
 3. one short left-to-right star-tab drag;
 4. predetermine and persist the complete reward transaction;
-5. tear + CHIPS/cache presentation;
-6. reveal one standard collectible;
-7. show rarity + NEW/duplicate state;
-8. duplicate may recycle into CHIPS + Signal;
-9. optional Hidden Pocket reveals one Secret;
-10. resource HUD reaches the committed state;
-11. hold result briefly, then allow next action.
+5. resolve CHIPS/cache + one standard collectible;
+6. show rarity + NEW/duplicate state;
+7. duplicate may recycle into CHIPS + Signal;
+8. optional Hidden Pocket reveals one Secret;
+9. commit/recover deterministically;
+10. player continues.
 
 Reveal remains in `OpeningScene`. No physics and no auto-dismiss.
 
+## Locked-next feel choreography
+
+The correction keeps exactly the same mechanic/result contract but changes how the sequence reads:
+
+```text
+star grab response
+→ drag tension
+→ tear snap/recoil
+→ short anticipation
+→ collectible arrival + rarity bloom
+→ earned CHIPS/cache/recycle staged beside result
+→ optional Hidden Pocket
+→ resolved readable result
+→ player accepts
+→ base/cache/recycle bank to CHIPS HUD in order
+→ Signal fragment resolves to Signal HUD
+→ next action
+```
+
+Intentional tapping during active presentation may fast-forward the current visual beat. It never changes the reward transaction.
+
+Canonical detail: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+
 ---
 
-# 2. Pouch profiles
+# 2. Pouch profiles — CURRENT RUNTIME
 
-## 2.1 Basic Pouch
-
-Current behavior:
+## Basic
 
 - cost `0 CHIPS`;
-- free/unlimited;
 - always one standard collectible;
-- guaranteed base CHIPS `6–10`;
-- independent CHIPS cache roll;
-- standard rarity weights Common/Rare/Epic/Legendary = `72 / 25 / 3 / 0`;
-- Hidden Pocket chance `1.5%` from opening #4 while a Secret remains undiscovered;
+- base CHIPS `6–10`;
+- independent cache roll;
+- rarity C/R/E/L = `72 / 25 / 3 / 0`;
+- Hidden Pocket `1.5%` from opening #4 while an undiscovered Secret remains;
 - first three standard openings use undiscovered protection where eligible;
 - opening #2 prefers a different family when possible.
 
 Basic can never standard-roll Legendary, including through Signal pity.
 
-## 2.2 Charged Pouch
-
-Current behavior:
+## Charged
 
 - cost `60 CHIPS`;
 - one standard collectible;
-- guaranteed base CHIPS `18–24`;
-- stronger independent cache profile;
-- rarity weights `35 / 40 / 20 / 5`;
-- Hidden Pocket chance `6%` from opening #4 while a Secret remains undiscovered;
-- selected directly in Opening; no shop scene;
-- selected Charged state persists across repeated openings while the current wallet can still afford it;
-- after an opening leaves the wallet below cost, next idle state falls back to Basic.
+- base CHIPS `18–24`;
+- stronger cache profile;
+- rarity `35 / 40 / 20 / 5`;
+- Hidden Pocket `6%` from opening #4 while a Secret remains;
+- selected directly in Opening; no shop;
+- remains selected while affordable and falls back to Basic when not.
 
-Charged is the normal standard route to Legendary and materially improves Rare/Epic access.
+Charged is the standard route to Legendary and materially improves Rare/Epic access.
+
+The correction does not change these values.
 
 ---
 
@@ -78,12 +96,10 @@ Rules:
 - earned by every pouch;
 - duplicate recycle adds extra CHIPS;
 - Charged spends CHIPS;
-- CHIPS are neither Drop-specific nor family-specific;
-- CHIPS do not replace Signal.
+- not family/Drop-specific;
+- separate from Signal.
 
 ## 3.1 Base payout + independent cache
-
-Each pouch resolves:
 
 ```text
 base CHIPS
@@ -93,8 +109,6 @@ base CHIPS
 = final wallet delta
 ```
 
-Cache tiers:
-
 | Tier | Basic weight | Charged weight | Reward |
 |---|---:|---:|---:|
 | none | 90 | 78 | 0 |
@@ -102,63 +116,77 @@ Cache tiers:
 | big | 2.5 | 5.5 | 45–75 |
 | mega | 0.5 | 1.5 | 120–180 |
 
-Collectible rarity and cache tier are separate random rolls. A Common + Mega Cache and Epic + no cache are both valid.
+Collectible rarity and cache are independent rolls.
 
-## 3.2 Current sink sanity
+Current expected all-duplicate Charged return remains below cost, so the CHIPS-sink invariant holds.
 
-Using the typed balance config:
+## 3.2 Locked-next CHIPS presentation
 
-- Charged expected base CHIPS = `21`;
-- expected cache bonus ≈ `9.675`;
-- expected recycle if every result were duplicate ≈ `4.65`;
-- expected all-duplicate return ≈ `35.325` against cost `60`;
-- expected all-duplicate net ≈ `−24.675`.
+Hands-on proved the current immediate-flight presentation is too weak/early.
 
-Thus the current provisional tuning satisfies the locked rule that Charged is a net CHIPS sink. Values may change after hands-on/content-scale simulation.
+Target:
 
-## 3.3 Presentation
+- Charged cost still reads at opening time;
+- earned base/cache/recycle components first stage near the lower-left of the hero collectible;
+- reward amounts remain aggregate truth; visible tokens stay bounded;
+- player sees/accepts the result;
+- base banks to HUD;
+- cache banks next when present;
+- recycle banks next when present;
+- HUD number counts between displayed values;
+- local CHIPS card reacts with bounded pulse/shake/glow;
+- one `chips-collect` SFX sells the transfer;
+- final displayed wallet equals deterministic committed state.
 
-- persistent CHIPS HUD;
-- bounded Phaser-rendered chip tokens for bursts/flight;
-- token count is presentation, not the numeric reward;
-- Big/Mega outcomes increase visual emphasis without spawning one sprite per CHIPS unit;
-- wallet threshold crossing shows `CHARGED POUCH READY`;
-- that milestone finishes before the final result render replaces the reveal root.
+Cosmetic staging/banking never owns durable currency state.
 
-Animations never own durable wallet state.
+## 3.3 Charged-ready threshold
+
+Current runtime uses a separate visible readiness beat. The correction changes the presentation relationship:
+
+- readiness should trigger when the **displayed** wallet count crosses Charged cost during banking;
+- CHIPS HUD and Charged control react together;
+- concise `CHARGED POUCH READY` feedback may appear;
+- it must not become a mandatory blocking pause.
+
+Affordability logic itself remains unchanged.
 
 ---
 
 # 4. Duplicate recycle
 
-A standard duplicate automatically resolves as:
+A standard duplicate resolves as:
 
 > **DUPLICATE → RECYCLED → CHIPS + SIGNAL**
 
 Current recycle CHIPS:
 
-| Rarity | Recycle CHIPS |
+| Rarity | CHIPS |
 |---|---:|
 | Common | 2 |
 | Rare | 4 |
 | Epic | 8 |
 | Legendary | 15 |
 
-Rules:
+Mechanics remain unchanged.
 
-- duplicate first reveals as the rolled collectible;
-- recycle stacks with base/cache payout;
-- duplicate adds one Signal segment unless Signal is already armed;
-- NEW standard collectibles do not recycle and do not add Signal;
-- there is no manual sell choice.
+Locked-next presentation:
+
+1. actual duplicate collectible reveals normally;
+2. `DUPLICATE` remains readable;
+3. a short scan/glint/conversion beat may reinforce recycle;
+4. `RECYCLED +N CHIPS` stages near the item;
+5. recycle CHIPS later bank to wallet;
+6. one Signal fragment/spark travels to Signal HUD;
+7. destination segment pulses/fills.
+
+The goal is to make a duplicate visibly become progress rather than add extra ceremony.
 
 ---
 
 # 5. Signal pity
 
 Signal is non-spendable duplicate protection.
-
-Current rule:
 
 ```text
 standard duplicate → +1 Signal
@@ -167,91 +195,77 @@ next standard roll with an eligible missing item → guaranteed NEW
 consume → 0/4
 ```
 
-A guarantee respects both active loot pool and selected pouch profile.
+A guarantee respects active loot pool + selected pouch profile.
 
 When armed:
 
-1. collect undiscovered standard candidates in active loot pool;
-2. remove candidates whose rarity has zero selected-pouch weight;
-3. if candidates remain, preserve that pouch's rarity weighting among them, pick NEW and consume lock;
-4. if none remain, roll the selected pouch normally and retain Signal at `4/4`.
+1. collect missing standard candidates in active pool;
+2. filter zero-weight rarities for selected pouch;
+3. if candidates remain, preserve selected-pouch weighting, guarantee NEW, consume lock;
+4. otherwise perform normal selected-pouch roll and retain `4/4`.
 
-Consequences:
+Consequences remain:
 
-- Basic pity never bypasses Basic Legendary weight `0`;
-- if only Legendary remains, Basic can keep opening normally while Signal stays armed;
-- UI communicates the exceptional state as `SIGNAL LOCK · CHARGED`;
-- the next eligible Charged opening guarantees a missing Legendary and consumes the lock;
-- a fully complete active Drop does not waste the lock;
-- duplicates while armed do not overfill Signal.
+- Basic pity cannot produce Legendary;
+- Legendary-only missing state leaves Basic Signal armed;
+- UI communicates `SIGNAL LOCK · CHARGED`;
+- eligible Charged guarantees missing Legendary and consumes lock;
+- complete Drop does not waste lock;
+- armed duplicates do not overfill.
 
-## 5.1 Legacy migration
+## Locked-next Signal presentation
 
-Pre-Lite 0–100 saves migrate deterministically:
-
-```text
-newSignal = min(4, floor(oldSignal / 25))
-```
-
-Mapping:
+Use stronger electronic UI while preserving semantic separation from CHIPS:
 
 ```text
-0–24   → 0
-25–49  → 1
-50–74  → 2
-75–99  → 3
-100    → 4 / SIGNAL LOCK
+SIGNAL
+◆ ◆ ◆ ◇
+03 / 04
 ```
 
-Migration is versioned and idempotent.
+At lock, use a brief electronic pulse/flicker/glitch. No long blocking animation.
 
 ---
 
-# 6. Hidden Pocket
+# 6. Hidden Pocket — CURRENT RUNTIME
 
-Hidden Pocket remains the rare automatic Secret second beat, outside the standard rarity ladder.
+- disabled openings #1–3;
+- Basic from #4: `1.5%`;
+- Charged from #4: `6%`;
+- only while an undiscovered Secret exists in active pool;
+- current slice does not roll Secret duplicates;
+- at most one Secret per opening.
 
-Current runtime:
-
-- disabled for openings #1–3;
-- Basic chance from #4: `1.5%`;
-- Charged chance from #4: `6%`;
-- triggers only while an undiscovered Secret in the active loot pool exists;
-- current two-family slice does not roll Secret duplicates;
-- one opening can add at most one Secret.
-
-Hidden Pocket is intentionally still possible from Basic; Secret is not hard-gated behind Charged.
+Hidden Pocket remains the strongest surprise beat. New neon/rarity treatment must not flatten it.
 
 ---
 
-# 7. Drops / loot pools
+# 7. Drops / loot pools — CURRENT RUNTIME
 
-Current content resolves through one active loot pool. The player-facing selector remains hidden because only one production Drop exists.
+Current content resolves through one active loot pool; selector is hidden because there is one production Drop.
 
-Rules:
+Rules remain:
 
-- every family/collectible belongs to a loot-pool identity;
-- Basic and Charged resolve inside active `lootPoolId`;
-- Signal searches only that pool and selected-pouch eligible rarities;
-- CHIPS and Signal are global;
-- when Drop #2 exists, expose the minimum compact selector required;
-- adding another Drop should be data/config work rather than a reward-engine rewrite.
-
-Family-targeted pouches remain parked.
+- every family/collectible belongs to a pool;
+- Basic/Charged resolve only inside active pool;
+- Signal searches that pool + selected-pouch eligibility;
+- CHIPS/Signal are global;
+- Drop #2 should primarily be data/config work;
+- family-targeted pouches remain parked.
 
 ---
 
-# 8. Transaction / recovery contract
+# 8. Transaction / recovery — LOCKED
 
-Every opening uses a persisted `pendingReveal` before presentation.
+Every opening uses persisted `pendingReveal` before presentation.
 
-The pending transaction includes enough deterministic state to recover:
+It retains enough state to recover the exact outcome:
 
 ```text
 transaction id
-base total opens
+base opens
 pouch type
-loot pool id
+loot pool
 wallet before
 pouch cost
 base CHIPS
@@ -260,92 +274,165 @@ recycle CHIPS
 standard result
 Signal transition
 Hidden Pocket result
-final committed snapshot
+final snapshot
 ```
 
 Critical invariants:
 
-- refresh cannot reroll collectible/cache/Hidden Pocket;
-- Charged cost cannot be lost without preserving its reward;
-- base/cache/recycle cannot be granted twice;
-- Signal consume/retain result is fixed by the pending transaction;
-- recovery preserves original pouch type and loot pool;
-- a failed storage promise is reconciled by reload only when the durable state exactly matches the deterministic transaction snapshot.
+- no reroll on refresh;
+- no double base/cache/recycle;
+- Charged cost cannot be lost without reward;
+- Signal consume/retain outcome is fixed;
+- original pouch/pool survive recovery;
+- presentation, fast-forward, count-up and flight cannot mutate durable reward state.
 
-Presentation can replay in a calmer recovery path; economic state cannot change because an animation was interrupted.
-
----
-
-# 9. Opening UI states
-
-Current Opening surface contains:
-
-- CHIPS HUD;
-- segmented Signal HUD / lock state;
-- Basic/Charged selector;
-- Charged cost/affordability state;
-- Charged runtime aura/accent;
-- `SIGNAL LOCK · CHARGED` waiting communication;
-- CHIPS/cache/recycle beats;
-- `CHARGED POUCH READY` threshold milestone;
-- Collection and mute controls.
-
-No store/modal is required for pouch selection.
+A committed result reloaded after cosmetic staging may show durable wallet truth directly rather than replaying cosmetic banking.
 
 ---
 
-# 10. Collection
+# 9. Input / pacing — LOCKED NEXT
 
-Core roles remain:
+The first hands-on found dead tapping frustrating.
 
-> **Shelf = attractive best finds. Library = exhaustive ownership/completion view.**
+Correction rules:
 
-The current two-family Collection remains valid. Drop grouping/navigation should be added only when multiple real Drops make it necessary.
-
----
-
-# 11. Advertising / rewarded debug
-
-Ads remain behind the Yandex adapter and outside active tear/reveal.
-
-Current debug rewarded path grants CHIPS rather than mutating Signal. It exists to validate exactly-once rewarded persistence, not to define public monetization.
-
-Final public rewarded value/cadence is open for release tuning.
+- remove player-facing `RESULT LOCKED` dead state;
+- intentional click/tap during reveal accelerates current presentation beat;
+- short guard after tear completion prevents the drag-release event from becoming unintended skip;
+- no global tween manager acceleration;
+- ambient motion remains normal;
+- once result is visible, a distinct tap accepts it;
+- no separate Quick Reveal mode in this pass.
 
 ---
 
-# 12. Acceptance state
+# 10. Opening UI — LOCKED NEXT
 
-Automated/local gates completed for the current merged Lite V2 tree:
+Preferred gameplay hierarchy moves to a left-side rail:
 
-- typecheck;
-- 87 unit tests;
-- asset self-test/validation;
-- production build;
-- exact-revision browser audit;
-- manual screenshot/video inspection;
-- post-merge CI.
+```text
+CHIPS
+SIGNAL
 
-Current open gate: **20–50 direct repeated openings** to judge reward feel, comprehension, pacing and fatigue.
+POUCH
+[ BASIC    FREE ]
+[ CHARGED  60   ]
+```
 
-After hands-on acceptance: real Yandex DRAFT validation.
+Selected state must remain obvious without color alone.
+
+Available controls get small hover/down/release feedback. Unaffordable Charged acknowledges deliberate input with wiggle/cost flash/HUD response but cannot mutate selection/state.
+
+The center remains visually owned by pouch/collectible.
+
+No fake Drop controls are added before Drop #2.
 
 ---
 
-# 13. Guardrails
+# 11. Charged presentation — LOCKED NEXT
+
+Direct hands-on supersedes the previous assumption that current aura is sufficiently distinct.
+
+Use stronger runtime treatment first:
+
+- cyan/violet base;
+- restrained pink/iridescent accents;
+- brighter star/seal emphasis;
+- contour/aura/rings/sparks;
+- moving highlight/sweep;
+- selector + center pouch change together.
+
+Label-hidden comparison is the acceptance test.
+
+Only if runtime treatment still fails may a recolored Charged raster variant be added. Preserve exact geometry and tear mechanics.
+
+---
+
+# 12. Digital / neon visual language — LOCKED NEXT
+
+Principle:
+
+> **Cozy Y2K world, electric digital UI.**
+
+One bundled digital/pixel-like accent font is used only for short electronic system information such as CHIPS numerals, Signal and short Cache/Charged labels.
+
+Long copy/navigation remains readable sans.
+
+Prefer Phaser Text/Graphics, glow duplicates, stroke/shadow, tint, blend modes, highlight strips, rings/sparks and tweens.
+
+No custom shader in the current correction.
+
+Rarity standard hierarchy may use escalating electronic shimmer:
+
+- Common restrained;
+- Rare light cyan shimmer;
+- Epic stronger lavender/cyan sweep;
+- Legendary strongest standard iridescent bloom;
+- Secret remains distinct/stronger.
+
+---
+
+# 13. Callouts / variation — LOCKED NEXT
+
+Important feedback gets longer readable holds, but experienced players can fast-forward.
+
+Do not scatter messages randomly across the screen. Use semantic zones:
+
+- rarity/NEW/duplicate near hero;
+- CHIPS/cache/recycle near staged reward area;
+- Signal at result origin + Signal HUD destination;
+- Charged-ready near CHIPS/Charged UI.
+
+Allowed controlled variation:
+
+- tiny reward rotation;
+- small overshoot differences;
+- sparkle/token trajectory variation;
+- bounded audio playback variation where safe.
+
+Do not randomize core rhythm enough to hurt learnability.
+
+---
+
+# 14. Information surface — DEFERRED
+
+The desire to see exact odds, active collection/Drop and missing items is valid but not part of current feel choreography.
+
+After corrected hands-on, consider an on-demand drawer reading exact values from typed config and showing discovered/unknown items.
+
+Do not add a permanent full collection sidebar or permanent odds table to main Opening.
+
+---
+
+# 15. Acceptance state
+
+Existing Lite V2 automated/local gates are complete. First hands-on is complete with findings.
+
+Current gate:
+
+> implement `OPENING_FEEL_CORRECTION_SCOPE.md` → exact-revision screenshot/video + manual review → second 20–30 opening hands-on.
+
+Only after acceptance: real Yandex DRAFT.
+
+---
+
+# 16. Guardrails
 
 Do not add by default:
 
+- balance changes in this branch;
 - timed Basic energy;
 - offline/passive income;
-- Overcharge / Archive levels;
-- upgrade trees;
+- Overcharge / Archive;
+- upgrades;
 - second currency;
-- shop scene;
+- shop;
 - multi-standard drops;
 - auto-open/x5;
-- prestige;
-- crafting/merge/trading;
-- backend/ECS/physics/3D without a concrete requirement.
+- prestige/crafting/merge/trading;
+- new family/Drop content;
+- permanent odds/sidebar UI;
+- backend/ECS/physics/3D;
+- custom shader system.
 
-If repeated hands-on proves the current loop works, the correct next move is hosted validation and content expansion — not another meta system.
+The pass should make the same mechanics feel substantially more expensive and responsive.

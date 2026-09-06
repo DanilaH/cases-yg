@@ -12,9 +12,17 @@ Priority:
 
 > **gadget identity first → collectible desirability second → kawaii garnish third**
 
+The Opening UI now adds a complementary rule:
+
+> **Cozy Y2K world, electric digital UI.**
+
+The illustrated world/collectibles remain soft, toy-like and nostalgic. CHIPS, Signal, Charged, rarity/system moments and interactive states may carry stronger neon/digital energy.
+
+Hotline Miami is an **energy/reference point only** for bold neon/digital emphasis. Do not copy its full palette, typography density, violence/grit, VHS treatment or overall visual identity.
+
 ---
 
-# 2. Shared visual language — LOCKED
+# 2. Shared collectible visual language — LOCKED
 
 - recognizable early-2000s silhouettes;
 - front-facing or soft 3/4;
@@ -52,6 +60,18 @@ Clear/near-clear shell + stylized visible internals + premium metallic/lens/scre
 
 Rarity must read in the item itself; runtime glow/particles are presentation, not a substitute for material escalation.
 
+### Runtime rarity emphasis — Opening Feel Correction
+
+The correction may add a matching electronic hierarchy around the existing art:
+
+- Common: restrained glow only;
+- Rare: light cyan shimmer;
+- Epic: stronger lavender/cyan sweep;
+- Legendary: strongest standard iridescent bloom/sweep;
+- Secret: remains visually distinct and stronger than the standard ladder.
+
+Do not recolor collectible source art just to create the runtime shimmer.
+
 ---
 
 # 4. Secret / Chase rule — LOCKED
@@ -75,20 +95,20 @@ Public release Secret count/distribution is decided with the expanded roster.
 
 ---
 
-# 5. Current content vs public content
+# 5. Current content / stage
 
-The integrated production catalog currently contains:
+Integrated production catalog:
 
 1. Digital Camera;
 2. Flip Phone.
 
-This proves the opener and family-production pipeline. It is not the final content scope.
+Gameplay Loop Lite V2 is implemented. First repeated hands-on found presentation/input/UI feel issues; the current pass is the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
-The next development pass is **Gameplay Loop Lite V2**, not mass content production. After Lite V2 hands-on + real Yandex DRAFT validation, resume batch production of a substantially larger catalog.
+Do not mass-produce new families during this pass.
 
-Candidate next families include MP3 player, pager, mini camcorder, handheld console, PDA, portable disc player, pocket radio, virtual-pet-like electronics and other suitable Y2K gadget archetypes.
+After corrected hands-on + real Yandex DRAFT validation, resume content production.
 
-The release should gain variety through different silhouettes/functions, not many nearly identical rectangular devices.
+Candidate future families remain MP3 player, pager, mini camcorder, handheld console, PDA, portable disc player, pocket radio, virtual-pet-like electronics and other suitable Y2K archetypes.
 
 ---
 
@@ -96,14 +116,14 @@ The release should gain variety through different silhouettes/functions, not man
 
 As the catalog grows, families will be grouped into themed Drops/loot pools.
 
-Art implication:
+Art implications:
 
-- each Drop should have a loose thematic identity without requiring a separate full UI skin;
-- individual collectible families must still feel like one coherent overall product line;
-- do not force every family in a Drop into the same color palette;
-- a rough 3–5-family Drop is a useful planning unit, not a hard art rule.
+- each Drop may have a loose thematic identity without requiring a separate full UI skin;
+- families still belong to one coherent overall product line;
+- do not force one palette across a whole Drop;
+- rough 3–5-family Drop is a planning heuristic, not a hard art rule.
 
-Potential theme names such as `Y2K Essentials`, `Pocket Gaming` or `Music Tech` are placeholders until the real roster is locked.
+No player Drop selector is needed before Drop #2 exists.
 
 ---
 
@@ -116,20 +136,12 @@ For every family:
 → choose one canonical master
 → freeze silhouette / angle / core controls
 → derive Common / Rare / Epic / Legendary
-→ derive Secret only if assigned in content plan
+→ derive Secret only if assigned
 ```
 
-Batch review must check:
+Batch review checks scale/proportion, painting/shading, detail density, Common attractiveness, Legendary readability, motif repetition and small-size readability.
 
-- scale/proportion consistency;
-- similar painting/shading language;
-- comparable detail density;
-- Common attractiveness;
-- Legendary readability;
-- motif repetition;
-- small-size Shelf/Library readability.
-
-Do not mass-produce dozens of families before correcting style drift discovered in early batches.
+Do not mass-produce through a known style drift.
 
 ---
 
@@ -137,9 +149,9 @@ Do not mass-produce dozens of families before correcting style drift discovered 
 
 Do not make the entire catalog pink/violet.
 
-Useful directions include ice blue/silver, mint/cream, bubblegum, translucent orange, smoky graphite/lime, milky white/aqua, metallic cyan, ruby clear, lavender/pearl, clear shell with colored internals.
+Useful directions include ice blue/silver, mint/cream, bubblegum, translucent orange, smoky graphite/lime, milky white/aqua, metallic cyan, ruby clear, lavender/pearl and clear shell with colored internals.
 
-Charms/stickers/straps are garnish. Avoid repeating the same star charm or decal template across the catalog.
+Charms/stickers/straps are garnish; avoid repeating one motif across the catalog.
 
 ---
 
@@ -147,23 +159,27 @@ Charms/stickers/straps are garnish. Avoid repeating the same star charm or decal
 
 The same transparent collectible export is reused for reveal, Shelf and Library.
 
-Item art may encode material/color/accessory/internals differences.
+Item art encodes material/color/accessory/internals differences.
 
 Keep primarily runtime-only:
 
-- rarity glow;
+- rarity glow/shimmer;
 - flash;
 - particles;
 - ring/outline pulse;
-- camera bump;
+- small camera bump where appropriate;
 - NEW/duplicate/recycle labels;
 - Signal effects;
 - CHIPS token motion;
-- Charged pouch glow/electric treatment.
+- Charged pouch electric/iridescent treatment;
+- interactive hover/press/selected state;
+- digital UI glow.
+
+No fullscreen shader/CRT/VHS treatment in the current correction.
 
 ---
 
-# 10. Mystery Pouch — LOCKED
+# 10. Mystery Pouch — LOCKED GEOMETRY
 
 Canonical reference:
 
@@ -174,72 +190,142 @@ Visual grammar:
 - silver foil / anti-static base;
 - translucent lavender accents;
 - large circular `?`;
-- three small gadget silhouettes;
+- small gadget silhouettes;
 - restrained circuit traces;
-- large star-shaped tear-tab;
+- star-shaped tear-tab;
 - horizontal left-to-right tear line;
 - minimal/no baked title text.
 
-Current runtime uses the existing body, compact authored tear strip and star-tab with independent presentation transforms.
+Runtime uses body + compact authored tear strip + star tab with independent transforms.
 
-### Charged treatment
+### Basic tactile correction
 
-Lite V2 should **reuse this same pouch art first**.
+Keep geometry. Add cheap physical response:
 
-Charged distinction should come from runtime treatment such as controlled electric/cyan-lavender glow, pulse/rings and clear status copy. Do not commission a second full pouch raster set unless visual review proves the runtime treatment is insufficient.
+- immediate star grab punch;
+- subtle drag/tension reaction;
+- short tear recoil/snap;
+- no physics.
+
+### Charged treatment — stronger direction
+
+Direct hands-on shows the current aura is not enough by itself.
+
+Default correction:
+
+- preserve exact pouch silhouette/tear interaction;
+- stronger cyan/violet electric palette;
+- restrained pink/iridescent accents;
+- brighter star/seal emphasis;
+- stronger contour/aura/rings/sparks;
+- moving highlight/holographic-like sweep using runtime rendering.
+
+Acceptance test: hide/ignore the `Basic`/`Charged` labels. Charged should still read immediately.
+
+Only if runtime treatment fails that test may a **recolored Charged pouch raster variant** be produced. Do not redesign geometry.
 
 ---
 
-# 11. CHIPS visual identity — LITE V2
+# 11. CHIPS visual identity
 
-CHIPS should look like tiny Y2K electronic tokens/components, not generic fantasy gold coins.
+CHIPS remain tiny Y2K electronic tokens/components, not fantasy gold coins.
 
 Target:
 
 - tiny readable chip/circuit silhouette;
 - silver/lavender/cyan family;
-- usable at ~18–32 px HUD scale;
-- also readable when several tokens fly from reward to wallet;
-- no baked numeric value/text;
-- restrained enough not to compete with collectible rarity art.
+- readable in larger resource card and reward flights;
+- no baked numeric value;
+- restrained enough not to compete with collectible art.
 
-One reusable token/icon is enough. Do not create a large currency asset pack.
+Current Phaser-rendered token remains valid.
+
+Opening Feel Correction strengthens its **context** rather than replacing it:
+
+- larger CHIPS card;
+- bigger digital numeric value;
+- count-up;
+- local glow/pulse/shake on intake;
+- staged CHIPS beside hero before banking.
 
 ---
 
-# 12. Collection environment
+# 12. Digital typography — LOCKED DIRECTION, FONT OPEN
+
+Use one accent digital/pixel-like typeface for short electronic data:
+
+- CHIPS label/numerals;
+- Signal label/value/lock;
+- Cache/Big/Mega labels where useful;
+- selected Charged/system accents where legible.
+
+Keep long instructions, navigation, Collection copy and general UI in clean readable sans.
+
+The exact bundled font remains an implementation visual choice and must be tested at real 900/1024 widths and any RU characters actually needed.
+
+Avoid making the whole game look like a pixel-art title when the collectible/environment art is painted 2D/2.5D.
+
+---
+
+# 13. Neon / iridescence without shaders
+
+Preferred tools:
+
+- duplicate translucent text/shape glow layers;
+- stroke/shadow;
+- alpha/scale/tint tweens;
+- safe blend modes;
+- moving translucent highlight strips;
+- rings/sparks/particles;
+- short cyan/magenta offset flicker for Signal lock;
+- controlled iridescent sweep for Charged/rarity moments.
+
+No custom shader in the current pass.
+
+Only reconsider one local shader if a finished no-shader visual audit proves a specific effect cannot be achieved convincingly enough.
+
+---
+
+# 14. UI density / information hierarchy
+
+Opening remains collectible-first.
+
+The new left gameplay rail may contain:
+
+```text
+CHIPS
+SIGNAL
+POUCH selector
+```
+
+Do not turn it into a permanent database sidebar.
+
+The player request for exact odds + Drop contents + discovered/unknown items is valid, but belongs to a later on-demand info drawer after the feel correction is re-tested.
+
+Reject for current main screen:
+
+- permanent giant collection grid;
+- always-visible probability table;
+- arbitrary random floating labels.
+
+---
+
+# 15. Collection environment
 
 Core mood remains a cozy illustrated Y2K shelf/desk/display.
 
-Current two-family composition is accepted for current content.
-
-Public content will have many families and multiple Drops, so final environment may evolve into themed shelves/pages/groups. Preserve:
-
-- collectible-first presentation;
-- curated display rather than free room editing;
-- enough atmospheric props to feel lived-in;
-- props must not masquerade as collectible slots.
-
-Exact multi-Drop Collection composition is decided only when expanded content exists.
+Current two-family composition is accepted. Scale only when real content density requires it.
 
 ---
 
-# 13. Store visual direction — PUBLIC RELEASE ONLY
+# 16. Store visual direction — PUBLIC RELEASE ONLY
 
 Do not finalize store creatives from the current two-family catalog.
 
-Once expanded release content is stable:
-
-- choose strongest 1–3 gadget heroes for icon/cover;
-- use Mystery Pouch as recurring acquisition cue;
-- show actual release art/material quality;
-- avoid fake platform UI/badges;
-- keep small-size readability first.
-
-Re-check Yandex media dimensions immediately before production/upload.
+After expanded content stabilizes, use strongest gadgets + Mystery Pouch cue, actual release art quality and small-size readability.
 
 ---
 
-# 14. Generator-facing prompt seed
+# 17. Generator-facing collectible prompt seed
 
 > Generate a stylized collectible mini Y2K gadget inspired by real early-2000s pocket electronics. Use a front-facing or very soft 3/4 presentation, chunky simplified forms, soft painted 2.5D shading, large readable controls, and a cute but tasteful collectible finish. Prioritize recognizable gadget identity over kawaii decoration. Use candy plastic, translucent/frosted shells, pearlescent surfaces, restrained metallic accents, and stylized visible internals only where rarity calls for them. Keep the object consistent with a coherent blind-box mini gadget product line and readable at small in-game size. Avoid photoreal product rendering, generic glossy mobile 3D, excessive sparkles, and branded 1:1 product copies.

@@ -4,13 +4,16 @@ The two-family build is a private development base, not the public release.
 
 ## Current execution order
 
-1. **Direct Lite V2 repeated hands-on — CURRENT**
-2. **Fix only evidence-backed friction — CONDITIONAL**
-3. **Real Yandex DRAFT validation — NEXT REQUIRED PLATFORM GATE**
-4. **Content/release expansion — BLOCKED until draft passes**
-5. **Public release hardening**
+1. **Opening Feel Correction — CURRENT, EVIDENCE-BACKED**
+2. **Exact-revision combined visual/video audit — REQUIRED**
+3. **Second direct 20–30 opening hands-on — REQUIRED**
+4. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
+5. **Content/release expansion — BLOCKED until draft passes**
+6. **Public release hardening**
 
-Do not return to broad feature ideation or large content production before hands-on and hosted validation are complete.
+The first Lite V2 hands-on has already happened and found specific presentation/input friction. The correct response is the bounded correction in `OPENING_FEEL_CORRECTION_SCOPE.md`, not another gameplay-system pass.
+
+Do not change balance numbers, expand content or add new meta systems during this correction unless a separate evidence-backed decision explicitly opens that scope.
 
 ---
 
@@ -36,24 +39,28 @@ Current `main` already includes:
 
 # Phase 1 — Gameplay Loop Lite V2 — COMPLETE
 
-Target was to improve repeated-opening motivation without building a full idle/incremental game. That implementation is now present.
-
-## 1.1 Economy / reward engine — COMPLETE
-
 Implemented:
 
-- `PouchType = 'basic' | 'charged'`;
 - global CHIPS wallet;
-- guaranteed base CHIPS per pouch profile;
-- independent Cache/Big/Mega bonus roll;
-- Basic Common/Rare/Epic access, Legendary weight `0`;
-- Charged Common/Rare/Epic/Legendary profile;
-- rarity-dependent duplicate recycle;
-- `+1` Signal per duplicate, threshold `4`;
+- Basic/Charged pouch profiles;
+- guaranteed base CHIPS + independent Cache/Big/Mega roll;
+- Basic C/R/E with Legendary weight `0`;
+- Charged C/R/E/L with stronger top end;
+- duplicate auto-recycle → CHIPS + Signal;
+- segmented Signal `+1`, threshold `4`;
+- strict selected-pouch Signal eligibility;
 - loot-pool-aware reward resolution;
-- active loot-pool state.
+- active loot-pool state;
+- save V2 migration;
+- atomic Charged cost/reward recovery;
+- CHIPS/Signal Opening HUD;
+- Basic/Charged selector;
+- Charged selection continuity and insufficient-wallet fallback;
+- cache/recycle/Signal/Hidden presentation;
+- `CHARGED POUCH READY` milestone;
+- deterministic tests/debug coverage.
 
-Current provisional tuning lives in `LITE_V2_BALANCE`:
+Current provisional tuning remains unchanged during the feel correction:
 
 ```text
 Basic
@@ -71,88 +78,19 @@ Charged
   cache weights none/cache/big/mega: 78/15/5.5/1.5
 
 Cache rewards
-  none: 0
-  cache: 20–35
-  big: 45–75
-  mega: 120–180
+  0 / 20–35 / 45–75 / 120–180
 
 Duplicate recycle C/R/E/L
   2/4/8/15
 ```
 
-These are implementation starting values, not final release tuning.
-
-## 1.2 Transactional save/recovery — COMPLETE
-
-Current transaction preserves:
-
-- pouch type;
-- loot pool;
-- CHIPS before/cost/base/cache/recycle;
-- standard reward;
-- Signal transition including retained lock;
-- Hidden Pocket result;
-- deterministic final commit snapshot.
-
-Properties covered by tests:
-
-- no refresh reroll;
-- no cache reroll;
-- Charged cost/reward atomicity;
-- no duplicate CHIPS grant;
-- retained Signal remains retained after recovery;
-- ambiguous storage failures are reconciled against exact durable transaction state.
-
-## 1.3 Signal migration — COMPLETE
-
-Active runtime uses:
-
-```text
-duplicate → +1
-4/4 → SIGNAL LOCK
-next selected-pouch-eligible missing standard → guaranteed NEW
-consume → 0
-```
-
-Legacy conversion:
-
-```text
-min(4, floor(oldSignal / 25))
-```
-
-Strict Charged gate is implemented: if only Legendary remains, Basic cannot consume the lock or bypass Legendary weight `0`.
-
-## 1.4 Opening UI / reward presentation — COMPLETE
-
-Implemented:
-
-- CHIPS HUD;
-- segmented Signal HUD;
-- Basic/Charged selector + cost/affordability;
-- Phaser-rendered CHIPS token identity;
-- base/cache reward beats;
-- duplicate `RECYCLED` feedback;
-- resource flights;
-- Charged aura/treatment;
-- `SIGNAL LOCK · CHARGED` waiting state;
-- `CHARGED POUCH READY` threshold beat;
-- Charged selection continuity while affordable and Basic fallback when not.
-
-A final visual audit found the Charged-ready banner was initially destroyed too early by result re-render. That presentation defect was fixed and the corrected exact revision was audited again before merge.
-
-## 1.5 Drop-aware architecture — COMPLETE FOR ONE-DROP RUNTIME
-
-Current systems resolve against active `lootPoolId`. No player selector is shown because only one production Drop exists.
-
-When Drop #2 exists, selector exposure should be a compact UI/config expansion, not a reward-engine rewrite.
+Current deterministic economy analysis keeps Charged a net CHIPS sink. Tuning remains a separate evidence question.
 
 ---
 
-# Phase 2 — Lite V2 validation — CURRENT
+# Phase 2 — Lite V2 first validation — COMPLETE WITH FINDINGS
 
-## Automated / reviewer gates — COMPLETE
-
-Current merged tree has passed:
+Already passed:
 
 - strict typecheck;
 - 87 unit tests;
@@ -163,35 +101,179 @@ Current merged tree has passed:
 - Basic/Charged/cache/recycle/Signal/Hidden/recovery/continuity/fallback/responsive/RU states;
 - post-merge CI.
 
-## Direct repeated hands-on — OPEN
+The first direct hands-on found real UX/feel issues:
 
-Run **20–50 openings** and answer only questions automation cannot:
+- CHIPS need stronger audio/tactile feedback;
+- CHIPS HUD is too small/weak;
+- wallet values should count up and react physically;
+- Basic/Charged selector is cramped and selected state is unclear;
+- important callouts are too brief;
+- earned CHIPS should stage with the result and bank after acceptance;
+- Charged visual differentiation is not strong enough;
+- `RESULT LOCKED` / dead tapping is frustrating;
+- UI needs a stronger electronic/neon Y2K identity;
+- player also wants better visibility into odds/Drop contents/collection progress, but that is deliberately deferred from the immediate feel correction.
 
-- does every opening feel meaningfully rewarding?
-- is CHIPS acquisition legible without explanation?
-- do cache outcomes feel exciting rather than arbitrary/noisy?
-- does recycle soften duplicates without slowing the loop?
-- is `4 duplicates → next eligible NEW` understandable?
-- is `SIGNAL LOCK · CHARGED` understandable when only Legendary remains?
-- does Basic remain worth opening despite no standard Legendary?
-- does Charged feel worth saving for?
-- does Basic → Charged create a natural “one more pouch” impulse?
-- does the added sequencing become annoying after repetition?
-- does `CHARGED POUCH READY` help or feel like an interruption?
-
-### Allowed response to hands-on findings
-
-If a problem appears, make the smallest evidence-backed correction and rerun the relevant exact-revision gate.
-
-Do **not** respond by adding offline income, new currencies, Overcharge, Archive levels, x5 opening or other scope expansion.
-
-If the loop works, stop changing the meta-loop.
+Because evidence exists, a correction pass is justified before Yandex DRAFT.
 
 ---
 
-# Phase 3 — real Yandex DRAFT validation — NEXT
+# Phase 2.1 — Opening Feel Correction — CURRENT
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` against a hosted build after hands-on acceptance.
+Canonical scope: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
+
+## Pass A — input + reward choreography
+
+Implement:
+
+- intentional tap/click fast-forward of active reveal presentation;
+- remove player-facing dead `RESULT LOCKED` behavior;
+- short post-tear input guard;
+- immediate star grab response;
+- subtle tension during drag;
+- short tear recoil/snap;
+- longer readable callouts combined with fast-forward;
+- reward staging beside hero;
+- visual CHIPS banking on result acceptance.
+
+Keep:
+
+- same deterministic tear mechanic;
+- same prepared transaction;
+- same economy result;
+- no physics;
+- no new Quick Reveal mode.
+
+## Pass B — resource tactile feedback
+
+Implement:
+
+- larger CHIPS card;
+- digital numeric treatment;
+- count-up animation to deterministic target;
+- local HUD punch/shake/glow;
+- one `chips-collect` SFX;
+- base → cache → recycle banking order;
+- duplicate → CHIPS + Signal physical transfer;
+- Signal destination segment response;
+- Charged-ready activation at actual displayed threshold crossing rather than a mandatory isolated blocking beat.
+
+No tween or sound event may own durable currency state.
+
+## Pass C — Opening UI + visual language
+
+Implement:
+
+- left-side gameplay rail for CHIPS / Signal / pouch selection;
+- clear Basic/Charged selected state independent of color;
+- responsive hover/down/release feedback;
+- feedback for unaffordable Charged attempts;
+- stronger Charged cyan/violet/iridescent runtime presentation;
+- one accent digital/pixel-like font for short electronic system labels/numbers;
+- restrained neon glow/shimmer hierarchy for CHIPS, Signal, Charged and rarities;
+- small controlled animation variation.
+
+Visual rule:
+
+> **Cozy Y2K world, electric digital UI.**
+
+No custom shader in this pass. Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
+
+A dedicated recolored Charged pouch raster becomes allowed only if a label-hidden exact-revision audit still cannot distinguish Basic from Charged.
+
+---
+
+# Phase 2.2 — combined correction validation — REQUIRED
+
+Do not approve the three internal passes independently as the final product. Feel depends on their combined choreography.
+
+Run:
+
+- typecheck;
+- full unit suite;
+- asset self-test/validation;
+- production build;
+- exact-revision browser screenshot/video capture;
+- manual artifact review.
+
+Minimum visual/motion states:
+
+- Basic idle with new rail/HUD;
+- Basic vs Charged selected, judging without relying on labels;
+- unavailable Charged attempt feedback;
+- grab/drag/tear recoil;
+- ordinary reward staged before acceptance;
+- base CHIPS banking/count-up/HUD response;
+- Cache/Big/Mega intensity;
+- Charged-ready threshold crossing during bank;
+- duplicate/recycle/Signal transfer;
+- `4/4`, lock and `LOCK · CHARGED`;
+- rarity hierarchy Common/Rare/Epic/Legendary;
+- Charged iridescent treatment;
+- Hidden Pocket;
+- tap-to-fast-forward;
+- accidental drag-release protection;
+- recovered Basic/Charged;
+- 900/1024/wider widths;
+- RU compact layout.
+
+Generated artifacts do not self-approve. Manual review remains mandatory.
+
+---
+
+# Phase 2.3 — second hands-on — REQUIRED
+
+After the corrected exact revision is merged, run another **20–30 normal openings**.
+
+Questions:
+
+- does grabbing/tearing feel more physical?
+- does every deliberate tap feel acknowledged?
+- can the player naturally accelerate repetition without a separate mode?
+- do CHIPS feel tangible rather than like a changing number?
+- is resource progress obvious without overwhelming the collectible?
+- is Basic vs Charged immediately clear?
+- does Charged feel materially more desirable?
+- do longer labels remain readable without slowing experienced play?
+- does duplicate → recycle → Signal feel like progress?
+- does neon/digital styling add identity without becoming generic synthwave?
+- is the loop still pleasant after repetition?
+
+If this passes, stop polishing the same loop and go to hosted DRAFT.
+
+If a narrow defect remains, make the smallest correction and re-audit only the affected behavior plus regression essentials.
+
+---
+
+# Deferred information pass — NOT PART OF 2.1
+
+Hands-on also raised a valid information need:
+
+- exact rarity/drop probabilities;
+- what can drop from the pouch;
+- active collection/Drop names;
+- discovered vs undiscovered items.
+
+Do not put all of this permanently on the main Opening screen now.
+
+After the feel correction is re-tested, consider an on-demand information drawer:
+
+```text
+Drop name · discovered/total · info
+→ exact Basic/Charged odds from typed config
+→ family list
+→ discovered items / obscured unknowns
+```
+
+The permanent giant collection sidebar and always-visible probability table are rejected because they do not scale and would compete with the hero reward.
+
+Player-facing Drop selection remains deferred until Drop #2 exists.
+
+---
+
+# Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE
+
+Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.3 acceptance.
 
 Must cover:
 
@@ -214,42 +296,24 @@ Do not claim this phase complete from CI/local browser tests.
 
 Start only after Phase 3 passes.
 
-## 4.1 Lock first expanded roster
+## 4.1 First expanded roster
 
-Choose new families using:
+Choose new families from visual desirability, silhouette diversity, Y2K recognition, asset-generation consistency and measured production burden.
 
-- visual desirability;
-- silhouette diversity;
-- Y2K recognition;
-- asset-generation consistency;
-- measured per-family production burden.
+Candidate pool remains MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics and other suitable Y2K archetypes.
 
-Candidate pool:
+## 4.2 Drops
 
-- MP3 player;
-- pager;
-- mini camcorder;
-- handheld console;
-- PDA;
-- portable disc/MiniDisc-like player;
-- pocket radio;
-- virtual-pet-like electronics;
-- additional suitable Y2K archetypes.
+Do not build one global pool. Roughly 3–5 families per themed Drop is a starting heuristic, not a fixed count.
 
-## 4.2 Group into Drops
+When Drop #2 exists:
 
-Do not build one global pool. Roughly 3–5 families per themed Drop remains a starting heuristic, not a fixed count.
-
-With more than one Drop:
-
-- expose compact selector;
+- expose compact selection;
 - keep CHIPS/Signal global;
 - keep Basic/Charged mechanics unchanged;
-- make each Drop a fresh completion surface.
+- use each Drop as a fresh completion surface.
 
 ## 4.3 Content factory
-
-For each family:
 
 ```text
 6–10 explorations
@@ -261,26 +325,11 @@ For each family:
 
 ## 4.4 Rebalance from real scale
 
-Re-simulate/tune:
+Only then re-simulate/tune rarity profiles, Charged cost, CHIPS income/cache, recycle, Signal threshold if evidence demands it, Hidden Pocket and completion horizon.
 
-- Basic/Charged rarity profiles;
-- Charged cost;
-- base CHIPS income;
-- cache frequency/size;
-- duplicate recycle;
-- Signal threshold only if evidence demands it;
-- Hidden Pocket by pouch type;
-- completion/chase horizon.
+## 4.5 Collection / monetization
 
-Preserve simple player-facing semantics unless evidence requires change.
-
-## 4.5 Scale Collection only when required
-
-Drops are the first grouping primitive. Add pages/filtering/themed shelves only when real density requires them.
-
-## 4.6 Final monetization tuning
-
-Infrastructure exists. Decide actual rewarded benefit, interstitial pause points and sticky use after the release loop/content shape is known.
+Scale Collection only from real density. Final rewarded/interstitial/sticky decisions wait for the actual release loop/content shape.
 
 ---
 
@@ -296,7 +345,7 @@ Only after expanded release content stabilizes:
 - release ad configuration;
 - save/recovery/lifecycle QA;
 - analytics QA;
-- final hosted draft pass if release build materially differs;
+- final hosted draft pass if materially different;
 - moderation submission.
 
 Use `docs/YANDEX_SUBMISSION_CHECKLIST.md`.
@@ -305,20 +354,21 @@ Use `docs/YANDEX_SUBMISSION_CHECKLIST.md`.
 
 # Scope guardrail
 
-The project is not “build an idle game.” The current engineering problem is already solved; the current product question is whether the implemented lightweight loop **feels good enough to repeat**.
+The current pass is **not a feature expansion**. It is an evidence-backed quality pass on an already implemented loop.
 
-Parked unless evidence gives one a concrete job:
+Remain parked:
 
 - timed Basic energy;
-- offline income;
-- passive Collection production;
-- Overcharge;
-- Archive levels;
+- offline/passive income;
+- Overcharge / Archive levels;
 - upgrade trees/set bonuses;
 - shop scene;
 - multiple currencies;
 - multi-standard drops;
 - auto-open/x5;
-- prestige/crafting/merge/trading.
+- prestige/crafting/merge/trading;
+- third family/content expansion;
+- custom shaders;
+- permanent odds/collection sidebar.
 
-> **Current next action: hands-on, not another feature pass.**
+> **Current next action: improve feel of the existing loop, prove the combined correction, re-test it, then go to Yandex DRAFT.**

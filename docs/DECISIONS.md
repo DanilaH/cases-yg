@@ -6,12 +6,16 @@ Status meanings:
 
 - **LOCKED** — source of truth unless new evidence invalidates it.
 - **CURRENT RUNTIME** — implemented behavior in current `main`.
+- **LOCKED NEXT** — evidence-backed behavior approved for the immediate correction pass but not merged yet.
 - **COMPLETE** — implementation/asset work is integrated and has passed its technical gate.
+- **OPEN** — required future gate/work item that has not been completed yet.
+- **CONDITIONAL** — allowed only when the named review/acceptance condition requires it.
 - **OPEN FOR TUNING** — implemented concept; numbers/pacing may change from evidence.
 - **OPEN FOR RELEASE** — deliberately deferred until larger content scale exists.
 - **HYPOTHESIS** — useful working assumption, not a commitment.
 - **PARKED** — not current scope; revisit only for a proven problem.
-- **LOCKED OUT** — excluded unless product direction changes materially.
+- **PARKED NEXT CANDIDATE** — deliberately outside the current pass but an explicit candidate to revisit after its acceptance gate.
+- **LOCKED OUT / LOCKED OUT FOR THIS PASS** — excluded globally or for the named current pass unless new evidence explicitly reopens it.
 
 ---
 
@@ -24,41 +28,38 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Lite V2 implementation + exact-revision visual gate are complete; **direct 20–50 opening hands-on is next**, then real Yandex DRAFT |
+| Current stage | LOCKED | First direct hands-on found presentation/input friction; run the evidence-backed **Opening Feel Correction** defined in `OPENING_FEEL_CORRECTION_SCOPE.md`, re-audit, re-test hands-on, then real Yandex DRAFT |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
-| Public content direction | LOCKED | materially expand after hands-on + hosted draft validation |
+| Public content direction | LOCKED | materially expand only after corrected hands-on + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
-| Public family count | OPEN FOR RELEASE | choose from measured art throughput/quality; no arbitrary commitment |
 | Production philosophy | LOCKED | low production burden, repeatable content factory, minimal gameplay-system count |
 
 ---
 
 ## Gameplay Loop Lite V2
 
+The mechanics remain accepted. The current correction is presentation/interaction work and must not silently redesign the economy.
+
 | Decision | Status | Current answer |
 |---|---|---|
 | Basic Pouch | CURRENT RUNTIME | free/unlimited; one standard collectible + guaranteed base CHIPS + independent cache roll + optional Hidden Pocket |
 | CHIPS | CURRENT RUNTIME | one global spendable currency used for Charged Pouch |
-| CHIPS HUD | COMPLETE | persistent counter with bounded token presentation/flight |
 | CHIPS cache | CURRENT RUNTIME | independent `none/cache/big/mega` bonus roll; collectible rarity and cache luck are separate axes |
 | Charged Pouch | CURRENT RUNTIME | selected directly from Opening; costs CHIPS; no shop scene |
 | Charged reward | CURRENT RUNTIME | one standard collectible, stronger CHIPS/cache profile, stronger Rare/Epic profile, Legendary access, higher Hidden Pocket chance |
-| Charged selection continuity | CURRENT RUNTIME | remains selected across repeated openings while still affordable; falls back to Basic when not affordable |
-| Charged-ready milestone | COMPLETE | threshold crossing produces a visible `CHARGED POUCH READY` beat before result transition |
+| Charged selection continuity | CURRENT RUNTIME | remains selected while still affordable; falls back to Basic when not affordable |
 | Charged economy invariant | LOCKED | expected CHIPS return stays below cost; rare jackpots may fund several future Charged openings |
 | Multi-standard drops | LOCKED OUT | not in Lite V2 |
 | Duplicate behavior | CURRENT RUNTIME | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL` |
 | Signal | CURRENT RUNTIME | non-spendable duplicate pity, separate from CHIPS |
 | Signal rule | CURRENT RUNTIME | duplicate `+1`; `4/4` arms lock; next selected-pouch-eligible NEW is guaranteed; consume → `0/4` |
-| Legacy Signal migration | CURRENT RUNTIME | `min(4, floor(oldSignal / 25))` |
-| Complete Drop + armed Signal | CURRENT RUNTIME | lock remains armed if no undiscovered eligible standard item exists |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
-| Reward sequencing | CURRENT RUNTIME | tear → CHIPS/cache → standard → NEW/recycle → optional Hidden Pocket → resources/result |
-| No fake economy choice | LOCKED | duplicate recycle is automatic; meaningful spend choice is Basic vs Charged |
+| Reward transaction | CURRENT RUNTIME | pouch cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable deterministic transaction |
+| Balance during feel correction | LOCKED | no tuning-number changes in the correction pass unless separately approved from evidence |
 
 ### Current provisional balance
 
-These values are implemented in typed config and are **OPEN FOR TUNING**, not release-locked.
+These values are implemented and remain **OPEN FOR TUNING**, not release-locked.
 
 | Value | Basic | Charged |
 |---|---:|---:|
@@ -69,11 +70,65 @@ These values are implemented in typed config and are **OPEN FOR TUNING**, not re
 | Rarity weights C/R/E/L | `72 / 25 / 3 / 0` | `35 / 40 / 20 / 5` |
 | Hidden Pocket from opening #4 | `1.5%` | `6%` |
 
-Duplicate recycle CHIPS by rarity: `2 / 4 / 8 / 15` for Common/Rare/Epic/Legendary.
+Duplicate recycle CHIPS: Common/Rare/Epic/Legendary = `2 / 4 / 8 / 15`.
 
-Onboarding protection: first 3 standard openings protected where eligible; opening #2 prefers the other family when possible.
+---
 
-Current deterministic economy analysis gives Charged an expected all-duplicate CHIPS return of about `35.3` against cost `60`, so the sink invariant currently holds. Hands-on/content-scale simulation may change the numbers without changing the loop contract.
+## Opening Feel Correction — LOCKED NEXT
+
+Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Player-facing `RESULT LOCKED` | LOCKED NEXT | remove the frustrating dead-input state |
+| Reveal acceleration | LOCKED NEXT | intentional tap/click fast-forwards active presentation only; transaction/result never changes |
+| Tear-release safety | LOCKED NEXT | short input guard prevents drag release from accidentally skipping the next beat |
+| Quick Reveal mode | PARKED | no separate setting/toggle; first solve responsiveness with direct fast-forward |
+| Pouch tactile feel | LOCKED NEXT | immediate grab response, progressive tension, short tear recoil/snap; no physics |
+| Reward arrival | LOCKED NEXT | preserve established emerge/overshoot/settle, improve anticipation/rarity impact where useful |
+| CHIPS staging | LOCKED NEXT | earned base/cache/recycle first read beside result; visual banking occurs on result acceptance |
+| Charged cost presentation | LOCKED NEXT | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
+| CHIPS bank order | LOCKED NEXT | base → optional cache → optional recycle; Signal has its own destination transfer |
+| CHIPS HUD | LOCKED NEXT | larger resource card, clearer token, larger digital number, animated count-up and bounded local punch/shake |
+| CHIPS sound | LOCKED NEXT | add one concise reusable `chips-collect` cue; no sound per cache tier |
+| Charged-ready feedback | LOCKED NEXT | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
+| Duplicate tactile conversion | LOCKED NEXT | duplicate visibly converts into recycle CHIPS + one Signal transfer after collectible reveal |
+| Signal presentation | LOCKED NEXT | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
+| Basic/Charged selector | LOCKED NEXT | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
+| Unaffordable Charged attempt | LOCKED NEXT | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
+| Charged differentiation | LOCKED NEXT | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
+| Charged raster fallback | CONDITIONAL | allowed only if label-hidden visual audit still reads as “Basic with glow” |
+| Callout readability | LOCKED NEXT | longer readable holds + semantic positions; experienced player can fast-forward |
+| Random callout positions | LOCKED OUT | no arbitrary random screen placement; only bounded decorative jitter |
+| Controlled micro-variation | LOCKED NEXT | small rotation/overshoot/spark/token-trajectory variation without changing learned rhythm |
+
+---
+
+## Visual language
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Art-language principle | LOCKED NEXT | **Cozy Y2K world, electric digital UI** |
+| Hotline Miami reference | LOCKED NEXT | use as energy/neon/digital-reference only; do not copy full aesthetic |
+| Accent typography | LOCKED NEXT | one bundled digital/pixel-like accent font for short system labels/numbers only |
+| Main typography | LOCKED | readable clean sans remains for instructions, long copy and ordinary navigation |
+| Neon implementation | LOCKED NEXT | Phaser Text/Graphics, duplicate glow layers, tint, blend, moving highlights, rings/sparks/tweens first |
+| Custom shader | LOCKED OUT FOR THIS PASS | no custom WebGL shader until a reviewed no-shader result proves one specific effect cannot be sold cheaply |
+| Rarity shimmer | LOCKED NEXT | restrained Common → stronger Rare/Epic/Legendary electronic/iridescent hierarchy; Secret remains strongest/distinct |
+| Fullscreen CRT/VHS | LOCKED OUT FOR THIS PASS | no global scanlines/noise/chromatic-aberration treatment |
+
+---
+
+## Information / collection visibility
+
+Hands-on also exposed a legitimate desire to understand the active pool, odds and missing items, but this is deliberately separated from the current feel correction.
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Permanent odds on main screen | LOCKED OUT | would overload the opener and flatten surprise |
+| Permanent full collection sidebar | LOCKED OUT | does not scale to 15–25 items per Drop and competes with the hero reward |
+| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | after corrected hands-on, consider one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
+| Player-facing Drop selector | OPEN FOR RELEASE | expose only when Drop #2 actually exists |
 
 ---
 
@@ -87,43 +142,7 @@ Current deterministic economy analysis gives Charged an expected all-duplicate C
 | Multi-Drop UI | OPEN FOR RELEASE | compact selector once Drop #2 exists |
 | Wallet across Drops | LOCKED | CHIPS global |
 | Signal across Drops | LOCKED | meter global; lock applies inside selected active Drop and pouch eligibility |
-| Drop size | HYPOTHESIS | roughly 3–5 families per Drop as a starting heuristic |
 | Family targeting | PARKED | add only if real completion data proves Drop-level targeting insufficient |
-
-Candidate future families remain MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics and other suitable Y2K archetypes.
-
----
-
-## Core UX
-
-| Decision | Status | Current answer |
-|---|---|---|
-| Package | CURRENT RUNTIME | silver/translucent-lavender anti-static / foil Mystery Pouch |
-| Tear | CURRENT RUNTIME | one short deterministic left-to-right star-tab drag |
-| Reveal | CURRENT RUNTIME | stable pouch→reward layering; collectible becomes final hero |
-| Result hold | CURRENT RUNTIME | at least ~0.6 s; no timer auto-dismiss |
-| Reward CTA | CURRENT RUNTIME | explicitly actionable after hold; tap/click continues |
-| CHIPS token | CURRENT RUNTIME | Phaser-rendered reusable chip identity; no dedicated raster required |
-| Charged presentation | CURRENT RUNTIME | reuse pouch art + runtime aura/accent/treatment |
-| Quick Reveal | PARKED | add only if repeated hands-on proves pacing friction |
-| Scenes | LOCKED | `BootScene`, `OpeningScene`, `CollectionScene` |
-| Responsive | CURRENT RUNTIME | landscape adaptive, logical height 720, coherent 900–1728 logical width |
-| Audio | CURRENT RUNTIME | existing SFX set + persistent mute; no new CHIPS/Charged cue currently required |
-| Localization | CURRENT RUNTIME | RU + EN typed strings, EN fallback, no baked gameplay text |
-
----
-
-## Rarity / Hidden Pocket
-
-| Decision | Status | Current answer |
-|---|---|---|
-| Standard rarity ladder | LOCKED | Common → Rare → Epic → Legendary |
-| Basic rarity access | CURRENT RUNTIME | Common/Rare/Epic; Legendary weight `0` |
-| Charged rarity access | CURRENT RUNTIME | Common/Rare/Epic/Legendary; materially stronger top-end profile |
-| Hidden Pocket role | LOCKED | rare automatic Secret second beat outside standard rarity ladder |
-| Basic Secret access | CURRENT RUNTIME | possible from opening #4 at current 1.5% profile while an undiscovered Secret exists |
-| Charged Secret access | CURRENT RUNTIME | current 6% profile from opening #4 while an undiscovered Secret exists |
-| Secret duplicates | OPEN FOR RELEASE | current two-family slice has no Secret duplicate loop |
 
 ---
 
@@ -134,10 +153,9 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Save | CURRENT RUNTIME | versioned local-first state behind injected `StorageAdapter` |
 | Save version | CURRENT RUNTIME | V2 fields include CHIPS, segmented Signal, active loot pool and pending Lite reveal |
 | Anti-reroll | CURRENT RUNTIME | full `pendingReveal` persisted before presentation and committed once |
-| Lite transaction | CURRENT RUNTIME | Charged cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable transaction |
-| Save migration | CURRENT RUNTIME | legacy slice saves migrate forward without wiping collection progress |
-| Data-driven content | CURRENT RUNTIME | family/collectible/loot-pool IDs and pouch balance profiles come from config/registry |
-| Asset loading | CURRENT RUNTIME | current small catalog preloads; release strategy waits for real expanded-catalog profiling |
+| Presentation ownership | LOCKED | tween completion, fast-forward and cosmetic banking never own durable economy state |
+| Recovery | CURRENT RUNTIME | original pouch/result/cache/Signal/Hidden outcome preserved; no duplicate reward |
+| Engineering scope | LOCKED | small presentation helpers are allowed; no generalized animation/economy framework |
 | React / physics / backend | LOCKED OUT | do not add without a concrete need |
 
 ---
@@ -149,9 +167,7 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Yandex SDK | CURRENT RUNTIME | thin platform adapter |
 | Ads | CURRENT RUNTIME | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
 | Rewarded dev probe | CURRENT RUNTIME | clearly dev-only CHIPS grant; pity state is not manipulated |
-| Public monetization tuning | OPEN FOR RELEASE | choose actual reward/cadence/sticky use after loop/content validation |
-| Analytics | CURRENT RUNTIME | provider-independent semantic events + Yandex Metrica adapter; failure never blocks game |
-| Real hosted validation | OPEN | Yandex DRAFT remains required; local CI cannot complete this gate |
+| Real hosted validation | OPEN | Yandex DRAFT follows corrected hands-on and exact-revision approval |
 
 ---
 
@@ -159,11 +175,11 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Technical green | COMPLETE | current merged Lite V2 revision passes typecheck, 87 tests, assets and build |
-| Exact-revision browser audit | COMPLETE | critical Basic/Charged/cache/recycle/Signal/Hidden/recovery/responsive states captured and reviewed |
-| Post-merge CI | COMPLETE | merged Lite V2 + Charged-ready correction are green |
-| User repeated hands-on | OPEN | current decisive gate for tactile feel, pacing, fatigue and reward satisfaction |
-| Real Yandex DRAFT | OPEN | next gate after hands-on acceptance |
+| Existing Lite V2 technical/visual gate | COMPLETE | typecheck/tests/assets/build + exact-revision videos/screens reviewed |
+| First direct hands-on | COMPLETE WITH FINDINGS | exposed reward/input/UI feel problems; therefore DRAFT is not yet approved |
+| Feel correction exact-revision audit | LOCKED NEXT | combined branch must receive screenshot/video + manual visual review |
+| Second repeated hands-on | LOCKED NEXT | 20–30 openings after correction before hosted DRAFT |
+| Real Yandex DRAFT | OPEN | next external gate after second hands-on acceptance |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 
@@ -178,14 +194,15 @@ PARKED:
 - collection passive CHIPS production;
 - Overcharge;
 - Archive levels;
-- collection upgrade/set-bonus trees;
+- upgrade/set-bonus trees;
 - separate shop;
 - multiple spendable currencies;
 - multi-standard collectible drops;
 - auto-open/x5;
 - prestige;
 - crafting/merge;
-- Daily Spotlight/shelf evolution unless evidence gives them a concrete job.
+- family-targeted pouch;
+- odds/Drop-info drawer until the feel correction is re-tested.
 
 LOCKED OUT unless direction changes materially:
 
@@ -199,4 +216,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: direct repeated Lite V2 hands-on. If accepted, run real Yandex DRAFT validation. Do not expand content or add meta systems before those gates.**
+> **GO: implement the evidence-backed Opening Feel Correction, exact-revision audit it, then run 20–30 repeated openings. If accepted, proceed to real Yandex DRAFT. Do not add new mechanics/content in this pass.**

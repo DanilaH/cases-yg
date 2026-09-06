@@ -6,7 +6,9 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2 is implemented and has passed technical + exact-revision browser/visual validation. The current gate is direct repeated hands-on.**
+**Gameplay Loop Lite V2 is implemented and technically/visually validated. The first repeated hands-on is complete and exposed evidence-backed feel/UI friction. The current pass is the Opening Feel Correction.**
+
+Canonical scope: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
 Current private content:
 
@@ -21,76 +23,104 @@ Current runtime loop:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-Implemented Lite V2 behavior:
+Implemented Lite V2 behavior remains unchanged during the correction:
 
 - one global CHIPS wallet;
-- Basic is free and always gives one standard collectible + base CHIPS;
-- independent Cache / Big / Mega CHIPS bonus roll;
+- Basic free/unlimited, always one standard collectible + base CHIPS;
+- independent Cache / Big / Mega CHIPS roll;
 - duplicate auto-recycle → rarity-dependent CHIPS + one Signal segment;
-- `4/4` Signal arms `SIGNAL LOCK`;
-- Signal guarantees NEW only among undiscovered items eligible for the selected pouch;
-- Basic can roll Common / Rare / Epic but never standard Legendary;
-- Charged costs CHIPS, has materially stronger Rare/Epic odds and non-zero Legendary access;
-- if only Legendary remains, Basic keeps Signal armed and the UI communicates `SIGNAL LOCK · CHARGED`;
-- Basic and Charged resolve inside the active loot pool; CHIPS and Signal remain global;
-- Charged cost + all rewards are one recoverable `pendingReveal` transaction;
-- CHIPS/Signal HUD, recycle feedback, cache beats, Charged aura/selection and `CHARGED POUCH READY` presentation are integrated.
+- `4/4` Signal lock with selected-pouch eligibility;
+- Basic C/R/E only, no standard Legendary;
+- Charged costs CHIPS, materially stronger top-end odds + Legendary access;
+- strict `SIGNAL LOCK · CHARGED` edge when only Legendary remains;
+- loot-pool-aware resolution;
+- atomic recoverable Charged cost/reward transaction.
 
 ### Current provisional balance
-
-All values live in typed config and remain open to tuning from hands-on evidence:
 
 | | Basic | Charged |
 |---|---:|---:|
 | Cost | 0 CHIPS | 60 CHIPS |
 | Base CHIPS | 6–10 | 18–24 |
-| Rarity weights | 72 / 25 / 3 / 0 | 35 / 40 / 20 / 5 |
+| Rarity C/R/E/L | 72 / 25 / 3 / 0 | 35 / 40 / 20 / 5 |
 | Hidden Pocket | 1.5% from opening #4 | 6% from opening #4 |
 
-Rarity order is Common / Rare / Epic / Legendary. Duplicate recycle is currently `2 / 4 / 8 / 15` CHIPS by rarity. Cache tiers are also config-driven; the rare Mega tier pays `120–180` CHIPS.
+Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15`. Mega currently pays `120–180 CHIPS`.
 
-These are **implemented starting values, not final release balance**. Current deterministic economy analysis keeps Charged a CHIPS sink even in the all-duplicate case.
+These are starting values, not final release balance, and are **frozen during the feel-correction branch**.
 
-## Current acceptance state
+## Opening Feel Correction
+
+First hands-on found:
+
+- CHIPS need stronger sound/tactile feedback;
+- CHIPS HUD is too small/weak;
+- wallet values need count-up + local receiving reaction;
+- Basic/Charged selector is cramped and selected state unclear;
+- transient feedback is too brief;
+- earned CHIPS should stage with the result and bank after acceptance;
+- Charged is not visually distinct enough;
+- `RESULT LOCKED` / dead tapping is frustrating;
+- UI needs a stronger electronic/neon Y2K identity.
+
+Current correction therefore adds **feel, not mechanics**:
+
+- tap/click fast-forward of reveal presentation;
+- immediate grab/tension/tear recoil;
+- staged reward → sequential CHIPS banking;
+- larger CHIPS card, animated count-up, local pulse/shake;
+- one dedicated `chips-collect` SFX;
+- duplicate → recycle CHIPS + Signal physical transfer;
+- clearer left-side Basic/Charged gameplay rail;
+- stronger Charged cyan/violet/iridescent treatment;
+- one accent digital/pixel-like font for short system data;
+- restrained neon/shimmer rarity hierarchy.
+
+Visual rule:
+
+> **Cozy Y2K world, electric digital UI.**
+
+No custom shader in this pass. Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
+
+The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the feel correction is re-tested**. No permanent giant sidebar or always-visible odds table is planned now.
+
+## Acceptance path
 
 Completed:
 
-- Lite V2 pure engine, save migration and atomic recovery;
-- Opening economy UI/presentation;
-- deterministic tests and debug scenarios;
-- typecheck + 87 unit tests + asset validation + production build;
-- exact-revision browser audit across Basic/Charged, cache, recycle, Signal, Hidden Pocket, recovery, compact/RU states;
-- manual artifact review;
-- post-merge CI;
-- correction for the initially invisible `CHARGED POUCH READY` beat, followed by a second exact-revision audit.
+- Lite V2 engine/save/recovery;
+- Opening economy presentation;
+- 87-test baseline + typecheck/assets/build;
+- original exact-revision browser/video audit + manual review;
+- final Charged-ready correction + re-audit;
+- first repeated hands-on.
 
-Still required before Yandex DRAFT:
+Current order:
 
-1. direct 20–50 opening hands-on test for pacing, comprehension and reward feel;
-2. fix only evidence-backed friction found there;
-3. real hosted Yandex DRAFT validation.
+1. implement Opening Feel Correction;
+2. exact-revision screenshot/video audit + manual review;
+3. second 20–30 opening hands-on;
+4. real hosted Yandex DRAFT;
+5. content expansion.
 
-Do **not** start broad content expansion or add new meta systems before those gates.
+Do not add new meta systems/content or tune the economy inside the current correction branch.
 
 ## Production-grade boundaries already present
 
 - Phaser 4.2.1 + Vite + strict TypeScript;
-- Yandex Games SDK adapter;
-- injected safe storage + versioned transactional `pendingReveal`;
-- adaptive Desktop/Mobile landscape layout;
-- data-driven gadget/loot-pool registry and Collection;
-- integrated Camera/Flip Phone collectible art;
-- integrated production pouch/background/SFX assets;
-- Phaser-rendered reusable CHIPS token and Charged aura;
-- manifest-driven collectible preprocessing;
+- Yandex SDK adapter;
+- injected safe storage + versioned `pendingReveal`;
+- responsive Desktop/Mobile landscape layout;
+- data-driven gadget/loot-pool registry;
+- integrated Camera/Flip Phone art;
+- production pouch/background/SFX assets;
+- Phaser-rendered CHIPS token + Charged aura;
 - deterministic debug scenarios;
 - permanent CI;
-- Yandex Metrica adapter;
-- Yandex ad adapter: interstitial + rewarded + sticky-banner boundary;
-- dev-only rewarded CHIPS grant for exactly-once plumbing checks;
+- Yandex Metrica + ad adapters;
 - platform pause/resume/audio behavior;
 - RU + EN architecture;
-- exact-revision browser screenshot/video visual-QA workflow.
+- exact-revision browser screenshot/video QA.
 
 ## Asset commands
 
@@ -100,32 +130,31 @@ npm run assets:validate
 npm run assets:atlas -- --family flip-phone
 npm run assets:selftest
 
-# Optional local AI cutout path for difficult sources
+# Optional local AI cutout path
 npm run assets:model:u2netp
 npm run assets:ai:selftest
 ```
 
-Raw generated collectible files go under git-ignored `assets-src/raw/`. Accepted runtime collectibles remain individual transparent 1024×1024 WebPs in `public/assets/collectibles/`.
+Raw generated collectible files live under git-ignored `assets-src/raw/`. Accepted runtime collectibles remain individual transparent 1024×1024 WebPs in `public/assets/collectibles/`.
 
 ## Source of truth
 
 Canonical current docs:
 
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — canonical decisions + current runtime/tuning state;
-- [`docs/PRODUCT.md`](docs/PRODUCT.md) — product thesis, staging and scope guardrails;
-- [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — actual Lite V2 mechanics and balance model;
-- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — implemented architecture, save/recovery and platform boundaries;
-- [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — current execution order through release;
-- [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — direct/local Lite V2 validation gate;
-- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — only genuinely unresolved questions;
-- [`docs/INFRASTRUCTURE_STATUS.md`](docs/INFRASTRUCTURE_STATUS.md) — current infrastructure/runtime status;
-- [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — actual integrated asset/runtime-visual state;
-- [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — hosted checks that local CI cannot replace.
-
-Historical implementation/audit notes remain useful records but are not current specifications when they conflict with the canonical files above.
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisions/current state;
+- [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — current evidence-backed implementation scope;
+- [`docs/PRODUCT.md`](docs/PRODUCT.md) — product staging/guardrails;
+- [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — mechanics + current presentation contract;
+- [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — architecture/recovery/presentation boundaries;
+- [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — execution order;
+- [`docs/PROBE_VALIDATION.md`](docs/PROBE_VALIDATION.md) — correction validation + second hands-on gate;
+- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — genuinely unresolved choices;
+- [`docs/INFRASTRUCTURE_STATUS.md`](docs/INFRASTRUCTURE_STATUS.md) — actual infrastructure status;
+- [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — current + correction asset impact;
+- [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — hosted checks local CI cannot replace.
 
 ## Product principle
 
-Scale primarily through desirable collectible content and a repeatable art pipeline while keeping the gameplay-system count low.
+Scale primarily through desirable collectible content and a repeatable art pipeline while keeping gameplay-system count low.
 
-> **First prove the implemented Basic → CHIPS → Charged loop through repeated hands-on and hosted Yandex validation. Add another system only when a specific observed problem requires it.**
+> **Make the current loop feel expensive before making the game structurally bigger.**
