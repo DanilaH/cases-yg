@@ -6,7 +6,7 @@
 
 > **Open mystery tech → reveal a stylized Y2K gadget → discover rarity → improve a visible collection → repeat.**
 
-The tactile opener and collectible desirability remain the product core. The new **Gameplay Loop Lite V2** adds one compact meta-goal around that opener:
+The tactile opener and collectible desirability remain the product core. **Gameplay Loop Lite V2** adds one compact meta-goal around that opener:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
@@ -37,11 +37,11 @@ The current two-family build remains private and is not the public release.
 Add only:
 
 - global CHIPS wallet + HUD transfer feedback;
-- CHIPS on every Basic opening;
+- guaranteed base CHIPS on every pouch plus an independent rare CHIPS-cache roll;
 - automatic duplicate recycle → CHIPS + Signal;
 - simplified 4-segment Signal pity;
 - one Charged Pouch tier bought with CHIPS;
-- separate Basic/Charged balance profiles;
+- distinct Basic/Charged rarity access and balance profiles;
 - Drop/loot-pool identifiers in data so future content can scale without a global mega-pool.
 
 Do not add idle timers, offline income, passive production, prestige, upgrade trees or multi-standard drops in this stage.
@@ -118,10 +118,12 @@ No physics or multistage tactile simulation.
 
 ## 5. Lite V2 progression philosophy
 
-Every opening should move at least one visible axis:
+Every opening moves visible progress because Basic never becomes a currency-only empty interaction:
 
+- **standard collectible** → always the hero reward;
 - **new collectible** → Collection progress;
-- **CHIPS** → progress toward Charged Pouch;
+- **base CHIPS** → predictable progress toward Charged Pouch;
+- **rare CHIPS cache** → occasional large wallet spike;
 - **duplicate** → recycle CHIPS + Signal pity;
 - **Hidden Pocket** → rare Secret surprise.
 
@@ -134,36 +136,63 @@ The player-facing Signal rule is intentionally simple:
 
 > **4 duplicates → next standard collectible is NEW (inside the active Drop).**
 
-The current runtime still uses the older 0–100 Signal implementation until Lite V2 is coded; documentation distinguishes migration target from current code rather than pretending the change has already shipped.
+The current runtime still uses the older 0–100 Signal implementation until Lite V2 is coded. Migration is locked to `min(4, floor(oldSignal / 25))`, preserving an old fully armed lock without rounding partial progress upward.
 
 ---
 
-## 6. Basic vs Charged
+## 6. Basic vs Charged — LOCKED STRUCTURE
 
 ### Basic Pouch
 
 - free/unlimited in Lite V2;
-- one standard collectible roll;
-- small CHIPS reward every opening;
-- current onboarding protection retained;
-- lower Hidden Pocket profile.
+- always one standard collectible roll;
+- always guaranteed base CHIPS;
+- independent chance of a larger CHIPS cache bonus;
+- Common + Rare + a small Epic chance;
+- **no Legendary from the Basic standard table**;
+- lower Hidden Pocket chance, but Secret remains possible as a very rare jackpot;
+- current onboarding protection retained within Basic's allowed rarity set.
+
+Basic therefore stays pleasant and can still surprise the player, but it does not provide the top standard rarity.
 
 ### Charged Pouch
 
 - purchased with global CHIPS;
 - selected directly from Opening UI when affordable; no store screen;
 - one standard collectible roll;
-- larger CHIPS payout;
-- meaningfully better rarity profile;
+- stronger normal CHIPS payout/cache profile;
+- materially stronger Rare/Epic odds;
+- **Legendary is available from the Charged standard table**;
 - higher Hidden Pocket chance.
 
-Exact CHIPS cost/payouts, duplicate recycle payouts, Charged rarity weights and Hidden Pocket odds remain tuning values to lock during implementation/hands-on.
+Charged is the main route to Epic/Legendary progression rather than merely a tiny percentage buff over Basic.
 
-Lite V2 does **not** introduce two or three standard collectibles per pouch. “More loot” is achieved cheaply through visible CHIPS tokens + one hero collectible + optional Hidden Pocket.
+Exact CHIPS cost, base payout ranges, cache probabilities/amounts, duplicate recycle payouts, rarity weights and Hidden Pocket odds remain tuning values to lock from simulation + hands-on.
+
+The economy invariant is already locked: over repeated play, Charged must be a **net CHIPS sink in expectation**. A very rare cache may still fund several Charged openings and create a memorable jackpot moment.
+
+Lite V2 does **not** introduce two or three standard collectibles per pouch. “More loot” is achieved cheaply through visible CHIPS/cache presentation + one hero collectible + optional Hidden Pocket.
 
 ---
 
-## 7. Content growth strategy — LOCKED ARCHITECTURE
+## 7. Two independent luck axes
+
+Collectible quality and CHIPS payout are intentionally independent.
+
+A Basic opening can therefore produce combinations such as:
+
+- Common + huge CHIPS cache;
+- Rare + normal CHIPS;
+- Epic + small CHIPS;
+- ordinary collectible + rare Hidden Pocket Secret.
+
+This adds meaningful variation without requiring more collectible drops or more gameplay systems.
+
+Duplicate rarity may affect the **recycle rebate**, but the pouch's CHIPS cache is not derived from collectible rarity.
+
+---
+
+## 8. Content growth strategy — LOCKED ARCHITECTURE
 
 Camera and Flip Phone are the first two production families, not the final game.
 
@@ -185,7 +214,7 @@ Instead:
 
 - families belong to themed Drops / loot pools;
 - Basic and Charged roll inside the active Drop;
-- Signal Lock guarantees NEW inside the active Drop;
+- Signal Lock guarantees NEW inside the active Drop while preserving the selected pouch rarity profile;
 - CHIPS and Signal remain global;
 - selector stays hidden while only one Drop exists;
 - a rough future heuristic is ~3–5 families per Drop, adjusted to the real roster.
@@ -194,7 +223,7 @@ This gives each content expansion a fresh completion surface without changing th
 
 ---
 
-## 8. Collection fantasy
+## 9. Collection fantasy
 
 Visual direction remains a cozy illustrated Y2K shelf/desk/display.
 
@@ -212,7 +241,7 @@ As content grows:
 
 ---
 
-## 9. Monetization philosophy
+## 10. Monetization philosophy
 
 The public product is intended to be ad-supported, but ads do not define the gameplay economy.
 
@@ -230,7 +259,7 @@ Final public ad reward/cadence is tuned after Lite V2 and the expanded content e
 
 ---
 
-## 10. Scope guardrails — IMPORTANT
+## 11. Scope guardrails — IMPORTANT
 
 Lite V2 explicitly excludes:
 
