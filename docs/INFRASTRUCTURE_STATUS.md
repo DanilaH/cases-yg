@@ -1,36 +1,106 @@
 # Infrastructure status
 
-This document separates what is already reusable/stable from the **next missing gameplay work**.
+This file states what is **actually present in current `main`** and what still requires external validation.
 
-## Completed / established in current main
+## Completed / established
 
-- Phaser/Vite/strict TypeScript application shell;
-- config-driven content registry and balance engine;
-- transactional `pendingReveal` save/recovery;
-- current Signal and Hidden Pocket engine paths;
-- generic Collection snapshot/rendering boundary;
-- Yandex SDK bootstrap, safe storage, LoadingAPI and GameplayAPI lifecycle;
-- interstitial/rewarded/sticky ad adapters with exactly-once rewarded persistence semantics;
-- Yandex Metrica adapter and semantic game/ad events;
-- responsive landscape layout and safe-area handling;
-- RU/EN localization and persistent mute;
-- permanent GitHub Actions CI (`npm ci`, typecheck, tests, asset tooling, production build);
-- deterministic debug controls for critical reward paths;
-- collectible-art manifest and preprocessing pipeline;
-- all current Camera + Flip Phone production collectible assets integrated/enabled;
-- production Opening/Collection environment art integrated;
-- production SFX set integrated;
-- production pouch body + star tab + compact authored tear strip integrated;
-- stable pouch/reward z-order and reveal presentation;
-- rarity FX, ambient motion, CTA heartbeat and reward breathing;
-- Hidden Pocket swipe carousel with resize-state preservation;
-- exact-revision browser screenshot/video review workflow.
+### Application / runtime
 
-The earlier documentation describing Camera/Flip Phone art, pouch layers, environments or SFX as still awaiting production is obsolete.
+- Phaser 4.2.1 + Vite + strict TypeScript;
+- `BootScene`, `OpeningScene`, `CollectionScene`;
+- responsive landscape layout + safe-area handling;
+- RU/EN localization;
+- persistent mute;
+- current two-family Camera + Flip Phone content;
+- production pouch/environment/SFX integration;
+- stable reveal/carousel/Collection presentation.
 
-### Current pouch reality
+### Gameplay Loop Lite V2
 
-Runtime uses:
+- global CHIPS wallet;
+- Basic/Charged typed pouch profiles;
+- guaranteed base CHIPS + independent cache tiers;
+- Basic Common/Rare/Epic gate with Legendary weight zero;
+- Charged Common/Rare/Epic/Legendary profile;
+- duplicate auto-recycle → CHIPS + Signal;
+- 4-segment Signal lock;
+- strict selected-pouch eligibility under Signal pity;
+- `SIGNAL LOCK · CHARGED` retained-lock edge;
+- Drop/loot-pool-aware reward selection;
+- active loot-pool state;
+- CHIPS + Signal HUD;
+- Basic/Charged selector/affordability;
+- Charged selection continuity while affordable + Basic fallback when not;
+- cache/recycle/Charged-ready presentation;
+- Phaser-rendered CHIPS token + Charged aura.
+
+### Persistence / correctness
+
+- versioned V2 save;
+- migration from pre-Lite saves;
+- legacy Signal conversion `min(4, floor(oldSignal / 25))`;
+- full `pendingReveal` anti-reroll transaction;
+- atomic Charged cost/base/cache/recycle/collectible/Signal/Hidden outcome;
+- reload reconciliation for ambiguous storage writes;
+- recovery preserves pouch type, loot pool, cache and retained/consumed Signal state.
+
+### Platform boundaries
+
+- Yandex SDK bootstrap adapter;
+- safe storage boundary;
+- LoadingAPI / GameplayAPI lifecycle handling;
+- interstitial/rewarded/sticky ad adapter;
+- rewarded exactly-once persistence semantics;
+- dev rewarded CHIPS probe;
+- provider-independent semantic analytics + Yandex Metrica adapter;
+- pause/resume/audio coordination.
+
+### Tooling / validation
+
+- permanent GitHub Actions CI;
+- typecheck + Vitest + asset tooling + production build;
+- 87 unit tests in current suite;
+- deterministic debug controls for critical reward states;
+- collectible asset preprocessing/validation pipeline;
+- exact-revision browser screenshot/video audit workflow;
+- reviewed Basic/Charged/cache/recycle/Signal/Hidden/recovery/responsive/RU captures;
+- post-merge CI green after final Charged-ready presentation correction.
+
+---
+
+## Current provisional runtime tuning
+
+Implemented values are centralized in `LITE_V2_BALANCE` and remain open to evidence-based tuning:
+
+```text
+Basic
+  cost 0
+  base CHIPS 6–10
+  rarity C/R/E/L 72/25/3/0
+  Hidden Pocket 1.5%
+
+Charged
+  cost 60
+  base CHIPS 18–24
+  rarity C/R/E/L 35/40/20/5
+  Hidden Pocket 6%
+
+Duplicate recycle C/R/E/L
+  2/4/8/15
+
+Cache rewards
+  cache 20–35
+  big 45–75
+  mega 120–180
+```
+
+Current deterministic all-duplicate analysis keeps Charged below break-even. Final release tuning waits for hands-on + content scale.
+
+---
+
+## Current pouch / UI reality
+
+Runtime pouch assets:
 
 ```text
 assets/package/pouch-body.webp
@@ -38,95 +108,92 @@ assets/package/pouch-tear-strip-compact.webp
 assets/package/pouch-star-tab.webp
 ```
 
-The layers intentionally use independent reviewed presentation transforms. The old “all three runtime layers must share one identical untrimmed canvas/origin” rule is no longer valid.
+Layers use independent reviewed transforms. The old same-canvas/origin contract is obsolete.
 
-## Next missing product work — Gameplay Loop Lite V2
+Lite V2 did **not** require another raster asset branch:
 
-The next gap is not more presentation scaffolding. It is the agreed lightweight meta-loop:
+- CHIPS token identity is Phaser-rendered;
+- Charged differentiates the same pouch with runtime glow/rings/sparks/accent;
+- cache tiers reuse the same token identity + text/FX intensity;
+- existing SFX remain the active set; no dedicated `chips-collect` or `charged-ready` MP3 is currently required.
 
-- CHIPS state + HUD;
-- guaranteed base CHIPS payout + independent cache bonus roll;
-- Basic standard rarity gate: Common/Rare/Epic only, no Legendary;
-- Charged standard rarity gate: all rarities including Legendary with stronger top-end weighting;
-- duplicate auto-recycle → CHIPS + Signal;
-- Signal migration from current 0–100 model to +1-per-duplicate / 4-segment lock;
-- locked legacy mapping `min(4, floor(oldSignal / 25))`;
-- Signal Lock preserving selected pouch rarity profile among eligible missing items;
-- strict Signal gate: if Basic has no eligible NEW because only Legendary remains, Basic resolves normally while Signal stays armed until Charged;
-- Charged Pouch cost/profile and net-CHIPS-sink invariant;
-- Drop/loot-pool-aware reward selection;
-- save migration;
-- atomic Charged cost/base/cache/recycle reward recovery plus retained/consumed Signal state;
-- minimal CHIPS token presentation and optional concise SFX;
-- new deterministic tests/debug scenarios;
-- new browser visual/interaction gates.
+---
 
-This should be implemented without adding a generalized idle/economy framework.
+## Current missing product validation
+
+### 1. Direct repeated hands-on — REQUIRED NOW
+
+The next unresolved questions are tactile/product questions, not infrastructure tasks.
+
+Run 20–50 openings and evaluate:
+
+- repeated pacing/fatigue;
+- Basic → Charged motivation;
+- Charged perceived value;
+- CHIPS/cache/recycle/Signal comprehension;
+- `SIGNAL LOCK · CHARGED` clarity;
+- `CHARGED POUCH READY` usefulness;
+- whether cache/recycle sequencing feels rich or noisy.
+
+If no concrete problem appears, **do not add another meta system**.
+
+### 2. Real Yandex DRAFT — REQUIRED AFTER HANDS-ON
+
+Hosted validation must still prove:
+
+- actual `/sdk.js` boot and `LoadingAPI.ready()`;
+- platform pause/resume/audio lifecycle;
+- real safe storage behavior;
+- save migration in hosted conditions;
+- interrupted Basic recovery;
+- interrupted Charged recovery with atomic cost/reward/cache state;
+- retained Signal lock + following Charged consumption;
+- real interstitial/rewarded/sticky behavior including no-fill/throttle/close;
+- rewarded CHIPS exactly-once behavior;
+- Metrica goal visibility where configured.
+
+CI/local browser automation cannot replace these checks.
+
+---
 
 ## Intentionally deferred
 
-These are not infrastructure defects:
+Not infrastructure defects:
 
-- exact Lite economy tuning numbers until implementation/simulation/hands-on;
-- player-facing Drop selector until more than one Drop exists;
+- final economy tuning;
+- player-facing Drop selector until Drop #2 exists;
 - family-targeted acquisition;
-- timed Basic charges/energy;
-- offline income;
-- passive Collection production;
-- Overcharge / Archive levels / upgrade trees;
-- separate shop scene;
-- multi-standard collectible drops;
-- release-scale grouped/on-demand texture loading strategy;
-- final multi-Drop Collection grouping/navigation;
-- final public ad placements/reward values;
-- public store assets and moderation package.
+- timed Basic energy;
+- offline/passive income;
+- Overcharge / Archive / upgrade trees;
+- shop scene;
+- multi-standard drops;
+- release-scale texture streaming/loading strategy;
+- multi-Drop Collection navigation;
+- final public ad reward/cadence;
+- public store assets/moderation package.
 
-Do not build speculative backend/CMS/ECS/streaming/economy architecture for these parked ideas.
+Do not build speculative backend/CMS/ECS/economy infrastructure for parked ideas.
+
+---
 
 ## Asset workflow status
 
-The collectible pipeline remains available for future families:
+Collectible production pipeline remains ready for future families:
 
-1. put raw sources under git-ignored `assets-src/raw/` paths declared by `assets-src/collectibles.manifest.json`;
-2. run `npm run assets:prepare`;
-3. visually QA cutout/framing and run `npm run assets:validate`;
-4. enable reviewed collectible ids;
-5. integrate static art/SFX through their reviewed paths/allowlists;
-6. run CI + visual QA.
+1. raw sources under git-ignored `assets-src/raw/` paths declared by the manifest;
+2. `npm run assets:prepare`;
+3. visual QA + `npm run assets:validate`;
+4. enable accepted ids;
+5. integrate art/SFX through reviewed paths;
+6. CI + exact-revision visual QA.
 
-`npm run assets:atlas -- --family <id>` remains a profiling experiment, not the canonical runtime path.
+`npm run assets:atlas -- --family <id>` remains profiling/inspection tooling, not the canonical runtime path.
 
-## Lite V2 asset impact
-
-The plan deliberately adds almost no asset burden:
-
-- **required:** one reusable CHIPS token/icon visual identity (raster or equally good vector/Phaser form), reused for ordinary payouts, recycle and cache bursts;
-- **default:** reuse current pouch layers for Charged with runtime treatment;
-- **optional:** `chips-collect` and `charged-ready` SFX only if existing/re-pitched cues are insufficient;
-- **not required:** separate Cache/Big/Mega token art or a second Charged pouch raster set.
-
-See `ASSET_MANIFEST.md`.
-
-## External validation still required
-
-A real Yandex Games DRAFT remains required after Lite V2 hands-on acceptance.
-
-Hosted checks must include:
-
-- actual SDK boot / LoadingAPI timing;
-- platform pause/resume/audio;
-- real ad no-fill/throttle/close paths;
-- safe storage in hosted environment;
-- save migration;
-- interrupted Basic reveal recovery, including retained-Signal edge;
-- interrupted **Charged** reveal recovery so CHIPS cost/cache/reward cannot be lost or duplicated;
-- rewarded exactly-once dev CHIPS probe after Signal migration;
-- Metrica goal visibility if configured.
-
-CI/local browser automation cannot truthfully replace those platform-hosted checks.
+---
 
 ## Current critical path
 
-> **Gameplay Loop Lite V2 → independent exact-revision visual/interaction review → direct repeated hands-on → Yandex DRAFT → content expansion.**
+> **Direct repeated hands-on → evidence-backed fix only if needed → real Yandex DRAFT → content expansion.**
 
-Do not return to broad feature ideation unless Lite hands-on exposes a concrete problem that the small loop does not solve.
+Runtime architecture is not the bottleneck now.
