@@ -736,11 +736,11 @@ export class OpeningScene extends Phaser.Scene {
       card.add([background, marker, titleText, subtitleText]);
       card
         .setSize(width, height)
-        .setInteractive(
-          new Phaser.Geom.Rectangle(0, 0, width, height),
-          Phaser.Geom.Rectangle.Contains,
-          { useHandCursor: true },
-        );
+        .setInteractive({
+          hitArea: new Phaser.Geom.Rectangle(0, 0, width, height),
+          hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+          useHandCursor: true,
+        });
       const idleAlpha = available ? (selected ? 1 : 0.84) : OPENING_FEEL_PRESENTATION.railUnavailableAlpha;
       card.setAlpha(idleAlpha);
       card.setData('available', available);
