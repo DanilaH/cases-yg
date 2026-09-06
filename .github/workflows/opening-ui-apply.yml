@@ -18,6 +18,30 @@ jobs:
         with:
           ref: feat/gameplay-loop-lite-v2-opening-ui
           fetch-depth: 0
+      - name: Repair patch-script quoting
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/apply-opening-ui-v2.py')
+          lines = p.read_text().splitlines()
+          marker = "    'charged result prefix',"
+          marker_index = lines.index(marker)
+          start = marker_index
+          while start >= 0 and lines[start] != 'replace_once(':
+              start -= 1
+          end = marker_index + 1
+          while end < len(lines) and lines[end] != ')':
+              end += 1
+          if start < 0 or end >= len(lines):
+              raise SystemExit('Could not locate malformed charged-result replacement block')
+          block = '''replace_once(
+              ''' + "'''" + '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);\n    return {\n      title: `${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,\n''' + "'''" + ''',
+              ''' + "'''" + '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);\n    const pouchPrefix = pending.pouchType === 'charged' ? '⚡ ' : '';\n    return {\n      title: `${pouchPrefix}${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,\n''' + "'''" + ''',
+              'charged result prefix',
+          )'''.splitlines()
+          lines[start:end + 1] = block
+          p.write_text('\n'.join(lines) + '\n')
+          PY
       - name: Apply product patch
         run: python3 scripts/apply-opening-ui-v2.py
       - name: Remove one-shot patch infrastructure
