@@ -1,12 +1,21 @@
-import type { BalanceConfig } from '../data/balance';
-import type { ContentRegistry, StandardRarity } from '../data/collectibles';
+import type { ContentRegistry, LootPoolId } from '../data/collectibles';
 
-export interface SignalResolution {
-  before: number;
-  after: number;
-  gain: number;
-  lockReached: boolean;
-}
+export const LEGACY_SIGNAL_STEP = 25;
+export const LITE_SIGNAL_THRESHOLD = 4;
+
+export const migrateLegacySignal = (signal: number): number => {
+  if (!Number.isFinite(signal) || signal < 0) {
+    throw new Error(`Invalid legacy Signal value: ${signal}`);
+  }
+  return Math.min(LITE_SIGNAL_THRESHOLD, Math.floor(signal / LEGACY_SIGNAL_STEP));
+};
+
+export const clampLiteSignal = (signal: number, threshold = LITE_SIGNAL_THRESHOLD): number => {
+  if (!Number.isFinite(signal) || signal < 0 || !Number.isInteger(threshold) || threshold <= 0) {
+    throw new Error('Invalid Lite Signal state');
+  }
+  return Math.min(threshold, Math.floor(signal));
+};
 
 export const isStandardCollectionComplete = (
   registry: ContentRegistry,
@@ -16,42 +25,15 @@ export const isStandardCollectionComplete = (
   return registry.standardItems.every(({ collectible }) => discovered.has(collectible.id));
 };
 
-export const isSignalLockArmed = (
-  signal: number,
+export const isStandardLootPoolComplete = (
   registry: ContentRegistry,
+  lootPoolId: LootPoolId,
   discoveredStandard: readonly string[],
-  balance: BalanceConfig,
-): boolean =>
-  !isStandardCollectionComplete(registry, discoveredStandard) && signal >= balance.signal.threshold;
-
-export const resolveSignal = (input: {
-  before: number;
-  rarity: StandardRarity;
-  isDuplicate: boolean;
-  lockConsumed: boolean;
-  standardCompleteBefore: boolean;
-  balance: BalanceConfig;
-}): SignalResolution => {
-  const before = Math.max(0, Math.min(input.before, input.balance.signal.threshold));
-
-  if (input.lockConsumed) {
-    return { before, after: 0, gain: 0, lockReached: false };
+): boolean => {
+  const discovered = new Set(discoveredStandard);
+  const poolItems = registry.standardItems.filter((item) => item.lootPoolId === lootPoolId);
+  if (poolItems.length === 0) {
+    throw new Error(`Unknown or empty loot pool: ${lootPoolId}`);
   }
-
-  if (!input.isDuplicate || input.standardCompleteBefore) {
-    return { before, after: before, gain: 0, lockReached: false };
-  }
-
-  const after = Math.min(
-    input.balance.signal.threshold,
-    before + input.balance.signal.duplicateGains[input.rarity],
-  );
-  const gain = after - before;
-
-  return {
-    before,
-    after,
-    gain,
-    lockReached: before < input.balance.signal.threshold && after >= input.balance.signal.threshold,
-  };
+  return poolItems.every(({ collectible }) => discovered.has(collectible.id));
 };
