@@ -40,29 +40,7 @@ Start with deterministic simulation + hands-on and keep all values in typed bala
 
 ---
 
-# 2. SIGNAL LOCK when Basic has no eligible NEW — IMPORTANT EDGE
-
-The selected pouch rarity profile is otherwise locked to remain meaningful under SIGNAL LOCK. This creates one real edge case:
-
-```text
-SIGNAL = 4/4
-active Drop still has undiscovered Legendary item(s)
-all Basic-eligible Common/Rare/Epic items are already discovered
-player opens Basic
-```
-
-Basic normally has `Legendary = 0`, so there is no undiscovered candidate with non-zero Basic weight.
-
-Two coherent policies exist:
-
-- **strict Charged gate (recommended):** Basic does not consume the lock; it may still open for CHIPS/duplicate recycle while SIGNAL stays armed. The UI must make clear that the lock is waiting for an eligible/Charged opening.
-- **pity override:** SIGNAL LOCK may bypass Basic's Legendary restriction and award a missing Legendary, preserving the simple “4 duplicates → next NEW” promise but weakening Charged's exclusive standard-rarity role.
-
-Do not let the resolver accidentally choose a policy through fallback behavior. This needs one explicit product decision before implementation.
-
----
-
-# 3. Charged selection UX — SMALL UI QUESTION
+# 2. Charged selection UX — SMALL UI QUESTION
 
 The product direction is fixed: Charged is chosen from the Opening screen with no store.
 
@@ -77,6 +55,7 @@ Requirements:
 - Basic remains instantly obvious/available;
 - current CHIPS balance and Charged cost are visible;
 - `CHARGED READY` is clear when affordability crosses threshold;
+- armed Signal with no Basic-eligible NEW must clearly indicate that the lock is waiting for Charged, e.g. `SIGNAL LOCK · CHARGED`;
 - no modal/store flow;
 - 900 logical width remains clean.
 
@@ -84,7 +63,7 @@ Resolve from a quick visual pass, not architecture discussion.
 
 ---
 
-# 4. CHIPS asset implementation — SMALL ART QUESTION
+# 3. CHIPS asset implementation — SMALL ART QUESTION
 
 One CHIPS visual identity is required.
 
@@ -106,7 +85,7 @@ Do not create separate raster art for each cache tier and do not create an entir
 
 ---
 
-# 5. Lite V2 audio additions — OPTIONAL
+# 4. Lite V2 audio additions — OPTIONAL
 
 Potential new cues:
 
@@ -119,7 +98,7 @@ First test whether current sounds/re-pitched variants are good enough. New audio
 
 ---
 
-# 6. Quick Reveal — REVIEW AFTER LITE V2
+# 5. Quick Reveal — REVIEW AFTER LITE V2
 
 The new reward sequence is longer than the current single-reward presentation, so repeated-use pacing must be rechecked.
 
@@ -133,7 +112,7 @@ Only then consider a configurable faster reveal. No x5/mass opening is implied.
 
 ---
 
-# 7. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
+# 6. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
 
 After Lite V2 hands-on + real Yandex DRAFT validation, lock:
 
@@ -158,7 +137,7 @@ Rough 3–5 families per Drop is a heuristic, not a commitment.
 
 ---
 
-# 8. Collection at multi-Drop scale — OPEN LATER
+# 7. Collection at multi-Drop scale — OPEN LATER
 
 Current Shelf/Library stays.
 
@@ -174,7 +153,7 @@ Do not redesign Collection before the content exists.
 
 ---
 
-# 9. Family-targeted acquisition — PARKED
+# 8. Family-targeted acquisition — PARKED
 
 Do not add family-specific pouches now.
 
@@ -182,7 +161,7 @@ Revisit only if real completion data shows that Drop-level Signal protection sti
 
 ---
 
-# 10. Idle/incremental expansion systems — PARKED
+# 9. Idle/incremental expansion systems — PARKED
 
 Explicitly not part of Lite V2:
 
@@ -200,7 +179,7 @@ They are ideas, not backlog commitments. Re-open one only if Lite V2 has a speci
 
 ---
 
-# 11. Advertising / public measurement — OPEN FOR RELEASE TUNING
+# 10. Advertising / public measurement — OPEN FOR RELEASE TUNING
 
 Implementation/compliance is already resolved through the Yandex adapter.
 
@@ -215,7 +194,7 @@ The old dev-only `+25 Signal` rewarded test is deprecated by the new Signal mode
 
 ---
 
-# 12. Store/submission choices — DEFER UNTIL RELEASE BUILD
+# 11. Store/submission choices — DEFER UNTIL RELEASE BUILD
 
 Only after expanded content/key visual stabilizes:
 
@@ -245,8 +224,10 @@ Do not re-litigate during Lite V2 implementation without new evidence:
 - duplicate gives CHIPS + one Signal segment;
 - target Signal threshold is 4;
 - legacy Signal migration is `min(4, floor(oldSignal / 25))`;
-- Signal Lock targets NEW in active Drop and is not spent on a fully complete Drop;
-- where eligible missing candidates exist, Signal Lock preserves the selected pouch rarity profile;
+- Signal Lock targets NEW in the active Drop **only when the selected pouch has at least one eligible undiscovered standard candidate**;
+- Signal Lock preserves the selected pouch rarity gate/profile and never bypasses Basic's Legendary restriction;
+- if only Legendary remains and Basic is opened, Basic resolves normally while Signal remains armed at `4/4`; Charged is required to consume that lock on Legendary;
+- a fully complete Drop also does not consume an armed Signal lock;
 - Charged costs CHIPS, has one standard roll and a higher Hidden Pocket chance;
 - Basic may still very rarely hit Hidden Pocket/Secret;
 - no multi-standard drops in Lite;
