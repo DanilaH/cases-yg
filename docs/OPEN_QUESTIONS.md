@@ -1,120 +1,115 @@
 # Open questions / decision queue
 
-The core Lite V2 direction is decided. This file contains only questions that are **actually unresolved** and should not be silently invented during implementation.
+This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and first-pass tuning are already implemented; do not treat implemented decisions as TODOs.
 
 ---
 
-# 1. Lite V2 economy numbers — OPEN FOR TUNING
+# 1. Repeated-use feel — CURRENT GATE
 
-Concept is locked; exact values are not.
+Run 20–50 direct openings and answer:
 
-Need to choose/test:
+- does Basic → CHIPS → Charged create a genuine “one more pouch” pull?
+- does Charged feel materially better and worth saving `60 CHIPS` for?
+- does the player understand that Basic cannot standard-roll Legendary?
+- is CHIPS accumulation legible without explanatory text?
+- do Cache/Big/Mega outcomes feel exciting rather than arbitrary/noisy?
+- does duplicate recycle feel compensating rather than adding friction?
+- is `4 duplicates → next eligible NEW` understandable?
+- is `SIGNAL LOCK · CHARGED` clear when only Legendary remains?
+- does `CHARGED POUCH READY` help the loop or feel interruptive?
+- does the full reveal become tedious after repetition?
 
-- Charged Pouch CHIPS cost;
-- Basic guaranteed base CHIPS range/amount;
-- Charged guaranteed base CHIPS range/amount;
-- CHIPS cache tier probabilities;
-- CHIPS cache payout ranges by pouch profile;
-- duplicate recycle CHIPS by rarity;
-- Basic Common/Rare/Epic weights;
-- Charged Common/Rare/Epic/Legendary weights;
-- Basic Hidden Pocket chance;
-- Charged Hidden Pocket chance.
+This is the next decision gate. Automation cannot answer it.
 
-Constraints already decided:
-
-- Basic is free/unlimited in Lite V2;
-- Basic always grants one collectible + guaranteed base CHIPS;
-- Basic can roll Common/Rare/Epic but **not Legendary** from the normal standard table;
-- Charged can roll all standard rarities and is the main source of Epic/Legendary;
-- both pouch types use a separate independent CHIPS-cache roll on top of base payout;
-- collectible rarity luck and CHIPS-cache luck are independent;
-- a very rare top cache may fund multiple Charged openings;
-- Charged must remain a **net CHIPS sink in expectation** over repeated play;
-- Charged still has only one standard collectible roll;
-- duplicate recycle CHIPS are compensation, not a reason to prefer duplicates;
-- CHIPS income should make Charged a visible near-term goal, not a long grind;
-- Basic may still very rarely trigger Hidden Pocket/Secret; Charged has a materially higher chance.
-
-Start with deterministic simulation + hands-on and keep all values in typed balance config.
+If a problem is found, fix the smallest observed issue and rerun the relevant exact-revision audit. Do not pre-emptively add systems.
 
 ---
 
-# 2. Charged selection UX — SMALL UI QUESTION
+# 2. Lite V2 balance — OPEN FOR TUNING, NOT OPEN FOR REDESIGN
 
-The product direction is fixed: Charged is chosen from the Opening screen with no store.
+Current implemented starting values:
 
-Need to settle the smallest interaction that reads best:
+```text
+Basic
+  cost: 0
+  base CHIPS: 6–10
+  cache weights none/cache/big/mega: 90/7/2.5/0.5
+  rarity C/R/E/L: 72/25/3/0
+  Hidden Pocket: 1.5%
 
-- separate `OPEN BASIC` / `OPEN CHARGED` actions;
-- one pouch selector/toggle with a single Open action;
-- another equally compact control.
+Charged
+  cost: 60
+  base CHIPS: 18–24
+  cache weights none/cache/big/mega: 78/15/5.5/1.5
+  rarity C/R/E/L: 35/40/20/5
+  Hidden Pocket: 6%
 
-Requirements:
+Cache payouts
+  0 / 20–35 / 45–75 / 120–180
 
-- Basic remains instantly obvious/available;
-- current CHIPS balance and Charged cost are visible;
-- `CHARGED READY` is clear when affordability crosses threshold;
-- armed Signal with no Basic-eligible NEW must clearly indicate that the lock is waiting for Charged, e.g. `SIGNAL LOCK · CHARGED`;
-- no modal/store flow;
-- 900 logical width remains clean.
+Duplicate recycle C/R/E/L
+  2/4/8/15
+```
 
-Resolve from a quick visual pass, not architecture discussion.
+Current deterministic analysis satisfies the Charged net-sink invariant.
 
----
+Open questions are now evidence questions:
 
-# 3. CHIPS asset implementation — SMALL ART QUESTION
+- is 60 CHIPS reached at a satisfying cadence in real repetition?
+- are Basic `6–10` payouts meaningful without feeling grindy?
+- are cache spikes frequent/large enough to be memorable but not dominant?
+- is Charged's 35/40/20/5 rarity profile visibly better in practice?
+- are recycle rebates useful but not so high that duplicates become preferable?
+- do 1.5% vs 6% Hidden Pocket chances create the intended Basic jackpot / Charged advantage relationship?
+- does Signal threshold `4` feel relevant without triggering constantly?
 
-One CHIPS visual identity is required.
-
-Preferred direction is a tiny Y2K electronic chip/token rather than a gold coin.
-
-Need only decide whether final implementation is:
-
-- one reviewed `public/assets/ui/chip-token.webp`, or
-- an equally good vector/Phaser-rendered icon.
-
-The same identity must work for:
-
-- HUD wallet;
-- normal payout burst;
-- duplicate recycle payout;
-- larger Cache/Big/Mega-style bursts.
-
-Do not create separate raster art for each cache tier and do not create an entire UI asset pack.
+Tune config from hands-on/simulation evidence only. The structural loop is not open for re-litigation without new evidence.
 
 ---
 
-# 4. Lite V2 audio additions — OPTIONAL
+# 3. Lite V2 audio — OPTIONAL AFTER HANDS-ON
 
-Potential new cues:
+Current runtime reuses the established SFX set and does not have dedicated `chips-collect` or `charged-ready` cues.
 
-- `chips-collect`;
-- `charged-ready`.
+Question:
 
-A larger cache result may reuse/stack/pitch the same CHIPS cue plus runtime emphasis. Do not create one SFX per cache tier unless hands-on proves it is necessary.
+> Does hands-on reveal a concrete sound-feedback gap for CHIPS transfer or Charged readiness?
 
-First test whether current sounds/re-pitched variants are good enough. New audio is not automatically required.
+If no, add nothing.
+
+If yes, prefer one concise reusable CHIPS cue and/or one readiness cue. Do not create one sound per cache tier.
 
 ---
 
-# 5. Quick Reveal — REVIEW AFTER LITE V2
+# 4. Quick Reveal — PARKED UNTIL REPEATED-USE EVIDENCE
 
-The new reward sequence is longer than the current single-reward presentation, so repeated-use pacing must be rechecked.
+Only revisit if 20–50 openings show that full presentation is materially too slow.
 
-During 20–50+ openings ask:
+Before adding a new mode, first ask whether a small duration reduction in ordinary CHIPS/cache/recycle beats solves the problem.
 
-- does CHIPS/cache/recycle presentation become repetitive?
-- do rare cache beats still feel special rather than slowing every opening?
-- is the full reveal now too slow?
+No x5/mass opening is implied.
 
-Only then consider a configurable faster reveal. No x5/mass opening is implied.
+---
+
+# 5. Real Yandex DRAFT findings — NEXT EXTERNAL QUESTION SET
+
+After hands-on acceptance, hosted validation may reveal issues local CI cannot:
+
+- SDK boot / loading timing;
+- safe storage behavior;
+- pause/resume/audio lifecycle;
+- ad no-fill/throttle/close behavior;
+- interrupted Basic/Charged recovery in hosted runtime;
+- rewarded exactly-once CHIPS persistence;
+- Metrica visibility.
+
+Do not invent fixes before the draft exposes a problem.
 
 ---
 
 # 6. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
 
-After Lite V2 hands-on + real Yandex DRAFT validation, lock:
+Only after Lite V2 hands-on + real Yandex DRAFT validation, lock:
 
 - first additional gadget families;
 - first real Drop name/theme;
@@ -133,7 +128,7 @@ Candidate families remain:
 - virtual-pet-like electronic;
 - other suitable Y2K archetypes.
 
-Rough 3–5 families per Drop is a heuristic, not a commitment.
+Rough 3–5 families per Drop remains a heuristic, not a commitment.
 
 ---
 
@@ -141,10 +136,10 @@ Rough 3–5 families per Drop is a heuristic, not a commitment.
 
 Current Shelf/Library stays.
 
-When Drop #2 actually exists, decide:
+When Drop #2 actually exists, decide from real density:
 
-- where the Drop selector belongs;
-- whether Shelf switches per Drop or shows global best finds;
+- where compact Drop selection belongs;
+- whether Shelf is global or Drop-scoped;
 - Library grouping/filtering;
 - completion headline semantics;
 - Secret grouping.
@@ -155,19 +150,17 @@ Do not redesign Collection before the content exists.
 
 # 8. Family-targeted acquisition — PARKED
 
-Do not add family-specific pouches now.
-
-Revisit only if real completion data shows that Drop-level Signal protection still leaves players stuck/frustrated near completion.
+Revisit only if real completion data shows Drop-level Signal protection still leaves players frustratingly stuck near completion.
 
 ---
 
-# 9. Idle/incremental expansion systems — PARKED
+# 9. Additional idle/incremental systems — PARKED
 
-Explicitly not part of Lite V2:
+Not backlog commitments:
 
 - timed Basic charges;
 - offline income;
-- Collection passive CHIPS/min;
+- passive Collection CHIPS/min;
 - Overcharge;
 - Archive levels;
 - upgrade/set-bonus trees;
@@ -175,22 +168,22 @@ Explicitly not part of Lite V2:
 - auto-open;
 - crafting/merge.
 
-They are ideas, not backlog commitments. Re-open one only if Lite V2 has a specific proven retention/progression problem that it solves cheaply.
+Re-open exactly one only if the proven current loop has a specific retention/progression problem that it solves cheaply.
 
 ---
 
 # 10. Advertising / public measurement — OPEN FOR RELEASE TUNING
 
-Implementation/compliance is already resolved through the Yandex adapter.
+Implementation/compliance boundaries already exist.
 
-After Lite V2 + expanded content, decide:
+After hosted validation + expanded content, decide:
 
-- actual rewarded reward and placement;
-- interstitial logical pause points worth requesting;
+- actual public rewarded benefit/placement;
+- interstitial logical pause points;
 - whether sticky banner is worth layout cost;
 - continuation/retention/playtime/monetization metrics for public release.
 
-The old dev-only `+25 Signal` rewarded test is deprecated by the new Signal model; use a dev-only CHIPS grant for technical exactly-once validation after migration.
+The current dev rewarded CHIPS grant is a plumbing probe, not a public economy decision.
 
 ---
 
@@ -209,29 +202,23 @@ Only after expanded content/key visual stabilizes:
 
 # What is NOT open anymore
 
-Do not re-litigate during Lite V2 implementation without new evidence:
+Do not re-litigate without new evidence:
 
 - one global CHIPS currency;
-- Basic remains free/unlimited for Lite;
+- Basic free/unlimited in Lite V2;
 - Basic always gives one standard collectible;
-- Basic normal standard rarity access is Common/Rare/Epic only; no Legendary;
-- Charged is the normal standard route to Legendary and has materially stronger Rare/Epic weighting;
-- both pouch types always give base CHIPS and may independently roll a larger cache bonus;
-- collectible rarity and CHIPS-cache luck are independent;
-- a very rare top cache may finance several Charged openings;
-- Charged remains a net CHIPS sink in expectation;
-- duplicates auto-recycle;
-- duplicate gives CHIPS + one Signal segment;
-- target Signal threshold is 4;
-- legacy Signal migration is `min(4, floor(oldSignal / 25))`;
-- Signal Lock targets NEW in the active Drop **only when the selected pouch has at least one eligible undiscovered standard candidate**;
-- Signal Lock preserves the selected pouch rarity gate/profile and never bypasses Basic's Legendary restriction;
-- if only Legendary remains and Basic is opened, Basic resolves normally while Signal remains armed at `4/4`; Charged is required to consume that lock on Legendary;
-- a fully complete Drop also does not consume an armed Signal lock;
-- Charged costs CHIPS, has one standard roll and a higher Hidden Pocket chance;
-- Basic may still very rarely hit Hidden Pocket/Secret;
-- no multi-standard drops in Lite;
+- independent base CHIPS + cache luck;
+- Basic C/R/E only, no standard Legendary;
+- Charged has non-zero Legendary and stronger top-end profile;
+- duplicates auto-recycle into CHIPS + one Signal segment;
+- Signal threshold `4`;
+- legacy migration `min(4, floor(oldSignal / 25))`;
+- Signal respects active loot pool + selected-pouch eligibility;
+- Basic retains lock when only Legendary remains;
+- Charged cost/reward is one atomic recoverable transaction;
+- CHIPS/Signal global across Drops;
 - no shop scene;
-- Drop/loot-pool architecture is required before content expansion;
-- CHIPS/Signal remain global across Drops;
+- no multi-standard drop in Lite;
+- Phaser-rendered CHIPS identity is sufficient unless hands-on disproves it;
+- Charged runtime aura can reuse current pouch art;
 - idle/offline/Overcharge/Archive systems are parked.

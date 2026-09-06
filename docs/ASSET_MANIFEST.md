@@ -1,12 +1,8 @@
 # Asset manifest
 
-This manifest separates three scopes:
+This manifest records the **actual current runtime asset state** plus the deferred public content factory.
 
-1. **Integrated current runtime assets** — already present in the two-family build.
-2. **Gameplay Loop Lite V2 additions** — the minimal new visual/audio assets required by the agreed loop.
-3. **Public content expansion** — repeatable per-family production after Lite V2 + Yandex DRAFT validation.
-
-The executable collectible processing manifest remains `assets-src/collectibles.manifest.json`; production commands and constraints remain in `docs/ASSET_PIPELINE.md`.
+The executable collectible processing manifest remains `assets-src/collectibles.manifest.json`; production commands/constraints remain in `docs/ASSET_PIPELINE.md`.
 
 ---
 
@@ -36,32 +32,32 @@ public/assets/collectibles/flip-phone-legendary.webp
 public/assets/collectibles/flip-phone-secret-noir.webp
 ```
 
-All ten are enabled in the current runtime art allowlist.
+All ten are enabled in runtime.
 
 Per-family source workflow remains:
 
 ```text
 6–10 explorations
-1 contact sheet
-1 canonical master
-prompt/revision log
-4 standard rarity derivations
-Secret derivation where planned
+→ contact sheet
+→ canonical master
+→ prompt/revision log
+→ Common / Rare / Epic / Legendary
+→ Secret where planned
 ```
 
 ---
 
-# 2. Current Mystery Pouch — INTEGRATED
+# 2. Mystery Pouch — INTEGRATED
 
-Canonical visual reference remains:
+Canonical visual reference:
 
 `docs/assets/package-mystery-pouch-v1.webp`
 
-Current runtime mapping is:
+Runtime mapping:
 
 ```text
 public/assets/package/pouch-body.webp
-public/assets/package/pouch-tear-strip-compact.webp   # actual runtime tear strip
+public/assets/package/pouch-tear-strip-compact.webp
 public/assets/package/pouch-star-tab.webp
 ```
 
@@ -71,25 +67,23 @@ The source/original full strip also exists as:
 public/assets/package/pouch-tear-strip.webp
 ```
 
-but runtime `pouch-tear-strip` resolves to the compact authored crop.
+but runtime uses the compact authored strip.
 
-### Current pouch contract — IMPORTANT
+### Current pouch contract
 
-The old documentation requirement that all three runtime layers must share the exact same untrimmed transparent canvas is **obsolete**.
+The old requirement that all three layers share one identical untrimmed transparent canvas/origin is obsolete.
 
-The accepted implementation intentionally uses independent presentation transforms:
+Accepted implementation uses independent reviewed transforms:
 
-- body has its own placement/scale;
-- compact authored tear strip preserves the real top-strip art but trims transparent padding;
-- star-tab has its own placement/scale and generous interaction hit area;
-- runtime owns shadow, tear-edge highlights and motion;
-- layers are composed by reviewed presentation coordinates, not by a mandatory shared-canvas origin.
-
-Do not restore the old same-canvas rule or the rejected synthetic dark slit/mouth.
+- body owns main silhouette;
+- compact tear strip trims transparent padding while preserving authored art;
+- star tab has independent placement/scale + generous hit area;
+- runtime owns shadow/highlight/motion;
+- no synthetic dark slit/mouth.
 
 ---
 
-# 3. Current environment art — INTEGRATED
+# 3. Environment art — INTEGRATED
 
 ```text
 public/assets/backgrounds/opening-bg.webp
@@ -97,13 +91,13 @@ public/assets/backgrounds/collection-bg.webp
 public/assets/backgrounds/collection-foreground.webp
 ```
 
-Opening background uses cover scaling. Collection rear + foreground are an aligned pair; foreground is Shelf-only and remains below Collection chrome.
+Opening uses cover scaling. Collection rear + foreground are an aligned pair; foreground is Shelf-only and remains below Collection chrome.
 
 ---
 
-# 4. Current audio — INTEGRATED
+# 4. Audio — INTEGRATED
 
-Current SFX paths:
+Current reviewed SFX:
 
 ```text
 public/assets/audio/tear.mp3
@@ -122,163 +116,98 @@ public/assets/audio/collection-complete.mp3
 
 No background music requirement.
 
+Lite V2 currently reuses this set. Dedicated `chips-collect` / `charged-ready` cues are **not implemented and not required unless repeated hands-on identifies a real sound-feedback gap**.
+
 ---
 
-# 5. Gameplay Loop Lite V2 — NEW ASSET COMMITMENT
+# 5. Lite V2 UI / economy visuals — INTEGRATED WITHOUT NEW RASTERS
 
-Lite V2 should add as little bespoke art as possible.
+The earlier plan allowed one CHIPS raster asset, but runtime review showed it was unnecessary.
 
-## 5.1 CHIPS token/icon — REQUIRED
+## 5.1 CHIPS token — PHASER-RENDERED
 
-One reusable visual identity for CHIPS is required for:
+`src/game/ui/openingEconomyVisuals.ts` defines a reusable bounded chip/token identity from Phaser shapes.
 
-- CHIPS HUD counter;
-- ordinary base payout burst from pouch;
-- token flight into HUD;
-- duplicate recycle payout;
-- Charged affordability/ready UI;
-- rare Cache / Big Cache / Mega Cache-style payout presentation.
+It is reused for:
 
-Preferred asset:
+- CHIPS HUD identity/payout language;
+- ordinary reward bursts;
+- token flight;
+- duplicate recycle;
+- Cache / Big / Mega presentation.
 
-```text
-public/assets/ui/chip-token.webp
-```
+No `public/assets/ui/chip-token.webp` is required in the current runtime.
 
-Target guidance:
-
-- transparent square canvas;
-- 256×256 is sufficient; no need for collectible-scale 1024 source at runtime;
-- strong silhouette at ~18–32 px HUD size;
-- readable as a tiny Y2K electronic chip/token, not a generic gold coin;
-- no baked text/value;
-- restrained lavender/cyan/silver family so it belongs to the existing UI;
-- usable both as one HUD icon and as a bounded number of reward-particle instances.
-
-Large numeric payouts must **reuse the same token identity**. A `+150` result does not require 150 sprites or a new raster. Cache magnitude is communicated by runtime burst density/scale, stronger counter animation, copy and FX.
-
-A reviewed vector/SVG/Phaser-shape implementation is also acceptable if it looks as good; do not generate a whole UI sprite pack for one token.
+The visual token count never equals economic amount. Large payouts use a bounded number of token instances + text/counter/FX emphasis.
 
 ## 5.2 Cache tiers — NO EXTRA IMAGE ASSETS
 
-The CHIPS economy now includes guaranteed base payout plus an independent rare cache bonus roll.
-
-Asset consequence:
+Cache magnitude uses the same CHIPS identity plus runtime amount/burst emphasis.
 
 ```text
-0 additional raster assets for cache tiers
+0 cache-tier raster assets
 ```
 
-Do not create separate `cache`, `big-cache`, `mega-cache` coin/token images. If labels/icons beyond the CHIPS token are needed, prefer runtime text/vector emphasis first.
+Do not add separate `cache`, `big-cache`, `mega-cache` token images without evidence that runtime presentation is insufficient.
 
-## 5.3 Charged Pouch — NO NEW RASTER SET REQUIRED FOR LITE
+## 5.3 Charged Pouch — SAME POUCH ART + RUNTIME TREATMENT
 
-Do **not** create a second body/strip/star art set by default.
+Charged does not use a second pouch raster set.
 
-Lite target:
+Runtime differentiation comes from Phaser-rendered:
 
-- reuse current pouch layers;
-- distinguish Charged using runtime glow/electric halo/accent/ring/label treatment;
-- stronger reveal anticipation/FX;
-- add bespoke Charged pouch raster art only if visual review proves runtime treatment cannot communicate the state.
+- glow;
+- rings;
+- sparks;
+- lavender/cyan accent;
+- selector/cost/ready state;
+- stronger reward profile/presentation.
 
-This keeps the gameplay experiment cheap and avoids duplicating the most fragile pouch asset pipeline.
+This is visually integrated and passed exact-revision review. Add bespoke Charged pouch art only if later hands-on/content work proves the current treatment inadequate.
 
 ## 5.4 Signal meter — RUNTIME UI
 
-The new 4-segment Signal presentation should be Phaser Graphics/Text/vector-first.
-
-Needed presentation:
-
-```text
-◇ ◇ ◇ ◇
-◆ ◇ ◇ ◇
-...
-◆ ◆ ◆ ◆  → SIGNAL LOCK
-```
-
-No raster asset pack required unless later visual polish demonstrates a clear need.
-
-## 5.5 Lite V2 SFX — MINIMAL
-
-Existing cues should be reused wherever they remain semantically good:
-
-- `duplicate.mp3` can support duplicate/recycle identification beat;
-- `signal-gain.mp3` / `signal-lock.mp3` can remain if they suit new segmented presentation;
-- existing tear/reveal/rarity/Hidden Pocket cues remain.
-
-Potential new cues, only if existing/re-pitched cues are insufficient:
-
-```text
-public/assets/audio/chips-collect.mp3
-public/assets/audio/charged-ready.mp3
-```
-
-Jobs:
-
-- `chips-collect`: concise multi-token collect/transfer sound as tokens hit wallet;
-- `charged-ready`: short satisfying readiness sting when wallet crosses Charged threshold.
-
-Cache outcomes should first reuse/stack/pitch the same CHIPS cue with runtime emphasis. Do not add separate sounds for every chip particle, cache tier or Charged button state unless hands-on proves it necessary.
+Segmented Signal/lock/waiting presentation is Text/Graphics-driven. No raster pack is required.
 
 ---
 
-# 6. Lite V2 asset count impact
+# 6. Current runtime UI / FX inventory
 
-Required new bespoke runtime image commitment:
-
-```text
-1 CHIPS token/icon
-```
-
-Optional only if runtime reuse is insufficient:
-
-```text
-0..2 concise SFX
-0 cache-tier raster assets
-0 Charged pouch raster layers by default
-```
-
-This is intentional. The gameplay loop should earn its complexity through behavior/presentation, not a new asset-production branch.
-
----
-
-# 7. Runtime UI / FX inventory after Lite V2
-
-Prefer Phaser Graphics/Text and reusable existing assets for:
+Phaser Graphics/Text + existing assets cover:
 
 - Collection navigation;
 - Shelf / Library switch;
 - Back / Open More;
 - mute;
 - CHIPS HUD;
-- Charged affordability/ready state;
+- Basic/Charged selector + affordability;
+- Charged aura/ready state;
 - 4-segment Signal meter;
+- `SIGNAL LOCK · CHARGED`;
 - rarity labels;
 - NEW / DUPLICATE / RECYCLED;
-- CHIPS cache callout text/FX;
+- cache callouts;
 - Secret `???`;
 - progress counters;
-- tear gesture cue;
+- tear cue;
 - dev/debug controls excluded from production UI.
 
-Runtime FX now include:
+Runtime FX include:
 
-- rarity glow;
-- radial pouch flash;
-- sparkles;
-- ring pulse;
+- rarity glow/flash/rings/sparkles;
+- reveal backdrop separation;
 - ambient particles;
 - reward breathing;
 - Signal fill/lock feedback;
-- ordinary CHIPS token burst/flight;
-- stronger bounded cache burst/amount animation;
-- Charged runtime accent/ready feedback;
+- CHIPS token burst/flight;
+- cache intensity scaling;
+- Charged aura;
+- Charged-ready milestone;
 - completion burst.
 
 ---
 
-# 8. Collectible processing / atlas policy
+# 7. Collectible processing / atlas policy
 
 Canonical runtime remains one individual 1024×1024 WebP per collectible.
 
@@ -298,9 +227,9 @@ Atlas generation remains profiling/inspection tooling, not an automatic runtime 
 
 ---
 
-# 9. Public release content factory
+# 8. Public release content factory — DEFERRED UNTIL HANDS-ON + YANDEX DRAFT
 
-After Lite V2 + hosted Yandex validation, each new family normally adds:
+Each future family normally adds:
 
 ```text
 4 standard runtime collectible assets
@@ -308,7 +237,7 @@ After Lite V2 + hosted Yandex validation, each new family normally adds:
 + canonical source master/contact sheet/log
 ```
 
-Rules remain:
+Rules:
 
 - recognizable Y2K archetype;
 - 6–10 explorations;
@@ -316,7 +245,7 @@ Rules remain:
 - rarity edits preserve geometry/camera/identity;
 - runtime 1024 WebP alpha target;
 - no baked reveal FX;
-- no brand/logo/1:1 copy.
+- no brand/logo/unnecessary 1:1 copy.
 
 Candidate families:
 
@@ -334,47 +263,37 @@ Content should be grouped into themed Drops/loot pools rather than one global po
 
 ---
 
-# 10. Release asset-loading implication
+# 9. Release asset-loading implication
 
-The current catalog can preload all reviewed production assets.
+Current catalog can preload all reviewed assets.
 
-A multi-Drop release may contain dozens of 1024 textures, so before release:
+A multi-Drop release may contain dozens of 1024 textures, so only after real expansion:
 
 - profile decoded texture memory on real mobile;
 - compare individual textures against family/Drop atlas residency;
-- choose grouped/on-demand loading if profiling requires it;
-- derive smaller thumbnail/runtime variants if useful;
-- keep Opening ↔ current Collection transitions fast.
+- choose grouped/on-demand loading if measurements require it;
+- derive smaller thumbnail/runtime variants if useful.
 
-Do not build speculative streaming infrastructure before real expanded catalog measurements.
-
----
-
-# 11. Store assets — PUBLIC RELEASE ONLY
-
-Produce only after expanded release content/key visual are stable.
-
-Re-check Yandex requirements immediately before upload. Current planning targets remain:
-
-- icon 512×512 PNG;
-- cover 800×470 PNG;
-- optional maskable icon 512×512;
-- optional hero 1560×520;
-- actual localized gameplay screenshots.
-
-Do not build final promo art around the two-family internal catalog.
+Do not build speculative streaming infrastructure before those measurements.
 
 ---
 
-# 12. Performance targets
+# 10. Store assets — PUBLIC RELEASE ONLY
 
-Current small-build targets remain useful for catching accidental bloat:
+Produce after expanded release content/key visual stabilize. Re-check Yandex requirements immediately before upload.
+
+Do not build final promo art around the current two-family private catalog.
+
+---
+
+# 11. Performance targets
+
+Useful current guardrails:
 
 - collectible WebP ideally ~150–350 KB; investigate >500 KB;
-- pouch layers should remain compact;
-- scene background layer around/below ~1 MB where quality permits;
-- SFX set should remain small.
+- pouch layers compact;
+- scene background around/below ~1 MB where quality permits;
+- SFX set small;
+- Phaser CHIPS/Charged visuals add no meaningful download burden.
 
-The Lite CHIPS token should be tiny relative to collectible assets and must not materially affect load time.
-
-For release, profile startup download time, Yandex archive limits, decoded GPU texture memory and grouped/lazy behavior rather than enforcing an arbitrary total asset budget.
+For release, optimize from measured startup/download/GPU-memory behavior instead of an arbitrary speculative total budget.
