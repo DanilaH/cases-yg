@@ -116,7 +116,6 @@ export class OpeningScene extends Phaser.Scene {
     this.resultReady = false;
     this.deferredResize = false;
     this.ignoreNextResultTap = false;
-    this.selectedPouchType = 'basic';
 
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
@@ -1975,7 +1974,6 @@ export class OpeningScene extends Phaser.Scene {
   private continueFromResult(): void {
     if (this.phase !== 'result' || !this.resultReady) return;
     this.resultCarouselDrag = null;
-    this.selectedPouchType = 'basic';
     this.renderIdle();
   }
 
