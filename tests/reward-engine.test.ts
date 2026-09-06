@@ -276,6 +276,7 @@ describe('slice reward engine', () => {
   it('supports a third family through registry/config without special-case drop or Collection code', () => {
     const mp3: GadgetFamilyDefinition = {
       id: 'mp3-player',
+      dropId: 'y2k-essentials',
       name: { en: 'MP3 Player', ru: 'MP3-плеер' },
       standard: {
         common: { id: 'mp3-player-common', assetPath: 'mp3-common.webp', rarity: 'common', secret: false },
