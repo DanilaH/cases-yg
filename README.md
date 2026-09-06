@@ -80,9 +80,9 @@ Visual rule:
 
 > **Cozy Y2K world, electric digital UI.**
 
-No custom shader in this pass. Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
+No custom shader was added in this pass. The runtime treatment uses Phaser Text/Graphics/tint/blend/highlight/tweens.
 
-The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the feel correction is re-tested**. No permanent giant sidebar or always-visible odds table is planned now.
+The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the second corrected hands-on**. No permanent giant sidebar or always-visible odds table is planned now.
 
 ## Acceptance path
 
@@ -141,7 +141,7 @@ Raw generated collectible files live under git-ignored `assets-src/raw/`. Accept
 Canonical current docs:
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisions/current state;
-- [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — current evidence-backed implementation scope;
+- [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — implemented correction contract and acceptance history;
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — product staging/guardrails;
 - [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — mechanics + current presentation contract;
 - [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — architecture/recovery/presentation boundaries;
