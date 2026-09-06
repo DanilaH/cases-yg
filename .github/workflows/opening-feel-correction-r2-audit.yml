@@ -1,4 +1,4 @@
-name: Opening Feel Correction R2 Audit
+name: Opening Feel Correction R2 Final Audit
 
 on:
   push:
@@ -107,7 +107,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: opening-feel-correction-r2-audit
+          name: opening-feel-correction-r2-final-audit
           path: /tmp/opening-feel-correction-audit
           if-no-files-found: error
           retention-days: 3
