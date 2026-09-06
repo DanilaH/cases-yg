@@ -42,6 +42,7 @@ import {
   type PouchVisual,
 } from '../ui/openingVisuals';
 import {
+  CHARGED_ACCENT,
   CHARGED_TEXT_COLOR,
   CHIPS_TEXT_COLOR,
   DIGITAL_FONT_FAMILY,
