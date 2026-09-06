@@ -1,0 +1,38 @@
+name: Fix Typecheck Temp
+
+on:
+  push:
+    branches:
+      - feat/opening-feel-correction
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Add missing Charged accent import and clean diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+          old = "import {\n  CHARGED_TEXT_COLOR,"
+          new = "import {\n  CHARGED_ACCENT,\n  CHARGED_TEXT_COLOR,"
+          if old not in text:
+              raise SystemExit('expected import anchor not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm -f .github/workflows/typecheck-diagnostic-temp.yml
+          rm -f .github/workflows/fix-typecheck-temp.yml
+          git add -A
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix Charged accent import'
+          git push
