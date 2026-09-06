@@ -7,8 +7,11 @@ Status meanings:
 - **LOCKED** — source of truth unless new evidence invalidates it.
 - **LOCKED TARGET** — agreed next implementation behavior; current runtime may still be on the pre-migration behavior until the corresponding pass lands.
 - **LOCKED FOR RELEASE ARCHITECTURE** — must scale correctly from the start because later content depends on it.
+- **CURRENT RUNTIME** — factual current implementation, retained here when it differs from the agreed next target.
+- **COMPLETE** — implementation/asset work is present and integrated.
 - **OPEN FOR TUNING** — concept is decided; numbers/pacing remain to be tuned.
 - **OPEN FOR RELEASE** — deliberately deferred until larger content scale exists.
+- **HYPOTHESIS** — useful working assumption, not a commitment.
 - **PARKED** — not part of current scope; may return only if evidence gives it a concrete job.
 - **LOCKED OUT** — excluded unless product direction changes materially.
 
@@ -43,7 +46,7 @@ Status meanings:
 | CHIPS HUD | LOCKED TARGET | persistent compact counter; reward tokens visibly fly into it after reveal resolution |
 | Charged Pouch | LOCKED TARGET | bought with CHIPS directly from Opening UI; no store scene |
 | Charged reward | LOCKED TARGET | one standard collectible, larger CHIPS payout, better rarity profile, higher Hidden Pocket chance |
-| Multi-standard drops | LOCKED OUT FOR LITE | no 2–3 normal collectibles from one pouch; multi-reward feel comes from CHIPS + hero collectible + optional Secret |
+| Multi-standard drops | LOCKED OUT | not in Lite V2; multi-reward feel comes from CHIPS + hero collectible + optional Secret |
 | Duplicate behavior | LOCKED TARGET | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL`; no manual sell choice |
 | Duplicate CHIPS | OPEN FOR TUNING | rarity-dependent small rebate; exact values TBD |
 | Signal purpose | LOCKED | non-spendable duplicate pity, separate from CHIPS |
@@ -53,6 +56,7 @@ Status meanings:
 | Basic/Charged CHIPS payout | OPEN FOR TUNING | exact values TBD |
 | Charged rarity weights | OPEN FOR TUNING | must be meaningfully better than Basic; exact table TBD |
 | Basic/Charged Hidden Pocket | OPEN FOR TUNING | Charged must be meaningfully higher; exact probabilities TBD |
+| SIGNAL LOCK × Charged weighting | OPEN FOR TUNING | lock may be consumed by Basic or Charged; still need explicit rule for how Charged rarity advantage applies when choosing among missing items |
 | Reward sequencing | LOCKED TARGET | tear → CHIPS presentation → one collectible → NEW/recycle → optional Hidden Pocket → resource transfer → result ready |
 | No fake economy choice | LOCKED | duplicate recycle is automatic; CHIPS spending choice is Basic vs Charged, not “sell or keep duplicate” |
 
@@ -116,7 +120,7 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 |---|---|---|
 | Core roles | LOCKED | Shelf = attractive best finds; Library = exhaustive ownership/completion view |
 | Current slice | LOCKED | Camera + Flip Phone presentation is valid for current content |
-| Release grouping | LOCKED DIRECTION | Drops become the first high-level grouping primitive |
+| Release grouping | LOCKED TARGET | Drops become the first high-level grouping primitive |
 | Release pages/filtering | OPEN FOR RELEASE | add only when actual roster density requires it |
 | Targeted acquisition | PARKED | not part of Lite V2 |
 
@@ -132,10 +136,10 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Runtime collectible export | LOCKED | individual 1024×1024 transparent WebP; aspect ratio preserved |
 | Current collectible set | COMPLETE | Camera + Flip Phone standard rarities + Secrets are integrated and enabled |
 | Current environment/SFX | COMPLETE | Opening/Collection environment art and current SFX set are integrated |
-| Pouch runtime | LOCKED CURRENT | body + star-tab + **compact authored tear strip**; layers use independent presentation transforms, not a required same-canvas registration contract |
+| Pouch runtime | LOCKED | body + star-tab + **compact authored tear strip**; layers use independent presentation transforms, not a required same-canvas registration contract |
 | Lite CHIPS visual asset | LOCKED TARGET | one small reusable CHIPS token/icon asset or equivalent reviewed vector; used for HUD identity + reward particles |
 | Charged pouch art | LOCKED TARGET | reuse current pouch art with runtime Charged treatment first; no mandatory second pouch raster set |
-| Lite new SFX | MINIMAL TARGET | prefer reuse/synth where good; add only a concise CHIPS collect/transfer cue and Charged-ready cue if existing sounds cannot sell the feedback |
+| Lite new SFX | OPEN FOR TUNING | prefer reuse/synth where good; add only concise CHIPS collect/transfer and Charged-ready cues if existing sounds cannot sell the feedback |
 
 ---
 
@@ -148,8 +152,8 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Lite transaction | LOCKED TARGET | Charged cost + CHIPS payouts + recycle + Signal + collectible + Hidden Pocket are one recoverable atomic transaction |
 | Save migration | LOCKED TARGET | existing slice saves migrate forward; do not wipe progression merely to add CHIPS/Drop fields |
 | Data-driven content | LOCKED FOR RELEASE ARCHITECTURE | family/collectible/drop IDs and balance profiles come from config/registry |
-| Asset loading | LOCKED CURRENT | current small catalog can preload; release loading strategy waits for real expanded catalog profiling |
-| React / physics / backend | LOCKED OUT BY DEFAULT | no React runtime, physics or backend without a concrete need |
+| Asset loading | CURRENT RUNTIME | current small catalog can preload; release loading strategy waits for real expanded catalog profiling |
+| React / physics / backend | LOCKED OUT | no React runtime, physics or backend without a concrete need |
 
 ---
 
@@ -159,7 +163,7 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 |---|---|---|
 | Yandex SDK | LOCKED FOR RELEASE ARCHITECTURE | thin platform adapter |
 | Ads | LOCKED | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
-| Legacy rewarded probe | MIGRATE WITH LITE | old dev-only `+25 Signal` probe becomes invalid after 4-segment Signal; switch technical rewarded probe to a clearly dev-only CHIPS grant |
+| Legacy rewarded probe | LOCKED TARGET | old dev-only `+25 Signal` probe becomes invalid after 4-segment Signal; switch technical rewarded probe to a clearly dev-only CHIPS grant |
 | Public monetization tuning | OPEN FOR RELEASE | choose actual rewarded value/cadence/sticky use after Lite + expanded content |
 | Analytics | LOCKED | provider-independent semantic events + Yandex Metrica adapter; failure never blocks game |
 
