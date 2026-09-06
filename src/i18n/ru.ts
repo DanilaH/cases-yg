@@ -21,7 +21,7 @@ export const ru = {
     free: 'БЕСПЛАТНО',
     chargedReady: 'ЗАРЯЖЕННЫЙ ПАКЕТ ГОТОВ',
     signalLock: 'SIGNAL LOCK',
-    signalCharged: 'SIGNAL LOCK · CHARGED',
+    signalCharged: 'LOCK · CHARGED',
     locked: 'ЗАФИКСИРОВАНО',
     chipCache: 'ТАЙНИК CHIPS',
     bigCache: 'БОЛЬШОЙ ТАЙНИК',
