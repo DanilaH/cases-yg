@@ -70,7 +70,8 @@ jobs:
               const raw = localStorage.getItem(key); if (!raw) return false;
               try { const state = JSON.parse(raw); return state.pendingReveal === null && state.totalOpens === total; } catch { return false; }
             }, { key: SAVE_KEY, total }, { timeout: 12000 });
-            await page.waitForTimeout(1200);
+            // Result becomes tappable only after the post-commit hold. Leave extra headroom for CI timing.
+            await page.waitForTimeout(1800);
           };
           const tear = async () => {
             const x = 482, y = 183;
@@ -97,8 +98,9 @@ jobs:
           await waitCommit(4);
           const committed = await readSave();
           if (committed.chips < 60) throw new Error(`Fixture invariant failed: first Charged left only ${committed.chips} CHIPS`);
-          await page.mouse.click(640, 568);
-          await page.waitForTimeout(750);
+          // Tap empty background, away from the Hidden Pocket carousel and result panel.
+          await page.mouse.click(200, 650);
+          await page.waitForTimeout(1000);
           await page.screenshot({ path: `${out}/02-charged-selection-persists-after-result.png` });
 
           await tear();
