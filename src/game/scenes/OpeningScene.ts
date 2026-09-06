@@ -920,7 +920,11 @@ export class OpeningScene extends Phaser.Scene {
 
       await this.animatePostStandardEconomy(pending, standardVisual);
       if (this.isSceneShutdown()) return;
-      if (crossedChargedReadyThreshold(pending, LITE_V2_BALANCE)) this.showChargedReadyBeat();
+      if (crossedChargedReadyThreshold(pending, LITE_V2_BALANCE)) {
+        this.showChargedReadyBeat();
+        await this.wait(850);
+        if (this.isSceneShutdown()) return;
+      }
 
       if (pending.hiddenPocket) {
         await this.animateHiddenPocket(pending, standardVisual);
