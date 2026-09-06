@@ -17,7 +17,9 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2 is implemented. The architecture already contains the scale boundaries required before content expansion:
+Gameplay Loop Lite V2 is implemented. The first direct hands-on found presentation/input friction, so the immediate technical task is the bounded **Opening Feel Correction** in `OPENING_FEEL_CORRECTION_SCOPE.md`.
+
+Existing architecture already contains the required truth boundaries:
 
 - typed Basic/Charged pouch profiles;
 - global CHIPS wallet;
@@ -29,7 +31,7 @@ Gameplay Loop Lite V2 is implemented. The architecture already contains the scal
 - recoverable atomic cost/reward transaction;
 - presentation separated from durable economy mutation.
 
-The next technical work is **hosted validation**, not another architecture layer.
+The correction must improve choreography without moving economic truth back into `OpeningScene` tweens.
 
 ---
 
@@ -45,13 +47,14 @@ CollectionScene
 
 Reveal remains inside `OpeningScene` for physical continuity.
 
-Opening owns:
+Opening owns presentation/orchestration for:
 
 - pouch interaction;
 - CHIPS/Signal HUD;
 - Basic/Charged selection and affordability;
-- cache/recycle/Charged-ready presentation;
-- result/carousel interaction.
+- cache/recycle/Charged feedback;
+- result/carousel interaction;
+- current reveal fast-forward request handling.
 
 There is no `ShopScene`. Drop selector remains hidden while there is one production Drop.
 
@@ -97,121 +100,52 @@ src/
   main.ts
 ```
 
-Keep domain logic in pure systems/data modules. Scene code may orchestrate presentation but should not become the source of truth for economy or persistence.
+Keep domain logic in pure systems/data modules. Scene code may orchestrate presentation but cannot become the source of truth for economy/persistence.
+
+A small focused presentation helper is acceptable if the fast-forward/banking choreography would otherwise make `OpeningScene` substantially harder to reason about. Do not create a generalized animation framework.
 
 ---
 
-## 5. Content registry / loot pools
+## 5. Content / balance boundaries — UNCHANGED
 
-Current registry is explicitly loot-pool-aware.
+Current registry remains loot-pool-aware. Current `LITE_V2_BALANCE` remains the single tuning source.
 
-Invariants:
+Structural invariants remain:
 
-- each family/collectible resolves to a loot pool;
-- save stores active loot-pool identity;
-- Basic/Charged roll only inside active pool;
-- Signal finds missing standard candidates only inside that pool and selected-pouch eligibility;
-- zero-weight rarities are never bypassed by pity;
-- CHIPS/Signal are global;
-- adding Drop #2 should primarily be data/config work.
+- Basic cost `0`, Legendary weight `0`;
+- Charged cost `60` at current provisional tuning, non-zero Legendary;
+- collectible rarity and cache are independent;
+- Signal threshold `4`;
+- Signal respects active pool + selected-pouch eligibility;
+- CHIPS/Signal global across Drops;
+- Charged remains a CHIPS sink in expectation;
+- balance numbers are frozen during the feel correction unless separately approved.
 
-Do not build player-facing Drop selection until multiple real Drops exist.
-
----
-
-## 6. Typed balance — CURRENT PROVISIONAL CONFIG
-
-`LITE_V2_BALANCE` is the single current tuning source.
-
-Pouch profile semantics:
-
-```ts
-interface PouchProfile {
-  chipsCost: number;
-  baseChipsReward: ChipsRange;
-  cacheTiers: readonly ChipsCacheTier[];
-  rarityWeights: Readonly<Record<StandardRarity, number>>;
-  hiddenPocketChance: number;
-}
-```
-
-Current structural values:
-
-- Signal threshold: `4`;
-- Hidden Pocket start opening: `4`;
-- duplicate recycle C/R/E/L: `2 / 4 / 8 / 15`;
-- Basic cost/base: `0`, `6–10`;
-- Basic rarity C/R/E/L: `72 / 25 / 3 / 0`;
-- Basic Hidden Pocket: `1.5%`;
-- Charged cost/base: `60`, `18–24`;
-- Charged rarity: `35 / 40 / 20 / 5`;
-- Charged Hidden Pocket: `6%`.
-
-Cache configuration:
-
-```text
-Basic weights:   none 90 / cache 7 / big 2.5 / mega 0.5
-Charged weights: none 78 / cache 15 / big 5.5 / mega 1.5
-Rewards:         none 0 / cache 20–35 / big 45–75 / mega 120–180
-```
-
-These numbers are centralized and intentionally provisional. Hands-on/content-scale simulation may tune them without changing APIs or transaction shape.
+No player Drop selector before Drop #2.
 
 ---
 
-## 7. Save state and migration
+## 6. Save / atomic reveal contract — CRITICAL AND UNCHANGED
 
-Current save is versioned (`SAVE_VERSION = 2`) and provider-agnostic behind `StorageAdapter`.
+Current save is versioned (`SAVE_VERSION = 2`) behind `StorageAdapter`.
 
-Current state includes conceptually:
-
-```ts
-interface SaveState {
-  version: 2;
-  discoveredStandard: string[];
-  discoveredSecrets: string[];
-  chips: number;
-  signal: number; // 0..4
-  activeLootPoolId: string;
-  totalOpens: number;
-  pendingReveal: PendingReveal | null;
-  muted: boolean; // compatibility field; runtime preference is separated
-  stats: {
-    duplicates: number;
-    hiddenPockets: number;
-  };
-}
-```
-
-Legacy pre-Lite state migrates forward rather than being wiped.
-
-Legacy Signal mapping:
-
-```text
-min(4, floor(oldSignal / 25))
-```
-
-Migration is validated at boundary values and must remain idempotent.
-
----
-
-## 8. Atomic reveal contract — CRITICAL
-
-`pendingReveal` predetermines the complete economic outcome before visual presentation.
-
-It retains:
+`pendingReveal` predetermines the complete economic outcome before visual presentation:
 
 ```text
 transaction id
-base total opens
+base opens
 pouch type
 loot pool id
 opening number
 standard result
-base/cache/recycle CHIPS transition
+wallet before
+pouch cost
+base CHIPS
+cache tier + bonus
+recycle CHIPS
 Signal transition
 Hidden Pocket result
-final commit snapshot
+final deterministic snapshot
 ```
 
 Invariants:
@@ -222,55 +156,115 @@ Invariants:
 - no duplicate base/cache/recycle grant;
 - retained/consumed Signal outcome cannot change during recovery;
 - original pouch profile/loot pool survive recovery;
-- presentation tweens never determine durable state.
-
-`OpeningSession` additionally handles ambiguous storage failures: after a failed write promise, it reloads durable state and accepts success only when the persisted transaction/snapshot exactly matches the deterministic expected result.
+- presentation tweens, fast-forward and visual banking never determine durable state.
 
 ---
 
-## 9. Signal resolver
+## 7. Presentation correction boundary
 
-Current resolver behavior:
+The correction changes what the player **sees and can accelerate**, not what the transaction means.
 
-1. detect armed state (`4/4`);
-2. collect missing standard items in active pool;
-3. filter by selected pouch non-zero rarity weights;
-4. if candidates exist, preserve selected-pouch rarity weighting, guarantee NEW and consume lock;
-5. if none exist, perform normal selected-pouch roll and retain lock.
-
-Basic Legendary weight is zero, so pity never leaks Legendary into Basic.
-
-This is the only active Signal model; the old 0–100 weighted runtime no longer exists except as migration input compatibility.
-
----
-
-## 10. Opening presentation boundary
-
-Presentation sequence is orchestrated by `OpeningScene`, but durable economy is already stored in pending transaction data.
-
-Conceptually:
+Target fresh reveal choreography:
 
 ```text
-persist pending transaction
+prepare + persist transaction
 → tear
-→ base CHIPS
-→ optional cache beat
-→ standard reveal
-→ optional recycle + Signal
+→ collectible/reward presentation
+→ stage earned CHIPS beside result
 → optional Hidden Pocket
-→ optional Charged-ready milestone
-→ commit/render result
+→ commit deterministic transaction
+→ resolved result
+→ player accepts
+→ visually bank staged base/cache/recycle CHIPS in order
+→ update displayed Signal destination feedback
+→ next idle
 ```
 
-Resource animations are bounded visual samples. A `+150` result never requires 150 economic sprites.
+The exact commit point may remain where safety/recovery currently require it; visual staging is not proof that durable state is uncommitted. UI can deliberately display pre-reward/after-cost wallet until visual banking, then count to the already-known committed value.
 
-The Charged-ready threshold beat is awaited long enough to be perceptible before result re-render; this is presentation timing only, not an economy delay contract.
+If a reload occurs after commit and there is no pending reveal to cosmetically replay, show the durable wallet truth rather than reconstructing a fake payout animation.
+
+### Charged cost
+
+Charged spend remains communicated at opening time. Earned base/cache/recycle amounts are the components staged for later visual banking.
+
+### Charged-ready
+
+Readiness feedback should move to the visual moment the displayed wallet crosses the Charged cost during bank/count-up. This is presentation causality only; affordability logic remains derived from real state.
 
 ---
 
-## 11. UI implementation
+## 8. Fast-forward contract
 
-CHIPS identity and Charged aura are currently Phaser Graphics/shape implementations in `openingEconomyVisuals.ts`; no dedicated CHIPS raster or second Charged pouch raster set is required.
+Current dead `RESULT LOCKED` input behavior is replaced by deliberate presentation acceleration.
+
+Rules:
+
+- pointer/tap during `revealing` requests fast-forward of the active presentation beat;
+- no new prepare/commit call;
+- no economic mutation;
+- no global scene/tween-manager timescale change;
+- ambient motion, lifecycle and unrelated controls remain normal speed;
+- short post-tear guard prevents the release event that completed drag from becoming an accidental skip;
+- once result is visible, a separate intentional tap accepts/continues.
+
+Implementation should track only reveal-owned presentation that may be accelerated. Avoid a broad “kill all tweens and render final state” approach because it risks ambient/carousel/cleanup regressions.
+
+---
+
+## 9. CHIPS staged bank / HUD
+
+Current `animateChipReward()` immediately flies tokens and updates HUD during prelude. The correction intentionally changes that presentation contract.
+
+Target:
+
+- create bounded aggregate visual reward components near hero;
+- keep displayed HUD at appropriate pre-reward/after-cost value until acceptance;
+- on acceptance bank base → cache → recycle;
+- each bank step animates displayed count toward the deterministic target;
+- final displayed value equals durable committed snapshot;
+- local card punch/shake/glow is purely cosmetic.
+
+Large rewards must use bounded visual token count and bounded count-up duration.
+
+Do not mutate `SaveState.chips` from count-up callbacks.
+
+---
+
+## 10. Signal presentation
+
+Signal resolver semantics stay unchanged.
+
+Presentation may add:
+
+- fragment/spark flight from duplicate result to Signal HUD;
+- destination segment pulse;
+- short electronic lock flicker/glitch;
+- stronger digital/pixel label treatment.
+
+Do not turn Signal into a spendable animation/state machine. Resolver + pending transaction remain authoritative.
+
+---
+
+## 11. Opening UI layout
+
+Preferred new gameplay hierarchy is a left-side rail:
+
+```text
+CHIPS
+SIGNAL
+POUCH
+  Basic
+  Charged
+```
+
+Requirements:
+
+- selected state obvious without color alone;
+- unavailable Charged attempt can receive input feedback but cannot select/mutate;
+- center remains visually owned by pouch/collectible;
+- 900 logical width remains clean;
+- no fake future Drop controls.
 
 Responsive strategy remains:
 
@@ -279,78 +273,90 @@ logicalHeight = 720
 logicalWidth = clamp(viewportAspect * 720, 900, 1728)
 ```
 
-Critical compact states (`900/1024`) and RU copy are covered by browser audits.
+---
+
+## 12. Digital/neon visual implementation
+
+Visual rule:
+
+> **Cozy Y2K world, electric digital UI.**
+
+Use one bundled digital/pixel-like accent font for short system data only. Long UI/instructions remain readable sans.
+
+Prefer existing renderer capabilities:
+
+- Phaser Text/Graphics;
+- translucent duplicate glow layers;
+- stroke/shadow;
+- tint;
+- blend modes where stable;
+- moving translucent highlight strips;
+- rings/sparks/particles;
+- bounded tweened iridescent sweeps.
+
+### Custom shaders — NOT IN CURRENT PASS
+
+Do not add a custom WebGL pipeline/shader now. It creates a new mobile/WebGL compatibility surface before the visual hypothesis is proven.
+
+Only reconsider one local shader after manual review if a specific Charged/Legendary effect cannot be achieved convincingly enough without it.
 
 ---
 
-## 12. Yandex boundary
+## 13. Charged visual identity
 
-`platform/yandex.ts` owns SDK boot/capabilities and lifecycle mapping. Storage, ads, analytics and gameplay activity remain behind adapters.
+The current aura passed previous visual QA but direct hands-on says differentiation is still too weak.
 
-The local implementation gate is complete, but a **real hosted Yandex DRAFT** is still required for:
+First correction remains runtime-driven:
 
-- actual `/sdk.js` boot and `LoadingAPI.ready()` timing;
-- hosted safe storage;
-- platform pause/resume/audio;
-- real ad no-fill/throttle/close behavior;
-- interrupted Basic/Charged recovery;
-- Metrica visibility where configured.
+- stronger cyan/violet palette;
+- restrained pink/iridescent accents;
+- star/seal emphasis;
+- stronger contour/aura/rings/sparks;
+- moving highlight/sweep;
+- selector and pouch transition together.
+
+Only if label-hidden audit still reads as Basic should a recolored raster variant be added. Preserve geometry, silhouette and tear mechanics.
+
+---
+
+## 14. Audio boundary
+
+One new evidence-backed cue is justified:
+
+```text
+chips-collect
+```
+
+It should be routed through the existing audio abstraction and persistent mute behavior.
+
+Do not add one cue per cache tier. Optional `charged-ready` cue is conditional on review.
+
+---
+
+## 15. Testing requirements for correction
+
+Keep existing 87-test baseline and add/adjust focused coverage where practical for:
+
+- fast-forward cannot prepare/commit twice;
+- fast-forward cannot alter pending reveal data;
+- tear pointer release cannot accidentally skip next beat;
+- visual CHIPS endpoint equals deterministic transaction snapshot;
+- banking animation cannot grant currency;
+- existing Signal retain/consume edge remains intact;
+- recovery remains idempotent;
+- Charged selection continuity/fallback remains intact.
+
+Browser/video regression must cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts.
+
+---
+
+## 16. Yandex boundary
+
+Real hosted Yandex DRAFT remains required **after** corrected exact-revision + second hands-on approval.
+
+Hosted gate still covers SDK boot/loading, storage, lifecycle/audio, ad behavior, interrupted Basic/Charged recovery and Metrica.
 
 Do not infer hosted correctness from local CI.
-
----
-
-## 13. Ads / debug reward
-
-Advertising remains behind `platform/ads.ts`.
-
-Locked rules:
-
-- scenes do not call Yandex ad APIs directly;
-- interstitial outside active reveal;
-- rewarded is voluntary;
-- reward persists exactly once;
-- ad failure never blocks gameplay;
-- fullscreen/rewarded pause gameplay/audio correctly.
-
-The current debug rewarded probe grants CHIPS, not Signal. Public rewarded value/cadence remains release tuning.
-
----
-
-## 14. Analytics
-
-Keep semantic events provider-independent. Analytics failure cannot block gameplay/reward.
-
-Useful Lite V2 semantics include pouch type, CHIPS/cache/recycle outcomes, Signal reach/wait/consume, Charged readiness/opening and Hidden Pocket. Do not instrument individual presentation particles as economy events.
-
----
-
-## 15. Asset loading
-
-Current catalog can preload safely:
-
-- 10 collectible textures;
-- current pouch layers;
-- Opening/Collection environments;
-- current SFX set.
-
-Release-scale loading strategy remains a profiling decision after actual content expansion. Do not build streaming infrastructure based on hypothetical texture counts.
-
----
-
-## 16. Validation state
-
-Current merged tree has passed:
-
-- `npm ci`;
-- strict typecheck;
-- `87/87` Vitest tests;
-- asset self-test/validation;
-- production build;
-- exact-revision browser audit + manual artifact review;
-- post-merge CI.
-
-The next gate is direct repeated hands-on. After acceptance, execute `YANDEX_SLICE_VALIDATION.md` in a real hosted draft.
 
 ---
 
@@ -362,11 +368,13 @@ Do not introduce by default:
 - ECS;
 - physics;
 - backend/websockets;
-- generalized multi-currency economy framework;
+- generalized economy/currency framework;
+- generalized animation engine;
 - shop scene;
 - timers/offline scheduler;
 - real-time 3D;
 - content CMS/server;
+- custom shader system;
 - abstractions for parked Overcharge/Archive/prestige ideas.
 
-Build new architecture only for a measured requirement, not for speculative flexibility.
+The correction should primarily be a better choreography of systems already present.
