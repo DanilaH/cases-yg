@@ -177,13 +177,16 @@ Lite V2 simplifies the current weighted Signal implementation to a transparent s
 - every standard duplicate: `+1 SIGNAL`;
 - target threshold: `4/4`;
 - at `4/4`, **SIGNAL LOCK** is armed;
-- the next standard collectible roll must be an undiscovered standard collectible in the active Drop if one exists;
-- consuming the lock resets Signal to `0/4`;
-- if the active Drop is already complete, the armed lock is not wasted/consumed.
+- the next standard roll with at least one undiscovered candidate eligible for the selected pouch is guaranteed NEW;
+- consuming that guarantee resets Signal to `0/4`;
+- if the selected pouch has no eligible undiscovered candidate, it resolves normally and Signal remains armed at `4/4`;
+- if the active Drop is fully complete, the armed lock likewise remains unconsumed.
 
 Player-facing mental model:
 
-> **Four duplicates → next collectible is NEW.**
+> **Four duplicates → next eligible collectible is NEW.**
+
+In the common case, that is simply the next opening. If only Legendary remains, Basic cannot bypass its rarity gate; Basic may still be opened normally while the lock waits for Charged. The UI should make this exceptional state explicit, e.g. `SIGNAL LOCK · CHARGED`.
 
 Recommended HUD language is segmented rather than numerical economy language, e.g. `◆ ◆ ◇ ◇` → `◆ ◆ ◆ ◆` → `SIGNAL LOCK`.
 
@@ -209,16 +212,22 @@ This preserves a fully armed legacy lock, never manufactures more than one lock,
 
 ## 6.2 SIGNAL LOCK + pouch profile — LOCKED
 
-A Signal guarantee must not erase the value of choosing Charged.
+A Signal guarantee must not erase the value of choosing Charged or bypass the Basic rarity gate.
 
-Resolution order:
+Resolution order when Signal is armed:
 
-1. restrict candidates to undiscovered standard collectibles in the active Drop;
-2. apply the selected pouch's rarity profile across those eligible candidates;
-3. choose the guaranteed NEW result;
-4. consume Signal lock.
+1. collect undiscovered standard candidates in the active Drop;
+2. filter those candidates by the selected pouch's eligible rarity profile / non-zero weights;
+3. if eligible missing candidates exist, apply the selected pouch's rarity weighting among them, choose one guaranteed NEW result and consume the lock;
+4. if no eligible missing candidate exists, resolve the selected pouch through its normal table and **do not consume Signal**.
 
-Thus a Charged opening with SIGNAL LOCK still benefits from Charged rarity weighting among the missing items.
+Consequences:
+
+- Charged with SIGNAL LOCK keeps Charged rarity weighting among missing eligible items;
+- Basic never receives Legendary through pity because Basic has `Legendary = 0`;
+- if only Legendary remains, Basic can continue generating normal Common/Rare/Epic results, CHIPS and recycle rewards while Signal stays `4/4`;
+- the next eligible Charged opening then guarantees one of the missing Legendary candidates and consumes the lock;
+- a duplicate while Signal is already armed does not create extra Signal beyond `4/4`.
 
 Do not keep the old late-lock weighted fallback as a second pity system.
 
@@ -244,7 +253,7 @@ Charged Pouch gives:
 - stronger normal CHIPS payout/cache profile than Basic;
 - a higher Hidden Pocket chance than Basic.
 
-Charged is therefore not merely “the same pouch with +2% luck.” It is the main path to the top of the standard rarity ladder while Basic remains useful and can still surprise with Rare/Epic or a very rare Secret through Hidden Pocket.
+Charged is therefore not merely “the same pouch with +2% luck.” It is the main path to the top of the standard rarity ladder while Basic remains useful and can still surprise with Rare/Epic or a very rare Secret through Hidden Pocket. Signal explicitly preserves this gate rather than bypassing it.
 
 Lite V2 intentionally does **not** add a second/third standard collectible to Charged Pouch. The perception of a larger reward comes from CHIPS/cache presentation + stronger collectible roll + possible Hidden Pocket.
 
@@ -310,7 +319,7 @@ Lite V2 structural access:
 | Basic | yes | yes | small chance | **no** |
 | Charged | yes | yes | meaningful chance | **yes** |
 
-Exact percentages are tuning inputs, but the access distinction is locked.
+Exact percentages are tuning inputs, but the access distinction is locked and is **not overridden by Signal**.
 
 The existing 60/28/10/2 table is **current pre-Lite runtime only** and is not the target Basic profile because Lite V2 removes Legendary from Basic.
 
@@ -357,7 +366,8 @@ Rules:
 
 - every family/collectible belongs to a `dropId` / `lootPoolId`;
 - Basic and Charged resolve only inside the active Drop;
-- Signal Lock guarantees an undiscovered standard item inside the active Drop while preserving the selected pouch rarity profile;
+- Signal Lock guarantees an undiscovered standard item inside the active Drop only when that item is eligible for the selected pouch;
+- a selected pouch with no eligible missing candidate resolves normally and leaves Signal armed;
 - CHIPS and Signal remain global across Drops;
 - with only one Drop, the Drop selector is hidden and adds zero user-facing complexity;
 - when multiple Drops exist, expose a compact selector rather than redesigning the core loop.
@@ -405,7 +415,7 @@ A pending transaction must predetermine enough data to recover without rerolling
 - cache tier/outcome + cache CHIPS bonus;
 - duplicate recycle CHIPS reward;
 - standard collectible result;
-- Signal before/after + lock consume/reach state;
+- Signal before/after + lock consume/reach/retain state;
 - Hidden Pocket result;
 - final committed wallet/progress snapshot.
 
@@ -413,7 +423,7 @@ Critical rule:
 
 > **Charged cost and all rewards are one atomic reveal transaction.**
 
-A crash/refresh must never consume CHIPS without preserving the rolled reward, and must never replay the same transaction for extra base/cache/recycle CHIPS.
+A crash/refresh must never consume CHIPS without preserving the rolled reward, and must never replay the same transaction for extra base/cache/recycle CHIPS. Likewise, a Basic opening that cannot consume an armed Signal lock must recover with that same `lock retained` outcome rather than re-evaluating eligibility after reload.
 
 Resource-flight animations can replay in a shortened recovery presentation if useful, but they are never the source of truth.
 
@@ -455,6 +465,6 @@ These can be reconsidered only if the Lite loop is proven fun and a concrete ret
 
 The pass succeeds if, after repeated hands-on play, the player naturally understands and feels:
 
-> **“Every pouch gives me a gadget and some progress; Basic can still surprise me; duplicates still move me forward; I can see myself getting closer to Charged; Charged is where the top standard rarities live.”**
+> **“Every pouch gives me a gadget and some progress; Basic can still surprise me; duplicates still move me forward; I can see myself getting closer to Charged; Charged is where the top standard rarities live; if Signal is waiting on Legendary, it clearly tells me Charged is required.”**
 
 If that is true, stop adding systems and move to Yandex draft validation + content expansion. If it is not true, fix the smallest failing part of the loop rather than adding more meta systems.
