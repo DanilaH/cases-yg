@@ -85,7 +85,7 @@ Include:
 - one global CHIPS wallet;
 - CHIPS on every Basic opening;
 - duplicate auto-recycle → CHIPS + Signal;
-- simplified `4 duplicates → next standard collectible NEW` Signal rule;
+- simplified `4 duplicates → next eligible standard collectible NEW` Signal rule, with Basic never bypassing its Legendary gate;
 - one Charged Pouch bought with CHIPS;
 - better Charged rarity/Hidden Pocket profile;
 - Drop/loot-pool architecture hidden behind the single current Drop;
