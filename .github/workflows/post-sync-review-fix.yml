@@ -1,0 +1,34 @@
+name: Post-sync docs review cleanup
+
+on:
+  push:
+    branches:
+      - docs/sync-post-opening-feel
+    paths:
+      - .github/workflows/post-sync-review-fix.yml
+      - .github/scripts/post-sync-review-fix.py
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: docs/sync-post-opening-feel
+          fetch-depth: 0
+      - name: Apply reviewed docs cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/post-sync-review-fix.py
+          rm .github/scripts/post-sync-review-fix.py
+          rm .github/workflows/post-sync-review-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Finish post-merge docs coherence cleanup'
+          git push origin HEAD:docs/sync-post-opening-feel
