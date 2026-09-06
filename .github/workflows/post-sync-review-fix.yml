@@ -27,11 +27,11 @@ jobs:
           from pathlib import Path
           p = Path('.github/scripts/post-sync-review-fix.py')
           text = p.read_text()
-          old = '''    if old not in text:\n        raise SystemExit(f"{path}: missing expected text: {old[:100]!r}")\n    p.write_text(text.replace(old, new, 1))'''
-          new = '''    if old in text:\n        p.write_text(text.replace(old, new, 1))\n        return\n    if new in text:\n        return\n    raise SystemExit(f"{path}: neither expected old nor reviewed new text found: {old[:100]!r}")'''
-          if old not in text:
-              raise SystemExit('post-sync patcher function shape changed unexpectedly')
-          p.write_text(text.replace(old, new, 1))
+          start = text.index('def rep(path: str, old: str, new: str) -> None:')
+          marker = '\n# README lifecycle wording.'
+          end = text.index(marker, start)
+          replacement = '''def rep(path: str, old: str, new: str) -> None:\n    p = Path(path)\n    text = p.read_text()\n    if old in text:\n        p.write_text(text.replace(old, new, 1))\n'''
+          p.write_text(text[:start] + replacement + text[end:])
           PY
           python .github/scripts/post-sync-review-fix.py
           rm .github/scripts/post-sync-review-fix.py
