@@ -44,11 +44,12 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin audit/opening-feel-correction-r1
-          git show 6bee57e6831ded51b07f9d58922175e75f5a0b95:.github/scripts/opening-feel-correction-audit.mjs > /tmp/opening-feel-correction-r2-audit.mjs
+          mkdir -p .github/scripts
+          git show 6bee57e6831ded51b07f9d58922175e75f5a0b95:.github/scripts/opening-feel-correction-audit.mjs > .github/scripts/opening-feel-correction-r2-runtime.mjs
           python - <<'PY'
           from pathlib import Path
 
-          path = Path('/tmp/opening-feel-correction-r2-audit.mjs')
+          path = Path('.github/scripts/opening-feel-correction-r2-runtime.mjs')
           text = path.read_text()
 
           def replace_once(old: str, new: str) -> None:
@@ -98,7 +99,7 @@ jobs:
           cat /tmp/vite.log
           exit 1
       - name: Run exact-revision browser audit
-        run: node /tmp/opening-feel-correction-r2-audit.mjs
+        run: node .github/scripts/opening-feel-correction-r2-runtime.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
