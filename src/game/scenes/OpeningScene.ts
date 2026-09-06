@@ -581,7 +581,7 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
     const cost = getChargedCost(LITE_V2_BALANCE);
     const chargedAvailable = canAffordPouch(this.saveState, 'charged', LITE_V2_BALANCE);
-    const y = 116;
+    const y = 96;
 
     const createButton = (
       pouchType: PouchType,
@@ -590,14 +590,14 @@ export class OpeningScene extends Phaser.Scene {
       available: boolean,
     ): Phaser.GameObjects.Text => {
       const selected = this.selectedPouchType === pouchType;
-      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.42;
+      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.62;
       const button = this.add
         .text(x, y, label, {
           color: available
             ? pouchType === 'charged'
               ? CHARGED_TEXT_COLOR
               : '#f7f2ff'
-            : '#81768d',
+            : '#a69ab2',
           backgroundColor: selected
             ? pouchType === 'charged'
               ? '#443668'
@@ -731,7 +731,7 @@ export class OpeningScene extends Phaser.Scene {
     for (const button of this.pouchSelectorButtons) {
       const available = Boolean(button.getData('available'));
       const idleAlpha = Number(button.getData('idleAlpha') ?? 1);
-      button.setAlpha(enabled ? idleAlpha : Math.min(0.32, idleAlpha));
+      button.setAlpha(enabled ? idleAlpha : 0);
       if (enabled && available) {
         button.setInteractive({ useHandCursor: true });
       } else {
