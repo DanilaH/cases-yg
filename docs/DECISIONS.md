@@ -28,7 +28,7 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | First direct hands-on found presentation/input friction; run the evidence-backed **Opening Feel Correction** defined in `OPENING_FEEL_CORRECTION_SCOPE.md`, re-audit, re-test hands-on, then real Yandex DRAFT |
+| Current stage | LOCKED | Opening Feel Correction is merged and exact-revision/manual-review approved; current gate is the second **20–30 opening hands-on**, then real Yandex DRAFT if accepted |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
 | Public content direction | LOCKED | materially expand only after corrected hands-on + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
@@ -55,7 +55,7 @@ The mechanics remain accepted. The current correction is presentation/interactio
 | Signal rule | CURRENT RUNTIME | duplicate `+1`; `4/4` arms lock; next selected-pouch-eligible NEW is guaranteed; consume → `0/4` |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
 | Reward transaction | CURRENT RUNTIME | pouch cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable deterministic transaction |
-| Balance during feel correction | LOCKED | no tuning-number changes in the correction pass unless separately approved from evidence |
+| Balance through feel correction | COMPLETE | no tuning-number changes occurred; current provisional values remain unchanged pending later evidence |
 
 ### Current provisional balance
 
@@ -74,33 +74,33 @@ Duplicate recycle CHIPS: Common/Rare/Epic/Legendary = `2 / 4 / 8 / 15`.
 
 ---
 
-## Opening Feel Correction — LOCKED NEXT
+## Opening Feel Correction — CURRENT RUNTIME
 
 Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Player-facing `RESULT LOCKED` | LOCKED NEXT | remove the frustrating dead-input state |
-| Reveal acceleration | LOCKED NEXT | intentional tap/click fast-forwards active presentation only; transaction/result never changes |
-| Tear-release safety | LOCKED NEXT | short input guard prevents drag release from accidentally skipping the next beat |
+| Player-facing `RESULT LOCKED` | CURRENT RUNTIME | remove the frustrating dead-input state |
+| Reveal acceleration | CURRENT RUNTIME | intentional tap/click fast-forwards active presentation only; transaction/result never changes |
+| Tear-release safety | CURRENT RUNTIME | short input guard prevents drag release from accidentally skipping the next beat |
 | Quick Reveal mode | PARKED | no separate setting/toggle; first solve responsiveness with direct fast-forward |
-| Pouch tactile feel | LOCKED NEXT | immediate grab response, progressive tension, short tear recoil/snap; no physics |
-| Reward arrival | LOCKED NEXT | preserve established emerge/overshoot/settle, improve anticipation/rarity impact where useful |
-| CHIPS staging | LOCKED NEXT | earned base/cache/recycle first read beside result; visual banking occurs on result acceptance |
-| Charged cost presentation | LOCKED NEXT | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
-| CHIPS bank order | LOCKED NEXT | base → optional cache → optional recycle; Signal has its own destination transfer |
-| CHIPS HUD | LOCKED NEXT | larger resource card, clearer token, larger digital number, animated count-up and bounded local punch/shake |
-| CHIPS sound | LOCKED NEXT | add one concise reusable `chips-collect` cue; no sound per cache tier |
-| Charged-ready feedback | LOCKED NEXT | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
-| Duplicate tactile conversion | LOCKED NEXT | duplicate visibly converts into recycle CHIPS + one Signal transfer after collectible reveal |
-| Signal presentation | LOCKED NEXT | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
-| Basic/Charged selector | LOCKED NEXT | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
-| Unaffordable Charged attempt | LOCKED NEXT | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
-| Charged differentiation | LOCKED NEXT | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
-| Charged raster fallback | CONDITIONAL | allowed only if label-hidden visual audit still reads as “Basic with glow” |
-| Callout readability | LOCKED NEXT | longer readable holds + semantic positions; experienced player can fast-forward |
+| Pouch tactile feel | CURRENT RUNTIME | immediate grab response, progressive tension, short tear recoil/snap; no physics |
+| Reward arrival | CURRENT RUNTIME | preserve established emerge/overshoot/settle, improve anticipation/rarity impact where useful |
+| CHIPS staging | CURRENT RUNTIME | earned base/cache/recycle first read beside result; visual banking occurs on result acceptance |
+| Charged cost presentation | CURRENT RUNTIME | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
+| CHIPS bank order | CURRENT RUNTIME | base → optional cache → optional recycle; Signal has its own destination transfer |
+| CHIPS HUD | CURRENT RUNTIME | larger resource card, clearer token, larger digital number, animated count-up and bounded local punch/shake |
+| CHIPS sound | CURRENT RUNTIME | add one concise reusable `chips-collect` cue; no sound per cache tier |
+| Charged-ready feedback | CURRENT RUNTIME | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
+| Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into recycle CHIPS + one Signal transfer after collectible reveal |
+| Signal presentation | CURRENT RUNTIME | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
+| Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
+| Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
+| Charged differentiation | CURRENT RUNTIME | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
+| Charged raster fallback | NOT REQUIRED NOW | r3 label-hidden review passed with runtime treatment; reopen only if later hands-on contradicts it |
+| Callout readability | CURRENT RUNTIME | longer readable holds + semantic positions; experienced player can fast-forward |
 | Random callout positions | LOCKED OUT | no arbitrary random screen placement; only bounded decorative jitter |
-| Controlled micro-variation | LOCKED NEXT | small rotation/overshoot/spark/token-trajectory variation without changing learned rhythm |
+| Controlled micro-variation | CURRENT RUNTIME | small rotation/overshoot/spark/token-trajectory variation without changing learned rhythm |
 
 ---
 
@@ -108,13 +108,13 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Art-language principle | LOCKED NEXT | **Cozy Y2K world, electric digital UI** |
-| Hotline Miami reference | LOCKED NEXT | use as energy/neon/digital-reference only; do not copy full aesthetic |
-| Accent typography | LOCKED NEXT | one bundled digital/pixel-like accent font for short system labels/numbers only |
+| Art-language principle | CURRENT RUNTIME | **Cozy Y2K world, electric digital UI** |
+| Hotline Miami reference | CURRENT RUNTIME | use as energy/neon/digital-reference only; do not copy full aesthetic |
+| Accent typography | CURRENT RUNTIME | one bundled digital/pixel-like accent font for short system labels/numbers only |
 | Main typography | LOCKED | readable clean sans remains for instructions, long copy and ordinary navigation |
-| Neon implementation | LOCKED NEXT | Phaser Text/Graphics, duplicate glow layers, tint, blend, moving highlights, rings/sparks/tweens first |
+| Neon implementation | CURRENT RUNTIME | Phaser Text/Graphics, duplicate glow layers, tint, blend, moving highlights, rings/sparks/tweens first |
 | Custom shader | LOCKED OUT FOR THIS PASS | no custom WebGL shader until a reviewed no-shader result proves one specific effect cannot be sold cheaply |
-| Rarity shimmer | LOCKED NEXT | restrained Common → stronger Rare/Epic/Legendary electronic/iridescent hierarchy; Secret remains strongest/distinct |
+| Rarity shimmer | CURRENT RUNTIME | restrained Common → stronger Rare/Epic/Legendary electronic/iridescent hierarchy; Secret remains strongest/distinct |
 | Fullscreen CRT/VHS | LOCKED OUT FOR THIS PASS | no global scanlines/noise/chromatic-aberration treatment |
 
 ---
@@ -177,8 +177,8 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 |---|---|---|
 | Existing Lite V2 technical/visual gate | COMPLETE | typecheck/tests/assets/build + exact-revision videos/screens reviewed |
 | First direct hands-on | COMPLETE WITH FINDINGS | exposed reward/input/UI feel problems; therefore DRAFT is not yet approved |
-| Feel correction exact-revision audit | LOCKED NEXT | combined branch must receive screenshot/video + manual visual review |
-| Second repeated hands-on | LOCKED NEXT | 20–30 openings after correction before hosted DRAFT |
+| Feel correction exact-revision audit | COMPLETE | r3 exact-revision browser/video audit + manual artifact review passed on the audited product tree |
+| Second repeated hands-on | OPEN | **current product gate**: 20–30 normal openings on the merged corrected build before hosted DRAFT |
 | Real Yandex DRAFT | OPEN | next external gate after second hands-on acceptance |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
@@ -216,4 +216,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: implement the evidence-backed Opening Feel Correction, exact-revision audit it, then run 20–30 repeated openings. If accepted, proceed to real Yandex DRAFT. Do not add new mechanics/content in this pass.**
+> **GO: run the second 20–30 opening hands-on on the merged/audited correction. If accepted, proceed to real Yandex DRAFT. Do not add mechanics/content or tune balance before that evidence.**

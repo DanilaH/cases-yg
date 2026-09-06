@@ -1,6 +1,6 @@
 # Infrastructure status
 
-This file states what is **actually present in current `main`** and what the current evidence-backed correction changes.
+This file states what is **actually present in current `main`** after the merged evidence-backed Opening Feel Correction.
 
 ## Completed / established
 
@@ -45,7 +45,7 @@ This file states what is **actually present in current `main`** and what the cur
 ### Tooling / QA
 
 - permanent CI;
-- 87-test baseline;
+- 91-test current suite;
 - asset tooling + production build;
 - deterministic debug controls;
 - exact-revision screenshot/video audit workflow;
@@ -68,13 +68,13 @@ The first direct repeated-use pass is complete. It found no need for a new econo
 - `RESULT LOCKED` dead tapping frustrating;
 - UI lacks enough distinctive electronic/neon Y2K character.
 
-The response is the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`.
+The response was the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`; that correction is now integrated and validated.
 
 ---
 
-## Opening Feel Correction — NEXT IMPLEMENTATION
+## Opening Feel Correction — INTEGRATED
 
-Infrastructure impact is deliberately small.
+Infrastructure impact was deliberately small and is now integrated.
 
 ### Existing boundaries reused
 
@@ -85,7 +85,7 @@ Infrastructure impact is deliberately small.
 - existing Phaser Graphics/Text UI path remains;
 - existing exact-revision browser/video workflow remains.
 
-### Small additions/changes allowed
+### Integrated additions/changes
 
 - targeted reveal fast-forward handling;
 - post-tear input guard;
@@ -145,7 +145,7 @@ A dedicated Charged raster recolor is also conditional only if stronger runtime 
 
 ---
 
-## Current provisional runtime tuning — FROZEN FOR THIS PASS
+## Current provisional runtime tuning — UNCHANGED THROUGH CORRECTION
 
 ```text
 Basic
@@ -169,19 +169,16 @@ Cache rewards
   mega 120–180
 ```
 
-Do not tune these values in the feel-correction branch. Current deterministic analysis already keeps Charged below break-even.
+No tuning occurred in the feel-correction pass. Keep these provisional values unchanged until repeated-use/content-scale evidence justifies a separate balance decision; current deterministic analysis keeps Charged below break-even.
 
 ---
 
 ## Current validation path
 
-1. implement Opening Feel Correction;
-2. full typecheck/tests/assets/build;
-3. exact-revision screenshot/video audit;
-4. manual artifact review;
-5. second 20–30 opening hands-on;
-6. real Yandex DRAFT;
-7. content expansion.
+1. second 20–30 opening hands-on on merged corrected `main`;
+2. if accepted, real Yandex DRAFT;
+3. fix only hosted-platform defects;
+4. content expansion.
 
 Hosted DRAFT must still prove real SDK boot/loading, storage, lifecycle/audio, Basic/Charged recovery, ads and analytics.
 
@@ -222,6 +219,6 @@ Collectible pipeline remains unchanged:
 
 ## Current critical path
 
-> **Opening Feel Correction → exact-revision review → second hands-on → real Yandex DRAFT → content expansion.**
+> **Second hands-on → real Yandex DRAFT → content expansion.**
 
-Runtime architecture is still not the bottleneck; presentation quality is.
+Runtime architecture remains outside the critical bottleneck; the current gates are repeated-use product acceptance and real hosted-platform validation.

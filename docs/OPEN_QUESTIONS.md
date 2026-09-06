@@ -1,51 +1,28 @@
 # Open questions / decision queue
 
-This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction scope are already decided; do not treat implemented or locked-next behavior as TODO design debate.
+This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction are implemented; do not treat merged behavior as TODO design debate.
 
 Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 ---
 
-# 1. Opening Feel Correction — CURRENT IMPLEMENTATION QUESTION SET
+# 1. Post-correction evidence question set
 
-The first repeated hands-on is complete and has already justified the correction. The unresolved items inside that correction are presentation choices, not mechanics.
+The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for the second hands-on and later hosted/content-scale work.
 
-## 1.1 Accent digital/pixel font — OPEN VISUAL CHOICE
+## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
-Need one bundled accent typeface for short electronic UI only:
+Current implementation uses locally bundled **Press Start 2P** for short electronic UI only. The package is license-safe (`OFL-1.1`), exact-revision RU/EN 900/1024 review passed, and long instructions/navigation remain in readable sans. Re-open only if second hands-on finds an actual readability/fatigue problem.
 
-- CHIPS number/label;
-- Signal label/value/lock;
-- short Cache/Charged/system labels where useful.
+## 1.2 Charged palette / iridescence intensity — RESOLVED FOR CURRENT BUILD
 
-Requirements:
+The merged cyan/violet runtime treatment with restrained iridescent accents passed the label-hidden exact-revision comparison and did not require new pouch art. Re-open intensity only if repeated hands-on finds Charged unclear, visually tiring, or in conflict with rarity hierarchy.
 
-- readable at real 900/1024 layouts;
-- suitable for the Y2K/electronic direction;
-- license-safe for bundling;
-- RU/EN coverage for any localized text actually rendered with it;
-- must not force long instructions/navigation into pixel typography.
-
-Resolve by rendering real game states, not by choosing from a font specimen alone.
-
-## 1.2 Charged palette / iridescence intensity — OPEN VISUAL CHOICE
-
-Direction is locked: stronger cyan/violet electronic treatment with restrained pink/iridescent accents.
-
-Still tune visually:
-
-- how much pink/iridescence is enough;
-- whether star/seal/body all receive treatment or only selected surfaces;
-- sweep speed/intensity;
-- how to keep Charged desirable without stealing Legendary/Secret visual hierarchy.
-
-Use label-hidden Basic vs Charged comparison as the acceptance test.
-
-## 1.3 Dedicated Charged pouch raster — CONDITIONAL ONLY
+## 1.3 Dedicated Charged pouch raster — NOT REQUIRED NOW
 
 Default remains current pouch art + stronger runtime treatment.
 
-Only create a dedicated recolored Charged raster if the exact-revision audit still reads as “Basic with glow” after the no-shader runtime pass.
+The r3 label-hidden audit passed, so do not create a dedicated recolored Charged raster now. Re-open only if later hands-on contradicts that reviewed result.
 
 If needed:
 
@@ -54,9 +31,9 @@ If needed:
 - recolor/material treatment only;
 - do not restart pouch design.
 
-## 1.4 `charged-ready` SFX — OPTIONAL
+## 1.4 `charged-ready` SFX — PARKED
 
-Dedicated `chips-collect` SFX is now **required** from hands-on evidence.
+Dedicated `chips-collect` SFX is integrated from hands-on evidence.
 
 A separate readiness sting remains open only if:
 
@@ -82,7 +59,7 @@ Goal: readable at normal pace, fast when the player taps, never sluggish by defa
 
 ---
 
-# 2. Lite V2 balance — OPEN FOR TUNING, FROZEN DURING FEEL CORRECTION
+# 2. Lite V2 balance — OPEN FOR TUNING, UNCHANGED THROUGH FEEL CORRECTION
 
 Current values:
 
@@ -110,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-Do not change these numbers in the feel-correction branch. After corrected hands-on/content-scale simulation, evidence questions remain:
+No balance numbers changed in the feel-correction pass. Keep them unchanged through the second hands-on; after corrected hands-on/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
@@ -171,7 +148,7 @@ No x5/auto-open is implied.
 
 # 5. Shader work — PARKED
 
-No custom WebGL shader in the current correction.
+No custom WebGL shader was added in the correction.
 
 Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
 

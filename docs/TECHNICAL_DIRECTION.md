@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2 is implemented. The first direct hands-on found presentation/input friction, so the immediate technical task is the bounded **Opening Feel Correction** in `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Gameplay Loop Lite V2 and the bounded **Opening Feel Correction** are implemented in current `main`. Exact-revision browser/video and manual visual review passed; the immediate gate is second repeated hands-on, not more architecture work.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -31,7 +31,7 @@ Existing architecture already contains the required truth boundaries:
 - recoverable atomic cost/reward transaction;
 - presentation separated from durable economy mutation.
 
-The correction must improve choreography without moving economic truth back into `OpeningScene` tweens.
+The merged correction improves choreography without moving economic truth back into `OpeningScene` tweens.
 
 ---
 
@@ -81,6 +81,7 @@ src/
       collection.ts
       layout.ts
       audio.ts
+      presentationSkip.ts
     data/
       collectibles.ts
       balance.ts
@@ -119,7 +120,7 @@ Structural invariants remain:
 - Signal respects active pool + selected-pouch eligibility;
 - CHIPS/Signal global across Drops;
 - Charged remains a CHIPS sink in expectation;
-- balance numbers are frozen during the feel correction unless separately approved.
+- balance numbers stayed unchanged through the feel correction and remain provisional pending later evidence.
 
 No player Drop selector before Drop #2.
 
@@ -160,7 +161,7 @@ Invariants:
 
 ---
 
-## 7. Presentation correction boundary
+## 7. Current presentation boundary
 
 The correction changes what the player **sees and can accelerate**, not what the transaction means.
 
@@ -214,9 +215,9 @@ Implementation should track only reveal-owned presentation that may be accelerat
 
 ## 9. CHIPS staged bank / HUD
 
-Current `animateChipReward()` immediately flies tokens and updates HUD during prelude. The correction intentionally changes that presentation contract.
+The merged correction uses staged reward presentation and bank-on-accept while durable transaction truth remains unchanged.
 
-Target:
+Current contract:
 
 - create bounded aggregate visual reward components near hero;
 - keep displayed HUD at appropriate pre-reward/after-cost value until acceptance;
@@ -248,7 +249,7 @@ Do not turn Signal into a spendable animation/state machine. Resolver + pending 
 
 ## 11. Opening UI layout
 
-Preferred new gameplay hierarchy is a left-side rail:
+Current gameplay hierarchy is a left-side rail:
 
 ```text
 CHIPS
@@ -304,9 +305,7 @@ Only reconsider one local shader after manual review if a specific Charged/Legen
 
 ## 13. Charged visual identity
 
-The current aura passed previous visual QA but direct hands-on says differentiation is still too weak.
-
-First correction remains runtime-driven:
+Direct hands-on required stronger differentiation. The merged runtime treatment passed the r3 label-hidden comparison without bespoke pouch raster art:
 
 - stronger cyan/violet palette;
 - restrained pink/iridescent accents;
@@ -315,27 +314,25 @@ First correction remains runtime-driven:
 - moving highlight/sweep;
 - selector and pouch transition together.
 
-Only if label-hidden audit still reads as Basic should a recolored raster variant be added. Preserve geometry, silhouette and tear mechanics.
+No recolored raster is required by the current audit. Re-open one only if later hands-on contradicts the reviewed runtime result; preserve geometry, silhouette and tear mechanics.
 
 ---
 
 ## 14. Audio boundary
 
-One new evidence-backed cue is justified:
+The evidence-backed cue is integrated through the existing audio abstraction and persistent mute behavior:
 
 ```text
 chips-collect
 ```
 
-It should be routed through the existing audio abstraction and persistent mute behavior.
-
 Do not add one cue per cache tier. Optional `charged-ready` cue is conditional on review.
 
 ---
 
-## 15. Testing requirements for correction
+## 15. Current regression coverage
 
-Keep existing 87-test baseline and add/adjust focused coverage where practical for:
+Current suite is 91 tests plus typecheck/assets/build. Focused coverage and the r3 exact-revision audit cover:
 
 - fast-forward cannot prepare/commit twice;
 - fast-forward cannot alter pending reveal data;
@@ -346,7 +343,7 @@ Keep existing 87-test baseline and add/adjust focused coverage where practical f
 - recovery remains idempotent;
 - Charged selection continuity/fallback remains intact.
 
-Browser/video regression must cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts.
+The r3 browser/video regression covered the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts; manual artifact review passed.
 
 ---
 

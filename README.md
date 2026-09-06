@@ -6,7 +6,7 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2 is implemented and technically/visually validated. The first repeated hands-on is complete and exposed evidence-backed feel/UI friction. The current pass is the Opening Feel Correction.**
+**Gameplay Loop Lite V2 and the Opening Feel Correction are implemented, exact-revision audited, manually reviewed, and merged. The current product gate is the second 20–30 opening hands-on; real Yandex DRAFT follows if that corrected loop is accepted.**
 
 Canonical scope: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
@@ -23,7 +23,7 @@ Current runtime loop:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-Implemented Lite V2 behavior remains unchanged during the correction:
+Implemented Lite V2 mechanics retained through the correction:
 
 - one global CHIPS wallet;
 - Basic free/unlimited, always one standard collectible + base CHIPS;
@@ -47,7 +47,7 @@ Implemented Lite V2 behavior remains unchanged during the correction:
 
 Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15`. Mega currently pays `120–180 CHIPS`.
 
-These are starting values, not final release balance, and are **frozen during the feel-correction branch**.
+These are starting values, not final release balance. They stayed unchanged through the feel-correction pass and remain provisional pending repeated-use/content-scale evidence.
 
 ## Opening Feel Correction
 
@@ -63,7 +63,7 @@ First hands-on found:
 - `RESULT LOCKED` / dead tapping is frustrating;
 - UI needs a stronger electronic/neon Y2K identity.
 
-Current correction therefore adds **feel, not mechanics**:
+The merged correction adds **feel, not mechanics**:
 
 - tap/click fast-forward of reveal presentation;
 - immediate grab/tension/tear recoil;
@@ -80,9 +80,9 @@ Visual rule:
 
 > **Cozy Y2K world, electric digital UI.**
 
-No custom shader in this pass. Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
+No custom shader was added in this pass. The runtime treatment uses Phaser Text/Graphics/tint/blend/highlight/tweens.
 
-The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the feel correction is re-tested**. No permanent giant sidebar or always-visible odds table is planned now.
+The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the second corrected hands-on**. No permanent giant sidebar or always-visible odds table is planned now.
 
 ## Acceptance path
 
@@ -90,20 +90,19 @@ Completed:
 
 - Lite V2 engine/save/recovery;
 - Opening economy presentation;
-- 87-test baseline + typecheck/assets/build;
+- 91-test current suite + typecheck/assets/build;
 - original exact-revision browser/video audit + manual review;
 - final Charged-ready correction + re-audit;
 - first repeated hands-on.
 
 Current order:
 
-1. implement Opening Feel Correction;
-2. exact-revision screenshot/video audit + manual review;
-3. second 20–30 opening hands-on;
-4. real hosted Yandex DRAFT;
-5. content expansion.
+1. second 20–30 opening hands-on on the merged corrected build;
+2. if accepted, real hosted Yandex DRAFT;
+3. decide the deferred Drop/odds/progress info surface from evidence;
+4. content expansion only after hosted validation.
 
-Do not add new meta systems/content or tune the economy inside the current correction branch.
+Do not add new meta systems/content or tune the economy before the second hands-on and hosted DRAFT provide evidence.
 
 ## Production-grade boundaries already present
 
@@ -142,7 +141,7 @@ Raw generated collectible files live under git-ignored `assets-src/raw/`. Accept
 Canonical current docs:
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisions/current state;
-- [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — current evidence-backed implementation scope;
+- [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — implemented correction contract and acceptance history;
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — product staging/guardrails;
 - [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — mechanics + current presentation contract;
 - [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — architecture/recovery/presentation boundaries;

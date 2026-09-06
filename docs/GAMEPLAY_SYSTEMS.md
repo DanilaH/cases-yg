@@ -1,6 +1,6 @@
 # Gameplay systems
 
-This is the canonical specification for the implemented gameplay loop plus the evidence-backed Opening Feel Correction currently queued for implementation. Balance numbers are provisional runtime tuning unless explicitly marked locked.
+This is the canonical specification for the implemented gameplay loop plus the evidence-backed Opening Feel Correction now merged in current `main`. Balance numbers are provisional runtime tuning unless explicitly marked locked.
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → save CHIPS → Charged Pouch → better roll → repeat**
 
@@ -25,9 +25,9 @@ The product goal remains simple: every opening should feel useful and tactile wi
 
 Reveal remains in `OpeningScene`. No physics and no auto-dismiss.
 
-## Locked-next feel choreography
+## Current feel choreography
 
-The correction keeps exactly the same mechanic/result contract but changes how the sequence reads:
+The merged correction keeps exactly the same mechanic/result contract and changes how the sequence reads:
 
 ```text
 star grab response
@@ -120,11 +120,11 @@ Collectible rarity and cache are independent rolls.
 
 Current expected all-duplicate Charged return remains below cost, so the CHIPS-sink invariant holds.
 
-## 3.2 Locked-next CHIPS presentation
+## 3.2 Current CHIPS presentation
 
-Hands-on proved the current immediate-flight presentation is too weak/early.
+Hands-on proved the old immediate-flight presentation was too weak/early. The merged correction now uses:
 
-Target:
+Current contract:
 
 - Charged cost still reads at opening time;
 - earned base/cache/recycle components first stage near the lower-left of the hero collectible;
@@ -170,7 +170,7 @@ Current recycle CHIPS:
 
 Mechanics remain unchanged.
 
-Locked-next presentation:
+Current presentation:
 
 1. actual duplicate collectible reveals normally;
 2. `DUPLICATE` remains readable;
@@ -213,7 +213,7 @@ Consequences remain:
 - complete Drop does not waste lock;
 - armed duplicates do not overfill.
 
-## Locked-next Signal presentation
+## Current Signal presentation
 
 Use stronger electronic UI while preserving semantic separation from CHIPS:
 
@@ -290,11 +290,11 @@ A committed result reloaded after cosmetic staging may show durable wallet truth
 
 ---
 
-# 9. Input / pacing — LOCKED NEXT
+# 9. Input / pacing — CURRENT RUNTIME
 
 The first hands-on found dead tapping frustrating.
 
-Correction rules:
+Current rules:
 
 - remove player-facing `RESULT LOCKED` dead state;
 - intentional click/tap during reveal accelerates current presentation beat;
@@ -306,9 +306,9 @@ Correction rules:
 
 ---
 
-# 10. Opening UI — LOCKED NEXT
+# 10. Opening UI — CURRENT RUNTIME
 
-Preferred gameplay hierarchy moves to a left-side rail:
+Current gameplay hierarchy uses a left-side rail:
 
 ```text
 CHIPS
@@ -329,11 +329,11 @@ No fake Drop controls are added before Drop #2.
 
 ---
 
-# 11. Charged presentation — LOCKED NEXT
+# 11. Charged presentation — CURRENT RUNTIME
 
 Direct hands-on supersedes the previous assumption that current aura is sufficiently distinct.
 
-Use stronger runtime treatment first:
+Current merged runtime treatment uses:
 
 - cyan/violet base;
 - restrained pink/iridescent accents;
@@ -348,13 +348,13 @@ Only if runtime treatment still fails may a recolored Charged raster variant be 
 
 ---
 
-# 12. Digital / neon visual language — LOCKED NEXT
+# 12. Digital / neon visual language — CURRENT RUNTIME
 
 Principle:
 
 > **Cozy Y2K world, electric digital UI.**
 
-One bundled digital/pixel-like accent font is used only for short electronic system information such as CHIPS numerals, Signal and short Cache/Charged labels.
+Bundled Press Start 2P accent typography is used only for short electronic system information such as CHIPS numerals, Signal and short Cache/Charged labels.
 
 Long copy/navigation remains readable sans.
 
@@ -372,7 +372,7 @@ Rarity standard hierarchy may use escalating electronic shimmer:
 
 ---
 
-# 13. Callouts / variation — LOCKED NEXT
+# 13. Callouts / variation — CURRENT RUNTIME
 
 Important feedback gets longer readable holds, but experienced players can fast-forward.
 
@@ -408,9 +408,11 @@ Do not add a permanent full collection sidebar or permanent odds table to main O
 
 Existing Lite V2 automated/local gates are complete. First hands-on is complete with findings.
 
+Correction implementation + exact-revision screenshot/video + manual review are complete.
+
 Current gate:
 
-> implement `OPENING_FEEL_CORRECTION_SCOPE.md` → exact-revision screenshot/video + manual review → second 20–30 opening hands-on.
+> **second 20–30 opening hands-on on merged `main`**.
 
 Only after acceptance: real Yandex DRAFT.
 
