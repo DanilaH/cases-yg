@@ -56,11 +56,11 @@ Status meanings:
 | Duplicate behavior | LOCKED TARGET | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL`; no manual sell choice |
 | Duplicate CHIPS | OPEN FOR TUNING | rarity-dependent small rebate; exact values TBD |
 | Signal purpose | LOCKED | non-spendable duplicate pity, separate from CHIPS |
-| Signal Lite rule | LOCKED TARGET | any standard duplicate `+1`; `4/4` arms SIGNAL LOCK; next **eligible** standard collectible is undiscovered in active Drop; consume → `0/4` |
+| Signal Lite rule | LOCKED TARGET | any standard duplicate `+1`; `4/4` arms SIGNAL LOCK; the next standard roll that has at least one undiscovered candidate eligible for the selected pouch is guaranteed NEW; consume → `0/4` |
 | Legacy Signal migration | LOCKED TARGET | `newSignal = min(4, floor(oldSignal / 25))`; thus 0–24→0, 25–49→1, 50–74→2, 75–99→3, 100→4/LOCK |
 | Complete Drop + armed Signal | LOCKED TARGET | lock is not wasted/consumed if active Drop has no undiscovered standard item |
-| SIGNAL LOCK × pouch profile | LOCKED TARGET | where eligible missing candidates exist, filter to undiscovered items in active Drop then preserve selected pouch rarity profile; Charged keeps its rarity advantage while guaranteeing NEW |
-| Basic-only zero-eligible Signal edge | OPEN | if only Legendary remains and Basic is selected, strict gate vs pity override is unresolved; see `OPEN_QUESTIONS.md` |
+| SIGNAL LOCK × pouch profile | LOCKED TARGET | filter missing items in active Drop through the selected pouch rarity profile; if eligible NEW candidates exist, preserve that profile and guarantee one; if none exist, resolve the pouch normally and keep SIGNAL armed |
+| Basic-only zero-eligible Signal edge | LOCKED TARGET | **strict Charged gate**: if only Legendary remains, Basic cannot bypass its Legendary=0 rule; Basic still opens normally for collectible/CHIPS/recycle, SIGNAL stays `4/4`, and UI should communicate `SIGNAL LOCK · CHARGED` until an eligible Charged opening consumes it |
 | Charged cost | OPEN FOR TUNING | exact CHIPS price TBD |
 | Base CHIPS payouts | OPEN FOR TUNING | exact Basic/Charged base ranges TBD |
 | CHIPS cache chances/amounts | OPEN FOR TUNING | exact cache tier probabilities and payout ranges TBD |
@@ -84,7 +84,7 @@ Current `main` still uses the pre-Lite Signal model: threshold 100 with rarity-d
 | One-Drop UI | LOCKED | selector hidden while only one Drop exists |
 | Multi-Drop UI | OPEN FOR RELEASE | reveal a compact selector once Drop #2 exists; no separate complex world/map required |
 | Wallet across Drops | LOCKED | CHIPS global |
-| Signal across Drops | LOCKED | Signal meter global, but lock targets undiscovered standard item inside active Drop |
+| Signal across Drops | LOCKED | Signal meter global, but lock targets undiscovered standard item inside active Drop and respects selected pouch eligibility |
 | Drop size | HYPOTHESIS | roughly 3–5 families per Drop is a useful starting heuristic, not a hard rule |
 | Family targeting | PARKED | add only if real completion data shows Drop-level targeting is insufficient |
 
