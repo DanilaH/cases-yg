@@ -1,0 +1,113 @@
+name: Opening Feel Correction R3 Final Audit
+
+on:
+  push:
+    branches:
+      - audit/opening-feel-correction-r3
+    paths:
+      - .github/workflows/opening-feel-correction-r3-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert product tree matches PR candidate exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT_HEAD=89f2a722942886cf5a5aae3acfaf5b70e15c98e3
+          git cat-file -e "$PRODUCT_HEAD^{commit}"
+          unexpected="$(git diff --name-only "$PRODUCT_HEAD"...HEAD | grep -Ev '^\.github/workflows/opening-feel-correction-r3-audit\.yml$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo 'Audit branch changes product files:'
+            echo "$unexpected"
+            exit 1
+          fi
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Prepare pinned audit driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin audit/opening-feel-correction-r1
+          mkdir -p .github/scripts
+          git show 6bee57e6831ded51b07f9d58922175e75f5a0b95:.github/scripts/opening-feel-correction-audit.mjs > .github/scripts/opening-feel-correction-r3-runtime.mjs
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/scripts/opening-feel-correction-r3-runtime.mjs')
+          text = path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one audit patch target, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "const PRODUCT_HEAD = '309c7c86dc4b384aab57dafb1743aa7537594b2f';",
+              "const PRODUCT_HEAD = '89f2a722942886cf5a5aae3acfaf5b70e15c98e3';",
+          )
+          replace_once(
+              "const clickCharged1280 = async (page) => {\n  await page.mouse.click(110, 315);\n  await page.waitForTimeout(180);\n};\n\nconst basicEligible = [",
+              "const clickCharged1280 = async (page) => {\n  await page.mouse.click(110, 315);\n  await page.waitForTimeout(180);\n};\n\nconst humanTap = async (page, x, y, holdMs = 80) => {\n  await page.mouse.move(x, y);\n  await page.mouse.down();\n  await page.waitForTimeout(holdMs);\n  await page.mouse.up();\n};\n\nconst basicEligible = [",
+          )
+          replace_once(
+              "await page.waitForTimeout(1_000);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(170);\nawait shot(page, '06-basic-bank-in-flight');\nawait waitForIdleAfterBank(page, basicCommitted.chips);\nawait shot(page, '07-basic-idle-after-bank');",
+              "await humanTap(page, 640, 568);\nawait page.waitForTimeout(140);\nawait shot(page, '06a-basic-result-ready-after-speedup');\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(120);\nawait shot(page, '06b-basic-bank-in-flight');\nawait page.waitForTimeout(1_050);\nawait shot(page, '07-basic-idle-after-bank');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst basicNextPending = await readSave(page, 'basic-next-after-bank');\nassert(basicNextPending.pendingReveal?.openingNumber === 5, 'Basic banking returns scene to interactive idle', { openingNumber: basicNextPending.pendingReveal?.openingNumber });",
+          )
+          replace_once(
+              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09-mega-bank-and-ready');\nawait waitForIdleAfterBank(page, megaCommitted.chips);\nawait shot(page, '10-mega-idle-after-bank');",
+              "await humanTap(page, 640, 568);\nawait page.waitForTimeout(140);\nawait shot(page, '09a-mega-result-ready-after-speedup');\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09b-mega-bank-and-ready');\nawait page.waitForTimeout(1_050);\nawait shot(page, '10-mega-idle-after-bank');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst megaNextPending = await readSave(page, 'mega-next-after-bank');\nassert(megaNextPending.pendingReveal?.openingNumber === 5, 'Mega banking returns scene to interactive idle', { openingNumber: megaNextPending.pendingReveal?.openingNumber });",
+          )
+          replace_once(
+              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(480);\nawait shot(page, '12-duplicate-bank-signal');\nawait waitForIdleAfterBank(page, duplicateCommitted.chips);\nawait shot(page, '13-duplicate-idle-signal-1');",
+              "await humanTap(page, 640, 568);\nawait page.waitForTimeout(140);\nawait shot(page, '12a-duplicate-result-ready-after-speedup');\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(520);\nawait shot(page, '12b-duplicate-bank-signal');\nawait page.waitForTimeout(900);\nawait shot(page, '13-duplicate-idle-signal-1');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst duplicateNextPending = await readSave(page, 'duplicate-next-after-bank');\nassert(duplicateNextPending.pendingReveal?.openingNumber === 5, 'Duplicate banking returns scene to interactive idle', { openingNumber: duplicateNextPending.pendingReveal?.openingNumber });",
+          )
+          path.write_text(text)
+          PY
+      - name: Install Playwright driver and video helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node node_modules/playwright/cli.js install ffmpeg
+      - name: Start Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run exact-revision browser audit
+        run: node .github/scripts/opening-feel-correction-r3-runtime.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opening-feel-correction-r3-final-audit
+          path: /tmp/opening-feel-correction-audit
+          if-no-files-found: error
+          retention-days: 3
