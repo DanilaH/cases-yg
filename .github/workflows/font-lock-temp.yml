@@ -1,0 +1,33 @@
+name: Font Lock Temp
+
+on:
+  push:
+    branches:
+      - feat/opening-feel-correction
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Add reviewed Cyrillic accent font dependency
+        run: npm install @fontsource/press-start-2p@5.3.0 --save --package-lock-only --ignore-scripts
+      - name: Commit lockfile update
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No package metadata changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "Add Cyrillic digital accent font dependency"
+          git push
