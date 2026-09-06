@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import '@fontsource/press-start-2p/cyrillic-400.css';
+import '@fontsource/press-start-2p/latin-400.css';
 
 import { setPlatformRuntime } from './app/runtime';
 import { createDebugPanel } from './debug/createDebugPanel';
@@ -12,6 +14,18 @@ import { getMessages } from './i18n';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
+const preloadAccentFont = async (): Promise<void> => {
+  if (!('fonts' in document)) return;
+  try {
+    await Promise.race([
+      document.fonts.load('16px "Press Start 2P"'),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
+    ]);
+  } catch {
+    // The Phaser styles keep a deterministic monospace fallback if font loading fails.
+  }
+};
+
 const boot = async (): Promise<void> => {
   const platform = await bootstrapPlatform();
   setPlatformRuntime(platform);
@@ -19,7 +33,7 @@ const boot = async (): Promise<void> => {
   const removeDebugPanel = createDebugPanel(platform);
   const audio = getGameAudio();
   const settings = await loadSettingsSafe(platform.storage);
-  await audio.preloadSamples(getRuntimeSfxAssets());
+  await Promise.all([audio.preloadSamples(getRuntimeSfxAssets()), preloadAccentFont()]);
   audio.setMuted(settings.muted);
 
   document.documentElement.lang = platform.language;

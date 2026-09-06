@@ -4,6 +4,8 @@ export const CHIPS_ACCENT = 0x8df8ff;
 export const CHIPS_TEXT_COLOR = '#8df8ff';
 export const CHARGED_ACCENT = 0x9d7cff;
 export const CHARGED_TEXT_COLOR = '#c7b8ff';
+export const HOT_PINK_ACCENT = 0xff78cb;
+export const DIGITAL_FONT_FAMILY = '"Press Start 2P", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace';
 
 export const createChipToken = (
   scene: Phaser.Scene,
@@ -29,19 +31,38 @@ export const createChargedAura = (
   y: number,
 ): Phaser.GameObjects.Container => {
   const aura = scene.add.container(x, y);
-  const glow = scene.add.ellipse(0, 92, 470, 390, CHARGED_ACCENT, 0.075);
+  const glow = scene.add.ellipse(0, 92, 486, 402, CHARGED_ACCENT, 0.105);
   const ring = scene.add
-    .ellipse(0, 82, 430, 350, CHARGED_ACCENT, 0)
-    .setStrokeStyle(3, CHARGED_ACCENT, 0.32);
+    .ellipse(0, 82, 438, 356, CHARGED_ACCENT, 0)
+    .setStrokeStyle(4, CHARGED_ACCENT, 0.42);
   const innerRing = scene.add
-    .ellipse(0, 80, 372, 302, CHIPS_ACCENT, 0)
-    .setStrokeStyle(2, CHIPS_ACCENT, 0.2);
-  const sparks = [-168, -112, -54, 46, 108, 166].map((sparkX, index) =>
+    .ellipse(0, 80, 382, 310, CHIPS_ACCENT, 0)
+    .setStrokeStyle(2, CHIPS_ACCENT, 0.28);
+  const pinkRing = scene.add
+    .ellipse(0, 82, 410, 334, HOT_PINK_ACCENT, 0)
+    .setStrokeStyle(2, HOT_PINK_ACCENT, 0.17)
+    .setRotation(-0.035);
+  const shimmer = scene.add
+    .rectangle(-150, -54, 92, 330, 0xffffff, 0.055)
+    .setRotation(0.34)
+    .setBlendMode(Phaser.BlendModes.ADD);
+  const sparks = [-176, -122, -62, 42, 112, 174].map((sparkX, index) =>
     scene.add
-      .circle(sparkX, 12 + (index % 2) * 22, index % 3 === 0 ? 4 : 3, index % 2 === 0 ? CHIPS_ACCENT : CHARGED_ACCENT, 0.62)
-      .setStrokeStyle(1, 0xffffff, 0.35),
+      .circle(
+        sparkX,
+        10 + (index % 2) * 24,
+        index % 3 === 0 ? 4 : 3,
+        index % 3 === 0 ? HOT_PINK_ACCENT : index % 2 === 0 ? CHIPS_ACCENT : CHARGED_ACCENT,
+        0.72,
+      )
+      .setStrokeStyle(1, 0xffffff, 0.38),
   );
-  aura.add([glow, ring, innerRing, ...sparks]);
+  aura.add([glow, ring, innerRing, pinkRing, shimmer, ...sparks]);
+  aura.setData('shimmer', shimmer);
+  aura.setData('ring', ring);
+  aura.setData('innerRing', innerRing);
+  aura.setData('pinkRing', pinkRing);
+  aura.setData('sparks', sparks);
   root.add(aura);
   return aura;
 };

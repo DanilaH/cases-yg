@@ -6,6 +6,7 @@ import {
   getCarouselVisualState,
   getCollectiblePresentation,
   MOTION_PRESENTATION,
+  OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
   REVEAL_MOTION_PRESENTATION,
@@ -95,6 +96,14 @@ describe('reveal presentation', () => {
     expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThanOrEqual(0.28);
     expect(REVEAL_FX_PRESETS.legendary.flashAlpha).toBeGreaterThanOrEqual(0.7);
     expect(REVEAL_FX_PRESETS.secret.particleDuration).toBeGreaterThanOrEqual(800);
+  });
+
+  it('keeps the feel-pass interaction timings bounded and compact', () => {
+    expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeGreaterThanOrEqual(80);
+    expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeLessThanOrEqual(180);
+    expect(OPENING_FEEL_PRESENTATION.resultReadHoldMs).toBeGreaterThan(600);
+    expect(OPENING_FEEL_PRESENTATION.bankLegMaxDuration).toBeLessThanOrEqual(500);
+    expect(OPENING_FEEL_PRESENTATION.railCardWidth).toBeLessThanOrEqual(230);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {

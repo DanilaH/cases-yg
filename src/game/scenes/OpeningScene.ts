@@ -11,6 +11,7 @@ import {
   getCarouselVisualState,
   getCollectiblePresentation,
   MOTION_PRESENTATION,
+  OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
   REVEAL_FX_PRESETS,
   REVEAL_MOTION_PRESENTATION,
@@ -24,11 +25,11 @@ import {
   canAffordPouch,
   crossedChargedReadyThreshold,
   getChargedCost,
-  getPreludeChipsAfter,
   isSignalWaitingForCharged,
 } from '../systems/openingEconomy';
 import { OpeningSession } from '../systems/openingSession';
 import { MathRandomSource } from '../systems/random';
+import { PresentationSkipController } from '../systems/presentationSkip';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { persistMutedPreference } from '../systems/settings';
 import { isStandardCollectionComplete } from '../systems/signal';
@@ -43,6 +44,7 @@ import {
 import {
   CHARGED_TEXT_COLOR,
   CHIPS_TEXT_COLOR,
+  DIGITAL_FONT_FAMILY,
   createChargedAura,
   createChipToken,
 } from '../ui/openingEconomyVisuals';
@@ -51,9 +53,9 @@ import { addCoverArt } from '../ui/staticArt';
 const LOGICAL_HEIGHT = 720;
 const POUCH_Y = POUCH_PRESENTATION.groupY;
 const DRAG_THRESHOLD = POUCH_PRESENTATION.dragThreshold;
-const RESULT_HOLD_MS = 600;
+const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;
 
-type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'failed' | 'shutdown';
+type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'banking' | 'failed' | 'shutdown';
 
 interface DragState {
   pointerId: number;
@@ -97,11 +99,14 @@ export class OpeningScene extends Phaser.Scene {
   private resultBreathTarget: Phaser.GameObjects.Container | null = null;
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
-  private pouchSelectorButtons: Phaser.GameObjects.Text[] = [];
+  private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
+  private chipsHudContainer: Phaser.GameObjects.Container | null = null;
   private chipsHudText: Phaser.GameObjects.Text | null = null;
   private chipsHudValue = 0;
   private signalHudContainer: Phaser.GameObjects.Container | null = null;
   private chargedAura: Phaser.GameObjects.Container | null = null;
+  private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
+  private readonly presentationSkip = new PresentationSkipController();
 
   public constructor() {
     super('OpeningScene');
@@ -116,6 +121,7 @@ export class OpeningScene extends Phaser.Scene {
     this.resultReady = false;
     this.deferredResize = false;
     this.ignoreNextResultTap = false;
+    this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
     platform.activity.setGameplayDesired(true);
@@ -171,6 +177,7 @@ export class OpeningScene extends Phaser.Scene {
     this.input.off('pointermove', this.handlePointerMove, this);
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
+    this.presentationSkip.reset();
     this.tweens.killAll();
     getPlatformRuntime().activity.setGameplayDesired(false);
   }
@@ -180,7 +187,7 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
-    if (this.phase === 'revealing') {
+    if (this.phase === 'revealing' || this.phase === 'banking') {
       this.deferredResize = true;
       return;
     }
@@ -217,9 +224,11 @@ export class OpeningScene extends Phaser.Scene {
     this.resultCarouselDrag = null;
     this.resultCarouselZone = null;
     this.pouchSelectorButtons = [];
+    this.chipsHudContainer = null;
     this.chipsHudText = null;
     this.signalHudContainer = null;
     this.chargedAura = null;
+    this.rewardTrayContainer = null;
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -416,6 +425,56 @@ export class OpeningScene extends Phaser.Scene {
     });
   }
 
+  private completeTweenToEnd(tween: Phaser.Tweens.Tween): void {
+    if (!tween.isPlaying() && tween.isFinished()) return;
+    tween.seek(tween.totalDuration, 16.6, false);
+    tween.complete();
+  }
+
+  private runSkippableTween(
+    config: Phaser.Types.Tweens.TweenBuilderConfig,
+    afterComplete?: () => void,
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      let clearSkip = (): void => undefined;
+      const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        clearSkip();
+        afterComplete?.();
+        resolve();
+      };
+      const tween = this.tweens.add({
+        ...config,
+        onComplete: finish,
+      });
+      clearSkip = this.presentationSkip.register(() => this.completeTweenToEnd(tween));
+    });
+  }
+
+  private waitPresentation(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false;
+      let clearSkip = (): void => undefined;
+      const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        clearSkip();
+        resolve();
+      };
+      const timer = this.time.delayedCall(milliseconds, finish);
+      clearSkip = this.presentationSkip.register(() => {
+        timer.remove(false);
+        finish();
+      });
+    });
+  }
+
+  private requestPresentationFastForward(): boolean {
+    return this.presentationSkip.request(this.time.now);
+  }
+
   private renderIdle(message?: string): void {
     if (!this.saveState || this.isSceneShutdown()) return;
 
@@ -439,6 +498,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+    this.applyChargedPouchTreatment();
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
     this.renderPouchSelector(root);
     this.startStarPulse();
@@ -493,35 +553,55 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.metrics) return;
     const messages = getMessages(getPlatformRuntime().language);
     const x = this.metrics.safeLeft;
-    const y = this.metrics.safeTop + 8;
-    const token = createChipToken(this, x + 10, y + 11, 0.72);
+    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset;
+    const width = OPENING_FEEL_PRESENTATION.chipsHudWidth;
+    const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
+    const container = this.add.container(x, y);
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.88);
+    background.fillRoundedRect(0, 0, width, height, 18);
+    background.lineStyle(2, 0x8df8ff, 0.34);
+    background.strokeRoundedRect(0, 0, width, height, 18);
+    const glow = this.add.graphics();
+    glow.lineStyle(5, 0x8df8ff, 0.08);
+    glow.strokeRoundedRect(2, 2, width - 4, height - 4, 16);
+    const token = createChipToken(this, 25, height / 2, 0.9);
     const label = this.add
-      .text(x + 30, y, `${messages.opening.chips} ${Math.max(0, Math.floor(chips))}`, {
-        color: CHIPS_TEXT_COLOR,
-        stroke: '#160f20',
-        strokeThickness: 2,
-        fontFamily: 'monospace',
-        fontSize: '17px',
-        fontStyle: 'bold',
+      .text(49, 12, messages.opening.chips, {
+        color: '#bffaff',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '9px',
       })
       .setOrigin(0, 0);
-    root.add([token, label]);
-    this.chipsHudText = label;
+    const valueText = this.add
+      .text(48, 34, `${Math.max(0, Math.floor(chips))}`, {
+        color: '#f4feff',
+        stroke: '#11333b',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '20px',
+      })
+      .setOrigin(0, 0.5);
+    container.add([glow, background, token, label, valueText]);
+    root.add(container);
+    this.chipsHudContainer = container;
+    this.chipsHudText = valueText;
     this.chipsHudValue = Math.max(0, Math.floor(chips));
   }
 
   private setChipsHudValue(value: number, pulse = false): void {
     if (!this.chipsHudText) return;
-    const messages = getMessages(getPlatformRuntime().language);
     this.chipsHudValue = Math.max(0, Math.floor(value));
-    this.chipsHudText.setText(`${messages.opening.chips} ${this.chipsHudValue}`);
-    if (!pulse) return;
-    this.tweens.killTweensOf(this.chipsHudText);
-    this.chipsHudText.setScale(1);
+    this.chipsHudText.setText(`${this.chipsHudValue}`);
+    if (!pulse || !this.chipsHudContainer) return;
+    this.tweens.killTweensOf(this.chipsHudContainer);
+    this.chipsHudContainer.setScale(1).setX(this.metrics?.safeLeft ?? this.chipsHudContainer.x);
+    const baseX = this.chipsHudContainer.x;
     this.tweens.add({
-      targets: this.chipsHudText,
-      scale: 1.1,
-      duration: 105,
+      targets: this.chipsHudContainer,
+      scale: 1.055,
+      x: baseX + 3,
+      duration: 90,
       yoyo: true,
       ease: 'Sine.Out',
     });
@@ -539,35 +619,48 @@ export class OpeningScene extends Phaser.Scene {
       ? messages.opening.signalCharged
       : clamped >= threshold
         ? messages.opening.signalLock
-        : `SIGNAL ${clamped}/${threshold}`;
+        : 'SIGNAL';
     const x = this.metrics.safeLeft;
-    const y = this.metrics.safeTop + 48;
+    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + OPENING_FEEL_PRESENTATION.chipsHudHeight + 10;
+    const width = OPENING_FEEL_PRESENTATION.signalHudWidth;
+    const height = OPENING_FEEL_PRESENTATION.signalHudHeight;
     const container = this.add.container(x, y);
-    const label = this.add.text(0, 0, labelText, {
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.82);
+    background.fillRoundedRect(0, 0, width, height, 18);
+    background.lineStyle(1.5, waitingForCharged ? 0x9d7cff : 0x76e9f5, 0.32);
+    background.strokeRoundedRect(0, 0, width, height, 18);
+    const label = this.add.text(14, 12, labelText, {
       color: waitingForCharged ? CHARGED_TEXT_COLOR : '#b9f7ff',
       stroke: '#160f20',
       strokeThickness: 2,
-      fontFamily: 'monospace',
-      fontSize: waitingForCharged ? '14px' : '15px',
-      fontStyle: 'bold',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: waitingForCharged ? '8px' : '10px',
     });
-    container.add(label);
+    const value = this.add.text(width - 14, 12, `${clamped}/${threshold}`, {
+      color: '#f7fdff',
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '10px',
+    }).setOrigin(1, 0);
+    container.add([background, label, value]);
 
-    const segmentWidth = 34;
+    const segmentWidth = 38;
     const segmentGap = 7;
     for (let index = 0; index < threshold; index += 1) {
       const active = index < clamped;
       const segment = this.add
         .rectangle(
-          index * (segmentWidth + segmentGap),
-          31,
+          14 + index * (segmentWidth + segmentGap),
+          54,
           segmentWidth,
           10,
           active ? (waitingForCharged ? 0x9d7cff : 0x76e9f5) : 0x3a3146,
-          active ? 0.96 : 0.82,
+          active ? 0.98 : 0.72,
         )
         .setOrigin(0, 0.5)
-        .setStrokeStyle(1, active ? 0xeefcff : 0x766b82, active ? 0.38 : 0.2);
+        .setStrokeStyle(1, active ? 0xeefcff : 0x766b82, active ? 0.5 : 0.18);
       container.add(segment);
     }
 
@@ -580,89 +673,208 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
     const cost = getChargedCost(LITE_V2_BALANCE);
     const chargedAvailable = canAffordPouch(this.saveState, 'charged', LITE_V2_BALANCE);
-    const y = 96;
+    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
+    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const railX = this.metrics.safeLeft;
+    const labelY = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.selectorTopOffset;
 
-    const createButton = (
+    const sectionLabel = this.add.text(railX + 2, labelY, 'POUCH', {
+      color: '#d8cced',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '9px',
+    });
+    root.add(sectionLabel);
+
+    const createCard = (
       pouchType: PouchType,
-      x: number,
-      label: string,
+      y: number,
+      title: string,
+      subtitle: string,
       available: boolean,
-    ): Phaser.GameObjects.Text => {
+    ): Phaser.GameObjects.Container => {
       const selected = this.selectedPouchType === pouchType;
-      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.62;
-      const button = this.add
-        .text(x, y, label, {
-          color: available
-            ? pouchType === 'charged'
-              ? CHARGED_TEXT_COLOR
-              : '#f7f2ff'
-            : '#a69ab2',
-          backgroundColor: selected
-            ? pouchType === 'charged'
-              ? '#443668'
-              : '#493a5d'
-            : '#2b2237',
-          padding: { x: 13, y: 8 },
-          fontFamily: 'monospace',
-          fontSize: '13px',
-          fontStyle: selected ? 'bold' : 'normal',
-        })
-        .setOrigin(0.5)
-        .setAlpha(idleAlpha);
-      button.setData('available', available);
-      button.setData('idleAlpha', idleAlpha);
-      if (available) {
-        button.setInteractive({ useHandCursor: true });
-        button.on('pointerup', () => this.selectPouchType(pouchType));
+      const charged = pouchType === 'charged';
+      const card = this.add.container(railX, y);
+      const background = this.add.graphics();
+      const fill = selected ? (charged ? 0x30234a : 0x282034) : 0x17101f;
+      const border = charged ? (selected ? CHARGED_ACCENT : 0x77629e) : selected ? 0xf0ddff : 0x6e627d;
+      background.fillStyle(fill, available ? 0.92 : 0.58);
+      background.fillRoundedRect(0, 0, width, height, 16);
+      background.lineStyle(selected ? 2.5 : 1.5, border, selected ? 0.88 : 0.34);
+      background.strokeRoundedRect(0, 0, width, height, 16);
+      if (selected) {
+        const glow = this.add.graphics();
+        glow.lineStyle(5, charged ? CHARGED_ACCENT : 0xf0ddff, charged ? 0.1 : 0.06);
+        glow.strokeRoundedRect(2, 2, width - 4, height - 4, 14);
+        card.add(glow);
       }
-      root.add(button);
-      this.pouchSelectorButtons.push(button);
-      return button;
+      const marker = this.add
+        .text(13, height / 2, selected ? '◆' : '◇', {
+          color: selected ? (charged ? '#c7b8ff' : '#ffffff') : '#81758f',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '15px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(0, 0.5);
+      const titleText = this.add.text(38, 11, title, {
+        color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#8f839b',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '8px' : '9px',
+      });
+      const subtitleText = this.add.text(38, 35, subtitle, {
+        color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#7e7289',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '8px',
+      });
+      card.add([background, marker, titleText, subtitleText]);
+      card.setSize(width, height).setInteractive({ useHandCursor: true });
+      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.68;
+      card.setAlpha(idleAlpha);
+      card.setData('available', available);
+      card.setData('idleAlpha', idleAlpha);
+      card.setData('pouchType', pouchType);
+      card.on('pointerover', () => {
+        if (this.phase !== 'idle') return;
+        this.tweens.killTweensOf(card);
+        this.tweens.add({ targets: card, scale: 1.025, duration: 90, ease: 'Sine.Out' });
+      });
+      card.on('pointerout', () => {
+        if (this.phase !== 'idle') return;
+        this.tweens.killTweensOf(card);
+        this.tweens.add({ targets: card, scale: 1, duration: 110, ease: 'Sine.Out' });
+      });
+      card.on('pointerdown', () => {
+        if (this.phase !== 'idle') return;
+        this.tweens.killTweensOf(card);
+        this.tweens.add({ targets: card, scale: 0.985, duration: 55, ease: 'Sine.Out' });
+      });
+      card.on('pointerup', () => {
+        if (this.phase !== 'idle') return;
+        if (!available) {
+          this.showUnavailableChargedFeedback(card);
+          return;
+        }
+        this.selectPouchType(pouchType, card);
+      });
+      root.add(card);
+      this.pouchSelectorButtons.push(card);
+      return card;
     };
 
-    createButton(
+    const firstCardY = labelY + 20;
+    createCard(
       'basic',
-      this.metrics.centerX - 110,
-      `${messages.opening.basicPouch} · ${messages.opening.free}`,
+      firstCardY,
+      messages.opening.basicPouch,
+      messages.opening.free,
       true,
     );
-    createButton(
+    createCard(
       'charged',
-      this.metrics.centerX + 110,
+      firstCardY + height + OPENING_FEEL_PRESENTATION.railGap,
+      `⚡ ${messages.opening.chargedPouch}`,
       chargedAvailable
-        ? `⚡ ${messages.opening.chargedPouch} · ${cost} ${messages.opening.chips}`
-        : `⚡ ${messages.opening.chargedPouch} · ${this.saveState.chips}/${cost}`,
+        ? `${cost} ${messages.opening.chips}`
+        : `${this.saveState.chips}/${cost} ${messages.opening.chips}`,
       chargedAvailable,
     );
   }
 
-  private selectPouchType(pouchType: PouchType): void {
+  private showUnavailableChargedFeedback(card: Phaser.GameObjects.Container): void {
+    if (!this.chipsHudContainer) return;
+    const baseX = card.x;
+    this.tweens.killTweensOf(card);
+    card.setScale(1);
+    this.tweens.add({
+      targets: card,
+      x: baseX + 6,
+      duration: 55,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Sine.InOut',
+      onComplete: () => card.setX(baseX),
+    });
+    this.setChipsHudValue(this.chipsHudValue, true);
+  }
+
+  private selectPouchType(pouchType: PouchType, sourceCard?: Phaser.GameObjects.Container): void {
     if (this.phase !== 'idle' || !this.saveState || this.selectedPouchType === pouchType) return;
     if (!canAffordPouch(this.saveState, pouchType, LITE_V2_BALANCE)) return;
     this.selectedPouchType = pouchType;
-    this.time.delayedCall(0, () => {
+    if (sourceCard) {
+      this.tweens.killTweensOf(sourceCard);
+      this.tweens.add({ targets: sourceCard, scale: 1.04, duration: 80, yoyo: true, ease: 'Back.Out' });
+    }
+    if (this.pouch) {
+      this.tweens.killTweensOf(this.pouch.group);
+      this.tweens.add({
+        targets: this.pouch.group,
+        scale: 0.97,
+        alpha: 0.78,
+        duration: 90,
+        ease: 'Sine.In',
+      });
+    }
+    this.time.delayedCall(95, () => {
       if (this.phase === 'idle') this.renderIdle();
     });
   }
 
   private renderChargedPouchAura(root: Phaser.GameObjects.Container): void {
     if (!this.metrics) return;
-    const aura = createChargedAura(this, root, this.metrics.centerX, POUCH_Y - 12).setAlpha(0.82);
+    const aura = createChargedAura(this, root, this.metrics.centerX, POUCH_Y - 12).setAlpha(0.86);
     this.chargedAura = aura;
+    const shimmer = aura.getData('shimmer') as Phaser.GameObjects.Rectangle | undefined;
+    const ring = aura.getData('ring') as Phaser.GameObjects.Arc | undefined;
+    const innerRing = aura.getData('innerRing') as Phaser.GameObjects.Arc | undefined;
+    const pinkRing = aura.getData('pinkRing') as Phaser.GameObjects.Arc | undefined;
     this.tweens.add({
       targets: aura,
-      scale: 1.025,
+      scale: 1.035,
       alpha: 1,
-      duration: 760,
+      duration: 690,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.InOut',
     });
+    if (shimmer) {
+      this.tweens.add({
+        targets: shimmer,
+        x: 155,
+        alpha: { from: 0.025, to: 0.1 },
+        duration: 1350,
+        repeat: -1,
+        repeatDelay: 380,
+        ease: 'Sine.InOut',
+      });
+    }
+    if (ring) this.tweens.add({ targets: ring, angle: 2.5, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    if (innerRing) this.tweens.add({ targets: innerRing, angle: -2, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    if (pinkRing) this.tweens.add({ targets: pinkRing, alpha: { from: 0.42, to: 0.82 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  }
+
+  private applyChargedPouchTreatment(): void {
+    if (!this.pouch || this.selectedPouchType !== 'charged') return;
+    const tintChildren = (container: Phaser.GameObjects.Container): void => {
+      for (const child of container.list) {
+        if (child instanceof Phaser.GameObjects.Image) {
+          child.setTint(0xc9f6ff, 0xc4b4ff, 0xffb5e4, 0xa9e8ff);
+        } else if (child instanceof Phaser.GameObjects.Container) {
+          tintChildren(child);
+        }
+      }
+    };
+    tintChildren(this.pouch.bodyLayer);
+    tintChildren(this.pouch.strip);
+    tintChildren(this.pouch.tab);
   }
 
   private getChipsHudTarget(): { x: number; y: number } {
     if (!this.metrics) return { x: 36, y: 24 };
-    return { x: this.metrics.safeLeft + 10, y: this.metrics.safeTop + 19 };
+    return {
+      x: this.metrics.safeLeft + 25,
+      y: this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + OPENING_FEEL_PRESENTATION.chipsHudHeight / 2,
+    };
   }
 
   private createCollectionButton(root: Phaser.GameObjects.Container, enabled: boolean): void {
@@ -728,10 +940,9 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     for (const button of this.pouchSelectorButtons) {
-      const available = Boolean(button.getData('available'));
       const idleAlpha = Number(button.getData('idleAlpha') ?? 1);
-      button.setAlpha(enabled ? idleAlpha : 0);
-      if (enabled && available) {
+      button.setAlpha(enabled ? idleAlpha : 0.16);
+      if (enabled) {
         button.setInteractive({ useHandCursor: true });
       } else {
         button.disableInteractive();
@@ -750,10 +961,33 @@ export class OpeningScene extends Phaser.Scene {
       progress: 0,
     };
     this.setChromeEnabled(false);
+    this.tweens.killTweensOf(this.pouch.tab);
+    this.tweens.killTweensOf(this.pouch.group);
+    this.tweens.add({
+      targets: this.pouch.tab,
+      scale: 1.12,
+      duration: 70,
+      ease: 'Back.Out',
+    });
+    this.tweens.add({
+      targets: this.pouch.group,
+      scaleX: 1.012,
+      scaleY: 0.992,
+      duration: 90,
+      ease: 'Sine.Out',
+    });
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.phase === 'revealing' || this.phase === 'banking') {
+      this.requestPresentationFastForward();
+      return;
+    }
+
     if (this.phase !== 'result') return;
+    if (!this.resultReady && this.requestPresentationFastForward()) {
+      return;
+    }
     if (this.resultCarouselDrag?.pointerId === pointer.id) return;
     this.resultCarouselDrag = {
       pointerId: pointer.id,
@@ -792,7 +1026,9 @@ export class OpeningScene extends Phaser.Scene {
     this.drag.progress = progress;
     const tabX = this.pouch.tabStartX + travel * progress;
     this.pouch.tab.setX(tabX);
+    this.pouch.tab.setScale(1.12 - progress * 0.04);
     this.pouch.strip.setAlpha(1 - progress * 0.08);
+    this.pouch.group.setScale(1 + progress * 0.018, 1 - progress * 0.012);
 
     if (progress >= 1) {
       const firstInteraction = this.saveState?.totalOpens === 0 && !this.firstInteractionTracked;
@@ -853,6 +1089,7 @@ export class OpeningScene extends Phaser.Scene {
     this.tweens.add({
       targets: pouch.tab,
       x: pouch.tabStartX,
+      scale: 1,
       duration: 170,
       ease: 'Sine.Out',
       onComplete: () => {
@@ -865,6 +1102,13 @@ export class OpeningScene extends Phaser.Scene {
       duration: 140,
       ease: 'Sine.Out',
     });
+    this.tweens.add({
+      targets: pouch.group,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 150,
+      ease: 'Sine.Out',
+    });
   }
 
   private async completeTear(firstInteraction: boolean): Promise<void> {
@@ -873,6 +1117,7 @@ export class OpeningScene extends Phaser.Scene {
     this.stopStarPulse();
     this.phase = 'revealing';
     this.drag = null;
+    this.presentationSkip.guardUntilTime(this.time.now + OPENING_FEEL_PRESENTATION.postTearSkipGuardMs);
     this.pouch?.dragZone.disableInteractive();
     this.setChromeEnabled(false);
     getGameAudio().play('tear');
@@ -920,11 +1165,6 @@ export class OpeningScene extends Phaser.Scene {
 
       await this.animatePostStandardEconomy(pending, standardVisual);
       if (this.isSceneShutdown()) return;
-      if (crossedChargedReadyThreshold(pending, LITE_V2_BALANCE)) {
-        this.showChargedReadyBeat();
-        await this.wait(850);
-        if (this.isSceneShutdown()) return;
-      }
 
       if (pending.hiddenPocket) {
         await this.animateHiddenPocket(pending, standardVisual);
@@ -956,7 +1196,7 @@ export class OpeningScene extends Phaser.Scene {
     this.deferredResize = false;
     this.renderResolvedResult(pending);
 
-    await this.wait(RESULT_HOLD_MS);
+    await this.waitPresentation(RESULT_HOLD_MS);
     if (this.phase !== 'result') return;
     this.resultReady = true;
     this.renderResultActionPanel(pending);
@@ -967,107 +1207,27 @@ export class OpeningScene extends Phaser.Scene {
     const pouch = this.pouch;
     const originalY = pouch.group.y;
 
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: pouch.strip,
-        x: recovered ? 130 : 172,
-        alpha: 0,
-        duration: recovered ? 100 : 155,
-        ease: 'Cubic.In',
-        onComplete: () => resolve(),
-      });
-    });
-
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: pouch.group,
-        y: originalY + 8,
-        duration: 55,
-        yoyo: true,
-        ease: 'Sine.InOut',
-        onComplete: () => resolve(),
-      });
-    });
-  }
-
-  private async animateChipReward(
-    labelText: string,
-    targetValue: number,
-    tokenCount: number,
-    labelColor = CHIPS_TEXT_COLOR,
-    emphasis = 1,
-  ): Promise<void> {
-    if (!this.root || !this.metrics) return;
-    const root = this.root;
-    const centerX = this.metrics.centerX;
-    const spawnY = POUCH_Y - 60;
-    const label = this.add
-      .text(centerX, 207, labelText, {
-        color: labelColor,
-        stroke: '#160f20',
-        strokeThickness: 3,
-        fontFamily: 'monospace',
-        fontSize: emphasis > 1.15 ? '23px' : '19px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setScale(0.82);
-    root.add(label);
-
-    const tokens: Phaser.GameObjects.Container[] = [];
-    for (let index = 0; index < tokenCount; index += 1) {
-      const spread = (index - (tokenCount - 1) / 2) * 25;
-      const token = createChipToken(this, centerX, spawnY, 0.48 + (index % 2) * 0.08).setAlpha(0);
-      root.add(token);
-      tokens.push(token);
-      this.tweens.add({
-        targets: token,
-        x: centerX + spread,
-        y: spawnY + 24 + (index % 3) * 12,
-        alpha: 1,
-        scale: 0.92 + emphasis * 0.12,
-        angle: (index % 2 === 0 ? 1 : -1) * (16 + index * 3),
-        duration: 125 + index * 8,
-        ease: 'Back.Out',
-      });
-    }
-    this.tweens.add({
-      targets: label,
-      alpha: 1,
-      scale: emphasis,
-      duration: 135,
-      ease: 'Back.Out',
-    });
-
-    await this.wait(145);
-    if (!this.root || this.isSceneShutdown()) return;
-    const target = this.getChipsHudTarget();
-    tokens.forEach((token, index) => {
-      this.tweens.add({
-        targets: token,
-        x: target.x,
-        y: target.y,
-        scale: 0.36,
-        alpha: 0.18,
-        angle: token.angle + 70,
-        delay: index * 14,
-        duration: 205,
-        ease: 'Cubic.In',
-        onComplete: () => token.destroy(),
-      });
-    });
-    this.tweens.add({
-      targets: label,
-      y: label.y - 18,
+    await this.runSkippableTween({
+      targets: pouch.strip,
+      x: recovered ? 130 : 172,
       alpha: 0,
-      delay: 70,
-      duration: 210,
-      ease: 'Sine.In',
-      onComplete: () => label.destroy(),
+      duration: recovered ? 100 : 155,
+      ease: 'Cubic.In',
     });
-    await this.wait(235 + tokenCount * 14);
-    this.setChipsHudValue(targetValue, true);
+    if (this.isSceneShutdown()) return;
+
+    await this.runSkippableTween({
+      targets: pouch.group,
+      y: originalY + 10,
+      scaleX: 1.025,
+      scaleY: 0.975,
+      duration: recovered ? 45 : 62,
+      yoyo: true,
+      ease: 'Sine.InOut',
+    });
+    if (!recovered && !this.isSceneShutdown()) {
+      await this.waitPresentation(72);
+    }
   }
 
   private getCacheLabel(tier: ChipsCacheTierId): string | null {
@@ -1083,180 +1243,373 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
     const afterSpend = pending.chips.before - pending.chips.cost;
 
-    if (pending.chips.cost > 0) {
-      this.setChipsHudValue(afterSpend, true);
-      const spend = this.add
-        .text(
-          this.metrics.centerX,
-          157,
-          `⚡ ${messages.opening.chargedPouch} −${pending.chips.cost} ${messages.opening.chips}`,
-          {
-            color: CHARGED_TEXT_COLOR,
-            stroke: '#160f20',
-            strokeThickness: 2,
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            fontStyle: 'bold',
-          },
-        )
-        .setOrigin(0.5);
-      this.root.add(spend);
-      this.tweens.add({
-        targets: spend,
-        alpha: 0,
-        y: spend.y - 12,
-        delay: 110,
-        duration: 220,
-        onComplete: () => spend.destroy(),
-      });
-    }
+    // Earned CHIPS stay staged with the result. Only the Charged spend is reflected
+    // immediately because the player already chose and paid for that pouch.
+    if (pending.chips.cost <= 0) return;
 
-    await this.animateChipReward(
-      `+${pending.chips.base} ${messages.opening.chips}`,
-      afterSpend + pending.chips.base,
-      4,
-    );
-    if (this.isSceneShutdown()) return;
-
-    const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
-    if (cacheLabel && pending.chips.cacheBonus > 0) {
-      const mega = pending.chips.cacheTier === 'mega';
-      const big = pending.chips.cacheTier === 'big';
-      await this.animateChipReward(
-        `${cacheLabel} +${pending.chips.cacheBonus}`,
-        getPreludeChipsAfter(pending),
-        mega ? 9 : big ? 7 : 5,
-        mega ? '#ffe59a' : big ? CHARGED_TEXT_COLOR : CHIPS_TEXT_COLOR,
-        mega ? 1.24 : big ? 1.15 : 1.08,
-      );
-    }
-  }
-
-  private updateSignalHudFromPending(pending: PendingReveal): void {
-    if (!this.root || !this.saveState) return;
-    const discoveredStandard = pending.standard.isNew
-      ? [...this.saveState.discoveredStandard, pending.standard.collectibleId]
-      : [...this.saveState.discoveredStandard];
-    this.renderSignalHud(this.root, {
-      ...this.saveState,
-      signal: pending.signal.after,
-      discoveredStandard,
-    });
-  }
-
-  private async animateDuplicateRecycle(
-    pending: PendingReveal,
-    standardVisual: Phaser.GameObjects.Container,
-  ): Promise<void> {
-    if (!this.root || !this.metrics || pending.chips.recycle <= 0) {
-      this.updateSignalHudFromPending(pending);
-      return;
-    }
-
-    const messages = getMessages(getPlatformRuntime().language);
-    const heroY = getCollectiblePresentation(pending.standard.familyId).revealY;
-    const label = this.add
+    this.setChipsHudValue(afterSpend, true);
+    const spend = this.add
       .text(
         this.metrics.centerX,
-        Math.min(500, heroY + 165),
-        `${messages.opening.recycled} +${pending.chips.recycle} ${messages.opening.chips}`,
+        160,
+        `⚡ −${pending.chips.cost} ${messages.opening.chips}`,
         {
-          color: CHIPS_TEXT_COLOR,
+          color: CHARGED_TEXT_COLOR,
           stroke: '#160f20',
-          strokeThickness: 3,
-          fontFamily: 'monospace',
-          fontSize: '17px',
-          fontStyle: 'bold',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '10px',
         },
       )
       .setOrigin(0.5)
-      .setAlpha(0);
-    this.root.add(label);
+      .setAlpha(0)
+      .setScale(0.92);
+    this.root.add(spend);
+    this.tweens.add({
+      targets: spend,
+      alpha: 1,
+      scale: 1,
+      duration: 100,
+      ease: 'Sine.Out',
+    });
+    await this.waitPresentation(210);
+    if (!spend.active) return;
+    this.tweens.add({
+      targets: spend,
+      alpha: 0,
+      y: spend.y - 10,
+      duration: 140,
+      onComplete: () => spend.destroy(),
+    });
+  }
 
-    const tokenCount = Math.min(5, Math.max(2, pending.chips.recycle <= 2 ? 2 : 3));
-    const tokens: Phaser.GameObjects.Container[] = [];
+  private getRewardTrayAnchor(): { x: number; y: number } {
+    if (!this.metrics) return { x: 340, y: 468 };
+    const trayWidth = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
+    const preferredX = this.metrics.centerX - 145;
+    const minX =
+      this.metrics.safeLeft +
+      OPENING_FEEL_PRESENTATION.railCardWidth +
+      OPENING_FEEL_PRESENTATION.rewardTrayMinGapFromRail +
+      trayWidth / 2;
+    const maxX = this.metrics.safeRight - trayWidth / 2;
+    return {
+      x: Phaser.Math.Clamp(preferredX, Math.min(minX, maxX), maxX),
+      y: 466,
+    };
+  }
+
+  private renderRewardTray(
+    pending: PendingReveal,
+    root: Phaser.GameObjects.Container,
+    animate = false,
+  ): Phaser.GameObjects.Container {
+    this.rewardTrayContainer?.destroy(true);
+    const messages = getMessages(getPlatformRuntime().language);
+    const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
+    const rows: Array<{ text: string; color: string }> = [
+      { text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
+    ];
+    if (cacheLabel && pending.chips.cacheBonus > 0) {
+      rows.push({
+        text: `${cacheLabel} +${pending.chips.cacheBonus}`,
+        color: pending.chips.cacheTier === 'mega' ? '#ffe59a' : pending.chips.cacheTier === 'big' ? CHARGED_TEXT_COLOR : CHIPS_TEXT_COLOR,
+      });
+    }
+    if (pending.chips.recycle > 0) {
+      rows.push({ text: `${messages.opening.recycled} +${pending.chips.recycle}`, color: '#aefcff' });
+    }
+    if (pending.signal.gain > 0) {
+      rows.push({ text: `+${pending.signal.gain} SIGNAL`, color: '#b7a7ff' });
+    }
+
+    const anchor = this.getRewardTrayAnchor();
+    const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
+    const height = 30 + rows.length * 22;
+    const tray = this.add.container(anchor.x, anchor.y - height / 2);
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.86);
+    background.fillRoundedRect(-width / 2, 0, width, height, 16);
+    background.lineStyle(1.5, 0x8df8ff, 0.26);
+    background.strokeRoundedRect(-width / 2, 0, width, height, 16);
+    const header = this.add.text(-width / 2 + 13, 10, 'REWARD', {
+      color: '#d9cbef',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '7px',
+    });
+    tray.add([background, header]);
+    rows.forEach((row, index) => {
+      const token = index < 3 ? createChipToken(this, -width / 2 + 17, 31 + index * 22, 0.42) : null;
+      const text = this.add.text(-width / 2 + 31, 26 + index * 22, row.text, {
+        color: row.color,
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '7px' : '8px',
+      });
+      if (token) tray.add(token);
+      tray.add(text);
+    });
+    root.add(tray);
+    this.rewardTrayContainer = tray;
+    if (animate) {
+      tray.setAlpha(0).setScale(0.94).setY(tray.y + 10);
+      this.tweens.add({
+        targets: tray,
+        alpha: 1,
+        scale: 1,
+        y: tray.y - 10,
+        duration: 170,
+        ease: 'Back.Out',
+      });
+    }
+    return tray;
+  }
+
+  private async animateRewardStaging(
+    pending: PendingReveal,
+    standardVisual: Phaser.GameObjects.Container,
+  ): Promise<void> {
+    if (!this.root || !this.metrics) return;
+    const tray = this.renderRewardTray(pending, this.root, true);
+    const anchor = this.getRewardTrayAnchor();
+    const heroY = getCollectiblePresentation(pending.standard.familyId).revealY;
+
+    if (!pending.standard.isNew && pending.chips.recycle > 0) {
+      const scan = this.add
+        .rectangle(this.metrics.centerX - 82, heroY, 12, 170, 0x8df8ff, 0.12)
+        .setRotation(0.16)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      this.root.add(scan);
+      this.tweens.add({
+        targets: scan,
+        x: this.metrics.centerX + 82,
+        alpha: 0,
+        duration: 220,
+        ease: 'Sine.Out',
+        onComplete: () => scan.destroy(),
+      });
+      const tokenCount = Math.min(3, Math.max(2, pending.chips.recycle >= 8 ? 3 : 2));
+      for (let index = 0; index < tokenCount; index += 1) {
+        const token = createChipToken(
+          this,
+          standardVisual.x + (index - (tokenCount - 1) / 2) * 22,
+          heroY + 46 + (index % 2) * 10,
+          0.62,
+        );
+        this.root.add(token);
+        this.tweens.add({
+          targets: token,
+          x: anchor.x - 70 + index * 18,
+          y: tray.y + 48,
+          scale: 0.42,
+          alpha: 0.68,
+          angle: (index % 2 === 0 ? 1 : -1) * 55,
+          delay: index * 18,
+          duration: 220,
+          ease: 'Cubic.InOut',
+          onComplete: () => token.destroy(),
+        });
+      }
+    }
+
+    await this.waitPresentation(440);
+  }
+
+  private getResultPresentationState(pending: PendingReveal): SaveState | null {
+    if (!this.saveState) return null;
+    const visualSignal = pending.signal.gain > 0 ? pending.signal.before : pending.signal.after;
+    return {
+      ...this.saveState,
+      chips: pending.chips.before - pending.chips.cost,
+      signal: visualSignal,
+    };
+  }
+
+  private async bankChipLeg(
+    targetValue: number,
+    emphasis: number,
+    chargedReadyOnArrival: boolean,
+  ): Promise<void> {
+    if (!this.root || !this.metrics || targetValue <= this.chipsHudValue) return;
+    const startValue = this.chipsHudValue;
+    const delta = targetValue - startValue;
+    const duration = Phaser.Math.Clamp(
+      OPENING_FEEL_PRESENTATION.bankLegMinDuration + Math.min(72, delta) * 3,
+      OPENING_FEEL_PRESENTATION.bankLegMinDuration,
+      OPENING_FEEL_PRESENTATION.bankLegMaxDuration,
+    );
+    const origin = this.getRewardTrayAnchor();
+    const target = this.getChipsHudTarget();
+    const tokenCount = emphasis >= 1.2 ? 5 : emphasis >= 1.1 ? 4 : 3;
+    const tweens: Phaser.Tweens.Tween[] = [];
+    const counter = { value: startValue };
+
     for (let index = 0; index < tokenCount; index += 1) {
       const token = createChipToken(
         this,
-        standardVisual.x + (index - (tokenCount - 1) / 2) * 20,
-        heroY + 56 + (index % 2) * 10,
-        0.7,
+        origin.x - 52 + index * 21,
+        origin.y + 8 + (index % 2) * 8,
+        0.54 + (index % 2) * 0.06,
       );
       this.root.add(token);
-      tokens.push(token);
-    }
-
-    this.tweens.add({ targets: label, alpha: 1, y: label.y - 8, duration: 130, ease: 'Sine.Out' });
-    await this.wait(115);
-    const chipsTarget = this.getChipsHudTarget();
-    tokens.forEach((token, index) => {
-      this.tweens.add({
+      const delay = index * 22;
+      const tween = this.tweens.add({
         targets: token,
-        x: chipsTarget.x,
-        y: chipsTarget.y,
-        scale: 0.32,
-        alpha: 0.15,
-        delay: index * 18,
-        duration: 230,
+        x: target.x,
+        y: target.y,
+        scale: 0.3,
+        alpha: 0.12,
+        angle: token.angle + (index % 2 === 0 ? 95 : -95),
+        delay,
+        duration: Math.max(120, duration - delay),
         ease: 'Cubic.In',
         onComplete: () => token.destroy(),
       });
-    });
-
-    if (pending.signal.gain > 0) {
-      const signalSpark = this.add
-        .circle(this.metrics.centerX, heroY + 36, 8, 0x76e9f5, 0.92)
-        .setStrokeStyle(2, 0xffffff, 0.52);
-      this.root.add(signalSpark);
-      this.tweens.add({
-        targets: signalSpark,
-        x: this.metrics.safeLeft + 70,
-        y: this.metrics.safeTop + 79,
-        scale: 0.35,
-        alpha: 0.18,
-        duration: 255,
-        ease: 'Cubic.In',
-        onComplete: () => signalSpark.destroy(),
-      });
+      tweens.push(tween);
     }
 
-    this.tweens.add({
-      targets: label,
-      alpha: 0,
-      delay: 130,
-      duration: 180,
-      onComplete: () => label.destroy(),
+    getGameAudio().play('chips-collect');
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      let clearSkip = (): void => undefined;
+      const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        clearSkip();
+        this.setChipsHudValue(targetValue, true);
+        if (chargedReadyOnArrival) this.showChargedReadyBeat();
+        resolve();
+      };
+      const counterTween = this.tweens.add({
+        targets: counter,
+        value: targetValue,
+        duration,
+        ease: 'Cubic.Out',
+        onUpdate: () => this.setChipsHudValue(Math.round(counter.value), false),
+        onComplete: finish,
+      });
+      tweens.push(counterTween);
+      clearSkip = this.presentationSkip.register(() => {
+        for (const tween of tweens) this.completeTweenToEnd(tween);
+        finish();
+      });
     });
-    await this.wait(270 + tokenCount * 18);
-    this.setChipsHudValue(pending.chips.after, true);
-    this.updateSignalHudFromPending(pending);
+  }
+
+  private async bankSignalGain(pending: PendingReveal): Promise<void> {
+    if (!this.root || !this.metrics || !this.saveState || pending.signal.gain <= 0) return;
+    const origin = this.getRewardTrayAnchor();
+    const signalTarget = {
+      x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
+      y:
+        this.metrics.safeTop +
+        OPENING_FEEL_PRESENTATION.railTopOffset +
+        OPENING_FEEL_PRESENTATION.chipsHudHeight +
+        10 +
+        OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
+    };
+    const spark = this.add
+      .circle(origin.x + 60, origin.y + 10, 8, 0x76e9f5, 0.94)
+      .setStrokeStyle(2, 0xffffff, 0.58);
+    this.root.add(spark);
+    await this.runSkippableTween(
+      {
+        targets: spark,
+        x: signalTarget.x,
+        y: signalTarget.y,
+        scale: 0.38,
+        alpha: 0.18,
+        duration: 260,
+        ease: 'Cubic.In',
+      },
+      () => spark.destroy(),
+    );
+    if (!this.root || this.isSceneShutdown()) return;
+    this.renderSignalHud(this.root, this.saveState);
+    if (this.signalHudContainer) {
+      this.tweens.killTweensOf(this.signalHudContainer);
+      this.tweens.add({
+        targets: this.signalHudContainer,
+        scale: pending.signal.lockReached ? 1.075 : 1.045,
+        duration: 95,
+        yoyo: true,
+        ease: 'Back.Out',
+      });
+    }
+    getGameAudio().play(pending.signal.lockReached ? 'signal-lock' : 'signal-gain');
+  }
+
+  private async animateRewardBanking(pending: PendingReveal): Promise<void> {
+    if (!this.saveState || !this.root || this.isSceneShutdown()) return;
+    this.phase = 'banking';
+    this.resultReady = false;
+    this.stopResultPanelPulse();
+    this.resultActionPanel?.setAlpha(0.38);
+
+    let nextValue = pending.chips.before - pending.chips.cost;
+    const chargedCost = getChargedCost(LITE_V2_BALANCE);
+    let readyShown = false;
+    const bankLeg = async (amount: number, emphasis: number): Promise<void> => {
+      if (amount <= 0) return;
+      const target = nextValue + amount;
+      const crossesReady =
+        !readyShown &&
+        crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
+        nextValue < chargedCost &&
+        target >= chargedCost;
+      await this.bankChipLeg(target, emphasis, crossesReady);
+      readyShown ||= crossesReady;
+      nextValue = target;
+    };
+
+    await bankLeg(pending.chips.base, 1);
+    if (this.isSceneShutdown()) return;
+    await bankLeg(
+      pending.chips.cacheBonus,
+      pending.chips.cacheTier === 'mega' ? 1.25 : pending.chips.cacheTier === 'big' ? 1.14 : 1.06,
+    );
+    if (this.isSceneShutdown()) return;
+    await bankLeg(pending.chips.recycle, 1.08);
+    if (this.isSceneShutdown()) return;
+    await this.bankSignalGain(pending);
+    if (this.isSceneShutdown()) return;
+
+    this.setChipsHudValue(pending.chips.after, false);
+    this.renderSignalHud(this.root, this.saveState);
+    if (this.rewardTrayContainer?.active) {
+      this.tweens.add({
+        targets: this.rewardTrayContainer,
+        alpha: 0,
+        y: this.rewardTrayContainer.y - 8,
+        duration: 140,
+      });
+    }
+    await this.waitPresentation(120);
+    if (!this.isSceneShutdown()) this.renderIdle();
   }
 
   private async animatePostStandardEconomy(
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
   ): Promise<void> {
-    if (!pending.standard.isNew && pending.chips.recycle > 0) {
-      await this.animateDuplicateRecycle(pending, standardVisual);
-      return;
-    }
-    this.setChipsHudValue(pending.chips.after, false);
-    this.updateSignalHudFromPending(pending);
+    await this.animateRewardStaging(pending, standardVisual);
   }
 
   private showChargedReadyBeat(): void {
     if (!this.root || !this.metrics) return;
     const messages = getMessages(getPlatformRuntime().language);
+    const x = this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.chipsHudWidth / 2;
+    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.chipsHudHeight + OPENING_FEEL_PRESENTATION.signalHudHeight + 38;
     const banner = this.add
-      .text(this.metrics.centerX, 150, `⚡ ${messages.opening.chargedReady}`, {
-        color: '#f2ebff',
-        backgroundColor: '#443668',
-        padding: { x: 16, y: 8 },
+      .text(x, y, `⚡ ${messages.opening.chargedReady}`, {
+        color: '#fff6ff',
+        backgroundColor: '#30234a',
+        padding: { x: 12, y: 8 },
         stroke: '#160f20',
         strokeThickness: 2,
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        fontStyle: 'bold',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '7px' : '8px',
       })
       .setOrigin(0.5)
       .setScale(0.82)
@@ -1265,19 +1618,50 @@ export class OpeningScene extends Phaser.Scene {
     this.tweens.add({
       targets: banner,
       alpha: 1,
-      scale: 1.05,
-      duration: 180,
+      scale: 1.04,
+      duration: 150,
       ease: 'Back.Out',
       onComplete: () => {
         if (!banner.active) return;
         this.tweens.add({
           targets: banner,
           alpha: 0,
-          y: banner.y - 12,
-          delay: 420,
-          duration: 220,
+          y: banner.y - 10,
+          delay: OPENING_FEEL_PRESENTATION.chargedReadyHoldMs,
+          duration: 180,
           onComplete: () => banner.destroy(),
         });
+      },
+    });
+  }
+
+  private showRarityAccentSweep(
+    rarity: StandardRarity,
+    x: number,
+    y: number,
+    color: number,
+  ): void {
+    if (!this.root) return;
+    const intensity = rarity === 'legendary' ? 0.18 : rarity === 'epic' ? 0.13 : rarity === 'rare' ? 0.09 : 0.045;
+    const width = rarity === 'legendary' ? 38 : rarity === 'epic' ? 30 : 22;
+    const sweep = this.add
+      .rectangle(x - 112, y, width, 230, color, intensity)
+      .setRotation(0.28)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const whiteCore = this.add
+      .rectangle(x - 118, y, Math.max(5, width * 0.22), 218, 0xffffff, intensity * 0.72)
+      .setRotation(0.28)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.root.add([sweep, whiteCore]);
+    this.tweens.add({
+      targets: [sweep, whiteCore],
+      x: x + 112,
+      alpha: 0,
+      duration: rarity === 'legendary' ? 360 : 300,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        sweep.destroy();
+        whiteCore.destroy();
       },
     });
   }
@@ -1326,7 +1710,10 @@ export class OpeningScene extends Phaser.Scene {
       POUCH_Y + REVEAL_MOTION_PRESENTATION.emergeOffsetY,
       pending.standard.collectibleId,
     );
-    visual.group.setScale(finalScale * 0.3).setAlpha(0);
+    visual.group
+      .setScale(finalScale * 0.3)
+      .setAlpha(0)
+      .setAngle(((pending.openingNumber % 5) - 2) * 0.85);
 
     // Keep z-order stable: the reward remains behind the pouch while both move.
     // The pouch exits downward and fades, uncovering the reward continuously.
@@ -1383,27 +1770,23 @@ export class OpeningScene extends Phaser.Scene {
       onComplete: () => ring.destroy(),
     });
 
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: visual.group,
-        y: heroY,
-        scale: finalScale * fx.overshootScale,
-        alpha: 1,
-        duration: fx.introDuration,
-        ease: 'Back.Out',
-        onComplete: () => resolve(),
-      });
+    await this.runSkippableTween({
+      targets: visual.group,
+      y: heroY,
+      scale: finalScale * fx.overshootScale,
+      alpha: 1,
+      angle: 0,
+      duration: fx.introDuration,
+      ease: 'Back.Out',
     });
+    if (this.isSceneShutdown()) return visual.group;
 
-
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: visual.group,
-        scale: finalScale,
-        duration: fx.settleDuration,
-        ease: 'Sine.Out',
-        onComplete: () => resolve(),
-      });
+    this.showRarityAccentSweep(pending.standard.rarity, heroX, heroY, color);
+    await this.runSkippableTween({
+      targets: visual.group,
+      scale: finalScale,
+      duration: fx.settleDuration,
+      ease: 'Sine.Out',
     });
 
     if (fx.shake > 0) this.cameras.main.shake(100, fx.shake);
@@ -1411,12 +1794,6 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().play(pending.standard.rarity);
     if (!pending.standard.isNew) {
       this.time.delayedCall(90, () => getGameAudio().play('duplicate'));
-    }
-    if (pending.signal.gain > 0) {
-      this.time.delayedCall(170, () => getGameAudio().play('signal-gain'));
-    }
-    if (pending.signal.lockReached || pending.signal.lockConsumed) {
-      this.time.delayedCall(250, () => getGameAudio().play('signal-lock'));
     }
     return visual.group;
   }
@@ -1438,17 +1815,14 @@ export class OpeningScene extends Phaser.Scene {
       collectibleId,
     );
     visual.group.setScale(presentation.revealScale * 0.9).setAlpha(0);
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: visual.group,
-        scale: presentation.revealScale,
-        alpha: 1,
-        duration: 180,
-        ease: 'Sine.Out',
-        onComplete: () => resolve(),
-      });
+    await this.runSkippableTween({
+      targets: visual.group,
+      scale: presentation.revealScale,
+      alpha: 1,
+      duration: 180,
+      ease: 'Sine.Out',
     });
-    await this.wait(90);
+    await this.waitPresentation(90);
   }
 
   private getStandardResultStatus(pending: PendingReveal): string {
@@ -1515,7 +1889,7 @@ export class OpeningScene extends Phaser.Scene {
     const secretPresentation = getCollectiblePresentation(pending.hiddenPocket.familyId);
     const fx = REVEAL_FX_PRESETS.secret;
 
-    await this.wait(260);
+    await this.waitPresentation(260);
     getGameAudio().play('hidden-pocket');
 
     const hiddenLabel = this.add.text(
@@ -1526,35 +1900,28 @@ export class OpeningScene extends Phaser.Scene {
         color: '#8df8ff',
         stroke: '#160f20',
         strokeThickness: 3,
-        fontFamily: 'monospace',
-        fontSize: '22px',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '15px',
         fontStyle: 'bold',
       },
     ).setOrigin(0.5).setAlpha(0);
     root.add(hiddenLabel);
 
-    await Promise.all([
-      new Promise<void>((resolve) => {
-        this.tweens.add({
-          targets: standardVisual,
-          x: metrics.centerX - spacing,
-          y: standardPresentation.revealY,
-          scale: standardPresentation.revealScale * standardPresentation.carouselSideScale,
-          alpha: RESULT_PRESENTATION.sideAlpha,
-          duration: 260,
-          ease: 'Cubic.Out',
-          onComplete: () => resolve(),
-        });
-      }),
-      new Promise<void>((resolve) => {
-        this.tweens.add({
-          targets: hiddenLabel,
-          alpha: 1,
-          duration: 170,
-          onComplete: () => resolve(),
-        });
-      }),
-    ]);
+    this.tweens.add({
+      targets: hiddenLabel,
+      alpha: 1,
+      duration: 170,
+      ease: 'Sine.Out',
+    });
+    await this.runSkippableTween({
+      targets: standardVisual,
+      x: metrics.centerX - spacing,
+      y: standardPresentation.revealY,
+      scale: standardPresentation.revealScale * standardPresentation.carouselSideScale,
+      alpha: RESULT_PRESENTATION.sideAlpha,
+      duration: 260,
+      ease: 'Cubic.Out',
+    });
 
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
@@ -1635,25 +2002,19 @@ export class OpeningScene extends Phaser.Scene {
       onComplete: () => secondary.destroy(),
     });
 
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: secret.group,
-        y: heroY,
-        scale: secretPresentation.revealScale * fx.overshootScale,
-        alpha: 1,
-        duration: fx.introDuration,
-        ease: 'Back.Out',
-        onComplete: () => resolve(),
-      });
+    await this.runSkippableTween({
+      targets: secret.group,
+      y: heroY,
+      scale: secretPresentation.revealScale * fx.overshootScale,
+      alpha: 1,
+      duration: fx.introDuration,
+      ease: 'Back.Out',
     });
-    await new Promise<void>((resolve) => {
-      this.tweens.add({
-        targets: secret.group,
-        scale: secretPresentation.revealScale,
-        duration: fx.settleDuration,
-        ease: 'Sine.Out',
-        onComplete: () => resolve(),
-      });
+    await this.runSkippableTween({
+      targets: secret.group,
+      scale: secretPresentation.revealScale,
+      duration: fx.settleDuration,
+      ease: 'Sine.Out',
     });
     this.cameras.main.shake(110, fx.shake);
   }
@@ -1924,14 +2285,13 @@ export class OpeningScene extends Phaser.Scene {
       color: copy.statusColor,
       stroke: '#160f20',
       strokeThickness: 2,
-      fontFamily: 'monospace',
-      fontSize: '15px',
-      fontStyle: 'bold',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '11px',
     }).setOrigin(0.5);
     const readyHint = pending.hiddenPocket
-      ? `↔ ${messages.opening.swipeItems} · ${messages.opening.tapNext}`
-      : messages.opening.tapNext;
-    const hint = this.add.text(0, 34, this.resultReady ? readyHint : messages.opening.resultLocked, {
+      ? `↔ ${messages.opening.swipeItems} · ${messages.opening.tapCollect}`
+      : messages.opening.tapCollect;
+    const hint = this.add.text(0, 34, this.resultReady ? readyHint : messages.opening.tapToSpeedUp, {
       color: this.resultReady ? '#ffffff' : '#bfb3ca',
       fontFamily: 'system-ui, sans-serif',
       fontSize: pending.hiddenPocket ? '13px' : '15px',
@@ -1976,9 +2336,13 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private continueFromResult(): void {
-    if (this.phase !== 'result' || !this.resultReady) return;
+    if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;
     this.resultCarouselDrag = null;
-    this.renderIdle();
+    const pending = this.lastReveal;
+    void this.animateRewardBanking(pending).catch((error: unknown) => {
+      console.error('[opening] reward banking presentation failed', error);
+      if (this.saveState && !this.isSceneShutdown()) this.renderIdle();
+    });
   }
 
   private addLockedSaveFailure(): void {
@@ -2001,7 +2365,8 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.saveState || this.isSceneShutdown()) return;
     const root = this.createRoot();
     const metrics = this.metrics!;
-    this.renderResourceHud(root, this.saveState);
+    const presentationState = this.getResultPresentationState(pending) ?? this.saveState;
+    this.renderResourceHud(root, presentationState);
     this.createCollectionButton(root, true);
     this.createMuteButton(root);
     this.pouch = null;
@@ -2022,6 +2387,7 @@ export class OpeningScene extends Phaser.Scene {
       this.startRewardBreathing(standard.group, standard.presentation.revealScale);
     }
 
+    this.renderRewardTray(pending, root, false);
     this.renderResultActionPanel(pending);
   }
 

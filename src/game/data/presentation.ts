@@ -216,6 +216,26 @@ export const REVEAL_MOTION_PRESENTATION = {
   pouchExitDuration: 330,
 } as const;
 
+
+export const OPENING_FEEL_PRESENTATION = {
+  postTearSkipGuardMs: 120,
+  resultReadHoldMs: 980,
+  rewardTrayWidth: 210,
+  rewardTrayMinGapFromRail: 28,
+  chipsHudWidth: 216,
+  chipsHudHeight: 72,
+  signalHudWidth: 216,
+  signalHudHeight: 76,
+  railCardWidth: 216,
+  railCardHeight: 58,
+  railGap: 10,
+  railTopOffset: 8,
+  selectorTopOffset: 184,
+  bankLegMinDuration: 230,
+  bankLegMaxDuration: 460,
+  chargedReadyHoldMs: 520,
+} as const;
+
 export const RESULT_PRESENTATION = {
   panelY: 568,
   panelHeight: 112,
