@@ -1,0 +1,34 @@
+name: Refine opening feel V2
+
+on:
+  push:
+    branches:
+      - feat/opening-feel-pass-v2
+    paths:
+      - .github/workflows/refine-feel-v2.yml
+      - .github/scripts/refine-feel-v2.py
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/opening-feel-pass-v2
+          fetch-depth: 0
+      - name: Apply independent review fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/refine-feel-v2.py
+          rm .github/scripts/refine-feel-v2.py
+          rm .github/workflows/refine-feel-v2.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Refine second opening feel pass'
+          git push origin HEAD:feat/opening-feel-pass-v2
