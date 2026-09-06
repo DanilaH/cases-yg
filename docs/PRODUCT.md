@@ -132,9 +132,11 @@ CHIPS and Signal have deliberately different meanings:
 - **CHIPS** = spendable progress toward a better pouch;
 - **Signal** = non-spendable duplicate protection.
 
-The player-facing Signal rule is intentionally simple:
+The player-facing Signal rule is intentionally simple but respects pouch access:
 
-> **4 duplicates → next standard collectible is NEW (inside the active Drop).**
+> **4 duplicates → the next standard roll with an eligible undiscovered item is NEW.**
+
+Normally that means the next opening. If Basic has no eligible NEW because only Legendary remains, Basic keeps opening normally and Signal stays armed. The UI should make the state explicit, e.g. `SIGNAL LOCK · CHARGED`; Charged then consumes the lock on an eligible Legendary result.
 
 The current runtime still uses the older 0–100 Signal implementation until Lite V2 is coded. Migration is locked to `min(4, floor(oldSignal / 25))`, preserving an old fully armed lock without rounding partial progress upward.
 
@@ -149,7 +151,7 @@ The current runtime still uses the older 0–100 Signal implementation until Lit
 - always guaranteed base CHIPS;
 - independent chance of a larger CHIPS cache bonus;
 - Common + Rare + a small Epic chance;
-- **no Legendary from the Basic standard table**;
+- **no Legendary from the Basic standard table, including under Signal Lock**;
 - lower Hidden Pocket chance, but Secret remains possible as a very rare jackpot;
 - current onboarding protection retained within Basic's allowed rarity set.
 
@@ -165,7 +167,7 @@ Basic therefore stays pleasant and can still surprise the player, but it does no
 - **Legendary is available from the Charged standard table**;
 - higher Hidden Pocket chance.
 
-Charged is the main route to Epic/Legendary progression rather than merely a tiny percentage buff over Basic.
+Charged is the main route to Epic/Legendary progression rather than merely a tiny percentage buff over Basic. SIGNAL LOCK preserves this distinction rather than bypassing it.
 
 Exact CHIPS cost, base payout ranges, cache probabilities/amounts, duplicate recycle payouts, rarity weights and Hidden Pocket odds remain tuning values to lock from simulation + hands-on.
 
@@ -214,7 +216,8 @@ Instead:
 
 - families belong to themed Drops / loot pools;
 - Basic and Charged roll inside the active Drop;
-- Signal Lock guarantees NEW inside the active Drop while preserving the selected pouch rarity profile;
+- Signal Lock guarantees NEW inside the active Drop only among items eligible for the selected pouch;
+- if the selected pouch has no eligible missing item, the lock remains armed rather than bypassing rarity gates;
 - CHIPS and Signal remain global;
 - selector stays hidden while only one Drop exists;
 - a rough future heuristic is ~3–5 families per Drop, adjusted to the real roster.
