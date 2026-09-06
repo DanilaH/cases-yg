@@ -71,7 +71,7 @@ Locked economy invariants:
 - collectible rarity luck and cache luck are independent;
 - a very rare top cache may fund several Charged openings;
 - Charged remains a net CHIPS sink in expectation;
-- Basic cannot standard-roll Legendary;
+- Basic cannot standard-roll Legendary, including under Signal pity;
 - Charged is the standard route to Legendary;
 - Basic may still very rarely reach Secret through Hidden Pocket.
 
@@ -92,7 +92,7 @@ basePouchChipsReward
 cacheTier/cacheChipsReward
 recycleChipsReward
 standard result
-signal before/after/lock state
+signal before/after/lock reached/consumed/retained state
 hiddenPocket result
 final committed snapshot
 ```
@@ -103,7 +103,8 @@ Required invariants:
 - Charged cost cannot be lost without its reward;
 - one transaction cannot grant base/cache/recycle CHIPS twice;
 - recovered reveal preserves original Drop and pouch profile;
-- Signal Lock is not consumed when active Drop has no undiscovered standard item.
+- a retained Signal lock remains retained after recovery;
+- Signal Lock is not consumed when active Drop has no undiscovered standard item or when the selected pouch has no eligible undiscovered item.
 
 Add save migration for existing slice saves rather than invalidating user state.
 
@@ -114,7 +115,7 @@ Replace old 0–100 weighted pity with:
 ```text
 any standard duplicate → +1 SIGNAL
 4/4 → SIGNAL LOCK
-next standard collectible → undiscovered item in active Drop
+next standard roll with eligible missing item → guaranteed NEW
 consume → 0/4
 ```
 
@@ -128,12 +129,12 @@ So `0–24→0`, `25–49→1`, `50–74→2`, `75–99→3`, `100→4/LOCK`.
 
 When lock is armed:
 
-1. filter candidates to undiscovered standard items in active Drop;
-2. preserve selected pouch rarity profile across those candidates;
-3. pick guaranteed NEW;
-4. consume lock.
+1. collect undiscovered standard candidates in active Drop;
+2. filter them through the selected pouch rarity gate/non-zero weights;
+3. if eligible candidates remain, preserve selected pouch weighting among them, pick guaranteed NEW and consume lock;
+4. if none remain, resolve the selected pouch normally and **keep Signal at `4/4`**.
 
-Thus Charged does not lose its rarity advantage under SIGNAL LOCK.
+This explicitly creates the strict Charged gate: if only Legendary remains, Basic never receives it through pity. Basic can still open normally for collectible/CHIPS/recycle while Signal waits; an eligible Charged opening then guarantees the missing Legendary and consumes the lock.
 
 Remove old rarity-dependent `+25/+20/+15/+10` and late-lock fallback completely when migration lands.
 
@@ -149,7 +150,8 @@ Add only minimum new UI:
 - chip-token flight into HUD;
 - duplicate `RECYCLED` feedback;
 - Signal segmented HUD (`0..4` / `SIGNAL LOCK`);
-- clear `CHARGED POUCH READY` beat when payout crosses threshold.
+- clear `CHARGED POUCH READY` beat when payout crosses threshold;
+- clear waiting state such as `SIGNAL LOCK · CHARGED` when Signal is armed but Basic has no eligible NEW.
 
 Reward sequencing target:
 
@@ -191,7 +193,8 @@ Future behavior when Drop #2 exists:
 
 - expose compact Drop selector;
 - Basic/Charged roll only in selected Drop;
-- Signal Lock targets NEW in selected Drop while preserving selected pouch profile;
+- Signal Lock targets NEW in selected Drop only among candidates eligible for the selected pouch;
+- if no eligible candidate exists for that pouch, retain the lock;
 - CHIPS/Signal remain global.
 
 No family-targeted pouch in this phase.
@@ -216,7 +219,8 @@ Hands-on should answer only questions automation cannot:
 - is CHIPS acquisition legible without explanation?
 - do rare cache outcomes feel exciting rather than arbitrary/noisy?
 - does duplicate recycle soften disappointment rather than clutter reveal?
-- is `4 duplicates → next NEW` immediately understandable?
+- is `4 duplicates → next eligible NEW` immediately understandable?
+- when only Legendary remains, does `SIGNAL LOCK · CHARGED` clearly explain why Basic does not consume the lock?
 - does Basic still feel worth opening even without Legendary access?
 - does Charged feel worth saving for because top standard rarity lives there?
 - does Basic → Charged create a natural “one more pouch” impulse?
@@ -237,6 +241,7 @@ Must cover:
 - storage and save migration;
 - interrupted Basic reveal recovery;
 - interrupted Charged reveal recovery with atomic cost/reward/cache outcome;
+- Signal retained-lock edge and following Charged consumption;
 - interstitial;
 - rewarded exactly-once behavior;
 - sticky boundary if enabled;
