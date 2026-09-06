@@ -12,7 +12,7 @@ describe('chip flight planning', () => {
     expect(plan.duration).toBeLessThanOrEqual(900);
     expect(delays).toHaveLength(amount);
     expect(delays[0]).toBe(0);
-    expect(delays.at(-1) ?? 0).toBeCloseTo(plan.emissionWindow);
+    expect(delays.at(-1) ?? 0).toBeCloseTo(amount === 1 ? 0 : plan.emissionWindow);
   });
 
   it('bounds audio density while preserving every small reward clack', () => {
