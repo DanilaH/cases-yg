@@ -103,7 +103,11 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeGreaterThanOrEqual(80);
     expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeLessThanOrEqual(180);
     expect(OPENING_FEEL_PRESENTATION.resultReadHoldMs).toBeGreaterThan(600);
-    expect(OPENING_FEEL_PRESENTATION.bankLegMaxDuration).toBeLessThanOrEqual(500);
+    expect(OPENING_FEEL_PRESENTATION.bankLegMaxDuration).toBeLessThanOrEqual(900);
+    expect(OPENING_FEEL_PRESENTATION.bankLegMinDuration).toBeGreaterThanOrEqual(300);
+    expect(OPENING_FEEL_PRESENTATION.chipsHudHeight).toBeLessThanOrEqual(64);
+    expect(OPENING_FEEL_PRESENTATION.signalHudHeight).toBeLessThanOrEqual(64);
+    expect(OPENING_FEEL_PRESENTATION.rewardTrayResultGap).toBeGreaterThanOrEqual(16);
     expect(OPENING_FEEL_PRESENTATION.railCardWidth).toBeLessThanOrEqual(230);
     expect(OPENING_FEEL_PRESENTATION.railUnavailableAlpha).toBeGreaterThanOrEqual(0.8);
     expect(OPENING_FEEL_PRESENTATION.railUnavailableAlpha).toBeLessThan(0.9);
@@ -116,10 +120,9 @@ describe('reveal presentation', () => {
     expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);
     expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThanOrEqual(1.06);
     expect(MOTION_PRESENTATION.starPulseScale).toBeLessThanOrEqual(1.08);
-    expect(MOTION_PRESENTATION.resultPulseScale).toBeGreaterThanOrEqual(1.035);
-    expect(MOTION_PRESENTATION.resultPulseScale).toBeLessThan(1.05);
-    expect(MOTION_PRESENTATION.resultPulseDuration).toBeLessThan(250);
-    expect(MOTION_PRESENTATION.resultPulseRepeatDelay).toBeGreaterThan(400);
+    expect(MOTION_PRESENTATION.resultReadyGlowMinAlpha).toBeLessThan(MOTION_PRESENTATION.resultReadyGlowMaxAlpha);
+    expect(MOTION_PRESENTATION.resultReadyGlowDuration).toBeGreaterThanOrEqual(500);
+    expect(MOTION_PRESENTATION.resultReadyGlowDuration).toBeLessThanOrEqual(900);
     expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);
   });
 });

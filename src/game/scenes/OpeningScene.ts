@@ -19,8 +19,10 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
+import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import { computeRewardTrayPlacement } from '../systems/rewardLayout';
 import {
   canAffordPouch,
   crossedChargedReadyThreshold,
@@ -48,6 +50,9 @@ import {
   DIGITAL_FONT_FAMILY,
   createChargedAura,
   createChipToken,
+  createFlyingChipToken,
+  createHudShimmer,
+  createSignalToken,
 } from '../ui/openingEconomyVisuals';
 import { addCoverArt } from '../ui/staticArt';
 
@@ -105,6 +110,9 @@ export class OpeningScene extends Phaser.Scene {
   private chipsHudText: Phaser.GameObjects.Text | null = null;
   private chipsHudValue = 0;
   private signalHudContainer: Phaser.GameObjects.Container | null = null;
+  private signalHudSegments: Phaser.GameObjects.Rectangle[] = [];
+  private hudShimmers: Phaser.GameObjects.Rectangle[] = [];
+  private chargedReadyPulsePending = false;
   private chargedAura: Phaser.GameObjects.Container | null = null;
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
   private tearHint: Phaser.GameObjects.Text | null = null;
@@ -123,6 +131,7 @@ export class OpeningScene extends Phaser.Scene {
     this.resultReady = false;
     this.deferredResize = false;
     this.ignoreNextResultTap = false;
+    this.chargedReadyPulsePending = false;
     this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
@@ -213,6 +222,7 @@ export class OpeningScene extends Phaser.Scene {
     this.stopResultPanelPulse();
     this.stopRewardBreathing();
     this.clearAmbientMotion();
+    this.clearHudMotion();
     if (this.chargedAura) this.tweens.killTweensOf(this.chargedAura);
     this.root?.destroy(true);
     this.pouch = null;
@@ -229,6 +239,7 @@ export class OpeningScene extends Phaser.Scene {
     this.chipsHudContainer = null;
     this.chipsHudText = null;
     this.signalHudContainer = null;
+    this.signalHudSegments = [];
     this.chargedAura = null;
     this.rewardTrayContainer = null;
     this.tearHint = null;
@@ -282,45 +293,66 @@ export class OpeningScene extends Phaser.Scene {
     this.ambientParticles = [];
   }
 
-  private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
-    const usableWidth = Math.max(160, metrics.logicalWidth - 120);
-    const colors = [0xf4e5ff, 0xb9efff, 0xffe7f2];
-    for (let index = 0; index < AMBIENT_PRESENTATION.count; index += 1) {
-      const radiusMix = (index % 4) / 3;
-      const alphaMix = (index % 5) / 4;
-      const radius = Phaser.Math.Linear(
-        AMBIENT_PRESENTATION.minRadius,
-        AMBIENT_PRESENTATION.maxRadius,
-        radiusMix,
-      );
-      const alpha = Phaser.Math.Linear(
-        AMBIENT_PRESENTATION.minAlpha,
-        AMBIENT_PRESENTATION.maxAlpha,
-        alphaMix,
-      );
-      const x = 60 + ((index * 173) % usableWidth);
-      const y = 122 + ((index * 97) % 470);
-      const particle = this.add.circle(x, y, radius, colors[index % colors.length], alpha);
-      root.add(particle);
-      this.ambientParticles.push(particle);
+  private clearHudMotion(): void {
+    for (const shimmer of this.hudShimmers) this.tweens.killTweensOf(shimmer);
+    this.hudShimmers = [];
+    this.signalHudSegments = [];
+  }
 
-      const driftX = (index % 2 === 0 ? 1 : -1) * (18 + (index % 4) * 8);
-      const driftY = -(10 + (index % 3) * 7);
-      const durationMix = (index % 6) / 5;
+  private addHudShimmer(
+    container: Phaser.GameObjects.Container,
+    width: number,
+    height: number,
+    delay = 0,
+  ): Phaser.GameObjects.Rectangle {
+    const shimmer = createHudShimmer(this, height).setAlpha(0.015);
+    container.add(shimmer);
+    this.hudShimmers.push(shimmer);
+    this.tweens.add({
+      targets: shimmer,
+      x: width - 10,
+      alpha: 0.12,
+      duration: OPENING_FEEL_PRESENTATION.hudShimmerDurationMs,
+      delay,
+      repeat: -1,
+      repeatDelay: OPENING_FEEL_PRESENTATION.hudShimmerRepeatDelayMs,
+      ease: 'Sine.InOut',
+      onRepeat: () => {
+        if (shimmer.active) shimmer.setX(10).setAlpha(0.015);
+      },
+    });
+    return shimmer;
+  }
+
+  private animateSignalArrival(pending: PendingReveal): void {
+    if (pending.signal.gain <= 0 || this.signalHudSegments.length === 0) return;
+    const threshold = LITE_V2_BALANCE.signalThreshold;
+    const start = Phaser.Math.Clamp(Math.floor(pending.signal.before), 0, threshold);
+    const end = Phaser.Math.Clamp(start + Math.floor(pending.signal.gain), 0, threshold);
+    for (let index = start; index < end; index += 1) {
+      const segment = this.signalHudSegments[index];
+      if (!segment) continue;
+      segment.setScale(0.05, 1).setAlpha(0.36);
       this.tweens.add({
-        targets: particle,
-        x: x + Phaser.Math.Clamp(driftX, -AMBIENT_PRESENTATION.maxDriftX, AMBIENT_PRESENTATION.maxDriftX),
-        y: y + Phaser.Math.Clamp(driftY, -AMBIENT_PRESENTATION.maxDriftY, AMBIENT_PRESENTATION.maxDriftY),
-        alpha: Math.min(0.24, alpha * 1.55),
-        duration: Phaser.Math.Linear(
-          AMBIENT_PRESENTATION.minDuration,
-          AMBIENT_PRESENTATION.maxDuration,
-          durationMix,
-        ),
-        delay: index * 110,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.InOut',
+        targets: segment,
+        scaleX: 1,
+        alpha: 1,
+        duration: 180,
+        delay: (index - start) * 45,
+        ease: 'Cubic.Out',
+      });
+    }
+    if (pending.signal.lockReached) {
+      this.time.delayedCall(190, () => {
+        if (this.isSceneShutdown()) return;
+        this.tweens.add({
+          targets: this.signalHudSegments,
+          alpha: 0.62,
+          duration: 105,
+          yoyo: true,
+          repeat: 1,
+          ease: 'Sine.InOut',
+        });
       });
     }
   }
@@ -346,22 +378,29 @@ export class OpeningScene extends Phaser.Scene {
 
   private startResultPanelPulse(): void {
     if (!this.resultActionPanel || !this.resultReady || this.phase !== 'result') return;
-    this.stopResultPanelPulse();
+    const glow = this.resultActionPanel.getData('readyGlow') as Phaser.GameObjects.Graphics | undefined;
+    if (!glow) return;
+    this.tweens.killTweensOf(glow);
+    glow.setAlpha(MOTION_PRESENTATION.resultReadyGlowMinAlpha);
     this.tweens.add({
-      targets: this.resultActionPanel,
-      scale: MOTION_PRESENTATION.resultPulseScale,
-      duration: MOTION_PRESENTATION.resultPulseDuration,
+      targets: glow,
+      alpha: MOTION_PRESENTATION.resultReadyGlowMaxAlpha,
+      duration: MOTION_PRESENTATION.resultReadyGlowDuration,
       yoyo: true,
       repeat: -1,
-      repeatDelay: MOTION_PRESENTATION.resultPulseRepeatDelay,
-      ease: 'Sine.Out',
+      ease: 'Sine.InOut',
     });
   }
 
   private stopResultPanelPulse(): void {
     if (!this.resultActionPanel) return;
+    const glow = this.resultActionPanel.getData('readyGlow') as Phaser.GameObjects.Graphics | undefined;
+    if (glow) {
+      this.tweens.killTweensOf(glow);
+      glow.setAlpha(MOTION_PRESENTATION.resultReadyGlowMinAlpha);
+    }
     this.tweens.killTweensOf(this.resultActionPanel);
-    this.resultActionPanel.setScale(1);
+    this.resultActionPanel.setY(RESULT_PRESENTATION.panelY);
   }
 
   private startRewardBreathing(target: Phaser.GameObjects.Container, baseScale: number): void {
@@ -504,6 +543,10 @@ export class OpeningScene extends Phaser.Scene {
     this.applyChargedPouchTreatment();
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
     this.renderPouchSelector(root);
+    if (this.chargedReadyPulsePending) {
+      this.chargedReadyPulsePending = false;
+      this.showChargedReadyOnSelector();
+    }
     this.startStarPulse();
 
     const tearHint = this.add
@@ -562,31 +605,36 @@ export class OpeningScene extends Phaser.Scene {
     const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
     const container = this.add.container(x, y);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.88);
+    background.fillStyle(0x17101f, 0.9);
     background.fillRoundedRect(0, 0, width, height, 18);
-    background.lineStyle(2, 0x8df8ff, 0.34);
+    background.lineStyle(2, 0x8df8ff, 0.38);
     background.strokeRoundedRect(0, 0, width, height, 18);
-    const glow = this.add.graphics();
-    glow.lineStyle(5, 0x8df8ff, 0.08);
+    const glow = this.add.graphics().setAlpha(0.14);
+    glow.lineStyle(5, 0x8df8ff, 0.16);
     glow.strokeRoundedRect(2, 2, width - 4, height - 4, 16);
-    const token = createChipToken(this, 25, height / 2, 0.9);
+    container.add([background, glow]);
+    const shimmer = this.addHudShimmer(container, width, height, 0);
+    container.setData('glow', glow);
+    container.setData('shimmer', shimmer);
+
+    const token = createChipToken(this, 24, 37, 0.86);
     const label = this.add
-      .text(49, 12, messages.opening.chips, {
+      .text(49, 10, messages.opening.chips, {
         color: '#bffaff',
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: '9px',
       })
       .setOrigin(0, 0);
     const valueText = this.add
-      .text(48, 34, `${Math.max(0, Math.floor(chips))}`, {
+      .text(48, 40, `${Math.max(0, Math.floor(chips))}`, {
         color: '#f4feff',
         stroke: '#11333b',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '20px',
+        fontSize: '19px',
       })
       .setOrigin(0, 0.5);
-    container.add([glow, background, token, label, valueText]);
+    container.add([token, label, valueText]);
     root.add(container);
     this.chipsHudContainer = container;
     this.chipsHudText = valueText;
@@ -599,21 +647,31 @@ export class OpeningScene extends Phaser.Scene {
     this.chipsHudText.setText(`${this.chipsHudValue}`);
     if (!pulse || !this.chipsHudContainer) return;
     this.tweens.killTweensOf(this.chipsHudContainer);
-    this.chipsHudContainer.setScale(1).setX(this.metrics?.safeLeft ?? this.chipsHudContainer.x);
-    const baseX = this.chipsHudContainer.x;
+    this.chipsHudContainer.setScale(1);
     this.tweens.add({
       targets: this.chipsHudContainer,
-      scale: 1.055,
-      x: baseX + 3,
-      duration: 90,
+      scale: 1.045,
+      duration: 82,
       yoyo: true,
       ease: 'Sine.Out',
     });
+    const glow = this.chipsHudContainer.getData('glow') as Phaser.GameObjects.Graphics | undefined;
+    if (glow) {
+      this.tweens.killTweensOf(glow);
+      glow.setAlpha(0.16);
+      this.tweens.add({ targets: glow, alpha: 0.58, duration: 90, yoyo: true, ease: 'Sine.Out' });
+    }
   }
 
   private renderSignalHud(root: Phaser.GameObjects.Container, state: SaveState): void {
     if (!this.metrics) return;
+    const previousShimmer = this.signalHudContainer?.getData('shimmer') as Phaser.GameObjects.Rectangle | undefined;
+    if (previousShimmer) {
+      this.tweens.killTweensOf(previousShimmer);
+      this.hudShimmers = this.hudShimmers.filter((item) => item !== previousShimmer);
+    }
     this.signalHudContainer?.destroy(true);
+    this.signalHudSegments = [];
 
     const threshold = LITE_V2_BALANCE.signalThreshold;
     const clamped = Phaser.Math.Clamp(Math.floor(state.signal), 0, threshold);
@@ -630,42 +688,47 @@ export class OpeningScene extends Phaser.Scene {
     const height = OPENING_FEEL_PRESENTATION.signalHudHeight;
     const container = this.add.container(x, y);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.82);
+    background.fillStyle(0x17101f, 0.84);
     background.fillRoundedRect(0, 0, width, height, 18);
-    background.lineStyle(1.5, waitingForCharged ? 0x9d7cff : 0x76e9f5, 0.32);
+    background.lineStyle(1.5, waitingForCharged ? 0x9d7cff : 0x76e9f5, 0.38);
     background.strokeRoundedRect(0, 0, width, height, 18);
-    const label = this.add.text(14, 12, labelText, {
+    container.add(background);
+    const shimmer = this.addHudShimmer(container, width, height, 360);
+    container.setData('shimmer', shimmer);
+
+    const label = this.add.text(14, 10, labelText, {
       color: waitingForCharged ? CHARGED_TEXT_COLOR : '#b9f7ff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: waitingForCharged ? '8px' : '10px',
     });
-    const value = this.add.text(width - 14, 12, `${clamped}/${threshold}`, {
+    const value = this.add.text(width - 14, 10, `${clamped}/${threshold}`, {
       color: '#f7fdff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '10px',
     }).setOrigin(1, 0);
-    container.add([background, label, value]);
+    container.add([label, value]);
 
-    const segmentWidth = 38;
-    const segmentGap = 7;
+    const segmentGap = 6;
+    const segmentWidth = (width - 28 - segmentGap * (threshold - 1)) / threshold;
     for (let index = 0; index < threshold; index += 1) {
       const active = index < clamped;
       const segment = this.add
         .rectangle(
           14 + index * (segmentWidth + segmentGap),
-          54,
+          47,
           segmentWidth,
-          10,
+          9,
           active ? (waitingForCharged ? 0x9d7cff : 0x76e9f5) : 0x3a3146,
           active ? 0.98 : 0.72,
         )
         .setOrigin(0, 0.5)
         .setStrokeStyle(1, active ? 0xeefcff : 0x766b82, active ? 0.5 : 0.18);
       container.add(segment);
+      this.signalHudSegments.push(segment);
     }
 
     root.add(container);
@@ -790,6 +853,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private showUnavailableChargedFeedback(card: Phaser.GameObjects.Container): void {
     if (!this.chipsHudContainer) return;
+    getGameAudio().play('ui-denied');
     const baseX = card.x;
     this.tweens.killTweensOf(card);
     card.setScale(1);
@@ -809,9 +873,16 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'idle' || !this.saveState || this.selectedPouchType === pouchType) return;
     if (!canAffordPouch(this.saveState, pouchType, LITE_V2_BALANCE)) return;
     this.selectedPouchType = pouchType;
+    getGameAudio().play('pouch-select');
     if (sourceCard) {
       this.tweens.killTweensOf(sourceCard);
-      this.tweens.add({ targets: sourceCard, scale: 1.04, duration: 80, yoyo: true, ease: 'Back.Out' });
+      this.tweens.add({
+        targets: sourceCard,
+        scale: 1.025,
+        duration: OPENING_FEEL_PRESENTATION.uiPressMs,
+        yoyo: true,
+        ease: 'Sine.Out',
+      });
     }
     if (this.pouch) {
       this.tweens.killTweensOf(this.pouch.group);
@@ -901,6 +972,7 @@ export class OpeningScene extends Phaser.Scene {
     if (enabled) {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerup', () => {
+        getGameAudio().play('ui-click');
         this.ignoreNextResultTap = true;
         this.scene.start('CollectionScene');
       });
@@ -928,7 +1000,10 @@ export class OpeningScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     button.on('pointerup', () => {
       this.ignoreNextResultTap = true;
+      const wasMuted = audio.isMuted();
+      if (!wasMuted) audio.play('ui-click');
       const muted = audio.toggleMuted();
+      if (wasMuted && !muted) audio.play('ui-click');
       button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);
       void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
         console.warn('[settings] failed to persist mute preference', error);
@@ -985,12 +1060,13 @@ export class OpeningScene extends Phaser.Scene {
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (this.phase === 'revealing' || this.phase === 'banking') {
-      this.requestPresentationFastForward();
+      if (this.requestPresentationFastForward()) getGameAudio().play('ui-skip');
       return;
     }
 
     if (this.phase !== 'result') return;
     if (!this.resultReady && this.requestPresentationFastForward()) {
+      getGameAudio().play('ui-skip');
       return;
     }
     if (this.resultCarouselDrag?.pointerId === pointer.id) return;
@@ -1248,64 +1324,78 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private async animateChipsPrelude(pending: PendingReveal): Promise<void> {
-    if (!this.root || !this.metrics) return;
-    const messages = getMessages(getPlatformRuntime().language);
+    if (!this.root || !this.metrics || pending.chips.cost <= 0) return;
     const afterSpend = pending.chips.before - pending.chips.cost;
-
-    // Earned CHIPS stay staged with the result. Only the Charged spend is reflected
-    // immediately because the player already chose and paid for that pouch.
-    if (pending.chips.cost <= 0) return;
-
-    this.setChipsHudValue(afterSpend, true);
-    const spend = this.add
-      .text(
-        this.metrics.centerX,
-        160,
-        `⚡ −${pending.chips.cost} ${messages.opening.chips}`,
-        {
-          color: CHARGED_TEXT_COLOR,
-          stroke: '#160f20',
-          strokeThickness: 2,
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '10px',
-        },
-      )
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setScale(0.92);
-    this.root.add(spend);
+    const width = OPENING_FEEL_PRESENTATION.chipsHudWidth;
+    const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
+    const debitX = this.metrics.safeLeft + width - 14;
+    const debitY = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + height / 2;
+    const debit = this.add
+      .text(debitX + 7, debitY, `−${pending.chips.cost}`, {
+        color: '#ff9ee0',
+        stroke: '#160f20',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '10px',
+      })
+      .setOrigin(1, 0.5)
+      .setAlpha(0);
+    this.root.add(debit);
     this.tweens.add({
-      targets: spend,
+      targets: debit,
+      x: debitX,
       alpha: 1,
-      scale: 1,
-      duration: 100,
+      duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
       ease: 'Sine.Out',
     });
-    await this.waitPresentation(210);
-    if (!spend.active) return;
-    this.tweens.add({
-      targets: spend,
-      alpha: 0,
-      y: spend.y - 10,
-      duration: 140,
-      onComplete: () => spend.destroy(),
+
+    const hudTarget = this.getChipsHudTarget();
+    for (let index = 0; index < 4; index += 1) {
+      const token = createFlyingChipToken(this, hudTarget.x + index * 7 - 10, hudTarget.y + (index % 2) * 5, 0.72);
+      this.root.add(token);
+      this.tweens.add({
+        targets: token,
+        x: this.metrics.centerX - 38 + index * 25,
+        y: POUCH_Y - 54 + (index % 2) * 10,
+        alpha: 0.18,
+        scale: 0.42,
+        angle: token.angle + (index % 2 === 0 ? 80 : -80),
+        delay: index * 22,
+        duration: 230,
+        ease: 'Cubic.In',
+        onComplete: () => token.destroy(),
+      });
+    }
+
+    getGameAudio().play('charged-spend');
+    const counter = { value: pending.chips.before };
+    await this.runSkippableTween({
+      targets: counter,
+      value: afterSpend,
+      duration: 250,
+      ease: 'Cubic.Out',
+      onUpdate: () => this.setChipsHudValue(Math.round(counter.value), false),
     });
+    this.setChipsHudValue(afterSpend, true);
+    if (debit.active) {
+      this.tweens.add({
+        targets: debit,
+        y: debit.y - 5,
+        alpha: 0,
+        delay: 100,
+        duration: OPENING_FEEL_PRESENTATION.uiFadeOutMs,
+        ease: 'Sine.In',
+        onComplete: () => debit.destroy(),
+      });
+    }
   }
 
-  private getRewardTrayAnchor(): { x: number; y: number } {
-    if (!this.metrics) return { x: 340, y: 468 };
-    const trayWidth = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
-    const preferredX = this.metrics.centerX - 145;
-    const minX =
-      this.metrics.safeLeft +
-      OPENING_FEEL_PRESENTATION.railCardWidth +
-      OPENING_FEEL_PRESENTATION.rewardTrayMinGapFromRail +
-      trayWidth / 2;
-    const maxX = this.metrics.safeRight - trayWidth / 2;
-    return {
-      x: Phaser.Math.Clamp(preferredX, Math.min(minX, maxX), maxX),
-      y: 466,
-    };
+  private getRewardBankOrigin(): { x: number; y: number } {
+    if (this.rewardTrayContainer?.active) {
+      const height = Number(this.rewardTrayContainer.getData('height') ?? 0);
+      return { x: this.rewardTrayContainer.x, y: this.rewardTrayContainer.y + height / 2 };
+    }
+    return { x: this.metrics?.centerX ?? 450, y: 430 };
   }
 
   private renderRewardTray(
@@ -1316,30 +1406,45 @@ export class OpeningScene extends Phaser.Scene {
     this.rewardTrayContainer?.destroy(true);
     const messages = getMessages(getPlatformRuntime().language);
     const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
-    const rows: Array<{ text: string; color: string }> = [
-      { text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
+    const rows: Array<{ kind: 'chips' | 'signal'; text: string; color: string }> = [
+      { kind: 'chips', text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
     ];
     if (cacheLabel && pending.chips.cacheBonus > 0) {
       rows.push({
+        kind: 'chips',
         text: `${cacheLabel} +${pending.chips.cacheBonus}`,
         color: pending.chips.cacheTier === 'mega' ? '#ffe59a' : pending.chips.cacheTier === 'big' ? CHARGED_TEXT_COLOR : CHIPS_TEXT_COLOR,
       });
     }
     if (pending.chips.recycle > 0) {
-      rows.push({ text: `${messages.opening.recycled} +${pending.chips.recycle}`, color: '#aefcff' });
+      rows.push({ kind: 'chips', text: `${messages.opening.recycled} +${pending.chips.recycle}`, color: '#aefcff' });
     }
     if (pending.signal.gain > 0) {
-      rows.push({ text: `+${pending.signal.gain} SIGNAL`, color: '#b7a7ff' });
+      rows.push({ kind: 'signal', text: `+${pending.signal.gain} SIGNAL`, color: '#b7a7ff' });
     }
 
-    const anchor = this.getRewardTrayAnchor();
     const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
     const height = 30 + rows.length * 22;
-    const tray = this.add.container(anchor.x, anchor.y - height / 2);
+    const placement = computeRewardTrayPlacement({
+      safeLeft: this.metrics!.safeLeft,
+      safeRight: this.metrics!.safeRight,
+      safeTop: this.metrics!.safeTop,
+      centerX: this.metrics!.centerX,
+      railRight: this.metrics!.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth,
+      resultPanelTop: RESULT_PRESENTATION.panelY - RESULT_PRESENTATION.panelHeight / 2,
+      trayWidth: width,
+      trayHeight: height,
+      heroHalfWidth: OPENING_FEEL_PRESENTATION.rewardTrayHeroHalfWidth,
+      sideGap: OPENING_FEEL_PRESENTATION.rewardTraySideGap,
+      resultGap: OPENING_FEEL_PRESENTATION.rewardTrayResultGap,
+    });
+    const tray = this.add.container(placement.x, placement.y - height / 2);
+    tray.setData('height', height);
+    tray.setData('side', placement.side);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.86);
+    background.fillStyle(0x17101f, 0.88);
     background.fillRoundedRect(-width / 2, 0, width, height, 16);
-    background.lineStyle(1.5, 0x8df8ff, 0.26);
+    background.lineStyle(1.5, 0x8df8ff, 0.3);
     background.strokeRoundedRect(-width / 2, 0, width, height, 16);
     const header = this.add.text(-width / 2 + 13, 10, 'REWARD', {
       color: '#d9cbef',
@@ -1348,7 +1453,10 @@ export class OpeningScene extends Phaser.Scene {
     });
     tray.add([background, header]);
     rows.forEach((row, index) => {
-      const token = index < 3 ? createChipToken(this, -width / 2 + 17, 31 + index * 22, 0.42) : null;
+      const iconY = 31 + index * 22;
+      const icon = row.kind === 'chips'
+        ? createChipToken(this, -width / 2 + 17, iconY, 0.42)
+        : createSignalToken(this, -width / 2 + 17, iconY, false);
       const text = this.add.text(-width / 2 + 31, 26 + index * 22, row.text, {
         color: row.color,
         stroke: '#100b16',
@@ -1356,20 +1464,19 @@ export class OpeningScene extends Phaser.Scene {
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: getPlatformRuntime().language === 'ru' ? '7px' : '8px',
       });
-      if (token) tray.add(token);
-      tray.add(text);
+      tray.add([icon, text]);
     });
     root.add(tray);
     this.rewardTrayContainer = tray;
     if (animate) {
-      tray.setAlpha(0).setScale(0.94).setY(tray.y + 10);
+      const targetY = tray.y;
+      tray.setAlpha(0).setY(targetY + 7);
       this.tweens.add({
         targets: tray,
         alpha: 1,
-        scale: 1,
-        y: tray.y - 10,
-        duration: 170,
-        ease: 'Back.Out',
+        y: targetY,
+        duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+        ease: 'Sine.Out',
       });
     }
     return tray;
@@ -1381,7 +1488,7 @@ export class OpeningScene extends Phaser.Scene {
   ): Promise<void> {
     if (!this.root || !this.metrics) return;
     const tray = this.renderRewardTray(pending, this.root, true);
-    const anchor = this.getRewardTrayAnchor();
+    const anchor = this.getRewardBankOrigin();
     const heroY = getCollectiblePresentation(pending.standard.familyId).revealY;
 
     if (!pending.standard.isNew && pending.chips.recycle > 0) {
@@ -1442,65 +1549,70 @@ export class OpeningScene extends Phaser.Scene {
   ): Promise<void> {
     if (!this.root || !this.metrics || targetValue <= this.chipsHudValue) return;
     const startValue = this.chipsHudValue;
-    const delta = targetValue - startValue;
-    const duration = Phaser.Math.Clamp(
-      OPENING_FEEL_PRESENTATION.bankLegMinDuration + Math.min(72, delta) * 3,
+    const amount = Math.max(0, targetValue - startValue);
+    const plan = createChipFlightPlan(
+      amount,
       OPENING_FEEL_PRESENTATION.bankLegMinDuration,
       OPENING_FEEL_PRESENTATION.bankLegMaxDuration,
     );
-    const origin = this.getRewardTrayAnchor();
+    const origin = this.getRewardBankOrigin();
     const target = this.getChipsHudTarget();
-    const tokenCount = emphasis >= 1.2 ? 5 : emphasis >= 1.1 ? 4 : 3;
     const tweens: Phaser.Tweens.Tween[] = [];
-    const counter = { value: startValue };
 
-    for (let index = 0; index < tokenCount; index += 1) {
-      const token = createChipToken(
-        this,
-        origin.x - 52 + index * 21,
-        origin.y + 8 + (index % 2) * 8,
-        0.54 + (index % 2) * 0.06,
-      );
-      this.root.add(token);
-      const delay = index * 22;
-      const tween = this.tweens.add({
-        targets: token,
-        x: target.x,
-        y: target.y,
-        scale: 0.3,
-        alpha: 0.12,
-        angle: token.angle + (index % 2 === 0 ? 95 : -95),
-        delay,
-        duration: Math.max(120, duration - delay),
-        ease: 'Cubic.In',
-        onComplete: () => token.destroy(),
-      });
-      tweens.push(tween);
-    }
-
-    getGameAudio().play('chips-collect');
     await new Promise<void>((resolve) => {
+      let arrived = 0;
       let settled = false;
+      let fastForwarding = false;
       let clearSkip = (): void => undefined;
       const finish = (): void => {
         if (settled) return;
         settled = true;
         clearSkip();
         this.setChipsHudValue(targetValue, true);
-        if (chargedReadyOnArrival) this.showChargedReadyBeat();
+        if (chargedReadyOnArrival) this.chargedReadyPulsePending = true;
         resolve();
       };
-      const counterTween = this.tweens.add({
-        targets: counter,
-        value: targetValue,
-        duration,
-        ease: 'Cubic.Out',
-        onUpdate: () => this.setChipsHudValue(Math.round(counter.value), false),
-        onComplete: finish,
-      });
-      tweens.push(counterTween);
+
+      for (let index = 0; index < plan.amount; index += 1) {
+        const lane = index % 5;
+        const token = createFlyingChipToken(
+          this,
+          origin.x - 54 + lane * 27,
+          origin.y + ((index % 3) - 1) * 7,
+          0.72 + (index % 2) * 0.08,
+        );
+        this.root!.add(token);
+        const targetX = target.x + ((index % 3) - 1) * 3;
+        const targetY = target.y + ((index % 4) - 1.5) * 2;
+        const tween = this.tweens.add({
+          targets: token,
+          x: targetX,
+          y: targetY,
+          scale: 0.38,
+          angle: token.angle + (index % 2 === 0 ? 105 : -105),
+          delay: chipEmissionDelay(plan, index),
+          duration: plan.flightDuration,
+          ease: 'Cubic.In',
+          onComplete: () => {
+            if (token.active) token.destroy();
+            arrived += 1;
+            this.setChipsHudValue(startValue + arrived, false);
+            if (!fastForwarding && shouldPlayChipClack(plan, index)) getGameAudio().play('chip-clack');
+            if (arrived >= plan.amount) finish();
+          },
+        });
+        tweens.push(tween);
+      }
+
+      if (plan.amount === 0) {
+        finish();
+        return;
+      }
       clearSkip = this.presentationSkip.register(() => {
-        for (const tween of tweens) this.completeTweenToEnd(tween);
+        fastForwarding = true;
+        for (const tween of tweens) {
+          if (!tween.isFinished()) this.completeTweenToEnd(tween);
+        }
         finish();
       });
     });
@@ -1508,7 +1620,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private async bankSignalGain(pending: PendingReveal): Promise<void> {
     if (!this.root || !this.metrics || !this.saveState || pending.signal.gain <= 0) return;
-    const origin = this.getRewardTrayAnchor();
+    const origin = this.getRewardBankOrigin();
     const signalTarget = {
       x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
       y:
@@ -1528,22 +1640,23 @@ export class OpeningScene extends Phaser.Scene {
         x: signalTarget.x,
         y: signalTarget.y,
         scale: 0.38,
-        alpha: 0.18,
-        duration: 260,
+        alpha: 0.22,
+        duration: 280,
         ease: 'Cubic.In',
       },
       () => spark.destroy(),
     );
     if (!this.root || this.isSceneShutdown()) return;
     this.renderSignalHud(this.root, this.saveState);
+    this.animateSignalArrival(pending);
     if (this.signalHudContainer) {
       this.tweens.killTweensOf(this.signalHudContainer);
       this.tweens.add({
         targets: this.signalHudContainer,
-        scale: pending.signal.lockReached ? 1.075 : 1.045,
-        duration: 95,
+        scale: pending.signal.lockReached ? 1.045 : 1.025,
+        duration: 90,
         yoyo: true,
-        ease: 'Back.Out',
+        ease: 'Sine.Out',
       });
     }
     getGameAudio().play(pending.signal.lockReached ? 'signal-lock' : 'signal-gain');
@@ -1554,7 +1667,14 @@ export class OpeningScene extends Phaser.Scene {
     this.phase = 'banking';
     this.resultReady = false;
     this.stopResultPanelPulse();
-    this.resultActionPanel?.setAlpha(0.38);
+    if (this.resultActionPanel?.active) {
+      this.tweens.add({
+        targets: this.resultActionPanel,
+        alpha: 0.42,
+        duration: 150,
+        ease: 'Sine.Out',
+      });
+    }
 
     let nextValue = pending.chips.before - pending.chips.cost;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
@@ -1586,15 +1706,19 @@ export class OpeningScene extends Phaser.Scene {
 
     this.setChipsHudValue(pending.chips.after, false);
     this.renderSignalHud(this.root, this.saveState);
-    if (this.rewardTrayContainer?.active) {
+    const fadeTargets: Phaser.GameObjects.GameObject[] = [];
+    if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
+    if (this.resultActionPanel?.active) fadeTargets.push(this.resultActionPanel);
+    if (fadeTargets.length > 0) {
       this.tweens.add({
-        targets: this.rewardTrayContainer,
+        targets: fadeTargets,
         alpha: 0,
-        y: this.rewardTrayContainer.y - 8,
-        duration: 140,
+        y: '-=5',
+        duration: OPENING_FEEL_PRESENTATION.uiFadeOutMs,
+        ease: 'Sine.In',
       });
     }
-    await this.waitPresentation(120);
+    await this.waitPresentation(OPENING_FEEL_PRESENTATION.uiFadeOutMs);
     if (!this.isSceneShutdown()) this.renderIdle();
   }
 
@@ -1605,40 +1729,41 @@ export class OpeningScene extends Phaser.Scene {
     await this.animateRewardStaging(pending, standardVisual);
   }
 
-  private showChargedReadyBeat(): void {
-    if (!this.root || !this.metrics) return;
-    const messages = getMessages(getPlatformRuntime().language);
-    const x = this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.chipsHudWidth / 2;
-    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.chipsHudHeight + OPENING_FEEL_PRESENTATION.signalHudHeight + 38;
-    const banner = this.add
-      .text(x, y, `⚡ ${messages.opening.chargedReady}`, {
-        color: '#fff6ff',
-        backgroundColor: '#30234a',
-        padding: { x: 12, y: 8 },
+  private showChargedReadyOnSelector(): void {
+    const card = this.pouchSelectorButtons.find((button) => button.getData('pouchType') === 'charged');
+    if (!card) return;
+    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
+    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const outline = this.add.graphics().setAlpha(0);
+    outline.lineStyle(3, CHARGED_ACCENT, 0.88);
+    outline.strokeRoundedRect(1, 1, width - 2, height - 2, 15);
+    const ready = this.add
+      .text(width - 12, 10, 'READY', {
+        color: '#8df8ff',
         stroke: '#160f20',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '7px' : '8px',
+        fontSize: '7px',
       })
-      .setOrigin(0.5)
-      .setScale(0.82)
+      .setOrigin(1, 0)
       .setAlpha(0);
-    this.root.add(banner);
+    card.add([outline, ready]);
     this.tweens.add({
-      targets: banner,
+      targets: [outline, ready],
       alpha: 1,
-      scale: 1.04,
-      duration: 150,
-      ease: 'Back.Out',
+      duration: 170,
+      ease: 'Sine.Out',
       onComplete: () => {
-        if (!banner.active) return;
         this.tweens.add({
-          targets: banner,
+          targets: [outline, ready],
           alpha: 0,
-          y: banner.y - 10,
-          delay: OPENING_FEEL_PRESENTATION.chargedReadyHoldMs,
-          duration: 180,
-          onComplete: () => banner.destroy(),
+          delay: 430,
+          duration: 190,
+          ease: 'Sine.In',
+          onComplete: () => {
+            outline.destroy();
+            ready.destroy();
+          },
         });
       },
     });
@@ -2248,8 +2373,9 @@ export class OpeningScene extends Phaser.Scene {
 
   private getResultPanelCopy(pending: PendingReveal): {
     title: string;
+    rarity: string;
+    rarityColor: string;
     status: string;
-    titleColor: string;
     statusColor: string;
   } {
     const language = getPlatformRuntime().language;
@@ -2257,64 +2383,84 @@ export class OpeningScene extends Phaser.Scene {
     if (pending.hiddenPocket && this.resultCarouselIndex === 1) {
       const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
       return {
-        title: `${family?.name[language] ?? pending.hiddenPocket.familyId} · ${messages.rarity.secret}`,
+        title: family?.name[language] ?? pending.hiddenPocket.familyId,
+        rarity: messages.rarity.secret,
+        rarityColor: '#8df8ff',
         status: messages.opening.secretDiscovered,
-        titleColor: '#8df8ff',
         statusColor: '#f5f0ff',
       };
     }
 
     const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
-    const pouchPrefix = pending.pouchType === 'charged' ? '⚡ ' : '';
     return {
-      title: `${pouchPrefix}${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,
+      title: `${pending.pouchType === 'charged' ? '⚡ ' : ''}${family?.name[language] ?? pending.standard.familyId}`,
+      rarity: messages.rarity[pending.standard.rarity],
+      rarityColor: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
       status: this.getStandardResultStatus(pending),
-      titleColor: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
       statusColor: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
     };
   }
 
+  private positionResultHeading(
+    title: Phaser.GameObjects.Text,
+    rarity: Phaser.GameObjects.Text,
+  ): void {
+    const gap = 12;
+    const totalWidth = title.width + gap + rarity.width;
+    const startX = -totalWidth / 2;
+    title.setOrigin(0, 0.5).setPosition(startX, -32);
+    rarity.setOrigin(0, 0.5).setPosition(startX + title.width + gap, -32);
+  }
+
   private renderResultActionPanel(pending: PendingReveal): void {
     if (!this.root || !this.metrics || this.phase !== 'result') return;
-    this.stopResultPanelPulse();
-    this.resultActionPanel?.destroy(true);
-
     const messages = getMessages(getPlatformRuntime().language);
     const copy = this.getResultPanelCopy(pending);
-    const panel = this.add.container(this.metrics.centerX, RESULT_PRESENTATION.panelY);
-    const title = this.add.text(0, -34, copy.title, {
-      color: copy.titleColor,
-      stroke: '#160f20',
-      strokeThickness: 3,
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    const status = this.add.text(0, -3, copy.status, {
-      color: copy.statusColor,
-      stroke: '#160f20',
-      strokeThickness: 2,
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '11px',
-    }).setOrigin(0.5);
     const readyHint = pending.hiddenPocket
       ? `↔ ${messages.opening.swipeItems} · ${messages.opening.tapCollect}`
       : messages.opening.tapCollect;
-    const hint = this.add.text(0, 34, this.resultReady ? readyHint : messages.opening.tapToSpeedUp, {
-      color: this.resultReady ? '#ffffff' : '#bfb3ca',
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: pending.hiddenPocket ? '13px' : '15px',
-      fontStyle: this.resultReady ? 'bold' : 'normal',
-    }).setOrigin(0.5);
+    const hintText = this.resultReady ? readyHint : messages.opening.tapToSpeedUp;
 
-    const desiredWidth = Math.max(title.width, status.width, hint.width) + 46;
-    const panelWidth = Phaser.Math.Clamp(
-      desiredWidth,
+    if (this.resultActionPanel?.active) {
+      const panel = this.resultActionPanel;
+      const title = panel.getData('title') as Phaser.GameObjects.Text | undefined;
+      const rarity = panel.getData('rarity') as Phaser.GameObjects.Text | undefined;
+      const status = panel.getData('status') as Phaser.GameObjects.Text | undefined;
+      const hint = panel.getData('hint') as Phaser.GameObjects.Text | undefined;
+      if (title && rarity && status && hint) {
+        title.setText(copy.title);
+        rarity.setText(`◆ ${copy.rarity.toUpperCase()}`).setColor(copy.rarityColor);
+        status.setText(copy.status).setColor(copy.statusColor);
+        this.positionResultHeading(title, rarity);
+        if (hint.text !== hintText) {
+          this.tweens.killTweensOf(hint);
+          this.tweens.add({
+            targets: hint,
+            alpha: 0,
+            duration: 90,
+            ease: 'Sine.In',
+            onComplete: () => {
+              if (!hint.active) return;
+              hint.setText(hintText);
+              hint.setColor(this.resultReady ? '#ffffff' : '#bfb3ca');
+              hint.setFontStyle(this.resultReady ? 'bold' : 'normal');
+              this.tweens.add({ targets: hint, alpha: 1, duration: 140, ease: 'Sine.Out' });
+            },
+          });
+        }
+      }
+      if (this.resultReady) this.startResultPanelPulse();
+      else this.stopResultPanelPulse();
+      return;
+    }
+
+    const panelWidth = Math.max(
       RESULT_PRESENTATION.panelMinWidth,
       Math.min(RESULT_PRESENTATION.panelMaxWidth, this.metrics.logicalWidth - 120),
     );
+    const panel = this.add.container(this.metrics.centerX, RESULT_PRESENTATION.panelY + 7).setAlpha(0);
     const background = this.add.graphics();
-    background.fillStyle(0x21172e, 0.82);
+    background.fillStyle(0x21172e, 0.84);
     background.fillRoundedRect(
       -panelWidth / 2,
       -RESULT_PRESENTATION.panelHeight / 2,
@@ -2330,22 +2476,92 @@ export class OpeningScene extends Phaser.Scene {
       RESULT_PRESENTATION.panelHeight,
       22,
     );
+    const readyGlow = this.add.graphics().setAlpha(MOTION_PRESENTATION.resultReadyGlowMinAlpha);
+    readyGlow.lineStyle(3, 0x8df8ff, 0.72);
+    readyGlow.strokeRoundedRect(
+      -panelWidth / 2 + 2,
+      -RESULT_PRESENTATION.panelHeight / 2 + 2,
+      panelWidth - 4,
+      RESULT_PRESENTATION.panelHeight - 4,
+      20,
+    );
+    const title = this.add.text(0, -32, copy.title, {
+      color: '#f7f2ff',
+      stroke: '#160f20',
+      strokeThickness: 3,
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '21px',
+      fontStyle: 'bold',
+    });
+    const rarity = this.add.text(0, -32, `◆ ${copy.rarity.toUpperCase()}`, {
+      color: copy.rarityColor,
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '8px',
+    });
+    this.positionResultHeading(title, rarity);
+    const status = this.add.text(0, 0, copy.status, {
+      color: copy.statusColor,
+      stroke: '#160f20',
+      strokeThickness: 2,
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '10px',
+    }).setOrigin(0.5);
+    const hint = this.add.text(0, 35, hintText, {
+      color: this.resultReady ? '#ffffff' : '#bfb3ca',
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: pending.hiddenPocket ? '13px' : '15px',
+      fontStyle: this.resultReady ? 'bold' : 'normal',
+    }).setOrigin(0.5);
     const actionZone = this.add
       .zone(0, 0, panelWidth, RESULT_PRESENTATION.panelHeight)
       .setInteractive({ useHandCursor: true });
+    actionZone.on('pointerover', () => {
+      if (this.phase !== 'result' || !this.resultReady) return;
+      this.tweens.killTweensOf(panel);
+      this.tweens.add({ targets: panel, y: RESULT_PRESENTATION.panelY - 1, duration: 95, ease: 'Sine.Out' });
+    });
+    actionZone.on('pointerout', () => {
+      if (!panel.active) return;
+      this.tweens.killTweensOf(panel);
+      this.tweens.add({ targets: panel, y: RESULT_PRESENTATION.panelY, duration: 110, ease: 'Sine.Out' });
+      if (this.resultReady) this.startResultPanelPulse();
+    });
     actionZone.on('pointerdown', () => {
       if (this.phase !== 'result' || !this.resultReady) return;
+      this.tweens.killTweensOf(panel);
+      this.tweens.add({
+        targets: panel,
+        y: RESULT_PRESENTATION.panelY + 2,
+        duration: OPENING_FEEL_PRESENTATION.uiPressMs,
+        yoyo: true,
+        ease: 'Sine.Out',
+      });
       this.continueFromResult();
     });
 
-    panel.add([background, title, status, hint, actionZone]);
+    panel.add([background, readyGlow, title, rarity, status, hint, actionZone]);
+    panel.setData('readyGlow', readyGlow);
+    panel.setData('title', title);
+    panel.setData('rarity', rarity);
+    panel.setData('status', status);
+    panel.setData('hint', hint);
     this.root.add(panel);
     this.resultActionPanel = panel;
+    this.tweens.add({
+      targets: panel,
+      y: RESULT_PRESENTATION.panelY,
+      alpha: 1,
+      duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+      ease: 'Sine.Out',
+    });
     if (this.resultReady) this.startResultPanelPulse();
   }
 
   private continueFromResult(): void {
     if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;
+    getGameAudio().play('ui-click');
     this.resultCarouselDrag = null;
     const pending = this.lastReveal;
     void this.animateRewardBanking(pending).catch((error: unknown) => {
@@ -2396,7 +2612,7 @@ export class OpeningScene extends Phaser.Scene {
       this.startRewardBreathing(standard.group, standard.presentation.revealScale);
     }
 
-    this.renderRewardTray(pending, root, false);
+    this.renderRewardTray(pending, root, true);
     this.renderResultActionPanel(pending);
   }
 

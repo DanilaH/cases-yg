@@ -154,6 +154,7 @@ export class CollectionScene extends Phaser.Scene {
       .setOrigin(0, 1)
       .setInteractive({ useHandCursor: true });
     back.on('pointerdown', () => {
+      getGameAudio().play('ui-click');
       back.disableInteractive().setAlpha(0.65);
       getPlatformRuntime().analytics.track('collection_return', {
         view: this.view,
@@ -186,6 +187,7 @@ export class CollectionScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     tab.on('pointerup', () => {
       if (this.view === view) return;
+      getGameAudio().play('ui-click');
       this.view = view;
       this.page = 0;
       this.render();
@@ -209,7 +211,10 @@ export class CollectionScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     button.on('pointerup', () => {
+      const wasMuted = audio.isMuted();
+      if (!wasMuted) audio.play('ui-click');
       const muted = audio.toggleMuted();
+      if (wasMuted && !muted) audio.play('ui-click');
       void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
         console.warn('[settings] failed to persist mute preference', error);
       });
@@ -437,12 +442,14 @@ export class CollectionScene extends Phaser.Scene {
 
     if (this.page > 0) {
       previous.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+        getGameAudio().play('ui-click');
         this.page -= 1;
         this.render();
       });
     }
     if (this.page < pageCount - 1) {
       next.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+        getGameAudio().play('ui-click');
         this.page += 1;
         this.render();
       });
