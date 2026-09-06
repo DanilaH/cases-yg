@@ -131,7 +131,7 @@ const prepareScenario = (
         ...base,
         signal: LITE_V2_BALANCE.signalThreshold,
         discoveredStandard: unique([
-          ...base.discoveredStandard,
+          ...without(base.discoveredStandard, [keepMissing]),
           ...allBasicEligibleIds().filter((collectibleId) => collectibleId !== keepMissing),
         ]),
       },
