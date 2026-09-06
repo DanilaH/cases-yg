@@ -1,0 +1,28 @@
+name: Typecheck Diagnostic Temp
+
+on:
+  push:
+    branches:
+      - feat/opening-feel-correction
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Capture typecheck output
+        shell: bash
+        run: npm run typecheck > typecheck.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-log
+          path: typecheck.log
+          retention-days: 1
