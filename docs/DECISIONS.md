@@ -56,10 +56,11 @@ Status meanings:
 | Duplicate behavior | LOCKED TARGET | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL`; no manual sell choice |
 | Duplicate CHIPS | OPEN FOR TUNING | rarity-dependent small rebate; exact values TBD |
 | Signal purpose | LOCKED | non-spendable duplicate pity, separate from CHIPS |
-| Signal Lite rule | LOCKED TARGET | any standard duplicate `+1`; `4/4` arms SIGNAL LOCK; next standard collectible is undiscovered in active Drop; consume → `0/4` |
+| Signal Lite rule | LOCKED TARGET | any standard duplicate `+1`; `4/4` arms SIGNAL LOCK; next **eligible** standard collectible is undiscovered in active Drop; consume → `0/4` |
 | Legacy Signal migration | LOCKED TARGET | `newSignal = min(4, floor(oldSignal / 25))`; thus 0–24→0, 25–49→1, 50–74→2, 75–99→3, 100→4/LOCK |
 | Complete Drop + armed Signal | LOCKED TARGET | lock is not wasted/consumed if active Drop has no undiscovered standard item |
-| SIGNAL LOCK × pouch profile | LOCKED TARGET | first filter to undiscovered items in active Drop, then preserve the selected pouch rarity profile; Charged keeps its rarity advantage while guaranteeing NEW |
+| SIGNAL LOCK × pouch profile | LOCKED TARGET | where eligible missing candidates exist, filter to undiscovered items in active Drop then preserve selected pouch rarity profile; Charged keeps its rarity advantage while guaranteeing NEW |
+| Basic-only zero-eligible Signal edge | OPEN | if only Legendary remains and Basic is selected, strict gate vs pity override is unresolved; see `OPEN_QUESTIONS.md` |
 | Charged cost | OPEN FOR TUNING | exact CHIPS price TBD |
 | Base CHIPS payouts | OPEN FOR TUNING | exact Basic/Charged base ranges TBD |
 | CHIPS cache chances/amounts | OPEN FOR TUNING | exact cache tier probabilities and payout ranges TBD |
@@ -113,11 +114,11 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Decision | Status | Current answer |
 |---|---|---|
 | Standard rarity ladder | LOCKED | Common → Rare → Epic → Legendary |
-| Basic rarity access | LOCKED TARGET | Basic can roll Common + Rare + a small Epic chance; **Legendary is excluded from the Basic standard pool** |
-| Charged rarity access | LOCKED TARGET | Charged can roll all standard rarities and is the main source of Epic/Legendary; Legendary has non-zero Charged-only standard access |
+| Basic rarity access | LOCKED TARGET | Basic normal standard table can roll Common + Rare + a small Epic chance; **Legendary has zero normal Basic weight** |
+| Charged rarity access | LOCKED TARGET | Charged can roll all standard rarities and is the main source of Epic/Legendary; Legendary has non-zero Charged standard access |
 | Exact Basic rarity weights | OPEN FOR TUNING | Common dominant, Rare meaningful, Epic small; exact percentages TBD |
 | Exact Charged rarity weights | OPEN FOR TUNING | materially stronger Rare/Epic distribution plus non-zero Legendary; exact percentages TBD |
-| Current onboarding | LOCKED TARGET | preserve first 3 standard openings as undiscovered variants; #2 opposite family where possible, subject to the active pouch's allowed rarity set |
+| Current onboarding | LOCKED TARGET | preserve first 3 standard openings as undiscovered variants; #2 opposite family where possible, subject to active pouch's allowed rarity set |
 | Hidden Pocket role | LOCKED | rare automatic Secret second beat outside the standard rarity ladder |
 | Basic Secret access | LOCKED TARGET | Basic can still very rarely trigger Hidden Pocket/Secret; Secret is not hard-gated behind Charged |
 | Charged Secret access | LOCKED TARGET | Charged has a materially higher Hidden Pocket chance than Basic |
@@ -153,7 +154,7 @@ Candidate future families remain MP3 player, pager, mini camcorder, handheld con
 | Lite CHIPS visual asset | LOCKED TARGET | one small reusable CHIPS token/icon asset or equivalent reviewed vector; same identity serves HUD, ordinary payout and cache bursts |
 | Cache asset burden | LOCKED | no separate art pack for Cache/Big/Mega outcomes; differentiate by runtime amount, burst density/scale and copy/FX |
 | Charged pouch art | LOCKED TARGET | reuse current pouch art with runtime Charged treatment first; no mandatory second pouch raster set |
-| Lite new SFX | OPEN FOR TUNING | prefer reuse/synth where good; add only concise CHIPS collect/transfer and Charged-ready cues if existing sounds cannot sell the feedback |
+| Lite new SFX | OPEN FOR TUNING | prefer reuse/synth where good; add only concise CHIPS collect/transfer and Charged-ready cues if existing sounds cannot sell feedback |
 
 ---
 
