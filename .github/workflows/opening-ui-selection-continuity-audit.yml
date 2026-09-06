@@ -1,0 +1,154 @@
+name: Opening UI selection continuity audit
+
+on:
+  push:
+    branches:
+      - audit/gameplay-loop-lite-v2-opening-ui-3
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: db0aad6c847ce09936fe85fa3ec2f62fc9eebda3
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install Playwright driver and video helper
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node node_modules/playwright/cli.js install ffmpeg
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Audit Charged selection continuity
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs/promises';
+          const out = '/tmp/opening-ui-selection-continuity-audit';
+          await fs.mkdir(out, { recursive: true });
+          const SAVE_KEY = 'mystery-pocket-tech.save';
+          const errors = [];
+          const results = [];
+          const baseSave = (chips) => ({
+            version: 2,
+            discoveredStandard: [],
+            discoveredSecrets: [],
+            chips,
+            signal: 0,
+            activeLootPoolId: 'y2k-essentials',
+            totalOpens: 3,
+            pendingReveal: null,
+            muted: false,
+            stats: { duplicates: 0, hiddenPockets: 0 },
+          });
+          const browser = await chromium.launch({
+            headless: true,
+            channel: 'chrome',
+            args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+          });
+          const context = await browser.newContext({
+            viewport: { width: 1280, height: 720 },
+            locale: 'en-US',
+            recordVideo: { dir: out, size: { width: 1280, height: 720 } },
+          });
+          await context.addInitScript(() => {
+            globalThis.__mptAuditRandom = [];
+            globalThis.__mptAuditRandomFallback = 0.99;
+            const originalRandom = Math.random;
+            Math.random = () => {
+              const queue = globalThis.__mptAuditRandom;
+              if (Array.isArray(queue) && queue.length > 0) return queue.shift();
+              return globalThis.__mptAuditRandomFallback ?? originalRandom();
+            };
+          });
+          const page = await context.newPage();
+          page.on('pageerror', e => errors.push(e.message));
+          page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+          const waitReady = async () => {
+            await page.waitForSelector('#game canvas', { state: 'visible', timeout: 20000 });
+            await page.waitForTimeout(650);
+            await page.evaluate(() => { const p = document.querySelector('.mpt-debug-panel'); if (p) p.style.display = 'none'; });
+          };
+          const loadSave = async chips => {
+            await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: SAVE_KEY, value: baseSave(chips) });
+            await page.reload({ waitUntil: 'domcontentloaded' });
+            await waitReady();
+          };
+          const setRandom = async values => page.evaluate(v => { globalThis.__mptAuditRandom = [...v]; }, values);
+          const selectCharged = async () => { await page.mouse.click(750, 116); await page.waitForTimeout(180); };
+          const tear = async () => {
+            const startX = 482, startY = 183;
+            await page.mouse.move(startX, startY);
+            await page.mouse.down();
+            await page.mouse.move(startX + 150, startY, { steps: 8 });
+            await page.mouse.move(startX + 310, startY, { steps: 10 });
+            await page.mouse.up();
+          };
+          const readSave = async () => JSON.parse(await page.evaluate(k => localStorage.getItem(k), SAVE_KEY));
+          const continueResult = async () => { await page.waitForTimeout(2900); await page.mouse.click(640, 600); await page.waitForTimeout(350); };
+
+          await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
+          await waitReady();
+
+          // Enough CHIPS for another Charged: selection must persist.
+          await loadSave(130);
+          await selectCharged();
+          await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
+          await tear();
+          await continueResult();
+          await page.screenshot({ path: `${out}/01-charged-selection-persists.png` });
+          await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
+          await tear();
+          await page.waitForTimeout(180);
+          const persisted = await readSave();
+          results.push({ case: 'affordable-repeat', pendingPouchType: persisted.pendingReveal?.pouchType, chips: persisted.chips });
+          if (persisted.pendingReveal?.pouchType !== 'charged') throw new Error(`Expected repeated Charged, got ${persisted.pendingReveal?.pouchType}`);
+
+          // Insufficient CHIPS after Charged: renderIdle must safely fall back to Basic.
+          await loadSave(65);
+          await selectCharged();
+          await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
+          await tear();
+          await continueResult();
+          await page.screenshot({ path: `${out}/02-charged-falls-back-when-unaffordable.png` });
+          await setRandom([0.1, 0.1, 0.0, 0.0, 0.99]);
+          await tear();
+          await page.waitForTimeout(180);
+          const fallback = await readSave();
+          results.push({ case: 'unaffordable-fallback', pendingPouchType: fallback.pendingReveal?.pouchType, chips: fallback.chips });
+          if (fallback.pendingReveal?.pouchType !== 'basic') throw new Error(`Expected Basic fallback, got ${fallback.pendingReveal?.pouchType}`);
+
+          await fs.writeFile(`${out}/report.json`, JSON.stringify({ auditedHead: 'db0aad6c847ce09936fe85fa3ec2f62fc9eebda3', errors, results }, null, 2));
+          await context.close();
+          await browser.close();
+          if (errors.length) process.exitCode = 1;
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opening-ui-selection-continuity-audit
+          path: /tmp/opening-ui-selection-continuity-audit
+          if-no-files-found: error
+          retention-days: 3
