@@ -64,16 +64,20 @@ jobs:
               "const PRODUCT_HEAD = '85d57a05ce35582878379c8b5d2e253604607768';",
           )
           replace_once(
+              "const clickCharged1280 = async (page) => {\n  await page.mouse.click(110, 315);\n  await page.waitForTimeout(180);\n};\n\nconst basicEligible = [",
+              "const clickCharged1280 = async (page) => {\n  await page.mouse.click(110, 315);\n  await page.waitForTimeout(180);\n};\n\nconst humanTap = async (page, x, y, holdMs = 80) => {\n  await page.mouse.move(x, y);\n  await page.mouse.down();\n  await page.waitForTimeout(holdMs);\n  await page.mouse.up();\n};\n\nconst basicEligible = [",
+          )
+          replace_once(
               "await page.waitForTimeout(1_000);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(170);\nawait shot(page, '06-basic-bank-in-flight');\nawait waitForIdleAfterBank(page, basicCommitted.chips);\nawait shot(page, '07-basic-idle-after-bank');",
-              "await page.mouse.click(640, 568);\nawait page.waitForTimeout(140);\nawait shot(page, '06a-basic-result-ready-after-speedup');\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(150);\nawait shot(page, '06b-basic-bank-in-flight');\nawait waitForIdleAfterBank(page, basicCommitted.chips);\nawait shot(page, '07-basic-idle-after-bank');",
+              "await humanTap(page, 640, 568);\nawait page.waitForTimeout(140);\nawait shot(page, '06a-basic-result-ready-after-speedup');\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(120);\nawait shot(page, '06b-basic-bank-in-flight');\nawait page.waitForTimeout(1_050);\nawait shot(page, '07-basic-idle-after-bank');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst basicNextPending = await readSave(page, 'basic-next-after-bank');\nassert(basicNextPending.pendingReveal?.openingNumber === 5, 'Basic banking returns scene to interactive idle', { openingNumber: basicNextPending.pendingReveal?.openingNumber });",
           )
           replace_once(
-              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09-mega-bank-and-ready');",
-              "await page.waitForTimeout(1_300);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09-mega-bank-and-ready');",
+              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09-mega-bank-and-ready');\nawait waitForIdleAfterBank(page, megaCommitted.chips);\nawait shot(page, '10-mega-idle-after-bank');",
+              "await page.waitForTimeout(1_300);\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(260);\nawait shot(page, '09-mega-bank-and-ready');\nawait page.waitForTimeout(1_050);\nawait shot(page, '10-mega-idle-after-bank');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst megaNextPending = await readSave(page, 'mega-next-after-bank');\nassert(megaNextPending.pendingReveal?.openingNumber === 5, 'Mega banking returns scene to interactive idle', { openingNumber: megaNextPending.pendingReveal?.openingNumber });",
           )
           replace_once(
-              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(480);\nawait shot(page, '12-duplicate-bank-signal');",
-              "await page.waitForTimeout(1_300);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(480);\nawait shot(page, '12-duplicate-bank-signal');",
+              "await page.waitForTimeout(950);\nawait page.mouse.click(640, 568);\nawait page.waitForTimeout(480);\nawait shot(page, '12-duplicate-bank-signal');\nawait waitForIdleAfterBank(page, duplicateCommitted.chips);\nawait shot(page, '13-duplicate-idle-signal-1');",
+              "await page.waitForTimeout(1_300);\nawait humanTap(page, 640, 568);\nawait page.waitForTimeout(520);\nawait shot(page, '12-duplicate-bank-signal');\nawait page.waitForTimeout(900);\nawait shot(page, '13-duplicate-idle-signal-1');\nawait runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);\nconst duplicateNextPending = await readSave(page, 'duplicate-next-after-bank');\nassert(duplicateNextPending.pendingReveal?.openingNumber === 5, 'Duplicate banking returns scene to interactive idle', { openingNumber: duplicateNextPending.pendingReveal?.openingNumber });",
           )
           path.write_text(text)
           PY
