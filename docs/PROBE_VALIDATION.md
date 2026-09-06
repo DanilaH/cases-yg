@@ -1,243 +1,211 @@
 # Gameplay Loop Lite V2 validation
 
-This file is the direct/local validation gate for the next gameplay pass. Real hosted Yandex checks live separately in `YANDEX_SLICE_VALIDATION.md`.
+This is the current **direct/local acceptance gate** for the implemented Lite V2 loop. Hosted platform validation remains separate in `YANDEX_SLICE_VALIDATION.md`.
 
-The question is no longer whether the pouch/reveal art pipeline works; that baseline has already been proven. Lite V2 must answer:
+Current status:
 
-> **Does Basic → CHIPS → Charged make repeated opening more rewarding without making the game feel slower, more confusing or system-heavy?**
+- implementation: **COMPLETE**;
+- technical tests/build/assets: **PASS**;
+- exact-revision browser audit: **PASS**;
+- manual screenshot/video artifact review: **PASS**;
+- final Charged-ready presentation correction: **MERGED + RE-AUDITED**;
+- post-merge CI: **PASS**;
+- direct 20–50 opening hands-on: **OPEN — CURRENT GATE**;
+- real Yandex DRAFT: **BLOCKED until hands-on acceptance**.
+
+The remaining question is:
+
+> **Does Basic → CHIPS → Charged make repeated opening more rewarding without making the game slower, confusing or system-heavy?**
 
 ---
 
-# 1. Feel / pacing
+# 1. Already proven by automated/local validation
 
-Validate through repeated hands-on play:
+The current merged implementation has already established:
+
+- Basic/Charged reward profiles resolve deterministically;
+- Basic never standard-rolls Legendary, including under armed Signal;
+- Charged has non-zero Legendary access;
+- collectible rarity and CHIPS-cache rolls are independent;
+- duplicate recycle uses rarity-dependent CHIPS values;
+- Signal uses `+1` per duplicate and caps at `4/4`;
+- Signal Lock respects active loot pool + selected-pouch eligibility;
+- if only Legendary remains, Basic resolves normally and retains `4/4`;
+- following eligible Charged opening can consume that lock on NEW Legendary;
+- fully complete active Drop does not waste an armed lock;
+- legacy Signal migration uses exact `min(4, floor(oldSignal / 25))` mapping;
+- save migration preserves existing collection/stat state;
+- Charged cost + base/cache/recycle/Signal/collectible/Hidden outcome are one recoverable transaction;
+- refresh cannot reroll collectible/cache/Hidden Pocket;
+- recovery cannot double-grant base/cache/recycle rewards;
+- recovered transaction preserves pouch type + loot pool + Signal retain/consume outcome;
+- Basic/Charged selection continuity and insufficient-wallet Basic fallback work;
+- compact 900/1024 layouts and RU copy are valid in browser captures;
+- technical/browser errors are empty in the accepted exact-revision audit.
+
+Current suite at the accepted revision: **87 unit tests**, plus typecheck, asset self-test/validation and production build.
+
+These items should not be re-litigated during hands-on unless direct play exposes contradictory evidence.
+
+---
+
+# 2. Feel / pacing — HANDS-ON
+
+Run enough consecutive openings to get past first-impression novelty: target **20–50 openings**.
+
+Evaluate:
 
 - tear remains immediate and pleasant;
-- CHIPS presentation adds reward richness without obscuring the hero collectible;
-- ordinary token flight feels responsive and lands clearly in wallet;
-- rare cache outcomes feel like a real spike rather than a random number label;
-- large cache presentation stays short enough not to slow the loop;
-- duplicate recycle feels like useful compensation rather than an extra delay;
-- Charged state is visibly more exciting than Basic;
-- the full sequence remains tolerable after 20–50 openings;
-- CTA/result timing remains clear;
-- Hidden Pocket still reads as the strongest surprise beat.
+- ordinary CHIPS presentation enriches rather than delays the reveal;
+- token flight reads clearly as wallet progress;
+- Cache/Big/Mega outcomes create a satisfying spike;
+- large cache presentation is short enough for repeated play;
+- duplicate recycle feels like compensation rather than extra ceremony;
+- Charged visibly/subjectively feels more valuable than Basic;
+- result/CTA timing stays obvious;
+- Hidden Pocket remains the strongest surprise beat;
+- `CHARGED POUCH READY` feels useful and satisfying rather than interruptive;
+- the whole sequence is still pleasant after repetition.
 
-If added reward sequencing makes ordinary openings tedious, reduce presentation duration before adding Quick Reveal or more systems.
+If ordinary openings become tedious, first reduce presentation duration. Do not jump directly to Quick Reveal/x5/auto-open.
 
 ---
 
-# 2. Player comprehension
+# 3. Player comprehension — HANDS-ON
 
-Without explanatory prose, a player should infer:
+Without reading design docs, the loop should communicate:
 
-- every Basic gives a gadget and CHIPS;
+- Basic always gives a gadget and CHIPS;
 - CHIPS accumulate toward Charged;
-- some pouches can hit a much larger CHIPS cache bonus;
-- Charged costs CHIPS and is the main route to top standard rarities;
-- Basic can still give Common/Rare/Epic and a very rare Secret through Hidden Pocket, but not standard Legendary;
-- duplicate is automatically recycled rather than “lost”;
+- some openings can hit a much larger CHIPS cache;
+- Charged costs CHIPS and is the standard route to Legendary;
+- Basic still has Common/Rare/Epic and very rare Hidden Pocket Secret access;
+- duplicate is automatically recycled, not simply lost;
 - duplicate gives extra CHIPS + one Signal segment;
-- four Signal segments arm a guaranteed NEW **when the selected pouch has an eligible undiscovered item**;
-- if only Legendary remains, Basic does not consume Signal and the UI makes clear that Charged is required;
-- Signal is pity, not spendable currency.
+- four Signal segments arm a guaranteed NEW **when the selected pouch has an eligible missing standard item**;
+- if only Legendary remains, `SIGNAL LOCK · CHARGED` explains why Basic does not consume the lock;
+- Signal is pity/protection, not spendable currency.
 
-The intended mental model is:
+Desired mental model:
 
-> **“Basic always gives me something useful; sometimes the CHIPS payout explodes; four dupes protect me; if Signal is waiting on Legendary it tells me to use Charged.”**
-
----
-
-# 3. Economy sanity
-
-Before calling Lite V2 balanced enough for DRAFT:
-
-- Charged is reachable often enough to be a visible near-term goal;
-- Charged is not so cheap that Basic becomes meaningless;
-- Basic base payout is predictable enough that player can estimate progress;
-- cache bonuses create variance without making ordinary base payouts irrelevant;
-- the top cache is rare enough that funding multiple Charged openings remains memorable;
-- Charged **consumes net CHIPS in expectation**;
-- duplicate recycle helps but does not make duplicates economically preferable to NEW;
-- rarity-dependent recycle payouts feel coherent;
-- Basic produces no standard Legendary in deterministic/probabilistic tests, including under armed Signal;
-- Basic Rare is meaningful and Epic remains a genuine surprise;
-- Charged materially increases Rare/Epic quality and has non-zero Legendary access;
-- Signal 4/4 frequency is neither constant nor irrelevant;
-- Signal + Charged still feels valuable because pity preserves Charged rarity weighting among missing items;
-- a waiting `SIGNAL LOCK · CHARGED` state feels understandable rather than like a broken guarantee;
-- Charged Hidden Pocket profile feels materially better while Basic Secret remains possible.
-
-Exact values must be backed by deterministic simulation + hands-on. Do not rely on intuition alone once numbers are chosen.
+> **“Basic always moves me forward; CHIPS get me to Charged; caches can spike progress; four dupes protect me; if the lock needs Charged, the game tells me.”**
 
 ---
 
-# 4. Transaction / recovery correctness
+# 4. Current economy tuning — HANDS-ON + LATER SIMULATION
 
-Must hold for Basic and Charged:
+Implemented starting values:
 
-- no collectible reroll on refresh;
-- no cache-tier reroll on refresh;
-- no double commit;
-- no double base CHIPS reward;
-- no double cache bonus;
-- no duplicate recycle payout twice;
-- Signal increments once;
-- armed-but-retained Signal remains retained after recovery;
-- Hidden Pocket outcome remains fixed;
-- result recovery preserves same pouch type + loot pool + payout profile.
+```text
+Basic
+  cost: 0
+  base CHIPS: 6–10
+  rarity C/R/E/L: 72/25/3/0
+  Hidden Pocket: 1.5%
+  cache weights none/cache/big/mega: 90/7/2.5/0.5
 
-Charged-specific blocker:
+Charged
+  cost: 60
+  base CHIPS: 18–24
+  rarity C/R/E/L: 35/40/20/5
+  Hidden Pocket: 6%
+  cache weights none/cache/big/mega: 78/15/5.5/1.5
 
-> **The CHIPS cost and every reward component must be atomic.**
+Cache rewards
+  none: 0
+  cache: 20–35
+  big: 45–75
+  mega: 120–180
 
-Test refresh/crash after selecting Charged, after tear, during base CHIPS presentation, during a forced large cache beat, during collectible reveal and before result-ready.
+Duplicate recycle C/R/E/L
+  2/4/8/15
+```
 
-Final wallet and Signal state must always match one deterministic transaction.
+Deterministic current-config analysis already proves Charged remains a CHIPS sink in the all-duplicate case. Hands-on must now judge whether the *felt cadence* is right:
 
----
+- Charged is reachable often enough to remain a near-term goal;
+- it is not so cheap that Basic feels pointless;
+- base CHIPS are predictable enough to understand progress;
+- cache bonuses matter without making ordinary payouts irrelevant;
+- Mega remains memorable rather than routine;
+- duplicate recycle softens disappointment without making duplicates preferable;
+- Basic Rare feels meaningful and Epic feels surprising;
+- Charged's stronger Rare/Epic/Legendary profile is perceptible;
+- Signal `4/4` occurs often enough to matter but not constantly;
+- 1.5% vs 6% Hidden Pocket relationship feels coherent.
 
-# 5. Legacy save migration
-
-Before merge:
-
-- existing discovered standard/Secret items survive migration;
-- existing stats survive unless deliberately versioned away;
-- old CHIPS-absent save initializes wallet deterministically;
-- old Signal uses exact locked mapping `min(4, floor(oldSignal / 25))`;
-- boundary values `24/25/49/50/74/75/99/100` migrate correctly;
-- a legacy fully armed Signal lock remains armed;
-- migration never creates more than one lock;
-- migration is idempotent across multiple reloads.
-
----
-
-# 6. Drop scoping / pity weighting
-
-Even with only one player-visible Drop, automated/debug tests must prove:
-
-- Basic resolves only within active loot pool;
-- Charged resolves only within active loot pool;
-- Basic rarity gate excludes Legendary regardless of pool contents or Signal state;
-- Charged can select Legendary where eligible;
-- Signal Lock filters to undiscovered standard items inside active loot pool;
-- after filtering, Signal Lock preserves the selected Basic/Charged rarity profile;
-- when eligible missing candidates exist, the selected pouch gets a guaranteed NEW and consumes the lock;
-- when **only Legendary remains** and Basic is selected, Basic resolves through its normal Common/Rare/Epic table and the lock remains `4/4`;
-- an eligible Charged opening from that state guarantees a missing Legendary and consumes the lock;
-- repeated Basic duplicates while the lock waits do not create more than `4/4` Signal;
-- a complete active Drop does not consume armed Signal;
-- CHIPS and Signal remain global;
-- adding a fake second Drop in tests does not require scene/reward-engine rewrites.
-
-No selector UI is required while there is only one production Drop.
+Tune numbers only from evidence. Do not redesign the loop because one provisional value is off.
 
 ---
 
-# 7. Visual QA
+# 5. Specific edge states to try manually
 
-Use the established exact-revision workflow.
+Automation already covers correctness; hands-on should additionally judge clarity/feel of these states when practical:
 
-Capture/review at minimum:
+- wallet below Charged cost;
+- wallet crossing `60 CHIPS` through ordinary payout;
+- wallet crossing threshold through a large cache;
+- Charged selected and affordable;
+- Charged remains selected after an opening when still affordable;
+- Charged falls back to Basic after wallet drops below cost;
+- duplicate → recycle → Signal increment;
+- `4/4` Signal Lock;
+- `SIGNAL LOCK · CHARGED` with only Legendary missing;
+- Charged Legendary reveal;
+- Hidden Pocket carousel;
+- recovered pending reveal if deliberately interrupted.
 
-- Basic idle with CHIPS + Signal HUD;
-- ordinary Basic CHIPS burst/flight;
-- forced large cache payout and wallet-count animation;
-- Common/Rare/Epic Basic outcomes;
-- proof path that Basic Legendary cannot be forced through normal profile or Signal;
-- NEW result;
-- duplicate → RECYCLED → resource transfer;
-- each Signal segment increment + 4/4 lock state;
-- `SIGNAL LOCK · CHARGED` state with only Legendary missing;
-- a Basic opening while that state remains armed after result;
-- wallet crossing Charged threshold through normal payout;
-- wallet crossing Charged threshold through cache jackpot;
-- Charged ready/selected state;
-- Charged Epic/Legendary reveal;
-- Signal-Locked Charged guaranteed NEW Legendary from the waiting state;
-- Hidden Pocket from Basic and Charged debug paths;
-- recovered pending Basic with retained Signal;
-- recovered pending Charged with forced cache bonus;
-- 900, 1024, 1280 and 1728 logical-width representative states;
-- RU copy at compact width.
-
-Technical/browser errors must be empty, but generated captures do not count as passed until inspected.
+The point is not to retest deterministic math by hand; it is to judge whether the state reads naturally to a player.
 
 ---
 
-# 8. Debug tooling
+# 6. GO / FIX decision
 
-Lite V2 debug controls should be able to force/seed:
+## GO to real Yandex DRAFT
 
-- CHIPS amount below/at/above Charged cost;
-- Basic opening;
-- Charged opening;
-- ordinary/no-cache payout;
-- each configured cache tier;
-- NEW;
-- duplicate for each rarity/recycle payout;
-- Basic Common/Rare/Epic;
-- Charged Legendary;
-- Signal 0/4 through 4/4;
-- Signal lock consumption on Basic and Charged when eligible;
-- Signal `4/4` + only Legendary missing + Basic, proving lock retention;
-- the following Charged guaranteed Legendary consumption;
-- complete active Drop with armed lock;
-- Hidden Pocket by pouch type;
-- interrupted pending transaction recovery;
-- fake second loot pool for logic tests.
+Proceed when direct repeated play confirms:
 
-The old `+25 Signal` rewarded probe is legacy and should disappear with Signal migration.
+- Basic remains pleasant despite no standard Legendary;
+- CHIPS progress is understandable;
+- caches create excitement without dominating the loop;
+- duplicate recycle improves rather than clutters the experience;
+- Charged creates a real “one more pouch” goal;
+- Charged feels materially better, not cosmetically different;
+- Signal is understandable enough without a tutorial screen;
+- `SIGNAL LOCK · CHARGED` explains the exceptional waiting state;
+- `CHARGED POUCH READY` is useful/satisfying;
+- extra sequencing does not make 20–50 openings materially annoying.
 
----
+## FIX before DRAFT
 
-# 9. GO / FIX
+Evidence-backed blockers include:
 
-### GO to real Yandex DRAFT
+- player cannot understand CHIPS/Signal roles;
+- Charged does not feel worth saving for;
+- cache looks like arbitrary text rather than a reward spike;
+- ordinary CHIPS feel meaningless beside jackpots;
+- recycle presentation makes duplicates feel slower/worse;
+- waiting Signal state looks broken or misleading;
+- `CHARGED POUCH READY` becomes an annoying interruption;
+- compact UI is hard to read during real play;
+- repeated opening cadence is materially worse than the pre-Lite opener.
 
-Proceed when:
+For a blocker, prefer the smallest presentation/tuning correction that addresses the observed problem, then rerun the relevant technical/exact-revision gate.
 
-- all technical invariants pass;
-- exact-revision visual review finds no blocker;
-- user hands-on confirms the new loop feels better than old one;
-- Basic remains fun despite no standard Legendary;
-- cache jackpot adds excitement without dominating economy;
-- Charged creates a genuine “one more pouch” goal;
-- Charged feels materially better rather than cosmetically different;
-- waiting Signal state clearly communicates why Charged is required;
-- extra sequence does not feel bloated.
-
-### FIX before DRAFT
-
-Blockers include:
-
-- CHIPS/Signal meaning is unclear;
-- large cache looks like arbitrary text rather than a reward event;
-- ordinary CHIPS feel irrelevant beside jackpots;
-- Charged expected CHIPS return self-funds repeated Charged spam;
-- Charged feels like same pouch with a label;
-- Basic Legendary appears through normal roll or Signal pity;
-- Basic consumes an armed Signal lock when no Basic-eligible NEW exists;
-- waiting Signal state looks broken or falsely claims the next Basic is guaranteed NEW;
-- Signal-Locked Charged loses its rarity advantage;
-- resource animation visibly lies about final wallet state;
-- duplicates create too much presentation friction;
-- Signal migration can lose/duplicate progress;
-- Charged cost/reward/cache is not crash-safe;
-- compact layout becomes cluttered;
-- repeated openings are materially slower/less pleasant.
-
-Do not respond to these problems by adding offline income, Overcharge, Archive levels or another currency.
+Do **not** answer these problems by adding offline income, Overcharge, Archive levels, another currency, shop scene, mass opening or prestige.
 
 ---
 
-# 10. After Lite V2 approval
+# 7. After hands-on approval
 
-Next order is fixed:
+The order is fixed:
 
-1. real Yandex DRAFT validation;
-2. first expanded content batch;
-3. first real Drop grouping when enough families exist;
-4. re-simulate/tune economy at content scale;
-5. scale Collection only as required;
-6. final monetization/store/release work.
+1. run real `YANDEX_SLICE_VALIDATION.md` in a hosted DRAFT;
+2. fix only hosted-platform defects found there;
+3. lock first expanded content batch;
+4. introduce first real Drop grouping when enough families exist;
+5. re-simulate/tune economy at content scale;
+6. scale Collection only as required;
+7. finalize monetization/store/release work.
+
+> **Current next action: play the merged Lite V2 build repeatedly.**
