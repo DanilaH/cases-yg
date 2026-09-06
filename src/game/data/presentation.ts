@@ -229,6 +229,8 @@ export const OPENING_FEEL_PRESENTATION = {
   railCardWidth: 216,
   railCardHeight: 58,
   railGap: 10,
+  railUnavailableAlpha: 0.84,
+  railUnavailableSurfaceAlpha: 0.78,
   railTopOffset: 8,
   selectorTopOffset: 184,
   bankLegMinDuration: 230,

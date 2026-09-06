@@ -699,7 +699,7 @@ export class OpeningScene extends Phaser.Scene {
       const background = this.add.graphics();
       const fill = selected ? (charged ? 0x30234a : 0x282034) : 0x17101f;
       const border = charged ? (selected ? CHARGED_ACCENT : 0x77629e) : selected ? 0xf0ddff : 0x6e627d;
-      background.fillStyle(fill, available ? 0.92 : 0.58);
+      background.fillStyle(fill, available ? 0.92 : OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha);
       background.fillRoundedRect(0, 0, width, height, 16);
       background.lineStyle(selected ? 2.5 : 1.5, border, selected ? 0.88 : 0.34);
       background.strokeRoundedRect(0, 0, width, height, 16);
@@ -718,18 +718,18 @@ export class OpeningScene extends Phaser.Scene {
         })
         .setOrigin(0, 0.5);
       const titleText = this.add.text(38, 11, title, {
-        color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#8f839b',
+        color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#b7adbf',
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: getPlatformRuntime().language === 'ru' ? '8px' : '9px',
       });
       const subtitleText = this.add.text(38, 35, subtitle, {
-        color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#7e7289',
+        color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#a69aae',
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: '8px',
       });
       card.add([background, marker, titleText, subtitleText]);
       card.setSize(width, height).setInteractive({ useHandCursor: true });
-      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.68;
+      const idleAlpha = available ? (selected ? 1 : 0.84) : OPENING_FEEL_PRESENTATION.railUnavailableAlpha;
       card.setAlpha(idleAlpha);
       card.setData('available', available);
       card.setData('idleAlpha', idleAlpha);
