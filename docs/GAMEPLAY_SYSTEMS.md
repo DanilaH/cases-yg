@@ -1,186 +1,367 @@
 # Gameplay systems
 
-This document separates **core mechanics** from the current **internal-slice balance**. The two-family slice is for hands-on validation only and will not be published as the final game.
+This document is the canonical gameplay-system specification. It separates the **current production target** from temporary balance numbers and future ideas.
+
+The next gameplay target is **Gameplay Loop Lite V2**: add one lightweight meta-loop around the already-proven tactile opener without turning the project into a large idle/economy game.
+
+> **Basic Pouch → collectible + CHIPS → duplicate = recycle + CHIPS + SIGNAL → save CHIPS → Charged Pouch → better roll → repeat**
+
+The design goal is simple, pleasant, responsive play with visible progress on nearly every opening.
 
 ---
 
 # 1. Core opener — LOCKED
 
-Primary loop:
+Primary interaction remains:
 
 1. show Mystery Pouch;
-2. one short left-to-right tear-tab drag;
-3. predetermine and persist reward transaction;
-4. reveal collectible from pouch;
-5. show rarity + NEW/duplicate;
-6. apply progression;
+2. one short left-to-right star-tab drag;
+3. predetermine and persist the complete reward transaction;
+4. reveal the pouch rewards;
+5. show rarity + NEW/duplicate state;
+6. apply/visualize CHIPS and Signal progression;
 7. optionally run Hidden Pocket;
 8. hold result briefly;
-9. player advances or opens Collection.
+9. player advances, chooses the next available pouch action, or opens Collection.
 
-Reveal:
+Reveal presentation remains compact:
 
-- ~1.0–1.4 s after tear;
-- pouch remains visible as physical source for ~0.3–0.4 s;
-- cheap runtime flash/glow/ring/sparkles;
+- pouch is the physical source of the reward;
+- collectible reveal uses runtime flash/glow/ring/sparkles;
 - no physics;
 - no auto-dismiss;
-- minimum result readability hold ~0.6 s.
+- minimum result readability hold remains ~0.6 s;
+- no separate Reveal scene.
 
-No separate Reveal scene.
+The current reveal/pouch visual work is considered the baseline. Lite V2 must compose with it rather than redesign it.
 
 ---
 
-# 2. Standard rarity — LOCKED
+# 2. Gameplay Loop Lite V2 — LOCKED TARGET
+
+Lite V2 deliberately adds only four gameplay concepts:
+
+1. **CHIPS** — one global soft currency.
+2. **Duplicate recycle** — automatic duplicate compensation.
+3. **Simplified Signal** — transparent duplicate pity.
+4. **Charged Pouch** — a more valuable opening purchased with CHIPS.
+
+The scope explicitly does **not** include timers, offline income, passive production, upgrade trees, multiple standard collectible drops, shops, prestige, Overcharge, Archive levels or other full incremental systems.
+
+The loop should remain understandable without a tutorial screen.
+
+---
+
+# 3. Basic Pouch — LOCKED TARGET
+
+Basic Pouch remains the default, immediately available opening.
+
+For Lite V2:
+
+- Basic remains free/unlimited; no energy or regeneration timer is introduced;
+- every Basic opening keeps one standard collectible roll;
+- every Basic opening additionally grants a small CHIPS reward;
+- the first three onboarding openings keep the existing undiscovered protection;
+- Hidden Pocket remains possible according to the active Basic profile;
+- exact Basic CHIPS payout is balance config, not hard-coded presentation logic.
+
+This intentionally preserves the proven opener while making every opening feel richer.
+
+---
+
+# 4. CHIPS — LOCKED TARGET
+
+CHIPS are the only spendable gameplay currency in Lite V2.
+
+Purpose:
+
+> **CHIPS answer “when can I afford a better opening?”**
+
+Rules:
+
+- one global wallet;
+- earned from every pouch;
+- duplicates grant additional CHIPS through recycle;
+- spent on Charged Pouch;
+- CHIPS are not family-specific and not Drop-specific;
+- CHIPS do not replace Signal.
+
+Presentation:
+
+- persistent compact CHIPS HUD counter;
+- reward tokens appear as part of the pouch reward sequence;
+- after the reward is accepted/resolved, chip tokens fly into the HUD counter;
+- the counter animates from the pre-transaction value to the committed value;
+- crossing the Charged affordability threshold should produce a clear `CHARGED POUCH READY` feedback beat.
+
+The physical transfer animation is presentation only. Durable wallet state comes from the persisted reveal transaction and must never depend on an animation completing.
+
+---
+
+# 5. Duplicate recycle — LOCKED TARGET
+
+There is no manual “sell duplicate” choice in Lite V2.
+
+A duplicate automatically resolves as:
+
+> **DUPLICATE → RECYCLED → CHIPS + SIGNAL**
+
+Rationale: if duplicates have no other use, a manual sell button is fake choice and unnecessary friction.
+
+Rules:
+
+- duplicate still reveals as the rolled collectible first;
+- duplicate then awards a small rarity-dependent CHIPS rebate;
+- duplicate also advances Signal by one segment;
+- new collectibles do not grant recycle CHIPS and do not advance Signal;
+- exact rarity-to-CHIPS recycle values are balance values still to be tuned.
+
+CHIPS are immediate compensation. Signal is protection against repeated duplicate streaks. The systems therefore have different jobs and should remain separate.
+
+---
+
+# 6. Signal — LOCKED TARGET, MIGRATION FROM CURRENT SLICE
+
+Signal is a pity meter, **not a spendable currency**.
+
+Lite V2 simplifies the current weighted Signal implementation to a transparent segmented rule:
+
+- every standard duplicate: `+1 SIGNAL`;
+- target threshold: `4/4`;
+- at `4/4`, **SIGNAL LOCK** is armed;
+- the next standard collectible roll must be an undiscovered standard collectible in the active Drop if one exists;
+- consuming the lock resets Signal to `0/4`;
+- if the active Drop is already complete, the armed lock is not wasted/consumed.
+
+Player-facing mental model:
+
+> **Four duplicates → next collectible is NEW.**
+
+Recommended HUD language is segmented rather than numerical economy language, e.g. `◆ ◆ ◇ ◇` → `◆ ◆ ◆ ◆` → `SIGNAL LOCK`.
+
+### Current-runtime migration note
+
+The current `main` runtime still uses the old slice implementation: threshold 100 with rarity-dependent gains (`+25/+20/+15/+10`) and late-lock weighting. That behavior remains factual until Lite V2 is implemented. The **target specification above supersedes it for the next gameplay pass**.
+
+Do not accidentally keep both pity systems.
+
+---
+
+# 7. Charged Pouch — LOCKED CONCEPT, NUMBERS OPEN
+
+Charged Pouch is the single extra acquisition tier in Lite V2.
+
+Availability:
+
+- purchased using global CHIPS;
+- exposed directly on the Opening screen; no store/economy scene;
+- when affordable, the player may choose Charged rather than Basic;
+- affordability/ready state must be obvious from the same screen.
+
+Charged Pouch gives:
+
+- one standard collectible roll;
+- a larger CHIPS reward than Basic;
+- meaningfully better standard rarity odds than Basic;
+- a higher Hidden Pocket chance than Basic.
+
+Lite V2 intentionally does **not** add a second/third standard collectible to Charged Pouch. The perception of a larger reward comes from the chip-token sequence + stronger collectible roll + possible Hidden Pocket.
+
+Still open for tuning before implementation is considered balance-complete:
+
+- Charged CHIPS cost;
+- Basic and Charged CHIPS payout ranges;
+- duplicate recycle CHIPS by rarity;
+- Charged rarity weights;
+- Basic vs Charged Hidden Pocket chances.
+
+These values belong in typed balance config and should be adjusted after hands-on rather than invented in presentation code.
+
+---
+
+# 8. Multi-reward presentation — LOCKED TARGET
+
+Lite V2 creates the feeling of “several things came out of the pouch” without introducing a multi-standard-drop economy.
+
+Expected reward sequence:
+
+1. tear;
+2. chip tokens burst/appear;
+3. CHIPS amount resolves;
+4. one standard collectible reveal;
+5. NEW or duplicate/recycle feedback;
+6. optional Hidden Pocket/Secret beat;
+7. resource tokens/energy visibly transfer into their HUD meters;
+8. result ready.
+
+Transaction model remains conceptually:
+
+```text
+1 CHIPS reward
+1 standard collectible
+0..1 Hidden Pocket Secret
+0..1 duplicate recycle CHIPS reward
+0..1 Signal increment
+```
+
+Do not reinterpret visual chip particles as individual economic rolls.
+
+---
+
+# 9. Standard rarity — LOCKED LADDER, PROFILE-SPECIFIC ODDS
 
 > **Common → Rare → Epic → Legendary**
 
-The ladder and visual grammar survive content expansion. Exact probabilities may change.
+The current Basic/slice runtime starts from:
 
----
-
-# 3. Internal-slice drop configuration — LOCKED FOR SLICE
-
-Only for Camera + Flip Phone:
-
-| Rarity | Chance |
+| Rarity | Current slice chance |
 |---|---:|
 | Common | 60% |
 | Rare | 28% |
 | Epic | 10% |
 | Legendary | 2% |
 
-Family: Camera / Flip Phone 50/50.
+Those values remain useful as the initial Basic baseline, but they are not sacred release balance.
 
-First three standard openings:
-
-- guaranteed undiscovered standard variants;
-- opening #2 uses opposite family from #1.
-
-These values exist so the slice is pleasant and testable. **Do not assume they are launch balance after the roster expands.**
+Charged uses a separate, visibly better rarity profile. Exact values are intentionally not locked yet.
 
 ---
 
-# 4. Signal — CORE MECHANIC ACCEPTED, SLICE NUMBERS TEMPORARY
+# 10. Hidden Pocket — CORE MECHANIC RETAINED
 
-Signal is the visible pity/progress system for duplicates.
+Hidden Pocket remains the rare jackpot-like second reveal beat and still awards a Secret.
 
-Slice gains:
-
-| Duplicate rarity | Signal |
-|---|---:|
-| Common | +25 |
-| Rare | +20 |
-| Epic | +15 |
-| Legendary | +10 |
-
-At 100 in the slice:
-
-- while any Camera/Flip Phone Common/Rare/Epic variant is missing: force one missing non-Legendary variant;
-- otherwise: next standard rarity is Rare 60 / Epic 30 / Legendary 10;
-- consuming the lock resets Signal to 0;
-- the armed result itself does not immediately add Signal again;
-- slice Signal stops after standard 8/8.
-
-Release expansion requirement:
-
-> re-design Signal against the final family count, drop grouping and duplicate rate. Preserve the fantasy and purpose, not necessarily these increments/threshold semantics.
-
----
-
-# 5. Hidden Pocket — CORE MECHANIC ACCEPTED, SLICE NUMBERS TEMPORARY
-
-Hidden Pocket is a rare automatic second reveal beat. No second input.
-
-Slice configuration:
+Current runtime/slice behavior:
 
 - disabled on openings #1–3;
-- from #4: independent 3% post-standard roll while at least one slice Secret remains;
-- always awards an undiscovered Secret;
-- no Secret duplicates;
-- exactly two slice Secrets: Cosmic Camera + Noir / Monochrome Flip Phone;
-- stops after 2/2.
+- 3% from #4 while an undiscovered slice Secret remains;
+- no Secret duplicates in the current slice.
 
-Animation target: ~0.9–1.1 s additional beat using the existing pouch.
+Lite V2 target:
 
-For public release, re-evaluate:
-
-- trigger probability;
-- number/distribution of Secrets;
-- whether every Hidden Pocket must be a Secret or may include other rare bonuses;
-- duplicate protection at a much larger Secret pool.
+- Basic keeps the lower Hidden Pocket profile;
+- Charged has a meaningfully higher Hidden Pocket chance;
+- Hidden Pocket remains `0..1` additional Secret, not a generic multi-drop system;
+- exact probabilities are tuned with the new economy/content pool.
 
 ---
 
-# 6. Collection — CORE MODEL LOCKED, SCALE OPEN
+# 11. Content growth: Drops / loot pools — LOCKED ARCHITECTURE, UI DEFERRED
+
+The game must not grow into one global pool containing every collectible ever produced.
+
+Content is grouped into themed **Drops** / loot pools.
+
+Conceptual structure:
+
+```text
+active Drop
+  → eligible families
+  → rarity profile
+  → collectible
+```
+
+Rules:
+
+- every family/collectible belongs to a `dropId` / `lootPoolId`;
+- Basic and Charged resolve only inside the active Drop;
+- Signal Lock guarantees an undiscovered standard item inside the active Drop;
+- CHIPS and Signal remain global across Drops;
+- with only one Drop, the Drop selector is hidden and adds zero user-facing complexity;
+- when multiple Drops exist, expose a compact selector rather than redesigning the core loop.
+
+A useful future heuristic is roughly 3–5 families per themed Drop, but actual grouping should follow the real roster and collection UX rather than a hard count.
+
+Potential examples are thematic only, not locked release names:
+
+- Y2K Essentials;
+- Pocket Gaming;
+- Music Tech.
+
+Targeted family-specific pouches are **not** part of Lite V2. Add targeting only if real completion data shows that a Drop becomes frustrating to finish.
+
+---
+
+# 12. Collection — CORE MODEL RETAINED, SCALE OPEN
 
 Roles remain:
 
 > **Shelf = attractive best finds. Library = exhaustive ownership/completion view.**
 
-Internal slice:
+The current two-family Collection is valid for the present content.
 
-- two family positions: Camera + Flip Phone;
-- display priority Secret > Legendary > Epic > Rare > Common;
-- Library shows 4 standard rarities + Secret per family;
-- standard completion 8/8;
-- Secrets 0/2 separately.
+As content grows:
 
-Public release:
-
-- family count will be materially larger;
-- Shelf/Library must render from content registry;
-- exact grouping, pages, themed shelves, progress counters and completion headline are redesigned once launch roster is known;
-- do not hard-code 2-family semantics into game state or UI primitives.
+- Collection renders from data;
+- Drop grouping becomes the natural high-level organization;
+- exact pages/shelves/filtering are designed when more than one Drop exists;
+- do not add a new Collection navigation system merely to support Lite V2.
 
 ---
 
-# 7. Advertising — PLATFORM RULES LOCKED, RELEASE TUNING LATER
+# 13. Persistence / transaction requirements — LOCKED
 
-Advertising is implemented from the internal slice and follows current Yandex Games SDK/moderation rules by default.
+Lite V2 expands the existing `pendingReveal` transaction rather than creating side-channel wallet mutations.
 
-Locked behavior:
+A pending transaction must predetermine enough data to recover without rerolling or double-spending, including conceptually:
 
-- all ads go through the Yandex Games SDK adapter;
-- interstitial is requested only at logical pauses and never during active tear/reveal;
-- rewarded is optional and its CTA explicitly names the exact reward;
-- reward is granted exactly once only after rewarded completion;
-- close/error/unavailable ad never grants a reward and never blocks gameplay;
-- fullscreen/rewarded ads pause gameplay and all audio;
-- sticky banner, if used, must be configured so it does not cover or interfere with gameplay/UI;
-- platform/ad/visibility pause reasons must not fight each other on resume.
+- pouch type/profile (`basic` / `charged`);
+- active `lootPoolId`;
+- Charged cost, if any;
+- base/pre-transaction CHIPS value;
+- pouch CHIPS reward;
+- duplicate recycle CHIPS reward;
+- standard collectible result;
+- Signal before/after + lock consume/reach state;
+- Hidden Pocket result;
+- final committed wallet/progress snapshot.
 
-Internal slice proves the plumbing with deliberate dev/debug actions. A dev-only `+25 Signal` rewarded test is acceptable only to verify exactly-once reward behavior.
+Critical rule:
 
-After the larger content/economy exists, we **tune** which compliant ad opportunities are useful, the rewarded value, and whether sticky is worth showing. Those are later optimization decisions, not questions that block implementation now.
+> **Charged cost and all rewards are one atomic reveal transaction.**
 
-Do not create artificial energy scarcity solely to force ad views.
+A crash/refresh must never consume CHIPS without preserving the rolled reward, and must never replay the same transaction for extra CHIPS.
 
----
-
-# 8. Quick Reveal — PARKED FOR SLICE, REQUIRED REVIEW
-
-The internal slice initially uses full reveal every time. During hands-on review, deliberately test whether repeated openings become irritating.
-
-If so, add a configurable ~0.4–0.6 s Quick Reveal before public release. No mass/x5 opening is implied.
+Resource-flight animations can replay in a shortened recovery presentation if useful, but they are never the source of truth.
 
 ---
 
-# 9. Systems parked from the slice
+# 14. Advertising — PLATFORM RULES RETAINED
 
-These can be reconsidered during release expansion when the content pool is large enough to justify them:
+Advertising remains behind the Yandex adapter and outside active tear/reveal.
 
-- Tech Parts / Mod Bench;
-- package tiers;
-- Daily Spotlight;
-- shelf/environment milestones;
-- streak/leaderboard if evidence supports them.
+The old dev-only `+25 Signal` rewarded probe becomes obsolete once Signal moves to 4 segments. When Lite V2 is implemented, use a clearly dev-only CHIPS reward for exactly-once rewarded plumbing instead of mutating pity state.
 
-Still avoid by default:
+Final public rewarded value/placement remains a later product-tuning decision.
 
-- market/trading;
-- crash/double/jackpot/betting;
-- large minigame suite;
-- 3D inspection/world complexity.
+---
 
-The expansion strategy is **more desirable collectible content first**, not a pile of meta systems.
+# 15. Explicitly parked from Lite V2
+
+Do not add during this pass:
+
+- Basic Pouch regeneration timers/energy;
+- offline income;
+- passive CHIPS/min from Collection;
+- Overcharge meter/pouch;
+- Archive levels;
+- collection upgrade tree/set bonuses;
+- separate shop screen;
+- multiple spendable currencies;
+- 2–3 standard collectibles per pouch;
+- auto-open/x5/mass opening;
+- prestige/reset;
+- crafting/merge/market/trading;
+- large minigame suite.
+
+These can be reconsidered only if the Lite loop is proven fun and a concrete retention/completion problem remains.
+
+---
+
+# 16. Lite V2 acceptance question
+
+The pass succeeds if, after repeated hands-on play, the player naturally understands and feels:
+
+> **“Every pouch gives me something; duplicates still move me forward; I can see myself getting closer to a better pouch; the better pouch is genuinely exciting.”**
+
+If that is true, stop adding systems and move to Yandex draft validation + content expansion. If it is not true, fix the smallest failing part of the loop rather than adding more meta systems.
