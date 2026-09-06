@@ -1,24 +1,27 @@
-import { SLICE_BALANCE } from '../game/data/balance';
+import { LITE_V2_BALANCE } from '../game/data/balance';
 import { SaveRepository, type SaveState } from '../game/systems/save';
 import type { PlatformRuntime } from '../platform/yandex';
 import { resetDebugSave, seedDebugCollection, stageDebugReveal, type DebugRevealScenario } from './debugScenarios';
 
-const DEBUG_SIGNAL_REWARD = 25;
+const DEBUG_CHIPS_REWARD = LITE_V2_BALANCE.pouchProfiles.charged.chipsCost;
 
-const addDebugSignal = (state: SaveState, amount: number): SaveState => {
-  const threshold = SLICE_BALANCE.signal.threshold;
-  const signal = Math.min(threshold, state.signal + amount);
+const addDebugChips = (state: SaveState, amount: number): SaveState => {
   const pendingReveal = state.pendingReveal
     ? {
         ...state.pendingReveal,
+        chips: {
+          ...state.pendingReveal.chips,
+          before: state.pendingReveal.chips.before + amount,
+          after: state.pendingReveal.chips.after + amount,
+        },
         commit: {
           ...state.pendingReveal.commit,
-          signal: Math.min(threshold, state.pendingReveal.commit.signal + amount),
+          chips: state.pendingReveal.commit.chips + amount,
         },
       }
     : null;
 
-  return { ...state, signal, pendingReveal };
+  return { ...state, chips: state.chips + amount, pendingReveal };
 };
 
 export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
@@ -76,10 +79,11 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Force Rare', () => stageAndReload('rare'));
   addButton('Force Epic', () => stageAndReload('epic'));
   addButton('Force Epic Phone', () => stageAndReload('epic-phone'));
-  addButton('Force Legendary', () => stageAndReload('legendary'));
+  addButton('Force Legendary (Charged)', () => stageAndReload('legendary'));
   addButton('Force Duplicate', () => stageAndReload('duplicate'));
   addButton('Reach SIGNAL LOCK', () => stageAndReload('signal-lock-reached'));
   addButton('Consume SIGNAL LOCK', () => stageAndReload('signal-lock-consumed'));
+  addButton('SIGNAL LOCK waiting for Charged', () => stageAndReload('signal-lock-waiting'));
   addButton('Force Hidden Pocket', () => stageAndReload('hidden-pocket'));
 
   addLabel('Collection/save');
@@ -88,24 +92,24 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Reset save', () => mutateAndReload(() => resetDebugSave(repository)));
 
   addLabel('Yandex ads');
-  addButton('Interstitial', () => platform.ads.showInterstitial());
-  addButton('Rewarded +25 Signal', () => {
+  addButton(`Rewarded +${DEBUG_CHIPS_REWARD} DEV CHIPS`, () => {
     rewardSequence += 1;
-    const rewardId = `debug-signal-${Date.now()}-${rewardSequence}`;
+    const rewardId = `debug-chips-${Date.now()}-${rewardSequence}`;
     return platform.ads.showRewarded({
       rewardId,
       onReward: async () => {
         const current = await repository.load();
-        const next = addDebugSignal(current, DEBUG_SIGNAL_REWARD);
+        const next = addDebugChips(current, DEBUG_CHIPS_REWARD);
         await repository.write(next);
-        platform.analytics.track('debug_signal_reward', {
-          amount: DEBUG_SIGNAL_REWARD,
+        platform.analytics.track('debug_chips_reward', {
+          amount: DEBUG_CHIPS_REWARD,
           rewardId,
-          signalAfter: next.signal,
+          chipsAfter: next.chips,
         });
       },
     });
   });
+  addButton('Interstitial', () => platform.ads.showInterstitial());
   addButton('Sticky: show', () => platform.ads.setStickyBannerVisible(true));
   addButton('Sticky: hide', () => platform.ads.setStickyBannerVisible(false));
 
