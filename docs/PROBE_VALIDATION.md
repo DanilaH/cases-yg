@@ -38,12 +38,13 @@ Without explanatory prose, a player should infer:
 - Basic can still give Common/Rare/Epic and a very rare Secret through Hidden Pocket, but not standard Legendary;
 - duplicate is automatically recycled rather than “lost”;
 - duplicate gives extra CHIPS + one Signal segment;
-- four Signal segments arm a guaranteed NEW standard collectible;
+- four Signal segments arm a guaranteed NEW **when the selected pouch has an eligible undiscovered item**;
+- if only Legendary remains, Basic does not consume Signal and the UI makes clear that Charged is required;
 - Signal is pity, not spendable currency.
 
 The intended mental model is:
 
-> **“Basic always gives me something useful; sometimes the CHIPS payout explodes; four dupes protect me; CHIPS get me to Charged, where Legendary becomes possible.”**
+> **“Basic always gives me something useful; sometimes the CHIPS payout explodes; four dupes protect me; if Signal is waiting on Legendary it tells me to use Charged.”**
 
 ---
 
@@ -59,11 +60,12 @@ Before calling Lite V2 balanced enough for DRAFT:
 - Charged **consumes net CHIPS in expectation**;
 - duplicate recycle helps but does not make duplicates economically preferable to NEW;
 - rarity-dependent recycle payouts feel coherent;
-- Basic produces no standard Legendary in deterministic/probabilistic tests;
+- Basic produces no standard Legendary in deterministic/probabilistic tests, including under armed Signal;
 - Basic Rare is meaningful and Epic remains a genuine surprise;
 - Charged materially increases Rare/Epic quality and has non-zero Legendary access;
 - Signal 4/4 frequency is neither constant nor irrelevant;
 - Signal + Charged still feels valuable because pity preserves Charged rarity weighting among missing items;
+- a waiting `SIGNAL LOCK · CHARGED` state feels understandable rather than like a broken guarantee;
 - Charged Hidden Pocket profile feels materially better while Basic Secret remains possible.
 
 Exact values must be backed by deterministic simulation + hands-on. Do not rely on intuition alone once numbers are chosen.
@@ -81,6 +83,7 @@ Must hold for Basic and Charged:
 - no double cache bonus;
 - no duplicate recycle payout twice;
 - Signal increments once;
+- armed-but-retained Signal remains retained after recovery;
 - Hidden Pocket outcome remains fixed;
 - result recovery preserves same pouch type + loot pool + payout profile.
 
@@ -90,7 +93,7 @@ Charged-specific blocker:
 
 Test refresh/crash after selecting Charged, after tear, during base CHIPS presentation, during a forced large cache beat, during collectible reveal and before result-ready.
 
-Final wallet must always match one deterministic transaction.
+Final wallet and Signal state must always match one deterministic transaction.
 
 ---
 
@@ -115,10 +118,14 @@ Even with only one player-visible Drop, automated/debug tests must prove:
 
 - Basic resolves only within active loot pool;
 - Charged resolves only within active loot pool;
-- Basic rarity gate excludes Legendary regardless of pool contents;
+- Basic rarity gate excludes Legendary regardless of pool contents or Signal state;
 - Charged can select Legendary where eligible;
 - Signal Lock filters to undiscovered standard items inside active loot pool;
 - after filtering, Signal Lock preserves the selected Basic/Charged rarity profile;
+- when eligible missing candidates exist, the selected pouch gets a guaranteed NEW and consumes the lock;
+- when **only Legendary remains** and Basic is selected, Basic resolves through its normal Common/Rare/Epic table and the lock remains `4/4`;
+- an eligible Charged opening from that state guarantees a missing Legendary and consumes the lock;
+- repeated Basic duplicates while the lock waits do not create more than `4/4` Signal;
 - a complete active Drop does not consume armed Signal;
 - CHIPS and Signal remain global;
 - adding a fake second Drop in tests does not require scene/reward-engine rewrites.
@@ -137,17 +144,19 @@ Capture/review at minimum:
 - ordinary Basic CHIPS burst/flight;
 - forced large cache payout and wallet-count animation;
 - Common/Rare/Epic Basic outcomes;
-- proof path that Basic Legendary cannot be forced through normal profile;
+- proof path that Basic Legendary cannot be forced through normal profile or Signal;
 - NEW result;
 - duplicate → RECYCLED → resource transfer;
 - each Signal segment increment + 4/4 lock state;
+- `SIGNAL LOCK · CHARGED` state with only Legendary missing;
+- a Basic opening while that state remains armed after result;
 - wallet crossing Charged threshold through normal payout;
 - wallet crossing Charged threshold through cache jackpot;
 - Charged ready/selected state;
 - Charged Epic/Legendary reveal;
-- Signal-Locked Charged NEW result;
+- Signal-Locked Charged guaranteed NEW Legendary from the waiting state;
 - Hidden Pocket from Basic and Charged debug paths;
-- recovered pending Basic;
+- recovered pending Basic with retained Signal;
 - recovered pending Charged with forced cache bonus;
 - 900, 1024, 1280 and 1728 logical-width representative states;
 - RU copy at compact width.
@@ -170,7 +179,9 @@ Lite V2 debug controls should be able to force/seed:
 - Basic Common/Rare/Epic;
 - Charged Legendary;
 - Signal 0/4 through 4/4;
-- Signal lock consumption on Basic and Charged;
+- Signal lock consumption on Basic and Charged when eligible;
+- Signal `4/4` + only Legendary missing + Basic, proving lock retention;
+- the following Charged guaranteed Legendary consumption;
 - complete active Drop with armed lock;
 - Hidden Pocket by pouch type;
 - interrupted pending transaction recovery;
@@ -193,6 +204,7 @@ Proceed when:
 - cache jackpot adds excitement without dominating economy;
 - Charged creates a genuine “one more pouch” goal;
 - Charged feels materially better rather than cosmetically different;
+- waiting Signal state clearly communicates why Charged is required;
 - extra sequence does not feel bloated.
 
 ### FIX before DRAFT
@@ -204,7 +216,9 @@ Blockers include:
 - ordinary CHIPS feel irrelevant beside jackpots;
 - Charged expected CHIPS return self-funds repeated Charged spam;
 - Charged feels like same pouch with a label;
-- Basic Legendary appears through normal roll;
+- Basic Legendary appears through normal roll or Signal pity;
+- Basic consumes an armed Signal lock when no Basic-eligible NEW exists;
+- waiting Signal state looks broken or falsely claims the next Basic is guaranteed NEW;
 - Signal-Locked Charged loses its rarity advantage;
 - resource animation visibly lies about final wallet state;
 - duplicates create too much presentation friction;
