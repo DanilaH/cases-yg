@@ -14,11 +14,13 @@ import { getMessages } from './i18n';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
+const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
+
 const preloadAccentFont = async (): Promise<void> => {
   if (!('fonts' in document)) return;
   try {
     await Promise.race([
-      document.fonts.load('16px "Press Start 2P"'),
+      document.fonts.load('16px "Press Start 2P"', ACCENT_FONT_WARMUP_TEXT),
       new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
     ]);
   } catch {
