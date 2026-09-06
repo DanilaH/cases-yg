@@ -1,6 +1,6 @@
 # Asset manifest
 
-This manifest records the **actual current runtime asset state** plus the deferred public content factory.
+This manifest records the **actual current runtime asset state**, the evidence-backed Opening Feel Correction asset impact, and the deferred public content factory.
 
 The executable collectible processing manifest remains `assets-src/collectibles.manifest.json`; production commands/constraints remain in `docs/ASSET_PIPELINE.md`.
 
@@ -49,10 +49,6 @@ Per-family source workflow remains:
 
 # 2. Mystery Pouch — INTEGRATED
 
-Canonical visual reference:
-
-`docs/assets/package-mystery-pouch-v1.webp`
-
 Runtime mapping:
 
 ```text
@@ -61,25 +57,18 @@ public/assets/package/pouch-tear-strip-compact.webp
 public/assets/package/pouch-star-tab.webp
 ```
 
-The source/original full strip also exists as:
+The source/original full strip also exists as `public/assets/package/pouch-tear-strip.webp`, but runtime uses the compact authored strip.
 
-```text
-public/assets/package/pouch-tear-strip.webp
-```
+Accepted contract:
 
-but runtime uses the compact authored strip.
-
-### Current pouch contract
-
-The old requirement that all three layers share one identical untrimmed transparent canvas/origin is obsolete.
-
-Accepted implementation uses independent reviewed transforms:
-
+- independent reviewed transforms;
 - body owns main silhouette;
-- compact tear strip trims transparent padding while preserving authored art;
+- compact tear strip preserves authored art while trimming transparent padding;
 - star tab has independent placement/scale + generous hit area;
 - runtime owns shadow/highlight/motion;
 - no synthetic dark slit/mouth.
+
+Opening Feel Correction keeps this geometry and interaction contract.
 
 ---
 
@@ -91,13 +80,13 @@ public/assets/backgrounds/collection-bg.webp
 public/assets/backgrounds/collection-foreground.webp
 ```
 
-Opening uses cover scaling. Collection rear + foreground are an aligned pair; foreground is Shelf-only and remains below Collection chrome.
+No environment redesign is part of the current correction.
 
 ---
 
-# 4. Audio — INTEGRATED
+# 4. Audio
 
-Current reviewed SFX:
+## Current integrated reviewed SFX
 
 ```text
 public/assets/audio/tear.mp3
@@ -116,98 +105,129 @@ public/assets/audio/collection-complete.mp3
 
 No background music requirement.
 
-Lite V2 currently reuses this set. Dedicated `chips-collect` / `charged-ready` cues are **not implemented and not required unless repeated hands-on identifies a real sound-feedback gap**.
+## Opening Feel Correction — REQUIRED NEW AUDIO
 
----
-
-# 5. Lite V2 UI / economy visuals — INTEGRATED WITHOUT NEW RASTERS
-
-The earlier plan allowed one CHIPS raster asset, but runtime review showed it was unnecessary.
-
-## 5.1 CHIPS token — PHASER-RENDERED
-
-`src/game/ui/openingEconomyVisuals.ts` defines a reusable bounded chip/token identity from Phaser shapes.
-
-It is reused for:
-
-- CHIPS HUD identity/payout language;
-- ordinary reward bursts;
-- token flight;
-- duplicate recycle;
-- Cache / Big / Mega presentation.
-
-No `public/assets/ui/chip-token.webp` is required in the current runtime.
-
-The visual token count never equals economic amount. Large payouts use a bounded number of token instances + text/counter/FX emphasis.
-
-## 5.2 Cache tiers — NO EXTRA IMAGE ASSETS
-
-Cache magnitude uses the same CHIPS identity plus runtime amount/burst emphasis.
+First hands-on identified a concrete CHIPS feedback gap, so one new cue is now justified:
 
 ```text
-0 cache-tier raster assets
+public/assets/audio/chips-collect.mp3
 ```
 
-Do not add separate `cache`, `big-cache`, `mega-cache` token images without evidence that runtime presentation is insufficient.
+Desired job:
 
-## 5.3 Charged Pouch — SAME POUCH ART + RUNTIME TREATMENT
+- short electronic token/chip cascade or light clatter;
+- synchronized with visual CHIPS banking/count-up;
+- satisfying in repetition;
+- avoid casino/slot-machine framing;
+- reusable for normal/cache/big/mega through bounded repetition, timing or playback variation where supported.
 
-Charged does not use a second pouch raster set.
+Do not create separate SFX per cache tier.
 
-Runtime differentiation comes from Phaser-rendered:
-
-- glow;
-- rings;
-- sparks;
-- lavender/cyan accent;
-- selector/cost/ready state;
-- stronger reward profile/presentation.
-
-This is visually integrated and passed exact-revision review. Add bespoke Charged pouch art only if later hands-on/content work proves the current treatment inadequate.
-
-## 5.4 Signal meter — RUNTIME UI
-
-Segmented Signal/lock/waiting presentation is Text/Graphics-driven. No raster pack is required.
+`charged-ready.mp3` remains **optional only**. Add it only if wallet count-up + CHIPS sound + Charged UI activation still fail the threshold moment in visual/audio review.
 
 ---
 
-# 6. Current runtime UI / FX inventory
+# 5. Current Lite V2 UI/economy visuals — INTEGRATED
 
-Phaser Graphics/Text + existing assets cover:
+## CHIPS token
 
-- Collection navigation;
-- Shelf / Library switch;
-- Back / Open More;
-- mute;
-- CHIPS HUD;
-- Basic/Charged selector + affordability;
-- Charged aura/ready state;
-- 4-segment Signal meter;
-- `SIGNAL LOCK · CHARGED`;
-- rarity labels;
-- NEW / DUPLICATE / RECYCLED;
-- cache callouts;
-- Secret `???`;
-- progress counters;
-- tear cue;
-- dev/debug controls excluded from production UI.
+`src/game/ui/openingEconomyVisuals.ts` defines a reusable Phaser-rendered chip/token identity.
 
-Runtime FX include:
+It is reused for HUD, payout, token flight, recycle and cache presentation. No CHIPS raster is currently required.
 
-- rarity glow/flash/rings/sparkles;
-- reveal backdrop separation;
-- ambient particles;
-- reward breathing;
-- Signal fill/lock feedback;
-- CHIPS token burst/flight;
-- cache intensity scaling;
-- Charged aura;
-- Charged-ready milestone;
-- completion burst.
+Visible token count is symbolic/bounded, never the economic amount.
+
+## Signal
+
+Segmented Signal/lock/waiting UI is Text/Graphics-driven. No raster pack is required.
+
+## Charged
+
+Current Charged uses the same pouch art with Phaser glow/rings/sparks/lavender-cyan accents.
+
+Hands-on now proves the **strength** of differentiation needs improvement, but not yet that new raster art is required.
 
 ---
 
-# 7. Collectible processing / atlas policy
+# 6. Opening Feel Correction — VISUAL ASSET IMPACT
+
+Canonical behavior: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+
+## 6.1 Digital/pixel accent font — REQUIRED DESIGN ASSET
+
+Add one locally bundled, license-safe accent font after visual comparison.
+
+Use only for short electronic UI:
+
+- CHIPS label/numerals;
+- Signal label/value/lock;
+- short Cache/Charged/system labels where legible.
+
+Do not apply it to long instructions/navigation/body copy.
+
+Exact font file/name is intentionally unresolved until real 900/1024 RU/EN samples are reviewed.
+
+## 6.2 Neon/glow/shimmer — RUNTIME FIRST
+
+No bespoke raster pack is required for:
+
+- CHIPS glow;
+- Signal electronic pulse/glitch;
+- Charged aura/contour/highlight;
+- rarity shimmer hierarchy;
+- button hover/press/selected feedback.
+
+Use Phaser Text/Graphics, translucent duplicate layers, tint, blend, moving highlights, rings/sparks and tweens.
+
+## 6.3 Custom shaders — NOT PART OF CURRENT PASS
+
+Do not add WebGL shaders for the initial neon/iridescent pass.
+
+Reason: the visual hypothesis can be tested cheaply without creating a new mobile/WebGL compatibility surface.
+
+A single local shader may be reconsidered later only if a reviewed no-shader result proves a specific effect cannot be sold convincingly.
+
+## 6.4 Charged pouch raster fallback — CONDITIONAL
+
+Default: reuse current pouch assets with much stronger runtime cyan/violet/iridescent treatment.
+
+Only if label-hidden audit still reads as “Basic with glow,” a recolored Charged pouch asset variant becomes allowed.
+
+Fallback constraints:
+
+- exact same silhouette/geometry;
+- same tear strip/tab mechanics;
+- material/color treatment only;
+- no new pouch redesign pipeline.
+
+---
+
+# 7. Corrected runtime UI / FX target
+
+The correction should be achievable mostly with runtime primitives:
+
+- larger CHIPS card + animated count-up;
+- local CHIPS HUD punch/shake/glow;
+- staged reward tray near hero;
+- sequential CHIPS bank trajectories;
+- Signal fragment flight + destination pulse;
+- Basic/Charged left gameplay rail;
+- selected/unavailable micro-interactions;
+- stronger Charged contour/aura/sweep;
+- digital/pixel accent typography;
+- Common/Rare/Epic/Legendary escalating shimmer;
+- short Signal lock glitch;
+- controlled tiny variation in spark/token trajectories.
+
+Do not turn the entire illustrated scene into a fullscreen neon/CRT/VHS effect.
+
+Visual rule:
+
+> **Cozy Y2K world, electric digital UI.**
+
+---
+
+# 8. Collectible processing / atlas policy
 
 Canonical runtime remains one individual 1024×1024 WebP per collectible.
 
@@ -227,7 +247,9 @@ Atlas generation remains profiling/inspection tooling, not an automatic runtime 
 
 ---
 
-# 8. Public release content factory — DEFERRED UNTIL HANDS-ON + YANDEX DRAFT
+# 9. Public release content factory — DEFERRED
+
+Content expansion remains blocked until corrected hands-on + real Yandex DRAFT pass.
 
 Each future family normally adds:
 
@@ -237,63 +259,26 @@ Each future family normally adds:
 + canonical source master/contact sheet/log
 ```
 
-Rules:
+Rules remain recognizable Y2K archetype, 6–10 explorations, one master, rarity edits preserving geometry/identity, runtime 1024 WebP alpha, no baked reveal FX, no unnecessary 1:1 brand copies.
 
-- recognizable Y2K archetype;
-- 6–10 explorations;
-- one master;
-- rarity edits preserve geometry/camera/identity;
-- runtime 1024 WebP alpha target;
-- no baked reveal FX;
-- no brand/logo/unnecessary 1:1 copy.
-
-Candidate families:
-
-- MP3 player;
-- pager;
-- mini camcorder;
-- handheld console;
-- PDA;
-- portable disc/MiniDisc-like player;
-- pocket radio;
-- virtual-pet-like electronics;
-- further researched Y2K devices.
-
-Content should be grouped into themed Drops/loot pools rather than one global pool.
+Candidate families remain MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics and further researched Y2K devices.
 
 ---
 
-# 9. Release asset-loading implication
+# 10. Release loading / store assets
 
-Current catalog can preload all reviewed assets.
+Current catalog can preload all reviewed assets. Release-scale loading remains a profiling decision after actual content expansion.
 
-A multi-Drop release may contain dozens of 1024 textures, so only after real expansion:
-
-- profile decoded texture memory on real mobile;
-- compare individual textures against family/Drop atlas residency;
-- choose grouped/on-demand loading if measurements require it;
-- derive smaller thumbnail/runtime variants if useful.
-
-Do not build speculative streaming infrastructure before those measurements.
+Store creative is public-release work only; do not build final promo art around the two-family private catalog.
 
 ---
 
-# 10. Store assets — PUBLIC RELEASE ONLY
-
-Produce after expanded release content/key visual stabilize. Re-check Yandex requirements immediately before upload.
-
-Do not build final promo art around the current two-family private catalog.
-
----
-
-# 11. Performance targets
-
-Useful current guardrails:
+# 11. Performance guardrails
 
 - collectible WebP ideally ~150–350 KB; investigate >500 KB;
 - pouch layers compact;
-- scene background around/below ~1 MB where quality permits;
-- SFX set small;
-- Phaser CHIPS/Charged visuals add no meaningful download burden.
-
-For release, optimize from measured startup/download/GPU-memory behavior instead of an arbitrary speculative total budget.
+- scene backgrounds around/below ~1 MB where quality permits;
+- SFX set stays small;
+- one small accent font + one concise CHIPS SFX should not materially affect startup;
+- runtime neon/iridescence must be bounded and tested on representative mobile landscape rendering;
+- do not add shader/per-particle complexity without measured need.
