@@ -61,6 +61,7 @@ describe('reward tray layout', () => {
         expect(rectsOverlap(tray, rail)).toBe(false);
         expect(rectsOverlap(tray, result)).toBe(false);
         expect(rectsOverlap(tray, hero)).toBe(false);
+        expect(placement.side).toBe(width >= 1280 ? 'left' : 'right');
       });
     }
   }
