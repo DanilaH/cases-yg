@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
+import { LITE_V2_BALANCE } from '../src/game/data/balance';
+import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+import { createPendingReveal } from '../src/game/systems/drops';
 import {
   DEFAULT_SAVE_KEY,
   SAVE_VERSION,
   SaveRepository,
+  createInitialSaveState,
   parseSaveState,
+  stagePendingReveal,
 } from '../src/game/systems/save';
 import { migrateLegacySignal } from '../src/game/systems/signal';
-import { MemoryStorageAdapter } from './helpers';
+import { MemoryStorageAdapter, SequenceRandom } from './helpers';
 
 const legacyState = (signal: number) => ({
   version: 1,
@@ -22,6 +27,21 @@ const legacyState = (signal: number) => ({
     hiddenPockets: 0,
   },
 });
+
+const currentPendingState = () => {
+  const base = {
+    ...createInitialSaveState(),
+    totalOpens: 3,
+  };
+  const pending = createPendingReveal({
+    state: base,
+    registry: SLICE_REGISTRY,
+    balance: LITE_V2_BALANCE,
+    random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+    transactionId: 'validation-pending',
+  });
+  return stagePendingReveal(base, pending);
+};
 
 describe('Lite V2 save migration', () => {
   it.each([
@@ -173,5 +193,71 @@ describe('Lite V2 save migration', () => {
       lockConsumed: false,
       lockRetained: true,
     });
+  });
+
+  it('rejects a current pending transaction whose commit no longer matches its base collection', () => {
+    const state = currentPendingState();
+    const corrupted = {
+      ...state,
+      pendingReveal: {
+        ...state.pendingReveal!,
+        commit: {
+          ...state.pendingReveal!.commit,
+          discoveredStandard: [],
+        },
+      },
+    };
+
+    expect(() => parseSaveState(JSON.stringify(corrupted))).toThrow('Pending reveal does not match its base save state');
+  });
+
+  it('rejects impossible Signal flags in a current pending transaction', () => {
+    const state = currentPendingState();
+    const corrupted = {
+      ...state,
+      pendingReveal: {
+        ...state.pendingReveal!,
+        signal: {
+          ...state.pendingReveal!.signal,
+          lockArmedBefore: true,
+        },
+      },
+    };
+
+    expect(() => parseSaveState(JSON.stringify(corrupted))).toThrow('Invalid save payload');
+  });
+
+  it('rejects a legacy pending transaction whose migrated base Signal disagrees with the outer save', () => {
+    const raw = {
+      ...legacyState(50),
+      pendingReveal: {
+        id: 'legacy-mismatch',
+        baseTotalOpens: 7,
+        openingNumber: 8,
+        standard: {
+          collectibleId: 'camera-common',
+          familyId: 'camera',
+          rarity: 'common',
+          isNew: false,
+        },
+        signal: {
+          before: 100,
+          after: 100,
+          gain: 0,
+          lockConsumed: false,
+          lockReached: false,
+        },
+        hiddenPocket: null,
+        commit: {
+          discoveredStandard: ['camera-common'],
+          discoveredSecrets: [],
+          signal: 100,
+          totalOpens: 8,
+          stats: { duplicates: 3, hiddenPockets: 0 },
+        },
+      },
+    };
+
+    expect(() => parseSaveState(JSON.stringify(raw))).toThrow('Pending reveal does not match its base save state');
   });
 });
