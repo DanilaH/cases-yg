@@ -14,6 +14,12 @@ The visual-language rule for this pass is:
 
 Hotline Miami is a reference for energetic neon/digital emphasis, not a target to copy wholesale. The illustrated background, pouch fantasy and collectible art remain softer and more toy-like; CHIPS, Signal, Charged, rarity and interactive states carry the stronger electronic language.
 
+A second implementation principle is now locked:
+
+> **Every new animation must either provide tactile/input feedback or make a cause → effect / state transition easier to feel and understand.**
+
+Do not add motion only because motion looks decorative. Reward celebration is valid when it strengthens perceived impact; ambient spectacle that does not serve interaction, hierarchy or causality is not a reason to expand scope.
+
 ---
 
 # 1. Evidence from hands-on
@@ -50,15 +56,19 @@ This is one integrated presentation/interaction pass, implemented in small inter
 - longer/readable callouts without slowing expert play;
 - Basic/Charged selector hierarchy and interaction states;
 - larger/more important resource HUD;
-- stronger Charged pouch differentiation;
+- stronger **runtime** Charged differentiation using current pouch art;
 - restrained neon, iridescence and digital/pixel typography;
 - rarity-specific escalating shimmer/glow treatment;
 - bounded controlled micro-variation;
 - exact-revision screenshot/video + manual visual review.
 
+Small utility assets directly required by feel are allowed: the chosen bundled accent font and one concise `chips-collect` SFX. This is **not** a new art-production pass.
+
 ## Explicitly out of scope
 
 - changing CHIPS cost/payout/cache/rarity/Hidden Pocket numbers;
+- new/recolored/redrawn pouch raster art in this pass;
+- new collectible/environment illustration assets;
 - third gadget family or Drop #2;
 - player-facing Drop selector;
 - odds/loot-table drawer;
@@ -71,7 +81,7 @@ This is one integrated presentation/interaction pass, implemented in small inter
 - fullscreen CRT/VHS/noise/chromatic-aberration treatment;
 - generalized animation/economy framework.
 
-The desired information surface for odds + Drop contents remains a **separate follow-up candidate after this feel pass is re-tested**.
+The desired information surface for odds + Drop contents remains a **separate follow-up candidate after this feel pass is re-tested**. Bespoke pouch/content art work also remains a later asset pass; this correction must first prove that the existing game can feel good through interaction, choreography, UI and lightweight runtime FX.
 
 ---
 
@@ -83,7 +93,10 @@ Current player-facing `RESULT LOCKED` behavior is removed.
 
 During `revealing`:
 
-- a deliberate tap/click requests fast-forward of the **current presentation beat**;
+- a deliberate tap/click requests fast-forward of the **current presentation beat only**;
+- fast-forward lands that beat in its deterministic final visual state and lets the next beat continue at normal speed;
+- repeated deliberate taps may fast-forward later beats one by one;
+- one click does **not** teleport through the entire reveal chain;
 - the complete economic transaction is unchanged;
 - no reroll, re-prepare, second commit or alternate outcome is allowed;
 - skip affects presentation only;
@@ -93,7 +106,8 @@ At resolved result:
 
 - once the result is visible, a distinct later tap accepts it;
 - if a short result readability hold is still running, an intentional tap may finish that hold rather than doing nothing;
-- once actionable, tap/click continues normally.
+- once actionable, tap/click continues normally;
+- acceptance may start the short visual bank sequence; that sequence is itself fast-forwardable and then returns to the next idle state automatically rather than demanding another confirmation click.
 
 Do not globally accelerate the Phaser tween manager: ambient loops and unrelated UI motion must not speed up. Fast-forward should target only active reveal/payout presentation.
 
@@ -111,7 +125,7 @@ Improve the physical chain before adding spectacle.
 
 On star-tab pointer down:
 
-- immediate small scale/punch response on the tab;
+- immediate clearly perceptible small scale/punch response on the tab;
 - subtle pouch/strip tension response;
 - idle attraction tween stops immediately;
 - response must be visible within the same interaction frame rather than waiting for drag distance.
@@ -133,6 +147,8 @@ At completion:
 - very small impact pause/anticipation is allowed if it increases the hit rather than creating perceived latency;
 - existing tear SFX remains authoritative;
 - Charged may use a slightly stronger visual recoil, not a different interaction mechanic.
+
+Juice should be **noticeable enough to feel**. Do not spend implementation time on 1–2% micro-tweens that disappear in normal play. At the same time, do not escalate to whole-screen shake or constant motion that competes with the collectible.
 
 All motion must reset correctly on aborted drag, resize and scene recreation.
 
@@ -186,6 +202,8 @@ RECYCLED +4
 
 Only applicable components appear. The panel must remain secondary to the collectible.
 
+The tray is positioned relative to the hero collectible but must clamp away from the left gameplay rail and safe area on compact 900/1024 layouts. If the preferred lower-left position collides, move it lower/closer to the hero rather than overlapping persistent controls.
+
 Visible chip-token count remains bounded and symbolic; numeric values remain the truth.
 
 ## 6.2 Bank after result acceptance
@@ -197,11 +215,13 @@ On result acceptance:
 3. optional recycle CHIPS follows;
 4. Signal transfer resolves in its own destination;
 5. HUD finishes at the deterministic committed snapshot;
-6. next idle/result transition continues.
+6. next idle/result transition continues automatically.
 
 The order makes each source legible and gives the HUD a physical receiving role.
 
 Charged cost remains visually communicated at opening time; earned CHIPS are the amounts delayed for visual banking.
+
+The bank sequence must be compact, bounded and fast-forwardable. A Mega reward may get stronger impact but must not take proportionally longer because the number is larger.
 
 If the scene is recovered/reloaded after durable commit, presentation may collapse to the safe current wallet state rather than attempting to reconstruct cosmetic banking that no longer has a pending transaction. No cosmetic replay may grant currency.
 
@@ -315,13 +335,13 @@ Selection must remain obvious even if color is ignored:
 - stronger border/surface contrast;
 - marker/check/indicator or equivalent non-color cue;
 - selected card can use a small scale/depth emphasis;
-- center pouch immediately reflects Basic vs Charged visual mode.
+- center pouch immediately reflects Basic vs Charged visual mode through runtime treatment.
 
 ## Interaction feel
 
 Available cards/buttons:
 
-- hover / pointer-over: subtle lift/scale/glow;
+- hover / pointer-over: clear but bounded lift/scale/glow;
 - pointer-down: small compression;
 - release: quick overshoot/settle;
 - selection transition animates rather than hard-swapping.
@@ -341,9 +361,9 @@ This turns “nothing happened” into clear feedback.
 
 Hands-on evidence supersedes the previous assumption that the existing aura is sufficient.
 
-Charged must be distinguishable from Basic before reading the label.
+Charged must be distinguishable from Basic before reading the label, but **this pass does not start a new pouch/art-asset production cycle**.
 
-First implementation remains low-burden and runtime-driven:
+Current feel-pass implementation is runtime-only:
 
 - stronger cyan/violet electric palette with restrained pink/iridescent accents;
 - brighter star-tab/seal emphasis;
@@ -351,9 +371,9 @@ First implementation remains low-burden and runtime-driven:
 - slow holographic/iridescent sweep on selected Charged presentation where it can be done with ordinary Phaser objects/tint/blend/tweens;
 - selector and pouch change together.
 
-Do **not** create a new Charged raster set by default.
+Do **not** create a new/recolored Charged raster set in this correction.
 
-Fallback rule: if exact-revision screenshots/video still read as “Basic with a glow” when labels are ignored, a dedicated recolored Charged pouch art variant becomes allowed as an evidence-backed art correction. Geometry/silhouette/tear interaction must remain identical.
+If the final label-hidden visual audit still reads as “Basic with a glow,” record that result as a concrete requirement for the later asset pass. Do not block the current feel pass by starting bespoke pouch production midstream.
 
 ---
 
@@ -365,6 +385,17 @@ Use one accent digital/pixel-like typeface for short electronic information only
 - Signal label/value/lock;
 - Cache/Big/Mega short labels where appropriate;
 - selected Charged/system accents if readability remains good.
+
+## Accent-font selection rule
+
+Priority order is locked:
+
+1. first evaluate strong digital/pixel/Y2K candidates with **usable Cyrillic + Latin + digits**;
+2. prefer a Cyrillic-capable candidate when its numeric forms and overall character fit the UI;
+3. if no Cyrillic-capable candidate is visually good enough, restrict the accent font to **numbers and universal short ASCII/symbolic system elements** rather than forcing bad Cyrillic;
+4. RU labels then stay in the main readable sans, but the chosen numeric accent must still harmonize with that sans and the rest of the HUD so numbers do not look pasted in from another game.
+
+The font must be license-safe, bundled locally and loaded deterministically before layout/text measurement. Do not rely on late web-font swap that changes control widths after first render.
 
 Do not switch long copy, instructions, Collection prose or all buttons to a pixel font. Main UI copy remains the clean readable sans system.
 
@@ -384,7 +415,7 @@ Preferred tools:
 
 A custom shader is explicitly out of scope because the required character can be tested much more cheaply with the current renderer. Shader work introduces a separate mobile/WebGL QA surface without a proven visual need.
 
-Revisit exactly one local shader only if the finished no-shader audit proves that a specific effect (for example Legendary/Charged holography) cannot be sold otherwise.
+Revisit exactly one local shader only if a later reviewed no-shader implementation proves that a specific effect cannot be sold otherwise.
 
 ---
 
@@ -425,6 +456,8 @@ Cheap allowed variation:
 
 Do not randomize core timings so strongly that players cannot learn the rhythm.
 
+Debug/audit scenarios must seed, freeze or disable this variation so exact-revision screenshots/videos remain reproducible enough for comparison.
+
 ---
 
 # 15. Architecture constraints
@@ -444,6 +477,18 @@ Locked constraints:
 - existing Charged selection continuity remains unchanged;
 - no balance changes in the same correction PR unless a separate explicit tuning decision is made.
 
+### Skippable tween contract
+
+Do **not** implement fast-forward by blindly killing an awaited tween. Existing reveal code frequently awaits tween `onComplete` callbacks; killing one without resolving the associated beat can deadlock the reveal chain.
+
+Every skippable presentation beat must therefore expose one deterministic completion path that:
+
+- applies the final visual state;
+- performs cosmetic cleanup exactly once;
+- resolves the awaiting beat exactly once;
+- is safe whether reached naturally or by player fast-forward;
+- never owns durable reward mutation.
+
 Small presentation helpers/modules are allowed if they reduce `OpeningScene` complexity. Do not create a generic animation framework for hypothetical future scenes.
 
 ---
@@ -454,7 +499,7 @@ Use one feature branch with reviewable internal commits/subpasses:
 
 ## Pass A — input + reward choreography
 
-- reveal fast-forward contract;
+- reveal per-beat fast-forward contract;
 - post-tear input guard;
 - grab/tension/tear recoil;
 - callout hold/readability;
@@ -474,8 +519,8 @@ Use one feature branch with reviewable internal commits/subpasses:
 
 - left-side Basic/Charged rail;
 - obvious selected / unavailable interaction states;
-- stronger Charged runtime color/iridescence;
-- digital accent font;
+- stronger runtime Charged color/iridescence using current art;
+- digital accent font chosen with Cyrillic-first evaluation;
 - neon Signal/CHIPS treatment;
 - rarity shimmer hierarchy;
 - controlled micro-variation.
@@ -500,6 +545,7 @@ Add/adjust focused tests where practical for:
 - no double prepare/commit under fast-forward input;
 - click during reveal changes presentation only;
 - pointer release from tear cannot accidentally consume the next interaction because of the guard;
+- skippable awaited beats always resolve and cannot deadlock reveal flow;
 - displayed CHIPS endpoint equals transaction snapshot;
 - Charged cost visual baseline + staged rewards end at correct wallet;
 - existing Signal retain/consume and recovery behavior remains unchanged.
@@ -519,13 +565,15 @@ Minimum reviewed scenarios:
 - duplicate → recycle CHIPS + Signal fragment;
 - Signal `4/4` + lock / `LOCK · CHARGED`;
 - Common/Rare/Epic/Legendary visual hierarchy;
-- Charged iridescent treatment;
+- Charged runtime iridescent treatment;
 - Hidden Pocket remains strongest surprise;
-- deliberate tap fast-forwards presentation;
+- deliberate tap fast-forwards one beat and later beats remain readable;
+- repeated taps can accelerate successive beats without changing result;
 - accidental drag-release does not instantly skip;
 - recovered Basic/Charged paths;
 - 900 / 1024 / representative wider layout;
-- RU compact layout.
+- RU compact layout and Cyrillic font behavior;
+- deterministic audit captures despite micro-variation in normal play.
 
 Browser errors/failed requests must be empty. Screenshots/video must be manually inspected; green CI alone is not approval.
 
@@ -541,7 +589,7 @@ Pass questions:
 - do CHIPS feel like a tangible reward rather than a number?
 - is the wallet easy to notice without dominating the hero collectible?
 - is Basic vs Charged obvious immediately?
-- does Charged feel materially more desirable?
+- does Charged feel materially more desirable even without new pouch art?
 - does neon/digital styling add identity without turning the whole game into generic synthwave?
 - do duplicate/Signal events feel like progress rather than ceremony?
 - is the loop still pleasant after repetition?
@@ -570,14 +618,17 @@ Re-evaluate this after the feel/UI pass. The redesigned gameplay rail may reduce
 
 ---
 
-# 19. Open visual decisions — do not silently over-specify
+# 19. Remaining visual decisions — resolve from implementation/audit
 
-The implementation scope is locked, but these presentation choices should be resolved from visual samples/audit rather than invented as architecture:
+The product interaction direction is now sufficiently locked to start coding. Do not block implementation on additional product questions.
 
-1. **Accent font:** exact bundled digital/pixel typeface. It must be legible in RU/EN where used, license-safe and limited to short system labels/numbers.
-2. **Charged palette intensity:** cyan/violet is the base direction; exact amount of pink/iridescence needs visual comparison so it does not overpower collectible rarity.
-3. **Dedicated Charged raster fallback:** allowed only if runtime treatment still fails the label-hidden differentiation test.
-4. **Optional Charged-ready SFX:** only if CHIPS bank sound + UI activation does not sell the milestone.
-5. **Exact callout/count-up timings:** tune from captured video and repeated-use feel; semantics above are locked, milliseconds are not.
+Remaining presentation choices are implementation/audit decisions:
 
-These are the only intended unresolved choices inside this correction. Any proposal that introduces a new mechanic or major information surface belongs outside this scope.
+1. **Accent font:** evaluate Cyrillic-capable candidates first; if none fit, choose the best harmonized numeric/ASCII accent rather than bad Cyrillic.
+2. **Charged palette intensity:** cyan/violet is the base direction; tune exact pink/iridescence from video so it remains desirable without flattening rarity hierarchy.
+3. **Optional Charged-ready SFX:** add only if CHIPS bank sound + UI activation does not sell the milestone.
+4. **Exact callout/count-up timings:** tune from captured video and repeated-use feel; semantics above are locked, milliseconds are not.
+
+Bespoke pouch/collectible art is **not** an unresolved decision for this pass: it is deferred to the later asset phase.
+
+Any proposal that introduces a new mechanic, new major information surface or new art-production branch belongs outside this correction.
