@@ -2581,7 +2581,8 @@ export class OpeningScene extends Phaser.Scene {
         yoyo: true,
         ease: 'Sine.Out',
       });
-      this.continueFromResult();
+      // Acceptance stays on the scene-level pointerup gesture. Starting banking
+      // here would let this same pointerdown be reinterpreted as a banking skip.
     });
 
     panel.add([background, readyGlow, title, rarity, status, hint, actionZone]);
