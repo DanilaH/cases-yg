@@ -1,0 +1,75 @@
+name: Apply unavailable Charged readability correction
+
+on:
+  push:
+    branches:
+      - feat/opening-feel-correction
+    paths:
+      - .github/workflows/apply-opening-unavailable-readability.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/opening-feel-correction
+          fetch-depth: 0
+      - name: Apply focused selector readability fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
+              path.write_text(text.replace(old, new, 1))
+
+          presentation = Path('src/game/data/presentation.ts')
+          replace_once(
+              presentation,
+              "  railGap: 10,\n  railTopOffset: 8,",
+              "  railGap: 10,\n  railUnavailableAlpha: 0.84,\n  railUnavailableSurfaceAlpha: 0.78,\n  railTopOffset: 8,",
+          )
+
+          scene = Path('src/game/scenes/OpeningScene.ts')
+          replace_once(
+              scene,
+              "      background.fillStyle(fill, available ? 0.92 : 0.58);",
+              "      background.fillStyle(fill, available ? 0.92 : OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha);",
+          )
+          replace_once(
+              scene,
+              "        color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#8f839b',",
+              "        color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#b7adbf',",
+          )
+          replace_once(
+              scene,
+              "        color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#7e7289',",
+              "        color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#a69aae',",
+          )
+          replace_once(
+              scene,
+              "      const idleAlpha = available ? (selected ? 1 : 0.84) : 0.68;",
+              "      const idleAlpha = available ? (selected ? 1 : 0.84) : OPENING_FEEL_PRESENTATION.railUnavailableAlpha;",
+          )
+          PY
+          rm .github/workflows/apply-opening-unavailable-readability.yml
+          git diff --check
+          git diff -- src/game/data/presentation.ts src/game/scenes/OpeningScene.ts
+      - name: Commit product correction and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "DanilaH"
+          git config user.email "41333602+DanilaH@users.noreply.github.com"
+          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts .github/workflows/apply-opening-unavailable-readability.yml
+          git commit -m "Improve unavailable Charged readability"
+          git push origin HEAD:feat/opening-feel-correction
