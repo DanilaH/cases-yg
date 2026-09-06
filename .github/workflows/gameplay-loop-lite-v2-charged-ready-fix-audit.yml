@@ -42,10 +42,11 @@ jobs:
         run: |
           set -euo pipefail
           git fetch origin audit/gameplay-loop-lite-v2-final-merged
-          git show origin/audit/gameplay-loop-lite-v2-final-merged:.github/scripts/gameplay-loop-lite-v2-final-merged-audit.mjs > /tmp/final-audit.mjs
+          mkdir -p .github/scripts
+          git show origin/audit/gameplay-loop-lite-v2-final-merged:.github/scripts/gameplay-loop-lite-v2-final-merged-audit.mjs > .github/scripts/final-audit-runtime.mjs
           python - <<'PY'
           from pathlib import Path
-          path = Path('/tmp/final-audit.mjs')
+          path = Path('.github/scripts/final-audit-runtime.mjs')
           text = path.read_text()
           text = text.replace(
               "const PRODUCT_HEAD = '1626f7954edfc715ff54f4b50060ff9eec68a3c4';",
@@ -72,7 +73,7 @@ jobs:
           cat /tmp/vite.log
           exit 1
       - name: Run full exact-revision browser audit
-        run: node /tmp/final-audit.mjs
+        run: node .github/scripts/final-audit-runtime.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
