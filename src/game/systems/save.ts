@@ -96,6 +96,9 @@ const isUniqueStringArray = (value: unknown): value is string[] =>
   value.every((entry) => typeof entry === 'string') &&
   new Set(value).size === value.length;
 
+const sameStrings = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
 const isStats = (value: unknown): value is ProgressStats =>
   isRecord(value) && isNonNegativeInteger(value.duplicates) && isNonNegativeInteger(value.hiddenPockets);
 
@@ -163,8 +166,46 @@ const isLegacyPendingReveal = (value: unknown): value is LegacyPendingReveal => 
   );
 };
 
+const isSignalTransitionConsistent = (
+  signal: PendingReveal['signal'],
+  standardIsNew: boolean,
+): boolean => {
+  const lockArmedBefore = signal.before >= LITE_SIGNAL_THRESHOLD;
+  if (signal.lockArmedBefore !== lockArmedBefore) return false;
+
+  if (signal.lockConsumed) {
+    return (
+      lockArmedBefore &&
+      signal.after === 0 &&
+      signal.gain === 0 &&
+      !signal.lockReached &&
+      !signal.lockRetained
+    );
+  }
+
+  if (signal.lockRetained) {
+    return (
+      lockArmedBefore &&
+      signal.after === signal.before &&
+      signal.gain === 0 &&
+      !signal.lockReached
+    );
+  }
+
+  if (lockArmedBefore) return false;
+  if (signal.after < signal.before || signal.after > Math.min(LITE_SIGNAL_THRESHOLD, signal.before + 1)) {
+    return false;
+  }
+  if (signal.gain !== signal.after - signal.before) return false;
+  if (standardIsNew && signal.gain !== 0) return false;
+
+  const lockReached = signal.before < LITE_SIGNAL_THRESHOLD && signal.after >= LITE_SIGNAL_THRESHOLD;
+  return signal.lockReached === lockReached;
+};
+
 const isPendingReveal = (value: unknown): value is PendingReveal => {
   if (!isRecord(value) || !isRecord(value.chips) || !isRecord(value.signal)) return false;
+  const standard = value.standard;
   if (
     typeof value.id !== 'string' ||
     value.id.length === 0 ||
@@ -174,7 +215,7 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
     !isPouchType(value.pouchType) ||
     typeof value.lootPoolId !== 'string' ||
     value.lootPoolId.length === 0 ||
-    !isRevealStandard(value.standard) ||
+    !isRevealStandard(standard) ||
     !isHiddenPocket(value.hiddenPocket) ||
     !isProgressSnapshot(value.commit)
   ) {
@@ -206,14 +247,60 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
     typeof signal.lockReached === 'boolean' &&
     typeof signal.lockRetained === 'boolean';
 
+  if (!chipsValid || !signalValid) return false;
+  const typedSignal = signal as unknown as PendingReveal['signal'];
+  if (!isSignalTransitionConsistent(typedSignal, standard.isNew)) return false;
+
   return (
-    chipsValid &&
-    signalValid &&
     value.commit.totalOpens === value.openingNumber &&
     value.commit.chips === chips.after &&
     value.commit.signal === signal.after &&
     value.commit.activeLootPoolId === value.lootPoolId
   );
+};
+
+const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): boolean => {
+  if (
+    pending.baseTotalOpens !== state.totalOpens ||
+    pending.openingNumber !== state.totalOpens + 1 ||
+    pending.chips.before !== state.chips ||
+    pending.signal.before !== state.signal ||
+    pending.lootPoolId !== state.activeLootPoolId
+  ) {
+    return false;
+  }
+
+  const standardAlreadyOwned = state.discoveredStandard.includes(pending.standard.collectibleId);
+  if (pending.standard.isNew === standardAlreadyOwned) return false;
+  const expectedStandard = pending.standard.isNew
+    ? [...state.discoveredStandard, pending.standard.collectibleId]
+    : [...state.discoveredStandard];
+
+  const hiddenAlreadyOwned = pending.hiddenPocket
+    ? state.discoveredSecrets.includes(pending.hiddenPocket.collectibleId)
+    : false;
+  if (hiddenAlreadyOwned) return false;
+  const expectedSecrets = pending.hiddenPocket
+    ? [...state.discoveredSecrets, pending.hiddenPocket.collectibleId]
+    : [...state.discoveredSecrets];
+
+  return (
+    sameStrings(pending.commit.discoveredStandard, expectedStandard) &&
+    sameStrings(pending.commit.discoveredSecrets, expectedSecrets) &&
+    pending.commit.chips === pending.chips.after &&
+    pending.commit.signal === pending.signal.after &&
+    pending.commit.activeLootPoolId === pending.lootPoolId &&
+    pending.commit.totalOpens === pending.openingNumber &&
+    pending.commit.stats.duplicates === state.stats.duplicates + (pending.standard.isNew ? 0 : 1) &&
+    pending.commit.stats.hiddenPockets === state.stats.hiddenPockets + (pending.hiddenPocket ? 1 : 0)
+  );
+};
+
+const validatePendingBaseState = (state: SaveState): SaveState => {
+  if (state.pendingReveal && !pendingMatchesBaseState(state, state.pendingReveal)) {
+    throw new Error('Pending reveal does not match its base save state');
+  }
+  return state;
 };
 
 const migrateLegacyProgress = (legacy: LegacyProgressSnapshot): ProgressSnapshot => ({
@@ -279,12 +366,12 @@ const parseLegacySave = (value: Record<string, unknown>): SaveState => {
 
   const legacy = value as unknown as LegacySaveState;
   const progress = migrateLegacyProgress(legacy);
-  return {
+  return validatePendingBaseState({
     version: SAVE_VERSION,
     ...progress,
     pendingReveal: legacy.pendingReveal ? migrateLegacyPending(legacy.pendingReveal, progress) : null,
     muted: legacy.muted,
-  };
+  });
 };
 
 const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
@@ -297,19 +384,7 @@ const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
     throw new Error('Invalid save payload');
   }
 
-  const state = value as unknown as SaveState;
-  if (state.pendingReveal) {
-    const pending = state.pendingReveal;
-    if (
-      pending.baseTotalOpens !== state.totalOpens ||
-      pending.chips.before !== state.chips ||
-      pending.signal.before !== state.signal ||
-      pending.lootPoolId !== state.activeLootPoolId
-    ) {
-      throw new Error('Pending reveal does not match its base save state');
-    }
-  }
-  return state;
+  return validatePendingBaseState(value as unknown as SaveState);
 };
 
 export const parseSaveState = (raw: string): SaveState => {
@@ -330,15 +405,8 @@ export const stagePendingReveal = (state: SaveState, pendingReveal: PendingRevea
   if (state.pendingReveal) {
     throw new Error('Cannot create a new reveal while another reveal is pending');
   }
-  if (pendingReveal.baseTotalOpens !== state.totalOpens) {
-    throw new Error('Pending reveal was generated from a stale save state');
-  }
-  if (
-    pendingReveal.chips.before !== state.chips ||
-    pendingReveal.signal.before !== state.signal ||
-    pendingReveal.lootPoolId !== state.activeLootPoolId
-  ) {
-    throw new Error('Pending reveal economy base does not match save state');
+  if (!pendingMatchesBaseState(state, pendingReveal)) {
+    throw new Error('Pending reveal transaction does not match save state');
   }
 
   return {
@@ -352,12 +420,7 @@ export const commitPendingRevealState = (state: SaveState): SaveState => {
   if (!pending) {
     return state;
   }
-  if (
-    pending.baseTotalOpens !== state.totalOpens ||
-    pending.chips.before !== state.chips ||
-    pending.signal.before !== state.signal ||
-    pending.lootPoolId !== state.activeLootPoolId
-  ) {
+  if (!pendingMatchesBaseState(state, pending)) {
     throw new Error('Pending reveal cannot be committed against a different save state');
   }
 
