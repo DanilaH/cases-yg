@@ -24,11 +24,15 @@ The agreed next loop is deliberately small:
 Lite V2 adds:
 
 - one global CHIPS wallet;
-- CHIPS reward on every Basic opening;
+- guaranteed base CHIPS on every pouch plus an independent rare cache/jackpot roll;
 - automatic duplicate recycle → CHIPS + Signal;
-- simplified Signal pity: one segment per duplicate, target `4/4` → next standard collectible NEW;
+- simplified Signal pity: one segment per duplicate, `4/4` → next standard collectible NEW;
 - one Charged Pouch tier bought with CHIPS;
+- Basic standard rarity access = Common/Rare/small Epic, **no Legendary**;
+- Charged standard rarity access = Common/Rare/Epic/Legendary with materially better top-end odds;
 - Drop/loot-pool-aware reward data so future content does not become one giant global pool.
+
+Basic still always gives a collectible and may very rarely reach Secret through Hidden Pocket. Charged is the normal route to Legendary and has a higher Hidden Pocket chance.
 
 It explicitly does **not** add timers, offline income, passive production, Overcharge, Archive levels, shop scene, multi-standard drops, prestige or other full incremental systems.
 
@@ -69,9 +73,17 @@ Raw generated collectible files go under git-ignored `assets-src/raw/`. Accepted
 
 ## Current runtime vs next target
 
-Current `main` still contains the old slice Signal implementation (`0..100` with rarity-dependent duplicate gains). Lite V2 documentation intentionally records the agreed **next target** (`0..4`, +1 per duplicate) without pretending that migration is already implemented.
+Current `main` still contains the old slice Signal implementation (`0..100` with rarity-dependent duplicate gains) and old 60/28/10/2 standard table for every opening. Lite V2 documentation records the agreed **next target** without pretending the migration is already implemented.
 
-The current Basic rarity profile starts from slice odds 60/28/10/2. Charged cost/payout/rarity/Hidden Pocket values are still tuning inputs and must not be silently invented in scene code.
+Signal migration is locked to:
+
+```text
+newSignal = min(4, floor(oldSignal / 25))
+```
+
+Lite V2 exact balance values are still tuning inputs: Charged cost, base CHIPS ranges, cache chances/amounts, duplicate recycle values, Basic/Charged rarity weights and Hidden Pocket probabilities.
+
+The structural rules are already fixed: guaranteed collectible + base CHIPS on Basic, independent cache luck, no Basic Legendary, Charged Legendary access, Charged net CHIPS sink in expectation, and Signal Lock preserving the selected pouch rarity profile among missing items.
 
 ## Source of truth
 
@@ -83,7 +95,7 @@ Canonical current docs:
 - [`docs/TECHNICAL_DIRECTION.md`](docs/TECHNICAL_DIRECTION.md) — Drop-aware architecture, save migration and atomic economy requirements.
 - [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md) — execution order from Lite V2 through release.
 - [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — actual integrated asset state + minimal Lite V2 asset additions.
-- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — only unresolved decisions/tuning points.
+- [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — only unresolved tuning/UX points.
 - [`docs/INFRASTRUCTURE_STATUS.md`](docs/INFRASTRUCTURE_STATUS.md) — current infrastructure/runtime status.
 - [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — real hosted Yandex checks that CI cannot replace.
 - [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md), [`docs/ART_PRODUCTION.md`](docs/ART_PRODUCTION.md), [`docs/ASSET_PIPELINE.md`](docs/ASSET_PIPELINE.md) — art/content production rules.
