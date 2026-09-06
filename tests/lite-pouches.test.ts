@@ -145,6 +145,23 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     expect(staysLocked.signal).toMatchObject({ before: 4, after: 4, gain: 0, lockRetained: true });
   });
 
+  it('preserves pouch rarity weighting under Signal instead of multiplying weight by missing item count', () => {
+    const result = resolveLitePouchReward({
+      state: makeState({
+        signal: 4,
+        discoveredStandard: allStandardIdsExcept('camera-common', 'flip-phone-common', 'camera-epic'),
+      }),
+      pouchType: 'basic',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0.97, 0, 0, 0, 0.999]),
+    });
+
+    expect(result.standard.collectibleId).toBe('camera-epic');
+    expect(result.signal.lockConsumed).toBe(true);
+    expect(result.signal.after).toBe(0);
+  });
+
   it('keeps an armed Signal lock when only Legendary remains and Basic is opened', () => {
     const state = makeState({
       signal: 4,
