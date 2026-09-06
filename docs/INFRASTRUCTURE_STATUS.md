@@ -51,11 +51,12 @@ The next gap is not more presentation scaffolding. It is the agreed lightweight 
 - duplicate auto-recycle → CHIPS + Signal;
 - Signal migration from current 0–100 model to +1-per-duplicate / 4-segment lock;
 - locked legacy mapping `min(4, floor(oldSignal / 25))`;
-- Signal Lock preserving selected pouch rarity profile among missing items;
+- Signal Lock preserving selected pouch rarity profile among eligible missing items;
+- strict Signal gate: if Basic has no eligible NEW because only Legendary remains, Basic resolves normally while Signal stays armed until Charged;
 - Charged Pouch cost/profile and net-CHIPS-sink invariant;
 - Drop/loot-pool-aware reward selection;
 - save migration;
-- atomic Charged cost/base/cache/recycle reward recovery;
+- atomic Charged cost/base/cache/recycle reward recovery plus retained/consumed Signal state;
 - minimal CHIPS token presentation and optional concise SFX;
 - new deterministic tests/debug scenarios;
 - new browser visual/interaction gates.
@@ -117,7 +118,7 @@ Hosted checks must include:
 - real ad no-fill/throttle/close paths;
 - safe storage in hosted environment;
 - save migration;
-- interrupted Basic reveal recovery;
+- interrupted Basic reveal recovery, including retained-Signal edge;
 - interrupted **Charged** reveal recovery so CHIPS cost/cache/reward cannot be lost or duplicated;
 - rewarded exactly-once dev CHIPS probe after Signal migration;
 - Metrica goal visibility if configured.
