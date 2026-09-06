@@ -5,6 +5,8 @@ export const en = {
     collection: 'Collection →',
     tearHint: 'Drag the star to tear →',
     resultLocked: 'Result locked',
+    tapToSpeedUp: 'Tap to speed up',
+    tapCollect: 'Tap to collect',
     tapNext: 'Tap for next pouch',
     swipeItems: 'Swipe items',
     saveLoadError: 'Save data could not be loaded. Reload to retry.',

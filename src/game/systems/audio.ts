@@ -33,6 +33,11 @@ const CUES: Readonly<Record<SfxCue, readonly ToneSpec[]>> = {
     { frequency: 1180, duration: 0.22, type: 'sine', gain: 0.03, delay: 0.16 },
   ],
   duplicate: [{ frequency: 230, endFrequency: 180, duration: 0.11, type: 'triangle', gain: 0.026 }],
+  'chips-collect': [
+    { frequency: 620, endFrequency: 760, duration: 0.055, type: 'triangle', gain: 0.024 },
+    { frequency: 820, endFrequency: 980, duration: 0.06, type: 'sine', gain: 0.022, delay: 0.045 },
+    { frequency: 1040, endFrequency: 1240, duration: 0.065, type: 'sine', gain: 0.018, delay: 0.09 },
+  ],
   'signal-gain': [{ frequency: 780, endFrequency: 920, duration: 0.09, type: 'square', gain: 0.018 }],
   'signal-lock': [
     { frequency: 450, endFrequency: 900, duration: 0.18, type: 'square', gain: 0.025 },
