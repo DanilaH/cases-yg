@@ -54,7 +54,26 @@ This is the most important unresolved technical/product detail before the Signal
 
 ---
 
-# 3. Charged selection UX — SMALL UI QUESTION
+# 3. SIGNAL LOCK × Charged Pouch — IMPORTANT RULE TO LOCK
+
+We have agreed that SIGNAL LOCK applies to the **next standard collectible roll**, but one detail still matters when the player chooses Charged while the lock is armed.
+
+Need to decide how the guaranteed NEW candidate is weighted:
+
+- **profile-preserving option:** choose only from undiscovered candidates, but preserve the selected pouch's rarity weighting, so Charged still has better odds among missing items;
+- **neutral guarantee option:** SIGNAL LOCK simply picks a missing item independently of Basic/Charged rarity profile.
+
+The first option is likely cleaner because Charged should not become less valuable exactly when Signal is armed, but this should be explicit rather than accidentally emerging from implementation.
+
+Already locked either way:
+
+- the lock may be consumed by either Basic or Charged because both contain one standard roll;
+- it only targets the active Drop;
+- it is not consumed if that Drop has no missing standard item.
+
+---
+
+# 4. Charged selection UX — SMALL UI QUESTION
 
 The product direction is fixed: Charged is chosen from the Opening screen with no store.
 
@@ -76,7 +95,7 @@ Resolve from a quick visual pass, not architecture discussion.
 
 ---
 
-# 4. CHIPS asset implementation — SMALL ART QUESTION
+# 5. CHIPS asset implementation — SMALL ART QUESTION
 
 One CHIPS visual identity is required.
 
@@ -91,7 +110,7 @@ Do not create an entire UI asset pack.
 
 ---
 
-# 5. Lite V2 audio additions — OPTIONAL
+# 6. Lite V2 audio additions — OPTIONAL
 
 Potential new cues:
 
@@ -102,7 +121,7 @@ First test whether current sounds/re-pitched variants are good enough. New audio
 
 ---
 
-# 6. Quick Reveal — REVIEW AFTER LITE V2
+# 7. Quick Reveal — REVIEW AFTER LITE V2
 
 The new reward sequence is longer than the current single-reward presentation, so repeated-use pacing must be rechecked.
 
@@ -115,7 +134,7 @@ Only then consider a configurable faster reveal. No x5/mass opening is implied.
 
 ---
 
-# 7. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
+# 8. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
 
 After Lite V2 hands-on + real Yandex DRAFT validation, lock:
 
@@ -140,7 +159,7 @@ Rough 3–5 families per Drop is a heuristic, not a commitment.
 
 ---
 
-# 8. Collection at multi-Drop scale — OPEN LATER
+# 9. Collection at multi-Drop scale — OPEN LATER
 
 Current Shelf/Library stays.
 
@@ -156,7 +175,7 @@ Do not redesign Collection before the content exists.
 
 ---
 
-# 9. Family-targeted acquisition — PARKED
+# 10. Family-targeted acquisition — PARKED
 
 Do not add family-specific pouches now.
 
@@ -164,7 +183,7 @@ Revisit only if real completion data shows that Drop-level Signal protection sti
 
 ---
 
-# 10. Idle/incremental expansion systems — PARKED
+# 11. Idle/incremental expansion systems — PARKED
 
 Explicitly not part of Lite V2:
 
@@ -182,7 +201,7 @@ They are ideas, not backlog commitments. Re-open one only if Lite V2 has a speci
 
 ---
 
-# 11. Advertising / public measurement — OPEN FOR RELEASE TUNING
+# 12. Advertising / public measurement — OPEN FOR RELEASE TUNING
 
 Implementation/compliance is already resolved through the Yandex adapter.
 
@@ -197,7 +216,7 @@ The old dev-only `+25 Signal` rewarded test is deprecated by the new Signal mode
 
 ---
 
-# 12. Store/submission choices — DEFER UNTIL RELEASE BUILD
+# 13. Store/submission choices — DEFER UNTIL RELEASE BUILD
 
 Only after expanded content/key visual stabilizes:
 
