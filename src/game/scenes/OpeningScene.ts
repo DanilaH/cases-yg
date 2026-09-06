@@ -678,6 +678,7 @@ export class OpeningScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
     container.add([token, label, valueText]);
+    container.bringToTop(shimmer);
     root.add(container);
     this.chipsHudContainer = container;
     this.chipsHudText = valueText;
@@ -774,6 +775,7 @@ export class OpeningScene extends Phaser.Scene {
       this.signalHudSegments.push(segment);
     }
 
+    container.bringToTop(shimmer);
     root.add(container);
     this.signalHudContainer = container;
   }
@@ -1587,7 +1589,6 @@ export class OpeningScene extends Phaser.Scene {
 
   private async bankChipLeg(
     targetValue: number,
-    emphasis: number,
     chargedReadyOnArrival: boolean,
   ): Promise<void> {
     if (!this.root || !this.metrics || targetValue <= this.chipsHudValue) return;
@@ -1722,7 +1723,7 @@ export class OpeningScene extends Phaser.Scene {
     let nextValue = pending.chips.before - pending.chips.cost;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
     let readyShown = false;
-    const bankLeg = async (amount: number, emphasis: number): Promise<void> => {
+    const bankLeg = async (amount: number): Promise<void> => {
       if (amount <= 0) return;
       const target = nextValue + amount;
       const crossesReady =
@@ -1730,25 +1731,21 @@ export class OpeningScene extends Phaser.Scene {
         crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
         nextValue < chargedCost &&
         target >= chargedCost;
-      await this.bankChipLeg(target, emphasis, crossesReady);
+      await this.bankChipLeg(target, crossesReady);
       readyShown ||= crossesReady;
       nextValue = target;
     };
 
-    await bankLeg(pending.chips.base, 1);
+    await bankLeg(pending.chips.base);
     if (this.isSceneShutdown()) return;
-    await bankLeg(
-      pending.chips.cacheBonus,
-      pending.chips.cacheTier === 'mega' ? 1.25 : pending.chips.cacheTier === 'big' ? 1.14 : 1.06,
-    );
+    await bankLeg(pending.chips.cacheBonus);
     if (this.isSceneShutdown()) return;
-    await bankLeg(pending.chips.recycle, 1.08);
+    await bankLeg(pending.chips.recycle);
     if (this.isSceneShutdown()) return;
     await this.bankSignalGain(pending);
     if (this.isSceneShutdown()) return;
 
     this.setChipsHudValue(pending.chips.after, false);
-    this.renderSignalHud(this.root, this.saveState);
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
     if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
     if (this.resultActionPanel?.active) fadeTargets.push(this.resultActionPanel);
