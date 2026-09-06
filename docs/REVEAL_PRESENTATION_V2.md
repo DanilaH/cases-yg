@@ -1,6 +1,6 @@
 # Reveal Presentation V2
 
-Status: active implementation scope after the second hands-on review.
+> **HISTORICAL IMPLEMENTATION RECORD — COMPLETED.** This file records the presentation scope used to reach the current opener baseline. It is not the active gameplay roadmap. Current product/gameplay scope is defined by `DECISIONS.md`, `GAMEPLAY_SYSTEMS.md` and `IMPLEMENTATION_ROADMAP.md`.
 
 ## Goal
 
