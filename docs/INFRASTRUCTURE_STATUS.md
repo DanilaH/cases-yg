@@ -45,13 +45,17 @@ The layers intentionally use independent reviewed presentation transforms. The o
 The next gap is not more presentation scaffolding. It is the agreed lightweight meta-loop:
 
 - CHIPS state + HUD;
-- Basic CHIPS reward;
+- guaranteed base CHIPS payout + independent cache bonus roll;
+- Basic standard rarity gate: Common/Rare/Epic only, no Legendary;
+- Charged standard rarity gate: all rarities including Legendary with stronger top-end weighting;
 - duplicate auto-recycle → CHIPS + Signal;
 - Signal migration from current 0–100 model to +1-per-duplicate / 4-segment lock;
-- Charged Pouch cost/profile;
+- locked legacy mapping `min(4, floor(oldSignal / 25))`;
+- Signal Lock preserving selected pouch rarity profile among missing items;
+- Charged Pouch cost/profile and net-CHIPS-sink invariant;
 - Drop/loot-pool-aware reward selection;
 - save migration;
-- atomic Charged cost/reward recovery;
+- atomic Charged cost/base/cache/recycle reward recovery;
 - minimal CHIPS token presentation and optional concise SFX;
 - new deterministic tests/debug scenarios;
 - new browser visual/interaction gates.
@@ -95,9 +99,10 @@ The collectible pipeline remains available for future families:
 
 The plan deliberately adds almost no asset burden:
 
-- **required:** one reusable CHIPS token/icon visual identity (raster or equally good vector/Phaser form);
+- **required:** one reusable CHIPS token/icon visual identity (raster or equally good vector/Phaser form), reused for ordinary payouts, recycle and cache bursts;
 - **default:** reuse current pouch layers for Charged with runtime treatment;
-- **optional:** `chips-collect` and `charged-ready` SFX only if existing/re-pitched cues are insufficient.
+- **optional:** `chips-collect` and `charged-ready` SFX only if existing/re-pitched cues are insufficient;
+- **not required:** separate Cache/Big/Mega token art or a second Charged pouch raster set.
 
 See `ASSET_MANIFEST.md`.
 
@@ -113,7 +118,7 @@ Hosted checks must include:
 - safe storage in hosted environment;
 - save migration;
 - interrupted Basic reveal recovery;
-- interrupted **Charged** reveal recovery so CHIPS cost cannot be lost or reward duplicated;
+- interrupted **Charged** reveal recovery so CHIPS cost/cache/reward cannot be lost or duplicated;
 - rewarded exactly-once dev CHIPS probe after Signal migration;
 - Metrica goal visibility if configured.
 
