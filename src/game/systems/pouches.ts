@@ -120,25 +120,33 @@ const getPoolFamilies = (registry: ContentRegistry, lootPoolId: LootPoolId) => {
   });
 };
 
-const standardWeight = (
-  balance: LiteBalanceConfig,
-  profile: PouchProfile,
-  candidate: Pick<StandardCollectibleRecord, 'familyId' | 'rarity'>,
-): number => familyWeight(balance, candidate.familyId) * profile.rarityWeights[candidate.rarity];
-
-const chooseFromStandardCandidates = (
+const chooseFromMissingCandidates = (
   candidates: readonly StandardCollectibleRecord[],
   balance: LiteBalanceConfig,
   profile: PouchProfile,
   random: RandomSource,
-): StandardCollectibleRecord =>
-  pickWeighted(
-    candidates.map((candidate) => ({
+): StandardCollectibleRecord => {
+  const availableRarities = STANDARD_RARITIES.filter(
+    (rarity) => profile.rarityWeights[rarity] > 0 && candidates.some((candidate) => candidate.rarity === rarity),
+  );
+  const rarity = pickWeighted(
+    availableRarities.map(
+      (candidateRarity): WeightedEntry<StandardRarity> => ({
+        value: candidateRarity,
+        weight: profile.rarityWeights[candidateRarity],
+      }),
+    ),
+    random,
+  );
+  const rarityCandidates = candidates.filter((candidate) => candidate.rarity === rarity);
+  return pickWeighted(
+    rarityCandidates.map((candidate) => ({
       value: candidate,
-      weight: standardWeight(balance, profile, candidate),
+      weight: familyWeight(balance, candidate.familyId),
     })),
     random,
   );
+};
 
 const chooseRarity = (profile: PouchProfile, random: RandomSource): StandardRarity =>
   pickWeighted(
@@ -223,7 +231,7 @@ const chooseProtectedStandard = (
     return null;
   }
 
-  return chooseFromStandardCandidates(missing, balance, profile, random);
+  return chooseFromMissingCandidates(missing, balance, profile, random);
 };
 
 const resolveStandard = (
@@ -239,7 +247,7 @@ const resolveStandard = (
     const missingEligible = getMissingEligibleStandard(state, registry, profile);
     if (missingEligible.length > 0) {
       return {
-        selected: chooseFromStandardCandidates(missingEligible, balance, profile, random),
+        selected: chooseFromMissingCandidates(missingEligible, balance, profile, random),
         signalLockConsumed: true,
       };
     }
