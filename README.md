@@ -26,13 +26,13 @@ Lite V2 adds:
 - one global CHIPS wallet;
 - guaranteed base CHIPS on every pouch plus an independent rare cache/jackpot roll;
 - automatic duplicate recycle → CHIPS + Signal;
-- simplified Signal pity: one segment per duplicate, `4/4` → next standard collectible NEW;
+- simplified Signal pity: one segment per duplicate, `4/4` → next **eligible** standard collectible NEW;
 - one Charged Pouch tier bought with CHIPS;
 - Basic standard rarity access = Common/Rare/small Epic, **no Legendary**;
 - Charged standard rarity access = Common/Rare/Epic/Legendary with materially better top-end odds;
 - Drop/loot-pool-aware reward data so future content does not become one giant global pool.
 
-Basic still always gives a collectible and may very rarely reach Secret through Hidden Pocket. Charged is the normal route to Legendary and has a higher Hidden Pocket chance.
+Basic still always gives a collectible and may very rarely reach Secret through Hidden Pocket. Charged is the normal route to Legendary and has a higher Hidden Pocket chance. SIGNAL LOCK never bypasses Basic's Legendary gate: if only Legendary remains, Basic resolves normally while the lock stays armed until an eligible Charged opening.
 
 It explicitly does **not** add timers, offline income, passive production, Overcharge, Archive levels, shop scene, multi-standard drops, prestige or other full incremental systems.
 
@@ -83,7 +83,7 @@ newSignal = min(4, floor(oldSignal / 25))
 
 Lite V2 exact balance values are still tuning inputs: Charged cost, base CHIPS ranges, cache chances/amounts, duplicate recycle values, Basic/Charged rarity weights and Hidden Pocket probabilities.
 
-The structural rules are already fixed: guaranteed collectible + base CHIPS on Basic, independent cache luck, no Basic Legendary, Charged Legendary access, Charged net CHIPS sink in expectation, and Signal Lock preserving the selected pouch rarity profile among missing items.
+The structural rules are already fixed: guaranteed collectible + base CHIPS on Basic, independent cache luck, no Basic Legendary, Charged Legendary access, Charged net CHIPS sink in expectation, Signal Lock preserving the selected pouch rarity profile among missing items, and a strict Charged gate when Basic has no eligible NEW.
 
 ## Source of truth
 
