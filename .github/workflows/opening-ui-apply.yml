@@ -1,0 +1,33 @@
+name: Opening UI V2 Apply
+
+on:
+  push:
+    branches:
+      - feat/gameplay-loop-lite-v2-opening-ui
+    paths:
+      - .github/workflows/opening-ui-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feat/gameplay-loop-lite-v2-opening-ui
+          fetch-depth: 0
+      - name: Apply product patch
+        run: python3 scripts/apply-opening-ui-v2.py
+      - name: Remove one-shot patch infrastructure
+        run: |
+          rm scripts/apply-opening-ui-v2.py
+          rm .github/workflows/opening-ui-apply.yml
+      - name: Commit patched Opening UI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Implement Lite V2 Opening economy UI"
+          git push origin HEAD:feat/gameplay-loop-lite-v2-opening-ui
