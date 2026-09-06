@@ -639,7 +639,7 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: waitingForCharged ? '7px' : '10px',
+      fontSize: waitingForCharged ? '8px' : '10px',
     });
     const value = this.add.text(width - 14, 12, `${clamped}/${threshold}`, {
       color: '#f7fdff',
