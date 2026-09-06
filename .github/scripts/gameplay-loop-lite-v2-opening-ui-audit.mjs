@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 
 const outDir = '/tmp/gameplay-loop-lite-v2-opening-ui-audit';
+await fs.rm(outDir, { recursive: true, force: true });
 await fs.mkdir(outDir, { recursive: true });
 
 const errors = [];
@@ -39,18 +40,6 @@ const attachDiagnostics = (page, tag) => {
   });
 };
 
-const installDeterministicRandom = async (context) => {
-  await context.addInitScript(() => {
-    globalThis.__mptAuditRandom = [];
-    globalThis.__mptAuditRandomFallback = 0.99;
-    Math.random = () => {
-      const queue = globalThis.__mptAuditRandom;
-      if (Array.isArray(queue) && queue.length > 0) return queue.shift();
-      return globalThis.__mptAuditRandomFallback;
-    };
-  });
-};
-
 const waitReady = async (page) => {
   await page.waitForSelector('#game canvas', { state: 'visible', timeout: 20_000 });
   await page.waitForFunction(() => document.querySelector('#orientation-gate')?.getAttribute('data-visible') !== 'true');
@@ -85,12 +74,6 @@ const setSaveAndReload = async (page, save) => {
   await hideDebug(page);
 };
 
-const setRandom = async (page, values) => {
-  await page.evaluate((sequence) => {
-    globalThis.__mptAuditRandom = [...sequence];
-  }, values);
-};
-
 const readSave = async (page, label) => {
   const raw = await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY);
   const parsed = raw ? JSON.parse(raw) : null;
@@ -109,6 +92,38 @@ const dragTear1280 = async (page) => {
   await page.mouse.up();
 };
 
+const runDeterministicTear1280 = async (page, sequence) => {
+  await page.evaluate((values) => {
+    globalThis.__mptAuditOriginalRandom = Math.random;
+    globalThis.__mptAuditRandom = [...values];
+    Math.random = () => {
+      const queue = globalThis.__mptAuditRandom;
+      return Array.isArray(queue) && queue.length > 0 ? queue.shift() : 0.99;
+    };
+  }, sequence);
+
+  try {
+    await dragTear1280(page);
+    await page.waitForFunction((key) => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return false;
+      try {
+        return JSON.parse(raw).pendingReveal !== null;
+      } catch {
+        return false;
+      }
+    }, SAVE_KEY, { timeout: 4_000 });
+  } finally {
+    await page.evaluate(() => {
+      if (typeof globalThis.__mptAuditOriginalRandom === 'function') {
+        Math.random = globalThis.__mptAuditOriginalRandom;
+      }
+      delete globalThis.__mptAuditOriginalRandom;
+      delete globalThis.__mptAuditRandom;
+    });
+  }
+};
+
 const selectCharged1280 = async (page) => {
   await page.mouse.click(640 + 110, 116);
   await page.waitForTimeout(180);
@@ -119,7 +134,6 @@ const enContext = await browser.newContext({
   locale: 'en-US',
   recordVideo: { dir: outDir, size: { width: 1280, height: 720 } },
 });
-await installDeterministicRandom(enContext);
 const page = await enContext.newPage();
 attachDiagnostics(page, 'en');
 await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
@@ -132,8 +146,7 @@ await shot(page, '01-idle-basic-1280');
 
 // 02–04 — real Basic opening with deterministic common, base CHIPS and no cache.
 await setSaveAndReload(page, baseSave());
-await setRandom(page, [0.1, 0.1, 0.0, 0.0, 0.99]);
-await dragTear1280(page);
+await runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);
 await page.waitForTimeout(300);
 await shot(page, '02-basic-chips-spill');
 await page.waitForTimeout(520);
@@ -144,8 +157,7 @@ await readSave(page, 'basic-result');
 
 // 05–07 — Mega cache path and CHARGED READY crossing beat.
 await setSaveAndReload(page, baseSave());
-await setRandom(page, [0.1, 0.1, 0.0, 0.999, 0.5, 0.99]);
-await dragTear1280(page);
+await runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.999, 0.5, 0.99]);
 await page.waitForTimeout(760);
 await shot(page, '05-mega-cache-beat');
 await page.waitForTimeout(620);
@@ -159,8 +171,7 @@ await setSaveAndReload(page, baseSave({
   chips: 20,
   discoveredStandard: ['camera-common'],
 }));
-await setRandom(page, [0.1, 0.1, 0.0, 0.0, 0.99]);
-await dragTear1280(page);
+await runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.99]);
 await page.waitForTimeout(980);
 await shot(page, '08-duplicate-recycle-start');
 await page.waitForTimeout(260);
@@ -173,8 +184,7 @@ await readSave(page, 'duplicate-result');
 await setSaveAndReload(page, baseSave({ chips: 100 }));
 await selectCharged1280(page);
 await shot(page, '11-charged-selected-idle');
-await setRandom(page, [0.1, 0.99, 0.0, 0.0, 0.99]);
-await dragTear1280(page);
+await runDeterministicTear1280(page, [0.1, 0.99, 0.0, 0.0, 0.99]);
 await page.waitForTimeout(260);
 await shot(page, '12-charged-spend-and-base');
 await page.waitForTimeout(1050);
@@ -197,8 +207,7 @@ await shot(page, '14-signal-lock-waiting-charged');
 
 // 15–18 — real Hidden Pocket opening, carousel, swipe and resize preservation.
 await setSaveAndReload(page, baseSave({ totalOpens: 3 }));
-await setRandom(page, [0.1, 0.1, 0.0, 0.0, 0.0, 0.1]);
-await dragTear1280(page);
+await runDeterministicTear1280(page, [0.1, 0.1, 0.0, 0.0, 0.0, 0.1]);
 await page.waitForTimeout(1750);
 await shot(page, '15-hidden-secret-reveal');
 await page.waitForTimeout(850);
@@ -236,7 +245,6 @@ const ruContext = await browser.newContext({
   locale: 'ru-RU',
   recordVideo: { dir: outDir, size: { width: 1024, height: 720 } },
 });
-await installDeterministicRandom(ruContext);
 const ruPage = await ruContext.newPage();
 attachDiagnostics(ruPage, 'ru');
 await ruPage.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
@@ -253,7 +261,8 @@ await ruContext.close();
 await fs.writeFile(
   `${outDir}/report.json`,
   JSON.stringify({
-    auditedHead: '8ac24e4d8613ba7e5d6bc86d0bc717d0f3a3a7a2',
+    auditedProductHead: '8ac24e4d8613ba7e5d6bc86d0bc717d0f3a3a7a2',
+    auditBranchHead: process.env.GITHUB_SHA ?? null,
     errors,
     failedRequests,
     states,
