@@ -72,7 +72,7 @@ export const POUCH_PRESENTATION = {
   // lower placement made the scene jump upward by roughly a hundred logical px
   // as soon as the collectible appeared.
   groupY: 266,
-  body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
+  body: { x: 0, y: 98, displayWidth: 420 } satisfies PouchLayerPresentation,
   // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
   // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
   strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,
