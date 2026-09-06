@@ -1,27 +1,27 @@
 # Art production pipeline
 
-This file defines the repeatable collectible-production workflow for both the internal slice and later public content expansion.
+This file defines the repeatable collectible-production workflow for the integrated current catalog and later public content expansion.
 
 ---
 
-# 1. Phase 1 — internal slice
+# 1. Current production baseline — COMPLETE
 
-Produce first:
+The first two families are already produced/integrated:
 
 - Digital Camera: Common / Rare / Epic / Legendary + Secret;
 - Flip Phone: Common / Rare / Epic / Legendary + Secret.
 
-Purpose is not to finish public content. It is to prove:
+They established:
 
 - the visual language;
 - rarity derivation consistency;
 - cleanup/export process;
-- realistic time/iteration cost per family;
-- how well the same asset survives reveal, Shelf and Library.
+- realistic iteration cost per family;
+- how the same asset survives reveal, Shelf and Library.
 
-After direct user sign-off, move into batch production of additional families.
+Do **not** start mass-producing new families during Gameplay Loop Lite V2. The next content batch begins after Lite V2 hands-on and real Yandex DRAFT validation.
 
-### Flip Phone — current locked slice direction
+### Flip Phone — locked direction
 
 The accepted family uses one open, front-facing pink Y2K clamshell master with the same silhouette, hinge, screen frame, camera, circular navigation control and keypad across all standard rarities.
 
@@ -36,24 +36,22 @@ Secret:
 
 - **Noir / Monochrome Edition** — smoked/piano-black shell, visible dark internal pattern, silver/chrome hinge/navigation/camera accents, monochrome Saturn-heart screen, black-heart + chrome-star charm, restrained star/crescent identity marks.
 
-The Noir Secret is intentionally outside the pink material ladder. Do not turn it into a fifth standard rarity.
-
 ---
 
 # 2. Canonical family workflow — LOCKED
 
-For **every** gadget family:
+For every future gadget family:
 
 1. generate roughly **6–10 exploratory candidates**;
-2. inspect both beauty size and small in-game size;
+2. inspect beauty size + small in-game size;
 3. select exactly one canonical master;
 4. freeze silhouette, camera angle, major controls and proportions;
-5. derive Common/Rare/Epic/Legendary from that selected master;
-6. create Secret edition only if the content plan assigns one;
+5. derive Common/Rare/Epic/Legendary from that master;
+6. create Secret only if the content plan assigns one;
 7. clean alpha/artifacts;
-8. export runtime assets through the project asset pipeline;
+8. export through project asset pipeline;
 9. log source/prompt/revision information;
-10. compare the completed family against existing catalog before accepting it.
+10. compare completed family against existing catalog before acceptance.
 
 Exploration finds the base design. Do not independently redesign each rarity.
 
@@ -91,12 +89,12 @@ A Secret may alter ~15–25% of details/geometry while preserving family identit
 
 It should have one strong edition concept: cosmic, noir/monochrome, prototype, themed faceplate, unusual accessory system, etc.
 
-The internal slice uses:
+Current Secrets:
 
 - Cosmic Camera;
 - Noir / Monochrome Flip Phone.
 
-Public release Secret distribution is decided with the expanded roster. Do not mechanically create exactly one Secret for every family unless later product design calls for that.
+Public release Secret distribution is decided with expanded roster. Do not mechanically create exactly one Secret for every family unless later content design calls for it.
 
 ---
 
@@ -105,31 +103,26 @@ Public release Secret distribution is decided with the expanded roster. Do not m
 Generation/source input:
 
 - target ~1536×1536 where generation/editing quality permits;
-- do not accept a visibly undersized or damaged source merely to hit a nominal dimension;
-- **source canvases may have different aspect ratios and dimensions** — no manual squaring or stretching is required before ingestion;
-- prefer already-transparent PNG/WebP sources when available;
-- the full object, including charm/strap/antenna/accessories, must be present and unclipped.
-
-Examples such as `1024×1536`, `1236×1273` or `1224×1285` are valid production inputs. The project pipeline owns normalization.
+- source canvases may have different aspect ratios/dimensions;
+- prefer already-transparent PNG/WebP sources;
+- full object including charm/strap/antenna/accessories must be intact.
 
 Canonical runtime hero export:
 
 - **1024×1024 WebP with alpha**;
-- aspect ratio preserved; non-uniform stretch is forbidden;
+- aspect ratio preserved; no non-uniform stretch;
 - transparent excess trimmed before fitting;
 - **64 px safe transparent margin on every side**;
-- therefore maximum fitted content box is **896×896**;
+- maximum fitted content box **896×896**;
 - geometric centering by default;
-- small per-item optical `offsetX` / `offsetY` corrections only where needed;
-- all variants in one family must have comparable perceived scale and the same canonical angle;
+- only small per-item optical `offsetX` / `offsetY` corrections;
+- variants in one family use comparable perceived scale and the same canonical angle;
 - enough transparent space for runtime glow/settle;
 - no baked reveal effects or conflicting drop shadows.
 
-Do **not** hand-edit a final WebP to compensate for inconsistent framing. Fix the source/manifest offset and rerun the pipeline so the result remains reproducible.
+Fix source/manifest offsets and rerun pipeline rather than hand-editing final WebPs.
 
-Use `docs/ASSET_PIPELINE.md` and the project commands for background cleanup, normalization, WebP export, validation and optional atlas inspection.
-
-For the expanded release, create 512/768 derivatives from masters if profiling shows that full 1024 assets are wasteful for Collection thumbnails/mobile memory.
+Use `docs/ASSET_PIPELINE.md` for cleanup/normalize/WebP/validation/atlas workflow.
 
 ---
 
@@ -139,23 +132,21 @@ Final assets require:
 
 - clean alpha edges;
 - no background halo;
-- no cropped charm/antenna/strap;
+- no cropped accessories;
 - no malformed controls/AI artifacts;
 - no accidental logo/brand mark;
 - no photoreal/CGI drift;
-- no repaint during cleanup that changes the family style.
+- no cleanup repaint that changes family style.
 
-The project has two cleanup paths. Use deterministic corner/background modeling for clean isolated sources; use per-item `backgroundRemoval: "ai"` only when a real source visually proves that deterministic cleanup is not sufficient. Already-transparent source art is preferred and is preserved without unnecessary segmentation.
+Use deterministic background cleanup for clean isolated sources; use per-item AI cutout only where necessary. Already-transparent source art is preferred.
 
-Neither path replaces visual review. If AI segmentation eats a pale/translucent panel or a small accessory, use a cleaner/already-transparent source rather than endlessly tuning one pathological image.
+Neither path replaces visual review.
 
 ---
 
 # 7. Naming — LOCKED
 
-Lowercase kebab-case stable semantic IDs.
-
-Canonical runtime scheme:
+Lowercase kebab-case stable semantic IDs:
 
 ```text
 <family>-common.webp
@@ -165,7 +156,7 @@ Canonical runtime scheme:
 <family>-secret-<edition>.webp
 ```
 
-Slice examples:
+Current examples:
 
 ```text
 camera-common.webp
@@ -181,21 +172,17 @@ flip-phone-legendary.webp
 flip-phone-secret-noir.webp
 ```
 
-Raw generated/exported filenames containing timestamps or arbitrary generation numbers are **not** production IDs. Map/rename them to the semantic source slots declared in `assets-src/collectibles.manifest.json` before processing.
-
-Future family names follow the same pattern.
-
-Working/source files may use revision suffixes in an external archive, but runtime IDs should not contain arbitrary generation numbers.
+Raw generation filenames/timestamps are not runtime IDs.
 
 ---
 
 # 8. Generation log
 
-Per accepted family keep a compact record with:
+Per accepted family keep:
 
 - family ID;
 - selected master filename;
-- prompt/instructions used for master;
+- prompt/instructions;
 - archetype/reference notes;
 - rarity-edit instructions;
 - Secret instructions if any;
@@ -203,61 +190,72 @@ Per accepted family keep a compact record with:
 - cleanup notes;
 - approximate hands-on production time / iteration count.
 
-That last field matters because it informs the **public launch family count** after the slice.
-
 Do not commit every rejected high-resolution exploration. Contact sheet + selected master + log is enough unless a rejected concept is specifically useful.
 
 ---
 
-# 9. Batch expansion rule
+# 9. Drop-aware expansion workflow
 
-Do not produce the entire public roster in one blind pass.
+Future content is organized into themed Drops/loot pools rather than one global pool.
 
 Recommended release workflow:
 
-1. slice families: Camera + Flip Phone;
-2. first expansion batch: ~3–5 diverse silhouettes;
-3. cross-family style review;
-4. correct prompt/edit rules;
-5. next batch;
-6. repeat until target roster is reached.
+1. Lite V2 + real Yandex DRAFT complete;
+2. choose first expanded Drop/theme and ~3–5 diverse families as a starting batch;
+3. produce families through canonical workflow;
+4. cross-family + cross-Drop style review;
+5. correct prompt/edit rules;
+6. produce next batch;
+7. repeat until release roster is sufficient.
 
-This limits style drift and lets the target roster grow beyond old estimates if AI-assisted throughput remains strong.
+A Drop theme may influence motif/palette lightly, but do not make each Drop look like a different game or force all devices in it into one color.
 
 ---
 
-# 10. Family acceptance checklist
+# 10. Lite V2 non-collectible asset rule
 
-Before a family enters runtime/release content:
+Gameplay Loop Lite V2 should not interrupt collectible production with a new art branch.
+
+Only required new identity is the CHIPS token/icon described in `ASSET_MANIFEST.md`.
+
+Charged Pouch should reuse current pouch art with runtime treatment first. Do not create a second pouch layer set unless visual QA proves reuse cannot communicate Charged state.
+
+Potential `chips-collect` / `charged-ready` SFX are optional and should be created only if existing/re-pitched audio is insufficient.
+
+---
+
+# 11. Family acceptance checklist
+
+Before a future family enters runtime/release content:
 
 - readable at Shelf/mobile size;
-- archetype is immediately recognizable;
+- archetype immediately recognizable;
 - no 1:1 branded copying;
 - style matches existing catalog;
-- Common is desirable;
-- Rare/Epic escalation is visible;
-- Legendary is obviously premium without detail soup;
+- Common desirable;
+- Rare/Epic escalation visible;
+- Legendary obviously premium without detail soup;
 - variants align in scale/angle;
-- transparent edges are clean;
-- full silhouette/accessories stay inside the locked safe area;
+- transparent edges clean;
+- full silhouette/accessories inside safe area;
 - motifs/charms do not mechanically repeat previous families;
-- Secret, if present, feels genuinely special;
-- asset weight is reasonable.
+- Secret, if present, genuinely special;
+- asset weight reasonable.
 
-If a family fails consistency, fix it before producing more families from a broken rule set.
+Fix consistency before producing more families from a broken rule set.
 
 ---
 
-# 11. Release-scale performance checkpoint
+# 12. Release-scale performance checkpoint
 
-Once a real launch roster exists, profile before final export freeze:
+Once a real expanded roster exists, profile:
 
 - total encoded asset size;
 - decoded GPU memory;
 - startup preload;
 - Collection loading strategy;
 - mobile texture quality;
-- whether thumbnails should use derivatives;
-- whether individual textures, per-family atlases or grouped/on-demand assets produce the best real-device result.
+- thumbnail derivatives;
+- individual textures vs per-family/Drop atlases or grouped/on-demand loading.
 
-The internal slice can preload everything; the public catalog should use the simplest loading plan that remains fast on real devices.
+The current small catalog can preload everything; the public catalog should use the simplest loading plan that remains fast on real devices.
