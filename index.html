@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Keep the pre-module shell visually coherent until the bundled stylesheet and boot logic take over. -->
+    <style>
+      html,
+      body,
+      #game-shell,
+      #game {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        overflow: hidden;
+        background: #171421;
+      }
+
+      #orientation-gate {
+        display: none;
+      }
+    </style>
     <!-- Avoid browser favicon 404 noise inside embedded game hosts. -->
     <link rel="icon" href="data:," />
     <title>Mystery Pocket Tech</title>

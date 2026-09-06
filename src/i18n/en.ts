@@ -21,7 +21,7 @@ export const en = {
     free: 'FREE',
     chargedReady: 'CHARGED POUCH READY',
     signalLock: 'SIGNAL LOCK',
-    signalCharged: 'SIGNAL LOCK · CHARGED',
+    signalCharged: 'LOCK · CHARGED',
     locked: 'LOCKED',
     chipCache: 'CHIP CACHE',
     bigCache: 'BIG CACHE',

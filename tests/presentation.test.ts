@@ -30,6 +30,7 @@ describe('reveal presentation', () => {
   it('uses a compact production tear strip with independent pull-tab geometry', () => {
     expect(POUCH_PRESENTATION.strip.displayWidth).toBeLessThanOrEqual(POUCH_PRESENTATION.body.displayWidth * 0.9);
     expect(POUCH_PRESENTATION.tab.displayWidth).toBeLessThan(POUCH_PRESENTATION.strip.displayWidth);
+    expect(POUCH_PRESENTATION.body.y).toBeGreaterThanOrEqual(96);
     expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);
     expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(300);
     expect(POUCH_PRESENTATION.dragThreshold).toBeLessThan(POUCH_PRESENTATION.tabTravel);

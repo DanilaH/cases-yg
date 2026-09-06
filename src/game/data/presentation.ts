@@ -68,11 +68,12 @@ export interface PouchLayerPresentation {
 }
 
 export const POUCH_PRESENTATION = {
-  // Keep the pouch visual center near the reward's reveal position. The previous
-  // lower placement made the scene jump upward by roughly a hundred logical px
-  // as soon as the collectible appeared.
-  groupY: 266,
-  body: { x: 0, y: 92, displayWidth: 420 } satisfies PouchLayerPresentation,
+  // Keep the pouch body at the established reveal center while tucking its upper
+  // silver shoulders farther behind the authored tear strip. The group moves up
+  // by the same 6 logical px that the body moves down inside it, so reward/pouch
+  // center continuity is unchanged.
+  groupY: 260,
+  body: { x: 0, y: 98, displayWidth: 420 } satisfies PouchLayerPresentation,
   // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
   // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
   strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,

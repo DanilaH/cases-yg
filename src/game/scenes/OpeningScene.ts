@@ -107,6 +107,7 @@ export class OpeningScene extends Phaser.Scene {
   private signalHudContainer: Phaser.GameObjects.Container | null = null;
   private chargedAura: Phaser.GameObjects.Container | null = null;
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
+  private tearHint: Phaser.GameObjects.Text | null = null;
   private readonly presentationSkip = new PresentationSkipController();
 
   public constructor() {
@@ -230,6 +231,7 @@ export class OpeningScene extends Phaser.Scene {
     this.signalHudContainer = null;
     this.chargedAura = null;
     this.rewardTrayContainer = null;
+    this.tearHint = null;
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -515,6 +517,7 @@ export class OpeningScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(0, 2, '#120d19', 3, true, true);
     root.add(tearHint);
+    this.tearHint = tearHint;
 
     if (message) {
       root.add(
@@ -1146,6 +1149,10 @@ export class OpeningScene extends Phaser.Scene {
     this.phase = 'revealing';
     this.setChromeEnabled(false);
     this.pouch.dragZone.disableInteractive();
+    if (this.tearHint) {
+      this.tweens.killTweensOf(this.tearHint);
+      this.tearHint.setAlpha(0);
+    }
 
     if (recovered) {
       this.pouch.tab.setX(this.pouch.tabEndX);
