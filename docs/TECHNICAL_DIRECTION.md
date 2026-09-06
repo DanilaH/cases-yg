@@ -120,7 +120,8 @@ Exact shape may differ; invariants matter:
 
 - every eligible family is resolvable to one Drop/loot pool;
 - Basic and Charged take an active `lootPoolId`;
-- Signal Lock searches missing standard collectibles only inside that pool;
+- Signal Lock searches missing standard collectibles only inside that pool and only among rarities eligible for the selected pouch;
+- if the selected pouch has no eligible missing item, the resolver must retain the lock rather than bypass rarity gates;
 - CHIPS/Signal remain global state;
 - adding Drop #2 is data/config work, not a reward-engine rewrite.
 
@@ -177,6 +178,7 @@ Do not lock implementation to this exact type shape. The semantic requirements a
 - duplicate recycle CHIPS may scale by rarity and stack with pouch payout;
 - Signal increments exactly one segment per duplicate;
 - Signal threshold target is 4;
+- Signal never overrides a zero-weight rarity in the selected pouch profile;
 - Basic Hidden Pocket remains possible but lower than Charged.
 
 Open tuning values remain config, not magic constants scattered through scenes.
@@ -238,7 +240,7 @@ base pouch chips reward
 cache tier id / cache chips reward
 duplicate recycle chips reward
 standard collectible
-Signal before/after/lock state
+Signal before/after/lock reached/consumed/retained state
 Hidden Pocket result
 final committed progress/wallet snapshot
 ```
@@ -249,6 +251,7 @@ Critical invariants:
 - crash after choosing Charged cannot lose cost without preserving reward;
 - refresh cannot reroll Charged, collectible rarity or cache tier into a better result;
 - recovery cannot grant base/cache/recycle wallet rewards twice;
+- a Basic result that retains an armed Signal lock must recover with the same retained-lock outcome rather than recomputing eligibility from later state;
 - visual token flight never owns currency state;
 - transaction keeps original lootPool/profile even if active UI selection changes later.
 
@@ -268,7 +271,7 @@ Lite V2 target replaces it completely:
 ```text
 standard duplicate → +1
 4/4 → armed lock
-next standard roll → missing standard item in active Drop
+next standard roll with eligible missing item → guaranteed NEW
 consume → 0
 ```
 
@@ -284,9 +287,13 @@ Implementation rules:
 
 - do not retain late-lock weighted fallback as a second hidden rule;
 - if active Drop has no missing standard item, armed lock remains armed and is not consumed;
-- if future Drop selector changes active pool while lock is armed, lock applies to newly selected active Drop at roll time;
+- if the selected pouch has no missing item with non-zero eligibility/weight, that pouch resolves normally and the armed lock remains armed;
+- specifically, Basic can never receive Legendary from Signal because Basic `Legendary = 0`;
+- if only Legendary remains, repeated Basic openings may still produce normal Basic results while Signal stays `4/4`; an eligible Charged opening is required to consume it;
+- if a future Drop selector changes active pool while lock is armed, the lock applies to the newly selected active Drop at roll time;
 - new standard item does not add Signal;
-- Secret handling stays outside standard Signal unless later explicit design changes it;
+- a duplicate while Signal is already armed cannot increase it beyond `4/4`;
+- Secret handling stays outside standard Signal unless a later explicit design changes it;
 - a fully armed old lock must remain armed after migration;
 - migration must be versioned and idempotent.
 
@@ -294,12 +301,12 @@ Implementation rules:
 
 When lock is armed:
 
-1. filter to missing standard candidates in active Drop;
-2. apply the selected pouch's rarity profile to those candidates;
-3. select one NEW result;
-4. consume lock.
+1. collect missing standard candidates in active Drop;
+2. remove candidates whose rarity has zero eligibility/weight for the selected pouch;
+3. if candidates remain, apply selected pouch rarity weighting among them, select one NEW result and consume lock;
+4. if none remain, execute the selected pouch's normal standard roll and retain lock unchanged.
 
-This preserves Charged's rarity advantage under pity rather than turning Charged into a neutral guarantee exactly when Signal is ready.
+This preserves Charged's rarity advantage under pity and protects the strict Basic/Charged rarity gate.
 
 ---
 
@@ -324,6 +331,8 @@ resolve + persist pending transaction
 Implementation may commit before visual flight for safety, while tweening displayed counter from stored pre-value to stored final value. Stopping a tween cannot change economic outcome.
 
 Do not instantiate one persisted object per visible chip particle. Particles are presentation instances of aggregate numeric rewards. A large jackpot should use a bounded number of visual tokens plus stronger FX/counter animation.
+
+When Signal is armed but Basic has no eligible NEW, the HUD/result presentation must not falsely imply that the lock was consumed. Prefer a concise state such as `SIGNAL LOCK · CHARGED` until an eligible opening occurs.
 
 ---
 
@@ -379,6 +388,7 @@ chips_earned { source, amount }
 chips_cache_hit { pouchType, tier, amount }
 duplicate_recycled { rarity, chips, signalAfter }
 signal_lock_reached
+signal_lock_waiting_for_eligible_pouch { pouchType, lootPoolId }
 signal_lock_consumed
 charged_ready
 charged_opened
@@ -402,6 +412,7 @@ Lite V2 UI must preserve established vertical rhythm:
 
 - CHIPS HUD cannot compete with title/reward hero;
 - Charged-ready affordance must fit 900 logical width;
+- `SIGNAL LOCK · CHARGED` or equivalent must remain legible at compact width when applicable;
 - resource-flight destination must remain stable across resize;
 - large cache counter animation must not overflow compact HUD;
 - if resize occurs during result state, wallet/Signal state and Hidden Pocket selected page must remain correct.
@@ -440,10 +451,13 @@ Pure tests must cover at minimum:
 - exact legacy Signal mapping including 24/25/49/50/74/75/99/100 boundaries;
 - lock targets missing standard item in active Drop;
 - lock preserves Basic/Charged rarity profile among missing candidates;
-- lock preserved for complete active Drop;
+- when only Legendary remains, Basic performs a normal roll and retains `4/4` without ever awarding Legendary;
+- an eligible Charged opening after that state guarantees NEW Legendary and consumes the lock;
+- repeated duplicates while lock is armed do not overfill/duplicate Signal;
+- lock preserved for a fully complete active Drop;
 - Drop scoping for Basic/Charged;
 - save migration from pre-Lite version;
-- pending transaction recovery/idempotency with CHIPS/cache;
+- pending transaction recovery/idempotency with CHIPS/cache and retained Signal state;
 - existing Hidden Pocket/onboarding behavior under profiles;
 - rewarded dev CHIPS exactly-once path;
 - overlapping platform/ad/visibility pause reasons.
@@ -456,6 +470,7 @@ Browser visual regression must additionally cover:
 - crossing Charged-ready threshold, including a cache jump across it;
 - Basic vs Charged presentation;
 - Signal segment fill/lock;
+- `SIGNAL LOCK · CHARGED` state when Basic has no eligible NEW;
 - responsive 900/1024/1280/1728 states;
 - interrupted/recovered Charged reveal.
 
