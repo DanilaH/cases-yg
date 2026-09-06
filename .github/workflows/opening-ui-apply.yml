@@ -34,11 +34,20 @@ jobs:
               end += 1
           if start < 0 or end >= len(lines):
               raise SystemExit('Could not locate malformed charged-result replacement block')
-          block = '''replace_once(
-              ''' + "'''" + '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);\n    return {\n      title: `${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,\n''' + "'''" + ''',
-              ''' + "'''" + '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);\n    const pouchPrefix = pending.pouchType === 'charged' ? '⚡ ' : '';\n    return {\n      title: `${pouchPrefix}${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,\n''' + "'''" + ''',
-              'charged result prefix',
-          )'''.splitlines()
+          block = [
+              'replace_once(',
+              "    '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);",
+              '    return {',
+              '      title: `${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,',
+              "''',",
+              "    '''    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);",
+              "    const pouchPrefix = pending.pouchType === 'charged' ? '⚡ ' : '';",
+              '    return {',
+              '      title: `${pouchPrefix}${family?.name[language] ?? pending.standard.familyId} · ${messages.rarity[pending.standard.rarity]}`,',
+              "''',",
+              "    'charged result prefix',",
+              ')',
+          ]
           lines[start:end + 1] = block
           p.write_text('\n'.join(lines) + '\n')
           PY
