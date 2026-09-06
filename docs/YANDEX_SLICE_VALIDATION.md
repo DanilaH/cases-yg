@@ -36,8 +36,9 @@ Lite-specific automated coverage must include:
 - 4-segment Signal lock;
 - exact legacy Signal mapping `min(4, floor(oldSignal / 25))`;
 - Drop-scoped NEW guarantee preserving selected pouch rarity profile;
+- strict Signal gate: Basic retains `4/4` when only Legendary remains, then Charged guarantees/consumes it;
 - save migration from pre-Lite state;
-- pending reveal recovery/idempotency with wallet/cache fields;
+- pending reveal recovery/idempotency with wallet/cache/Signal-retention fields;
 - rewarded dev CHIPS exactly-once path.
 
 ## DRAFT — boot / LoadingAPI
@@ -106,7 +107,7 @@ Expected:
 5. Confirm collectible/base CHIPS/cache bonus/recycle/Signal/Hidden Pocket outcome commits exactly once.
 6. Confirm opening count increments once.
 
-Repeat with a forced large cache outcome, duplicate/recycle and Hidden Pocket paths through debug tooling.
+Repeat with a forced large cache outcome, duplicate/recycle and Hidden Pocket paths through debug tooling. Also repeat a Basic opening while Signal is armed and only Legendary remains; after recovery the same Basic result must be preserved and Signal must still be `4/4`.
 
 ## DRAFT — interrupted Charged reveal recovery — CRITICAL
 
@@ -141,10 +142,12 @@ With migrated legacy saves and/or debug seeds:
 - old fully armed Signal remains armed;
 - one duplicate fills exactly one Lite segment;
 - `4/4` arms lock;
-- next standard roll returns an undiscovered item in active Drop when one exists;
-- Basic SIGNAL LOCK result still obeys Basic rarity access (no Legendary);
-- Charged SIGNAL LOCK preserves Charged rarity advantage among missing candidates;
-- lock resets after consumption;
+- when the selected pouch has an eligible undiscovered candidate, the next standard roll returns NEW inside the active Drop and consumes the lock;
+- Basic SIGNAL LOCK always obeys Basic rarity access and can never award Legendary;
+- with only Legendary missing, opening Basic produces a normal Basic result and leaves Signal at `4/4`;
+- that waiting state is clearly communicated in UI, e.g. `SIGNAL LOCK · CHARGED`;
+- a following eligible Charged opening guarantees a missing Legendary, preserves Charged weighting if multiple candidates exist, and consumes the lock;
+- repeated duplicates while the lock waits do not increase Signal beyond `4/4`;
 - complete active Drop does not consume/waste armed lock.
 
 ## DRAFT — CHIPS / cache / Charged UI
@@ -157,6 +160,7 @@ Confirm at representative hosted sizes:
 - wallet display ends at committed value even if animation is interrupted;
 - crossing affordability through normal payout triggers clear Charged-ready feedback once;
 - crossing affordability through a cache jump also triggers it once;
+- `SIGNAL LOCK · CHARGED` or equivalent does not collide with CHIPS/Charged controls at compact width;
 - Charged cannot be opened when balance is insufficient;
 - no modal/store is required for Basic/Charged choice.
 
@@ -173,6 +177,7 @@ chips_earned
 chips_cache_hit
 duplicate_recycled
 signal_lock_reached
+signal_lock_waiting_for_eligible_pouch
 signal_lock_consumed
 charged_ready
 charged_opened
@@ -189,4 +194,4 @@ Do not mark Yandex DRAFT validation complete from CI or local visual audits.
 
 The pass is complete only when exact hosted Lite V2 build proves:
 
-> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache persistence + ads + audio + analytics are all safe in the real Yandex environment.**
+> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache persistence + strict Signal gating + ads + audio + analytics are all safe in the real Yandex environment.**
