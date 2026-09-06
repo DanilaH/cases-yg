@@ -63,51 +63,59 @@ jobs:
             muted: false,
             stats: { duplicates: 0, hiddenPockets: 0 },
           });
-          const browser = await chromium.launch({
-            headless: true,
-            channel: 'chrome',
-            args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
-          });
-          const context = await browser.newContext({
-            viewport: { width: 1280, height: 720 },
-            locale: 'en-US',
-            recordVideo: { dir: out, size: { width: 1280, height: 720 } },
-          });
+          const browser = await chromium.launch({ headless: true, channel: 'chrome', args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
+          const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: 'en-US', recordVideo: { dir: out, size: { width: 1280, height: 720 } } });
           await context.addInitScript(() => {
             globalThis.__mptAuditRandom = [];
             globalThis.__mptAuditRandomFallback = 0.99;
-            const originalRandom = Math.random;
             Math.random = () => {
               const queue = globalThis.__mptAuditRandom;
               if (Array.isArray(queue) && queue.length > 0) return queue.shift();
-              return globalThis.__mptAuditRandomFallback ?? originalRandom();
+              return globalThis.__mptAuditRandomFallback;
             };
           });
           const page = await context.newPage();
-          page.on('pageerror', e => errors.push(e.message));
-          page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+          page.on('pageerror', e => { errors.push(`pageerror: ${e.message}`); console.log('PAGEERROR', e.message); });
+          page.on('console', m => { if (m.type() === 'error') { errors.push(`console: ${m.text()}`); console.log('CONSOLE_ERROR', m.text()); } });
           const waitReady = async () => {
             await page.waitForSelector('#game canvas', { state: 'visible', timeout: 20000 });
-            await page.waitForTimeout(650);
+            await page.waitForTimeout(700);
             await page.evaluate(() => { const p = document.querySelector('.mpt-debug-panel'); if (p) p.style.display = 'none'; });
           };
+          const readSave = async () => JSON.parse(await page.evaluate(k => localStorage.getItem(k), SAVE_KEY));
           const loadSave = async chips => {
             await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), { key: SAVE_KEY, value: baseSave(chips) });
             await page.reload({ waitUntil: 'domcontentloaded' });
             await waitReady();
           };
           const setRandom = async values => page.evaluate(v => { globalThis.__mptAuditRandom = [...v]; }, values);
-          const selectCharged = async () => { await page.mouse.click(750, 116); await page.waitForTimeout(180); };
+          const selectCharged = async () => { await page.mouse.click(750, 116); await page.waitForTimeout(200); };
           const tear = async () => {
             const startX = 482, startY = 183;
-            await page.mouse.move(startX, startY);
-            await page.mouse.down();
+            await page.mouse.move(startX, startY); await page.mouse.down();
             await page.mouse.move(startX + 150, startY, { steps: 8 });
-            await page.mouse.move(startX + 310, startY, { steps: 10 });
-            await page.mouse.up();
+            await page.mouse.move(startX + 310, startY, { steps: 10 }); await page.mouse.up();
           };
-          const readSave = async () => JSON.parse(await page.evaluate(k => localStorage.getItem(k), SAVE_KEY));
-          const continueResult = async () => { await page.waitForTimeout(2900); await page.mouse.click(640, 600); await page.waitForTimeout(350); };
+          const waitCommitted = async () => {
+            await page.waitForFunction(key => {
+              const raw = localStorage.getItem(key); if (!raw) return false;
+              return JSON.parse(raw).pendingReveal === null;
+            }, SAVE_KEY, { timeout: 12000 });
+            await page.waitForTimeout(1200);
+          };
+          const continueResult = async (tag) => {
+            await page.screenshot({ path: `${out}/${tag}-result-ready.png` });
+            await page.mouse.click(640, 568);
+            await page.waitForTimeout(700);
+            await page.screenshot({ path: `${out}/${tag}-after-continue.png` });
+            if (errors.length) throw new Error(`Runtime errors after continue: ${errors.join(' | ')}`);
+          };
+          const waitPending = async () => {
+            await page.waitForFunction(key => {
+              const raw = localStorage.getItem(key); if (!raw) return false;
+              return JSON.parse(raw).pendingReveal !== null;
+            }, SAVE_KEY, { timeout: 5000 });
+          };
 
           await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
           await waitReady();
@@ -117,32 +125,31 @@ jobs:
           await selectCharged();
           await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
           await tear();
-          await continueResult();
-          await page.screenshot({ path: `${out}/01-charged-selection-persists.png` });
+          await waitCommitted();
+          await continueResult('01-affordable');
           await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
           await tear();
-          await page.waitForTimeout(180);
+          await waitPending();
           const persisted = await readSave();
           results.push({ case: 'affordable-repeat', pendingPouchType: persisted.pendingReveal?.pouchType, chips: persisted.chips });
           if (persisted.pendingReveal?.pouchType !== 'charged') throw new Error(`Expected repeated Charged, got ${persisted.pendingReveal?.pouchType}`);
 
-          // Insufficient CHIPS after Charged: renderIdle must safely fall back to Basic.
+          // Insufficient CHIPS after Charged: selection must fall back to Basic.
           await loadSave(65);
           await selectCharged();
           await setRandom([0.1, 0.99, 0.0, 0.0, 0.99]);
           await tear();
-          await continueResult();
-          await page.screenshot({ path: `${out}/02-charged-falls-back-when-unaffordable.png` });
+          await waitCommitted();
+          await continueResult('02-unaffordable');
           await setRandom([0.1, 0.1, 0.0, 0.0, 0.99]);
           await tear();
-          await page.waitForTimeout(180);
+          await waitPending();
           const fallback = await readSave();
           results.push({ case: 'unaffordable-fallback', pendingPouchType: fallback.pendingReveal?.pouchType, chips: fallback.chips });
           if (fallback.pendingReveal?.pouchType !== 'basic') throw new Error(`Expected Basic fallback, got ${fallback.pendingReveal?.pouchType}`);
 
           await fs.writeFile(`${out}/report.json`, JSON.stringify({ auditedHead: 'db0aad6c847ce09936fe85fa3ec2f62fc9eebda3', errors, results }, null, 2));
-          await context.close();
-          await browser.close();
+          await context.close(); await browser.close();
           if (errors.length) process.exitCode = 1;
           NODE
       - uses: actions/upload-artifact@v4
