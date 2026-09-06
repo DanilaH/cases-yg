@@ -3,6 +3,7 @@ export type PresentationSkipAction = () => void;
 /**
  * Owns the single currently skippable presentation beat.
  * Economic/gameplay state never belongs here: callers register visual completion only.
+ * A request completes only that beat; registering the next beat happens separately.
  */
 export class PresentationSkipController {
   private active: PresentationSkipAction | null = null;
