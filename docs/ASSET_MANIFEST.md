@@ -133,10 +133,11 @@ Lite V2 should add as little bespoke art as possible.
 One reusable visual identity for CHIPS is required for:
 
 - CHIPS HUD counter;
-- token burst from pouch;
+- ordinary base payout burst from pouch;
 - token flight into HUD;
 - duplicate recycle payout;
-- Charged affordability/ready UI.
+- Charged affordability/ready UI;
+- rare Cache / Big Cache / Mega Cache-style payout presentation.
 
 Preferred asset:
 
@@ -152,11 +153,25 @@ Target guidance:
 - readable as a tiny Y2K electronic chip/token, not a generic gold coin;
 - no baked text/value;
 - restrained lavender/cyan/silver family so it belongs to the existing UI;
-- usable both as one HUD icon and as many small reward particles.
+- usable both as one HUD icon and as a bounded number of reward-particle instances.
+
+Large numeric payouts must **reuse the same token identity**. A `+150` result does not require 150 sprites or a new raster. Cache magnitude is communicated by runtime burst density/scale, stronger counter animation, copy and FX.
 
 A reviewed vector/SVG/Phaser-shape implementation is also acceptable if it looks as good; do not generate a whole UI sprite pack for one token.
 
-## 5.2 Charged Pouch — NO NEW RASTER SET REQUIRED FOR LITE
+## 5.2 Cache tiers — NO EXTRA IMAGE ASSETS
+
+The CHIPS economy now includes guaranteed base payout plus an independent rare cache bonus roll.
+
+Asset consequence:
+
+```text
+0 additional raster assets for cache tiers
+```
+
+Do not create separate `cache`, `big-cache`, `mega-cache` coin/token images. If labels/icons beyond the CHIPS token are needed, prefer runtime text/vector emphasis first.
+
+## 5.3 Charged Pouch — NO NEW RASTER SET REQUIRED FOR LITE
 
 Do **not** create a second body/strip/star art set by default.
 
@@ -169,7 +184,7 @@ Lite target:
 
 This keeps the gameplay experiment cheap and avoids duplicating the most fragile pouch asset pipeline.
 
-## 5.3 Signal meter — RUNTIME UI
+## 5.4 Signal meter — RUNTIME UI
 
 The new 4-segment Signal presentation should be Phaser Graphics/Text/vector-first.
 
@@ -184,12 +199,12 @@ Needed presentation:
 
 No raster asset pack required unless later visual polish demonstrates a clear need.
 
-## 5.4 Lite V2 SFX — MINIMAL
+## 5.5 Lite V2 SFX — MINIMAL
 
 Existing cues should be reused wherever they remain semantically good:
 
-- `duplicate.mp3` can support the duplicate/recycle identification beat;
-- `signal-gain.mp3` / `signal-lock.mp3` can remain if they suit the new segmented presentation;
+- `duplicate.mp3` can support duplicate/recycle identification beat;
+- `signal-gain.mp3` / `signal-lock.mp3` can remain if they suit new segmented presentation;
 - existing tear/reveal/rarity/Hidden Pocket cues remain.
 
 Potential new cues, only if existing/re-pitched cues are insufficient:
@@ -201,10 +216,10 @@ public/assets/audio/charged-ready.mp3
 
 Jobs:
 
-- `chips-collect`: concise multi-token collect/transfer sound as tokens hit the wallet;
-- `charged-ready`: short satisfying readiness sting when wallet crosses the Charged threshold.
+- `chips-collect`: concise multi-token collect/transfer sound as tokens hit wallet;
+- `charged-ready`: short satisfying readiness sting when wallet crosses Charged threshold.
 
-Do not add separate sounds for every chip particle, Basic payout tier or Charged button state.
+Cache outcomes should first reuse/stack/pitch the same CHIPS cue with runtime emphasis. Do not add separate sounds for every chip particle, cache tier or Charged button state unless hands-on proves it necessary.
 
 ---
 
@@ -220,6 +235,7 @@ Optional only if runtime reuse is insufficient:
 
 ```text
 0..2 concise SFX
+0 cache-tier raster assets
 0 Charged pouch raster layers by default
 ```
 
@@ -240,6 +256,7 @@ Prefer Phaser Graphics/Text and reusable existing assets for:
 - 4-segment Signal meter;
 - rarity labels;
 - NEW / DUPLICATE / RECYCLED;
+- CHIPS cache callout text/FX;
 - Secret `???`;
 - progress counters;
 - tear gesture cue;
@@ -254,7 +271,8 @@ Runtime FX now include:
 - ambient particles;
 - reward breathing;
 - Signal fill/lock feedback;
-- CHIPS token burst/flight;
+- ordinary CHIPS token burst/flight;
+- stronger bounded cache burst/amount animation;
 - Charged runtime accent/ready feedback;
 - completion burst.
 
