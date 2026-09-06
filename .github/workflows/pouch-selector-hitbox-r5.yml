@@ -1,0 +1,61 @@
+name: Pouch selector hitbox R5 audit
+
+on:
+  push:
+    branches:
+      - audit/pouch-selector-hitbox-r5
+    paths:
+      - .github/workflows/pouch-selector-hitbox-r5.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert product tree matches candidate exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT_HEAD=fdf275189bb9f696b7cc1ad1334be759038fb213
+          unexpected="$(git diff --name-only "$PRODUCT_HEAD"...HEAD | grep -Ev '^\.github/(scripts/pouch-selector-hitbox-r5\.mjs|workflows/pouch-selector-hitbox-r5\.yml)$' || true)"
+          if [ -n "$unexpected" ]; then echo "$unexpected"; exit 1; fi
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install Playwright driver and video helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node node_modules/playwright/cli.js install ffmpeg
+      - name: Start Vite
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi; sleep 1; done
+          cat /tmp/vite.log; exit 1
+      - name: Probe full selector cards with settled Phaser time
+        run: node .github/scripts/pouch-selector-hitbox-r5.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pouch-selector-hitbox-r5
+          path: /tmp/pouch-selector-hitbox-r5
+          if-no-files-found: error
+          retention-days: 3
