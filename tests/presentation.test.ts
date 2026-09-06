@@ -98,12 +98,16 @@ describe('reveal presentation', () => {
     expect(REVEAL_FX_PRESETS.secret.particleDuration).toBeGreaterThanOrEqual(800);
   });
 
-  it('keeps the feel-pass interaction timings bounded and compact', () => {
+  it('keeps the feel-pass interaction timings and rail hierarchy bounded', () => {
     expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeGreaterThanOrEqual(80);
     expect(OPENING_FEEL_PRESENTATION.postTearSkipGuardMs).toBeLessThanOrEqual(180);
     expect(OPENING_FEEL_PRESENTATION.resultReadHoldMs).toBeGreaterThan(600);
     expect(OPENING_FEEL_PRESENTATION.bankLegMaxDuration).toBeLessThanOrEqual(500);
     expect(OPENING_FEEL_PRESENTATION.railCardWidth).toBeLessThanOrEqual(230);
+    expect(OPENING_FEEL_PRESENTATION.railUnavailableAlpha).toBeGreaterThanOrEqual(0.8);
+    expect(OPENING_FEEL_PRESENTATION.railUnavailableAlpha).toBeLessThan(0.9);
+    expect(OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha).toBeGreaterThanOrEqual(0.7);
+    expect(OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha).toBeLessThan(0.9);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {
