@@ -1,186 +1,196 @@
-# Internal slice validation
+# Gameplay Loop Lite V2 validation
 
-The Camera + Flip Phone build is a **private vertical slice for direct user/developer review**. It is not a public behavioral experiment and is not submitted to Yandex moderation as the final game.
+This file is the direct/local validation gate for the next gameplay pass. Real hosted Yandex checks live separately in `YANDEX_SLICE_VALIDATION.md`.
 
-Its job is to answer:
+The question is no longer whether the pouch/reveal art pipeline works; that baseline has already been proven. Lite V2 must answer:
 
-> **Is the core opener good enough, technically correct enough and production-ready enough to justify mass-producing content on top of it?**
-
----
-
-# 1. Acceptance dimensions
-
-## Feel
-
-- tear gesture is obvious and pleasant on mouse/touch;
-- reveal feels satisfying and visually coherent;
-- repeated opening remains tolerable over at least 50+ manual/forced cycles;
-- rarity escalation is readable and desirable;
-- result state is readable without slowing the loop excessively.
-
-## Progression
-
-- NEW/duplicate state is immediately understandable;
-- Signal feedback is legible;
-- SIGNAL LOCK behavior feels useful rather than arbitrary;
-- Hidden Pocket lands as a genuine surprise;
-- Shelf/Library makes acquisition feel persistent.
-
-## Technical correctness
-
-- no reward rerolls on refresh;
-- no double commits;
-- pending reveal recovers deterministically;
-- responsive layout survives desktop/mobile landscape and resize;
-- no browser gesture/context-menu interference;
-- save survives refresh;
-- RU/EN and mute work;
-- no visible asset loading between primary surfaces.
-
-## Platform / ads
-
-- SDK initializes correctly in Yandex draft/debug mode;
-- Game Ready timing is correct;
-- `game_api_pause/resume` behavior is correct;
-- interstitial opens/closes/errors safely;
-- rewarded opens/closes/errors safely;
-- dev-only reward is granted exactly once only on rewarded completion;
-- sticky banner boundary can show/hide safely if tested;
-- audio/gameplay stays paused during full-screen/rewarded ads;
-- ad failure never blocks the opener.
+> **Does Basic → CHIPS → Charged make repeated opening more rewarding without making the game feel slower, more confusing or system-heavy?**
 
 ---
 
-# 2. Internal analytics
+# 1. Feel / pacing
 
-Keep Yandex Metrica instrumentation because it is part of production architecture, but do **not** use public KPI gates before content expansion.
+Validate through repeated hands-on play:
 
-Core gameplay events:
+- tear remains immediate and pleasant;
+- CHIPS presentation adds reward richness without obscuring the hero collectible;
+- token flight feels responsive and lands clearly in the wallet;
+- duplicate recycle feels like useful compensation rather than an extra delay;
+- Charged state is visibly more exciting than Basic;
+- the full sequence remains tolerable after 20–50 openings;
+- CTA/result timing remains clear;
+- Hidden Pocket still reads as the strongest surprise beat.
 
-```text
-first_package_interaction
-reveal_complete
-collection_open
-collection_return
-signal_lock_reached
-signal_lock_consumed
-hidden_pocket_triggered
-secret_discovered
-standard_collection_complete
-```
-
-Ad/debug integration events may include:
-
-```text
-ad_interstitial_requested
-ad_interstitial_closed
-ad_rewarded_requested
-ad_rewarded_earned
-ad_error
-```
-
-The slice only needs to prove these events fire once with correct parameters and never interfere with save/gameplay.
+If the added reward sequence makes ordinary openings tedious, reduce presentation duration before adding Quick Reveal or more systems.
 
 ---
 
-# 3. Slice balance sanity check
+# 2. Player comprehension
 
-Current two-family model remains a useful **engineering/feel test configuration**:
+Without explanatory prose, a player should infer:
 
-- Common 60 / Rare 28 / Epic 10 / Legendary 2;
-- first-three protection;
-- Signal +25/+20/+15/+10;
-- late lock Rare 60 / Epic 30 / Legendary 10;
-- Hidden Pocket 3% from opening #4;
-- two Secrets without duplicates.
+- CHIPS are earned from pouches;
+- CHIPS accumulate toward Charged;
+- Charged costs CHIPS and is a better opening;
+- duplicate is automatically recycled rather than “lost”;
+- duplicate gives CHIPS + one Signal segment;
+- four Signal segments arm a guaranteed NEW standard collectible;
+- Signal is pity, not spendable currency.
 
-Previous Monte Carlo sanity results were approximately:
+The intended mental model is:
 
-```text
-first ordinary duplicate    ~4
-first SIGNAL LOCK           ~9
-first Hidden Pocket         ~26
-both Secrets                ~59–60
-standard 8/8                ~80
-8/8 + Secrets 2/2           ~100
-```
-
-These figures only demonstrate that the slice configuration is internally coherent. They are **not targets for the expanded public release**.
-
-After launch roster/content grouping is locked, rerun the model from scratch.
+> **“Every opening gives me progress; four dupes protect me; CHIPS get me to the better pouch.”**
 
 ---
 
-# 4. Hands-on review checklist
+# 3. Economy sanity
 
-The slice is ready for user review when:
+Before calling Lite V2 balanced enough for DRAFT:
 
-- final-ish Camera and Flip Phone sets are integrated;
-- pouch tear/reveal is polished enough to judge rather than placeholder animation;
-- Collection has Shelf + Library;
-- all slice RNG/Signal/Hidden Pocket paths can be forced from dev controls;
-- ad types/callback paths can be deliberately exercised;
-- desktop + real mobile landscape have been smoke-tested.
+- Charged is reachable often enough to be a visible near-term goal;
+- Charged is not so cheap that Basic becomes meaningless;
+- Charged still consumes net CHIPS over time unless a deliberate future design says otherwise;
+- duplicate recycle helps but does not make duplicates economically preferable to NEW;
+- rarity-dependent recycle payouts feel coherent;
+- Signal 4/4 frequency is neither constant nor irrelevant;
+- Charged rarity/Hidden Pocket profile feels materially better in hands-on testing.
 
-During review deliberately answer:
-
-1. Is the tear gesture fun enough to repeat?
-2. Is ~1.0–1.4 s reveal too slow after 20–50 opens?
-3. Does Common still feel desirable?
-4. Is Legendary visually strong enough?
-5. Is Signal understandable without explanation?
-6. Does Hidden Pocket feel exciting rather than random noise?
-7. Is Shelf worth opening?
-8. Does Library communicate missing variants cleanly?
-9. Do ads technically pause/resume cleanly without corrupting the state machine?
-10. What visual/UX rules must be fixed **before** multiplying the art across many families?
+Exact values must be backed by deterministic simulation + hands-on. Do not rely on intuition alone once numbers are chosen.
 
 ---
 
-# 5. Slice GO / FIX / STOP
+# 4. Transaction / recovery correctness
 
-There is no statistical 500-player threshold.
+Must hold for Basic and Charged:
 
-### GO to content expansion
+- no reroll on refresh;
+- no double commit;
+- no double CHIPS reward;
+- no duplicate recycle payout twice;
+- Signal increments once;
+- Hidden Pocket outcome remains fixed;
+- result recovery preserves the same pouch type + loot pool.
 
-User signs off that the opener/reveal/Collection fantasy works and no architectural bug would make mass content expensive to integrate.
+Charged-specific blocker:
 
-### FIX before content expansion
+> **The CHIPS cost and reward must be atomic.**
 
-Typical blockers:
+Test refresh/crash after selecting Charged, after tear, during chip presentation, during collectible reveal and before result-ready.
 
-- tear feels clumsy;
-- reveal timing becomes annoying quickly;
-- rarity variants read inconsistently;
-- Collection layout feels fundamentally wrong;
-- asset pipeline cannot maintain family consistency;
-- SDK/ad pause/reward callbacks are fragile;
-- core content system is hard-coded to two families.
-
-### STOP / re-theme
-
-Only if direct review shows the central object/reveal fantasy itself is not compelling enough to justify producing many assets.
-
-Do not try to rescue a bad core by mass-producing content first.
+Final wallet must always match one deterministic transaction.
 
 ---
 
-# 6. Quick Reveal checkpoint
+# 5. Legacy save migration
 
-Quick Reveal should be decided from this direct review, not postponed until public traffic.
+Before merge:
 
-If repeated full reveals become friction, introduce a configurable shorter ~0.4–0.6 s mode before content expansion/public release while preserving reward readability.
+- existing discovered standard/Secret items survive migration;
+- existing stats survive unless deliberately versioned away;
+- old CHIPS-absent save initializes wallet deterministically;
+- old Signal `0..100` converts through an explicit tested policy;
+- a legacy fully armed Signal lock is not silently lost;
+- migration is idempotent across multiple reloads.
+
+The migration policy itself remains an explicit decision in `OPEN_QUESTIONS.md` until chosen.
 
 ---
 
-# 7. After slice approval
+# 6. Drop scoping
 
-Immediately move to:
+Even with only one player-visible Drop, automated/debug tests must prove:
 
-1. lock first public content batch/roster target;
-2. mass-produce families through the canonical-master pipeline;
-3. design scaled Collection grouping;
-4. rebalance drop/Signal/Hidden Pocket from the larger matrix;
-5. finalize real ad UX/rewards;
-6. re-evaluate Tech Parts / Mod Bench and other parked systems only against actual release needs;
-7. then prepare store/moderation assets.
+- Basic resolves only within active loot pool;
+- Charged resolves only within active loot pool;
+- Signal Lock chooses an undiscovered standard item inside active loot pool;
+- a complete active Drop does not consume armed Signal;
+- CHIPS and Signal remain global;
+- adding a fake second Drop in tests does not require scene/reward-engine rewrites.
+
+No selector UI is required while there is only one production Drop.
+
+---
+
+# 7. Visual QA
+
+Use the established exact-revision workflow.
+
+Capture/review at minimum:
+
+- Basic idle with CHIPS + Signal HUD;
+- Basic chip burst/flight;
+- NEW result;
+- duplicate → RECYCLED → resource transfer;
+- each Signal segment increment + 4/4 lock state;
+- wallet crossing Charged threshold;
+- Charged ready/selected state;
+- Charged reveal;
+- Hidden Pocket from Basic and Charged debug paths;
+- recovered pending Basic;
+- recovered pending Charged;
+- 900, 1024, 1280 and 1728 logical-width representative states;
+- RU copy at compact width.
+
+Technical/browser errors must be empty, but generated captures do not count as passed until inspected.
+
+---
+
+# 8. Debug tooling
+
+Lite V2 debug controls should be able to force/seed:
+
+- CHIPS amount below/at/above Charged cost;
+- Basic opening;
+- Charged opening;
+- NEW;
+- duplicate for each rarity/recycle payout;
+- Signal 0/4 through 4/4;
+- Signal lock consumption;
+- complete active Drop with armed lock;
+- Hidden Pocket by pouch type;
+- interrupted pending transaction recovery;
+- fake second loot pool for logic tests.
+
+The old `+25 Signal` rewarded probe is legacy and should disappear with the Signal migration.
+
+---
+
+# 9. GO / FIX
+
+### GO to real Yandex DRAFT
+
+Proceed when:
+
+- all technical invariants pass;
+- exact-revision visual review finds no blocker;
+- user hands-on confirms the new loop feels better than the old one;
+- Charged creates a genuine “one more pouch” goal;
+- the extra sequence does not feel bloated.
+
+### FIX before DRAFT
+
+Blockers include:
+
+- CHIPS/Signal meaning is unclear;
+- Charged feels like the same pouch with a label;
+- resource animation visibly lies about final wallet state;
+- duplicates create too much presentation friction;
+- Signal migration can lose/duplicate progress;
+- Charged cost/reward is not crash-safe;
+- compact layout becomes cluttered;
+- repeated openings are materially slower/less pleasant.
+
+Do not respond to these problems by adding offline income, Overcharge, Archive levels or another currency.
+
+---
+
+# 10. After Lite V2 approval
+
+Next order is fixed:
+
+1. real Yandex DRAFT validation;
+2. first expanded content batch;
+3. first real Drop grouping when enough families exist;
+4. re-simulate/tune economy at content scale;
+5. scale Collection only as required;
+6. final monetization/store/release work.
