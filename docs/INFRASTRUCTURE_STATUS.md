@@ -45,7 +45,7 @@ This file states what is **actually present in current `main`** and what the cur
 ### Tooling / QA
 
 - permanent CI;
-- 87-test baseline;
+- 91-test current suite;
 - asset tooling + production build;
 - deterministic debug controls;
 - exact-revision screenshot/video audit workflow;
@@ -72,9 +72,9 @@ The response is the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 ---
 
-## Opening Feel Correction — NEXT IMPLEMENTATION
+## Opening Feel Correction — INTEGRATED
 
-Infrastructure impact is deliberately small.
+Infrastructure impact was deliberately small and is now integrated.
 
 ### Existing boundaries reused
 
@@ -85,7 +85,7 @@ Infrastructure impact is deliberately small.
 - existing Phaser Graphics/Text UI path remains;
 - existing exact-revision browser/video workflow remains.
 
-### Small additions/changes allowed
+### Integrated additions/changes
 
 - targeted reveal fast-forward handling;
 - post-tear input guard;
@@ -145,7 +145,7 @@ A dedicated Charged raster recolor is also conditional only if stronger runtime 
 
 ---
 
-## Current provisional runtime tuning — FROZEN FOR THIS PASS
+## Current provisional runtime tuning — UNCHANGED THROUGH CORRECTION
 
 ```text
 Basic
@@ -175,13 +175,10 @@ Do not tune these values in the feel-correction branch. Current deterministic an
 
 ## Current validation path
 
-1. implement Opening Feel Correction;
-2. full typecheck/tests/assets/build;
-3. exact-revision screenshot/video audit;
-4. manual artifact review;
-5. second 20–30 opening hands-on;
-6. real Yandex DRAFT;
-7. content expansion.
+1. second 20–30 opening hands-on on merged corrected `main`;
+2. if accepted, real Yandex DRAFT;
+3. fix only hosted-platform defects;
+4. content expansion.
 
 Hosted DRAFT must still prove real SDK boot/loading, storage, lifecycle/audio, Basic/Charged recovery, ads and analytics.
 
@@ -222,6 +219,6 @@ Collectible pipeline remains unchanged:
 
 ## Current critical path
 
-> **Opening Feel Correction → exact-revision review → second hands-on → real Yandex DRAFT → content expansion.**
+> **Second hands-on → real Yandex DRAFT → content expansion.**
 
 Runtime architecture is still not the bottleneck; presentation quality is.

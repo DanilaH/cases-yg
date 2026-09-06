@@ -96,6 +96,7 @@ public/assets/audio/rarity-rare.mp3
 public/assets/audio/rarity-epic.mp3
 public/assets/audio/rarity-legendary.mp3
 public/assets/audio/duplicate.mp3
+public/assets/audio/chips-collect.mp3
 public/assets/audio/signal-gain.mp3
 public/assets/audio/signal-lock.mp3
 public/assets/audio/hidden-pocket.mp3
@@ -105,7 +106,7 @@ public/assets/audio/collection-complete.mp3
 
 No background music requirement.
 
-## Opening Feel Correction — REQUIRED NEW AUDIO
+## Opening Feel Correction audio — INTEGRATED
 
 First hands-on identified a concrete CHIPS feedback gap, so one new cue is now justified:
 
@@ -149,23 +150,13 @@ Hands-on now proves the **strength** of differentiation needs improvement, but n
 
 ---
 
-# 6. Opening Feel Correction — VISUAL ASSET IMPACT
+# 6. Opening Feel Correction — INTEGRATED VISUAL ASSET IMPACT
 
 Canonical behavior: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
-## 6.1 Digital/pixel accent font — REQUIRED DESIGN ASSET
+## 6.1 Digital/pixel accent font — INTEGRATED
 
-Add one locally bundled, license-safe accent font after visual comparison.
-
-Use only for short electronic UI:
-
-- CHIPS label/numerals;
-- Signal label/value/lock;
-- short Cache/Charged/system labels where legible.
-
-Do not apply it to long instructions/navigation/body copy.
-
-Exact font file/name is intentionally unresolved until real 900/1024 RU/EN samples are reviewed.
+Current runtime bundles **Press Start 2P** through `@fontsource/press-start-2p` (`OFL-1.1`). It is used only for short electronic UI such as CHIPS/Signal/Charged system data; long instructions/navigation/body copy remain readable sans. Exact-revision 900/1024 RU/EN samples passed manual review.
 
 ## 6.2 Neon/glow/shimmer — RUNTIME FIRST
 
@@ -187,7 +178,7 @@ Reason: the visual hypothesis can be tested cheaply without creating a new mobil
 
 A single local shader may be reconsidered later only if a reviewed no-shader result proves a specific effect cannot be sold convincingly.
 
-## 6.4 Charged pouch raster fallback — CONDITIONAL
+## 6.4 Charged pouch raster fallback — NOT REQUIRED NOW
 
 Default: reuse current pouch assets with much stronger runtime cyan/violet/iridescent treatment.
 
@@ -202,9 +193,9 @@ Fallback constraints:
 
 ---
 
-# 7. Corrected runtime UI / FX target
+# 7. Corrected runtime UI / FX — CURRENT
 
-The correction should be achievable mostly with runtime primitives:
+The merged correction is implemented mostly with runtime primitives:
 
 - larger CHIPS card + animated count-up;
 - local CHIPS HUD punch/shake/glow;

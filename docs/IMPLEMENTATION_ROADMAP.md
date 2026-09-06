@@ -4,9 +4,9 @@ The two-family build is a private development base, not the public release.
 
 ## Current execution order
 
-1. **Opening Feel Correction — CURRENT, EVIDENCE-BACKED**
-2. **Exact-revision combined visual/video audit — REQUIRED**
-3. **Second direct 20–30 opening hands-on — REQUIRED**
+1. **Opening Feel Correction — COMPLETE**
+2. **Exact-revision combined visual/video audit + manual review — COMPLETE**
+3. **Second direct 20–30 opening hands-on — CURRENT REQUIRED GATE**
 4. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
 5. **Content/release expansion — BLOCKED until draft passes**
 6. **Public release hardening**
@@ -93,7 +93,7 @@ Current deterministic economy analysis keeps Charged a net CHIPS sink. Tuning re
 Already passed:
 
 - strict typecheck;
-- 87 unit tests;
+- 91 unit tests;
 - asset self-test/validation;
 - production build;
 - exact-revision browser screenshots/video;
@@ -118,7 +118,7 @@ Because evidence exists, a correction pass is justified before Yandex DRAFT.
 
 ---
 
-# Phase 2.1 — Opening Feel Correction — CURRENT
+# Phase 2.1 — Opening Feel Correction — COMPLETE
 
 Canonical scope: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 
@@ -183,7 +183,7 @@ A dedicated recolored Charged pouch raster becomes allowed only if a label-hidde
 
 ---
 
-# Phase 2.2 — combined correction validation — REQUIRED
+# Phase 2.2 — combined correction validation — COMPLETE
 
 Do not approve the three internal passes independently as the final product. Feel depends on their combined choreography.
 
@@ -221,9 +221,9 @@ Generated artifacts do not self-approve. Manual review remains mandatory.
 
 ---
 
-# Phase 2.3 — second hands-on — REQUIRED
+# Phase 2.3 — second hands-on — CURRENT REQUIRED GATE
 
-After the corrected exact revision is merged, run another **20–30 normal openings**.
+The corrected exact revision is merged and approved. Now run **20–30 normal openings**.
 
 Questions:
 
@@ -371,4 +371,4 @@ Remain parked:
 - custom shaders;
 - permanent odds/collection sidebar.
 
-> **Current next action: improve feel of the existing loop, prove the combined correction, re-test it, then go to Yandex DRAFT.**
+> **Current next action: re-test the merged corrected loop with 20–30 normal openings; if accepted, go to Yandex DRAFT.**

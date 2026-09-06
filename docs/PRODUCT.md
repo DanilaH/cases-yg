@@ -28,7 +28,7 @@ Current runtime contains CHIPS, cache, recycle, segmented Signal, Basic/Charged 
 
 Technical + original exact-revision visual gates passed.
 
-### Stage B2 — Opening Feel Correction — CURRENT
+### Stage B2 — Opening Feel Correction — COMPLETE
 
 The first real repeated-use hands-on is complete and found specific evidence-backed problems:
 
@@ -58,7 +58,7 @@ Visual rule:
 
 > **Cozy Y2K world, electric digital UI.**
 
-After implementation: exact-revision video/screenshot review → second 20–30 opening hands-on.
+Implementation, exact-revision video/screenshot audit and manual review are complete. **Current gate: second 20–30 opening hands-on.**
 
 ### Stage C — real Yandex DRAFT validation — NEXT AFTER CORRECTED HANDS-ON
 
@@ -99,7 +99,7 @@ The correction should make the electronic part of that fantasy more explicit wit
 
 ---
 
-## 4. Core interaction — mechanics unchanged, choreography improving
+## 4. Core interaction — mechanics unchanged, corrected choreography integrated
 
 Economic/interaction truth remains:
 
@@ -112,7 +112,7 @@ Economic/interaction truth remains:
 7. Hidden Pocket may add one Secret;
 8. result resolves and player repeats or opens Collection.
 
-The feel correction changes the presentation chain to read more physically:
+The merged feel correction changed the presentation chain to read more physically:
 
 ```text
 grab response
@@ -140,7 +140,7 @@ No mechanic changes here in the feel correction.
 
 ---
 
-## 6. Current provisional tuning — FROZEN DURING CORRECTION
+## 6. Current provisional tuning — UNCHANGED THROUGH CORRECTION
 
 ### Basic
 
@@ -206,7 +206,7 @@ Default solution remains low-production:
 - stronger contour/aura/sparks;
 - selector + pouch transition together.
 
-Only if label-hidden visual audit still fails may a recolored Charged raster variant be produced. Do not redesign pouch geometry.
+The label-hidden exact-revision audit passed with runtime treatment, so no recolored Charged raster is required now. Re-open that asset only if later hands-on contradicts the audit. Do not redesign pouch geometry.
 
 ---
 

@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2 is implemented. The first direct hands-on found presentation/input friction, so the immediate technical task is the bounded **Opening Feel Correction** in `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Gameplay Loop Lite V2 and the bounded **Opening Feel Correction** are implemented in current `main`. Exact-revision browser/video and manual visual review passed; the immediate gate is second repeated hands-on, not more architecture work.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -81,6 +81,7 @@ src/
       collection.ts
       layout.ts
       audio.ts
+      presentationSkip.ts
     data/
       collectibles.ts
       balance.ts
@@ -160,7 +161,7 @@ Invariants:
 
 ---
 
-## 7. Presentation correction boundary
+## 7. Current presentation boundary
 
 The correction changes what the player **sees and can accelerate**, not what the transaction means.
 
@@ -248,7 +249,7 @@ Do not turn Signal into a spendable animation/state machine. Resolver + pending 
 
 ## 11. Opening UI layout
 
-Preferred new gameplay hierarchy is a left-side rail:
+Current gameplay hierarchy is a left-side rail:
 
 ```text
 CHIPS
@@ -333,9 +334,9 @@ Do not add one cue per cache tier. Optional `charged-ready` cue is conditional o
 
 ---
 
-## 15. Testing requirements for correction
+## 15. Current regression coverage
 
-Keep existing 87-test baseline and add/adjust focused coverage where practical for:
+Current suite is 91 tests plus typecheck/assets/build. Focused coverage and the r3 exact-revision audit cover:
 
 - fast-forward cannot prepare/commit twice;
 - fast-forward cannot alter pending reveal data;

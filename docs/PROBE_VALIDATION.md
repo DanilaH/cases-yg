@@ -9,9 +9,14 @@ Current status:
 - original exact-revision browser audit: **PASS**;
 - original manual screenshot/video review: **PASS**;
 - first 20–50 opening hands-on: **COMPLETE WITH FINDINGS**;
-- Opening Feel Correction: **LOCKED NEXT**;
-- corrected exact-revision browser/video review: **PENDING**;
-- second 20–30 opening hands-on: **PENDING**;
+- Opening Feel Correction: **COMPLETE / MERGED**;
+- corrected exact-revision browser/video audit: **PASS**;
+- corrected manual screenshot/video review: **PASS**;
+- audited product head: `89f2a722942886cf5a5aae3acfaf5b70e15c98e3`;
+- r3 audit artifact digest: `sha256:7e352be95a2eea913ab713bcdce05107d3f3df38a7acb93ca44072ceb82d0a41`;
+- squash-merge product tree verified identical to the audited tree;
+- post-merge main CI #170: **PASS**;
+- second 20–30 opening hands-on: **CURRENT / PENDING**;
 - real Yandex DRAFT: **BLOCKED until corrected hands-on acceptance**.
 
 Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
@@ -44,7 +49,7 @@ The current merged implementation has established:
 - Basic/Charged selection continuity and insufficient-wallet fallback work;
 - compact 900/1024 and RU states are technically valid.
 
-Current suite baseline: **87 unit tests** plus typecheck, asset self-test/validation and production build.
+Current suite baseline: **91 unit tests** plus typecheck, asset self-test/validation and production build.
 
 The correction must preserve all of these properties.
 
@@ -249,7 +254,7 @@ No custom shader is introduced in this pass, so no shader-specific compatibility
 
 # 8. Second hands-on — GO / FIX
 
-After exact-revision visual approval, run **20–30 normal openings**.
+Exact-revision visual approval is complete. Current gate: run **20–30 normal openings**.
 
 ## GO to real Yandex DRAFT when
 

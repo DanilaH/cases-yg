@@ -1,6 +1,8 @@
 # Opening Feel Correction — implementation scope
 
-Status: **LOCKED IMPLEMENTATION SCOPE — NEXT PRODUCT PASS**
+Status: **IMPLEMENTED / EXACT-REVISION VALIDATED**
+
+Completion record: implementation merged via PR #34. Audited product head `89f2a722942886cf5a5aae3acfaf5b70e15c98e3`; r3 browser/video artifact + manual visual review passed; squash-merged `main` has the identical product tree; post-merge CI #170 passed. **Current gate: second 20–30 opening hands-on.**
 
 This pass is the direct response to the first real repeated-use hands-on of the merged Gameplay Loop Lite V2 build. The Lite V2 mechanics, transaction model and first-pass balance remain intact. The problem exposed by hands-on is primarily **feel, pacing, hierarchy and feedback**, not missing economy systems.
 
