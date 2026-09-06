@@ -1,6 +1,6 @@
 # Infrastructure status
 
-This file states what is **actually present in current `main`** and what the current evidence-backed correction changes.
+This file states what is **actually present in current `main`** after the merged evidence-backed Opening Feel Correction.
 
 ## Completed / established
 
@@ -68,7 +68,7 @@ The first direct repeated-use pass is complete. It found no need for a new econo
 - `RESULT LOCKED` dead tapping frustrating;
 - UI lacks enough distinctive electronic/neon Y2K character.
 
-The response is the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`.
+The response was the bounded `OPENING_FEEL_CORRECTION_SCOPE.md`; that correction is now integrated and validated.
 
 ---
 
@@ -169,7 +169,7 @@ Cache rewards
   mega 120–180
 ```
 
-Do not tune these values in the feel-correction branch. Current deterministic analysis already keeps Charged below break-even.
+No tuning occurred in the feel-correction pass. Keep these provisional values unchanged until repeated-use/content-scale evidence justifies a separate balance decision; current deterministic analysis keeps Charged below break-even.
 
 ---
 
@@ -221,4 +221,4 @@ Collectible pipeline remains unchanged:
 
 > **Second hands-on → real Yandex DRAFT → content expansion.**
 
-Runtime architecture is still not the bottleneck; presentation quality is.
+Runtime architecture remains outside the critical bottleneck; the current gates are repeated-use product acceptance and real hosted-platform validation.

@@ -108,7 +108,7 @@ No background music requirement.
 
 ## Opening Feel Correction audio — INTEGRATED
 
-First hands-on identified a concrete CHIPS feedback gap, so one new cue is now justified:
+First hands-on identified a concrete CHIPS feedback gap; the merged correction now includes:
 
 ```text
 public/assets/audio/chips-collect.mp3
@@ -146,7 +146,7 @@ Segmented Signal/lock/waiting UI is Text/Graphics-driven. No raster pack is requ
 
 Current Charged uses the same pouch art with Phaser glow/rings/sparks/lavender-cyan accents.
 
-Hands-on now proves the **strength** of differentiation needs improvement, but not yet that new raster art is required.
+The merged correction strengthens runtime differentiation, and the label-hidden r3 audit passed without new raster art.
 
 ---
 
@@ -182,7 +182,7 @@ A single local shader may be reconsidered later only if a reviewed no-shader res
 
 Default: reuse current pouch assets with much stronger runtime cyan/violet/iridescent treatment.
 
-Only if label-hidden audit still reads as “Basic with glow,” a recolored Charged pouch asset variant becomes allowed.
+The label-hidden r3 audit passed with runtime treatment, so no recolored Charged pouch asset variant is required now. Re-open only if later hands-on contradicts that evidence.
 
 Fallback constraints:
 

@@ -27,7 +27,7 @@ Reveal remains in `OpeningScene`. No physics and no auto-dismiss.
 
 ## Current feel choreography
 
-The correction keeps exactly the same mechanic/result contract but changes how the sequence reads:
+The merged correction keeps exactly the same mechanic/result contract and changes how the sequence reads:
 
 ```text
 star grab response
@@ -122,9 +122,9 @@ Current expected all-duplicate Charged return remains below cost, so the CHIPS-s
 
 ## 3.2 Current CHIPS presentation
 
-Hands-on proved the current immediate-flight presentation is too weak/early.
+Hands-on proved the old immediate-flight presentation was too weak/early. The merged correction now uses:
 
-Target:
+Current contract:
 
 - Charged cost still reads at opening time;
 - earned base/cache/recycle components first stage near the lower-left of the hero collectible;
@@ -294,7 +294,7 @@ A committed result reloaded after cosmetic staging may show durable wallet truth
 
 The first hands-on found dead tapping frustrating.
 
-Correction rules:
+Current rules:
 
 - remove player-facing `RESULT LOCKED` dead state;
 - intentional click/tap during reveal accelerates current presentation beat;

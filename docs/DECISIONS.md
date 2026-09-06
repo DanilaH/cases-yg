@@ -55,7 +55,7 @@ The mechanics remain accepted. The current correction is presentation/interactio
 | Signal rule | CURRENT RUNTIME | duplicate `+1`; `4/4` arms lock; next selected-pouch-eligible NEW is guaranteed; consume → `0/4` |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
 | Reward transaction | CURRENT RUNTIME | pouch cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable deterministic transaction |
-| Balance during feel correction | LOCKED | no tuning-number changes in the correction pass unless separately approved from evidence |
+| Balance through feel correction | COMPLETE | no tuning-number changes occurred; current provisional values remain unchanged pending later evidence |
 
 ### Current provisional balance
 
@@ -97,7 +97,7 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
 | Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
 | Charged differentiation | CURRENT RUNTIME | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
-| Charged raster fallback | CONDITIONAL | allowed only if label-hidden visual audit still reads as “Basic with glow” |
+| Charged raster fallback | NOT REQUIRED NOW | r3 label-hidden review passed with runtime treatment; reopen only if later hands-on contradicts it |
 | Callout readability | CURRENT RUNTIME | longer readable holds + semantic positions; experienced player can fast-forward |
 | Random callout positions | LOCKED OUT | no arbitrary random screen placement; only bounded decorative jitter |
 | Controlled micro-variation | CURRENT RUNTIME | small rotation/overshoot/spark/token-trajectory variation without changing learned rhythm |

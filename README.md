@@ -102,7 +102,7 @@ Current order:
 3. decide the deferred Drop/odds/progress info surface from evidence;
 4. content expansion only after hosted validation.
 
-Do not add new meta systems/content or tune the economy inside the current correction branch.
+Do not add new meta systems/content or tune the economy before the second hands-on and hosted DRAFT provide evidence.
 
 ## Production-grade boundaries already present
 

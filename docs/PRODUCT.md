@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. Current work is not to add another system; it is to make the existing loop feel materially better in the player's hands.
+The project is deliberately **not** a full idle/incremental economy. The correction is merged; current work is to validate the corrected loop in repeated hands-on rather than add another system.
 
 ---
 
@@ -95,7 +95,7 @@ Target visual hypothesis remains:
 - secondary ~25–35 nostalgia audience;
 - recognizable Y2K electronics + blind-box desirability + tasteful cute finish.
 
-The correction should make the electronic part of that fantasy more explicit without losing the soft toy/nostalgia layer.
+The merged correction makes the electronic part of that fantasy more explicit without losing the soft toy/nostalgia layer.
 
 ---
 
@@ -160,7 +160,7 @@ Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15 CHIPS`.
 
 Cache remains independent; Mega pays `120–180 CHIPS` at current provisional tuning.
 
-Do not mix balance tuning into the current presentation branch. Revisit numbers after corrected hands-on/content-scale simulation.
+No balance tuning was mixed into the presentation pass. Keep numbers unchanged through the second hands-on; revisit only from corrected hands-on/content-scale simulation evidence.
 
 ---
 
@@ -197,7 +197,7 @@ Do not apply aggressive synthwave/CRT treatment to the whole cozy scene.
 
 Mechanically unchanged, but Charged must become visually obvious before reading its label.
 
-Default solution remains low-production:
+Current merged solution remains low-production:
 
 - same pouch silhouette/tear geometry;
 - stronger cyan/violet runtime treatment;

@@ -8,7 +8,7 @@ Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 # 1. Post-correction evidence question set
 
-The first repeated hands-on is complete and has already justified the correction. The unresolved items inside that correction are presentation choices, not mechanics.
+The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for the second hands-on and later hosted/content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
@@ -22,7 +22,7 @@ The merged cyan/violet runtime treatment with restrained iridescent accents pass
 
 Default remains current pouch art + stronger runtime treatment.
 
-Only create a dedicated recolored Charged raster if the exact-revision audit still reads as “Basic with glow” after the no-shader runtime pass.
+The r3 label-hidden audit passed, so do not create a dedicated recolored Charged raster now. Re-open only if later hands-on contradicts that reviewed result.
 
 If needed:
 
@@ -87,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-Do not change these numbers in the feel-correction branch. After corrected hands-on/content-scale simulation, evidence questions remain:
+No balance numbers changed in the feel-correction pass. Keep them unchanged through the second hands-on; after corrected hands-on/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
