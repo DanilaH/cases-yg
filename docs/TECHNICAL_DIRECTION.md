@@ -2,32 +2,34 @@
 
 ## 1. Stack — LOCKED
 
-Use:
+Current stack:
 
-- **Phaser 4.2.1** pinned in lockfile;
+- **Phaser 4.2.1**;
 - **Vite**;
 - **strict TypeScript**;
 - **Yandex Games SDK** behind thin platform adapters.
 
-No React runtime. Physics stays off unless a concrete later mechanic proves it necessary.
+No React runtime. Physics, backend, ECS and real-time 3D stay out unless a concrete future requirement justifies them.
 
-Target release platforms: Desktop + Mobile landscape. TV-specific UX is not current scope.
+Target platforms: Desktop + Mobile landscape.
 
 ---
 
-## 2. Current architecture goal
+## 2. Current architecture state
 
-The current two-family opener is already a functioning internal base. The next architecture work is narrowly scoped to **Gameplay Loop Lite V2**:
+Gameplay Loop Lite V2 is implemented. The architecture already contains the scale boundaries required before content expansion:
 
+- typed Basic/Charged pouch profiles;
 - global CHIPS wallet;
-- Basic/Charged pouch profiles;
-- guaranteed base CHIPS + independent cache bonus resolution;
+- independent base/cache reward resolution;
 - automatic duplicate recycle;
-- simplified Signal pity;
-- Drop/loot-pool-aware reward selection;
-- atomic cost/reward recovery.
+- 4-segment Signal pity;
+- Drop/loot-pool-aware content selection;
+- versioned save migration;
+- recoverable atomic cost/reward transaction;
+- presentation separated from durable economy mutation.
 
-Do not use this pass as an excuse to introduce a generalized economy framework, ECS, backend or content service.
+The next technical work is **hosted validation**, not another architecture layer.
 
 ---
 
@@ -41,21 +43,23 @@ OpeningScene
 CollectionScene
 ```
 
-Reveal stays inside `OpeningScene` to preserve physical continuity with the pouch.
+Reveal remains inside `OpeningScene` for physical continuity.
 
-Lite V2 UI also stays inside the existing scenes:
+Opening owns:
 
-- CHIPS counter in Opening chrome;
-- Basic/Charged choice/ready state in Opening;
-- no ShopScene;
-- Drop selector remains hidden while there is one Drop;
-- Collection remains Shelf/Library and becomes Drop-group-aware only when multiple Drops exist.
+- pouch interaction;
+- CHIPS/Signal HUD;
+- Basic/Charged selection and affordability;
+- cache/recycle/Charged-ready presentation;
+- result/carousel interaction.
+
+There is no `ShopScene`. Drop selector remains hidden while there is one production Drop.
 
 ---
 
-## 4. Source structure
+## 4. Current source boundaries
 
-Current structure remains appropriate:
+Relevant structure:
 
 ```text
 src/
@@ -66,9 +70,12 @@ src/
       CollectionScene.ts
     systems/
       drops.ts
+      pouches.ts
+      openingEconomy.ts
+      openingSession.ts
+      save.ts
       signal.ts
       collection.ts
-      save.ts
       layout.ts
       audio.ts
     data/
@@ -76,79 +83,49 @@ src/
       balance.ts
       presentation.ts
     ui/
+      openingVisuals.ts
+      openingEconomyVisuals.ts
+      staticArt.ts
   platform/
     yandex.ts
     storage.ts
     analytics.ts
     ads.ts
     activity.ts
+  debug/
   i18n/
-    en.ts
-    ru.ts
   main.ts
 ```
 
-If a tiny `economy.ts` / `pouches.ts` pure module improves separation during Lite V2, that is acceptable. Do not build an abstract currency subsystem for hypothetical future currencies.
+Keep domain logic in pure systems/data modules. Scene code may orchestrate presentation but should not become the source of truth for economy or persistence.
 
 ---
 
-## 5. Content registry / Drops — LOCKED TARGET
+## 5. Content registry / loot pools
 
-Content must become explicitly Drop-aware before the catalog expands.
+Current registry is explicitly loot-pool-aware.
 
-Conceptual types:
+Invariants:
 
-```ts
-type PouchType = 'basic' | 'charged';
-type LootPoolId = string;
+- each family/collectible resolves to a loot pool;
+- save stores active loot-pool identity;
+- Basic/Charged roll only inside active pool;
+- Signal finds missing standard candidates only inside that pool and selected-pouch eligibility;
+- zero-weight rarities are never bypassed by pity;
+- CHIPS/Signal are global;
+- adding Drop #2 should primarily be data/config work.
 
-interface GadgetFamilyDefinition {
-  id: string;
-  dropId: LootPoolId;
-  nameKey: string;
-  standard: Record<StandardRarity, CollectibleDefinition>;
-  secrets: CollectibleDefinition[];
-}
-
-interface LootPoolDefinition {
-  id: LootPoolId;
-  familyIds: readonly string[];
-}
-```
-
-Exact shape may differ; invariants matter:
-
-- every eligible family is resolvable to one Drop/loot pool;
-- Basic and Charged take an active `lootPoolId`;
-- Signal Lock searches missing standard collectibles only inside that pool and only among rarities eligible for the selected pouch;
-- if the selected pouch has no eligible missing item, the resolver must retain the lock rather than bypass rarity gates;
-- CHIPS/Signal remain global state;
-- adding Drop #2 is data/config work, not a reward-engine rewrite.
-
-Do not implement player-facing Drop selection until multiple Drops exist.
+Do not build player-facing Drop selection until multiple real Drops exist.
 
 ---
 
-## 6. Balance boundaries — LOCKED TARGET
+## 6. Typed balance — CURRENT PROVISIONAL CONFIG
 
-Keep all numbers in typed config.
+`LITE_V2_BALANCE` is the single current tuning source.
 
-Lite V2 needs separate pouch profiles for cost, base CHIPS, cache bonus, rarity access/weights and Hidden Pocket chance.
-
-Conceptual shape:
+Pouch profile semantics:
 
 ```ts
-interface ChipsRange {
-  min: number;
-  max: number;
-}
-
-interface ChipsCacheTier {
-  id: string;
-  weight: number;
-  reward: ChipsRange;
-}
-
 interface PouchProfile {
   chipsCost: number;
   baseChipsReward: ChipsRange;
@@ -156,340 +133,240 @@ interface PouchProfile {
   rarityWeights: Readonly<Record<StandardRarity, number>>;
   hiddenPocketChance: number;
 }
-
-interface EconomyBalance {
-  signalThreshold: number; // target: 4
-  duplicateRecycleChips: Readonly<Record<StandardRarity, number>>;
-  pouchProfiles: Readonly<Record<PouchType, PouchProfile>>;
-}
 ```
 
-Do not lock implementation to this exact type shape. The semantic requirements are:
+Current structural values:
 
-- Basic cost = 0;
-- Basic always awards one standard collectible + guaranteed base CHIPS;
-- Basic rarity profile has `Legendary = 0`; Common/Rare/Epic remain eligible;
-- Charged cost > 0 CHIPS;
-- Charged standard profile has non-zero Legendary and materially stronger Rare/Epic than Basic;
-- both pouch profiles may define independent cache bonus tiers on top of base CHIPS;
-- cache roll is independent of collectible rarity roll;
-- a top cache may be large enough to fund several Charged openings;
-- Charged expected CHIPS return must remain below its cost over repeated play;
-- duplicate recycle CHIPS may scale by rarity and stack with pouch payout;
-- Signal increments exactly one segment per duplicate;
-- Signal threshold target is 4;
-- Signal never overrides a zero-weight rarity in the selected pouch profile;
-- Basic Hidden Pocket remains possible but lower than Charged.
+- Signal threshold: `4`;
+- Hidden Pocket start opening: `4`;
+- duplicate recycle C/R/E/L: `2 / 4 / 8 / 15`;
+- Basic cost/base: `0`, `6–10`;
+- Basic rarity C/R/E/L: `72 / 25 / 3 / 0`;
+- Basic Hidden Pocket: `1.5%`;
+- Charged cost/base: `60`, `18–24`;
+- Charged rarity: `35 / 40 / 20 / 5`;
+- Charged Hidden Pocket: `6%`.
 
-Open tuning values remain config, not magic constants scattered through scenes.
+Cache configuration:
+
+```text
+Basic weights:   none 90 / cache 7 / big 2.5 / mega 0.5
+Charged weights: none 78 / cache 15 / big 5.5 / mega 1.5
+Rewards:         none 0 / cache 20–35 / big 45–75 / mega 120–180
+```
+
+These numbers are centralized and intentionally provisional. Hands-on/content-scale simulation may tune them without changing APIs or transaction shape.
 
 ---
 
-## 7. Persistent state / transaction — CRITICAL
+## 7. Save state and migration
 
-Keep save versioned and provider-agnostic.
+Current save is versioned (`SAVE_VERSION = 2`) and provider-agnostic behind `StorageAdapter`.
 
-Existing state conceptually grows from:
-
-```ts
-interface SaveState {
-  version: number;
-  discoveredStandard: string[];
-  discoveredSecrets: string[];
-  signal: number;
-  totalOpens: number;
-  pendingReveal: PendingReveal | null;
-  muted: boolean;
-  stats: { ... };
-}
-```
-
-toward Lite V2 fields such as:
+Current state includes conceptually:
 
 ```ts
 interface SaveState {
-  version: number;
+  version: 2;
   discoveredStandard: string[];
   discoveredSecrets: string[];
   chips: number;
-  signal: number; // 0..threshold segments
+  signal: number; // 0..4
   activeLootPoolId: string;
   totalOpens: number;
   pendingReveal: PendingReveal | null;
-  muted: boolean;
-  stats: { ... };
+  muted: boolean; // compatibility field; runtime preference is separated
+  stats: {
+    duplicates: number;
+    hiddenPockets: number;
+  };
 }
 ```
 
-A migration must initialize new fields for existing saves without deleting collection progress.
+Legacy pre-Lite state migrates forward rather than being wiped.
 
-### Atomic reveal contract
+Legacy Signal mapping:
 
-`pendingReveal` must predetermine the entire economic transaction before presentation.
+```text
+min(4, floor(oldSignal / 25))
+```
 
-For Lite V2 it must retain enough information to recover conceptually:
+Migration is validated at boundary values and must remain idempotent.
+
+---
+
+## 8. Atomic reveal contract — CRITICAL
+
+`pendingReveal` predetermines the complete economic outcome before visual presentation.
+
+It retains:
 
 ```text
 transaction id
 base total opens
 pouch type
 loot pool id
-base chips
-chips cost
-base pouch chips reward
-cache tier id / cache chips reward
-duplicate recycle chips reward
-standard collectible
-Signal before/after/lock reached/consumed/retained state
+opening number
+standard result
+base/cache/recycle CHIPS transition
+Signal transition
 Hidden Pocket result
-final committed progress/wallet snapshot
+final commit snapshot
 ```
 
-Critical invariants:
+Invariants:
 
+- no reroll on refresh;
+- no cache reroll;
 - Charged cost and reward are one transaction;
-- crash after choosing Charged cannot lose cost without preserving reward;
-- refresh cannot reroll Charged, collectible rarity or cache tier into a better result;
-- recovery cannot grant base/cache/recycle wallet rewards twice;
-- a Basic result that retains an armed Signal lock must recover with the same retained-lock outcome rather than recomputing eligibility from later state;
-- visual token flight never owns currency state;
-- transaction keeps original lootPool/profile even if active UI selection changes later.
+- no duplicate base/cache/recycle grant;
+- retained/consumed Signal outcome cannot change during recovery;
+- original pouch profile/loot pool survive recovery;
+- presentation tweens never determine durable state.
 
-Provider remains:
-
-- Yandex runtime: safe storage behind `StorageAdapter`;
-- local development: browser `localStorage` fallback.
+`OpeningSession` additionally handles ambiguous storage failures: after a failed write promise, it reloads durable state and accepts success only when the persisted transaction/snapshot exactly matches the deterministic expected result.
 
 ---
 
-## 8. Signal migration — LOCKED
+## 9. Signal resolver
 
-Current runtime has a 0–100 rarity-weighted Signal implementation.
+Current resolver behavior:
 
-Lite V2 target replaces it completely:
+1. detect armed state (`4/4`);
+2. collect missing standard items in active pool;
+3. filter by selected pouch non-zero rarity weights;
+4. if candidates exist, preserve selected-pouch rarity weighting, guarantee NEW and consume lock;
+5. if none exist, perform normal selected-pouch roll and retain lock.
 
-```text
-standard duplicate → +1
-4/4 → armed lock
-next standard roll with eligible missing item → guaranteed NEW
-consume → 0
-```
+Basic Legendary weight is zero, so pity never leaks Legendary into Basic.
 
-Legacy mapping is fixed:
-
-```ts
-newSignal = Math.min(4, Math.floor(oldSignal / 25));
-```
-
-Therefore `0–24→0`, `25–49→1`, `50–74→2`, `75–99→3`, `100→4`.
-
-Implementation rules:
-
-- do not retain late-lock weighted fallback as a second hidden rule;
-- if active Drop has no missing standard item, armed lock remains armed and is not consumed;
-- if the selected pouch has no missing item with non-zero eligibility/weight, that pouch resolves normally and the armed lock remains armed;
-- specifically, Basic can never receive Legendary from Signal because Basic `Legendary = 0`;
-- if only Legendary remains, repeated Basic openings may still produce normal Basic results while Signal stays `4/4`; an eligible Charged opening is required to consume it;
-- if a future Drop selector changes active pool while lock is armed, the lock applies to the newly selected active Drop at roll time;
-- new standard item does not add Signal;
-- a duplicate while Signal is already armed cannot increase it beyond `4/4`;
-- Secret handling stays outside standard Signal unless a later explicit design changes it;
-- a fully armed old lock must remain armed after migration;
-- migration must be versioned and idempotent.
-
-### Signal Lock candidate weighting
-
-When lock is armed:
-
-1. collect missing standard candidates in active Drop;
-2. remove candidates whose rarity has zero eligibility/weight for the selected pouch;
-3. if candidates remain, apply selected pouch rarity weighting among them, select one NEW result and consume lock;
-4. if none remain, execute the selected pouch's normal standard roll and retain lock unchanged.
-
-This preserves Charged's rarity advantage under pity and protects the strict Basic/Charged rarity gate.
+This is the only active Signal model; the old 0–100 weighted runtime no longer exists except as migration input compatibility.
 
 ---
 
-## 9. Opening presentation / resource transfer
+## 10. Opening presentation boundary
 
-CHIPS animation is visual feedback, not economy logic.
+Presentation sequence is orchestrated by `OpeningScene`, but durable economy is already stored in pending transaction data.
 
-Recommended structure:
+Conceptually:
 
 ```text
-resolve + persist pending transaction
-→ play tear
-→ show base CHIPS burst
-→ if cache bonus: play stronger cache beat
-→ reveal collectible
-→ show duplicate recycle if applicable
+persist pending transaction
+→ tear
+→ base CHIPS
+→ optional cache beat
+→ standard reveal
+→ optional recycle + Signal
 → optional Hidden Pocket
-→ animate CHIPS/SIGNAL toward HUD
-→ commit/show final HUD state
+→ optional Charged-ready milestone
+→ commit/render result
 ```
 
-Implementation may commit before visual flight for safety, while tweening displayed counter from stored pre-value to stored final value. Stopping a tween cannot change economic outcome.
+Resource animations are bounded visual samples. A `+150` result never requires 150 economic sprites.
 
-Do not instantiate one persisted object per visible chip particle. Particles are presentation instances of aggregate numeric rewards. A large jackpot should use a bounded number of visual tokens plus stronger FX/counter animation.
-
-When Signal is armed but Basic has no eligible NEW, the HUD/result presentation must not falsely imply that the lock was consumed. Prefer a concise state such as `SIGNAL LOCK · CHARGED` until an eligible opening occurs.
+The Charged-ready threshold beat is awaited long enough to be perceptible before result re-render; this is presentation timing only, not an economy delay contract.
 
 ---
 
-## 10. Yandex SDK boundary
+## 11. UI implementation
 
-`platform/yandex.ts` continues to own:
+CHIPS identity and Charged aura are currently Phaser Graphics/shape implementations in `openingEconomyVisuals.ts`; no dedicated CHIPS raster or second Charged pouch raster set is required.
 
-- `YaGames.init()`;
-- language/environment access;
-- safe storage acquisition;
-- `LoadingAPI.ready()`;
-- `GameplayAPI.start()/stop()` mapping;
-- platform pause/resume events;
-- capabilities needed by adapters.
-
-After Lite V2 hands-on, run real hosted Yandex DRAFT validation before content expansion.
-
----
-
-## 11. Advertising boundary
-
-Advertising remains behind `platform/ads.ts`.
-
-Locked behavior remains:
-
-- scenes do not call `ysdk.adv` directly;
-- interstitials only at logical pauses outside active tear/reveal;
-- rewarded is voluntary and explicit;
-- reward grants exactly once only on rewarded completion;
-- ad failure never blocks gameplay;
-- fullscreen/rewarded pause gameplay/audio correctly;
-- pause reasons are coordinated.
-
-### Rewarded dev probe migration
-
-The old `+25 Signal` dev reward was valid only for old 0–100 slice pity.
-
-After Lite V2 Signal migration, use a clearly dev-only CHIPS grant to test exactly-once rewarded persistence. Do not use rewarded ads to mutate Signal pity merely because that was convenient in old harness.
-
-Final public rewarded benefit remains open for release tuning.
-
----
-
-## 12. Analytics
-
-Keep semantic events provider-independent.
-
-Lite V2 should add useful events around:
-
-```text
-pouch_open_started { pouchType, lootPoolId }
-chips_earned { source, amount }
-chips_cache_hit { pouchType, tier, amount }
-duplicate_recycled { rarity, chips, signalAfter }
-signal_lock_reached
-signal_lock_waiting_for_eligible_pouch { pouchType, lootPoolId }
-signal_lock_consumed
-charged_ready
-charged_opened
-hidden_pocket_triggered { pouchType, lootPoolId }
-```
-
-Do not over-instrument individual chip particles. Analytics failure never blocks gameplay/reward.
-
----
-
-## 13. Responsive layout
-
-Locked strategy remains:
+Responsive strategy remains:
 
 ```text
 logicalHeight = 720
 logicalWidth = clamp(viewportAspect * 720, 900, 1728)
 ```
 
-Lite V2 UI must preserve established vertical rhythm:
-
-- CHIPS HUD cannot compete with title/reward hero;
-- Charged-ready affordance must fit 900 logical width;
-- `SIGNAL LOCK · CHARGED` or equivalent must remain legible at compact width when applicable;
-- resource-flight destination must remain stable across resize;
-- large cache counter animation must not overflow compact HUD;
-- if resize occurs during result state, wallet/Signal state and Hidden Pocket selected page must remain correct.
+Critical compact states (`900/1024`) and RU copy are covered by browser audits.
 
 ---
 
-## 14. Asset loading
+## 12. Yandex boundary
 
-Current integrated production assets are small enough to preload:
+`platform/yandex.ts` owns SDK boot/capabilities and lifecycle mapping. Storage, ads, analytics and gameplay activity remain behind adapters.
+
+The local implementation gate is complete, but a **real hosted Yandex DRAFT** is still required for:
+
+- actual `/sdk.js` boot and `LoadingAPI.ready()` timing;
+- hosted safe storage;
+- platform pause/resume/audio;
+- real ad no-fill/throttle/close behavior;
+- interrupted Basic/Charged recovery;
+- Metrica visibility where configured.
+
+Do not infer hosted correctness from local CI.
+
+---
+
+## 13. Ads / debug reward
+
+Advertising remains behind `platform/ads.ts`.
+
+Locked rules:
+
+- scenes do not call Yandex ad APIs directly;
+- interstitial outside active reveal;
+- rewarded is voluntary;
+- reward persists exactly once;
+- ad failure never blocks gameplay;
+- fullscreen/rewarded pause gameplay/audio correctly.
+
+The current debug rewarded probe grants CHIPS, not Signal. Public rewarded value/cadence remains release tuning.
+
+---
+
+## 14. Analytics
+
+Keep semantic events provider-independent. Analytics failure cannot block gameplay/reward.
+
+Useful Lite V2 semantics include pouch type, CHIPS/cache/recycle outcomes, Signal reach/wait/consume, Charged readiness/opening and Hidden Pocket. Do not instrument individual presentation particles as economy events.
+
+---
+
+## 15. Asset loading
+
+Current catalog can preload safely:
 
 - 10 collectible textures;
-- current pouch layers including compact tear strip;
-- Opening/Collection environment layers;
+- current pouch layers;
+- Opening/Collection environments;
 - current SFX set.
 
-Lite V2 adds at most one tiny CHIPS icon/token asset plus optional concise SFX. The same CHIPS identity handles normal and cache payouts. Charged presentation should reuse current pouch assets with runtime treatment first.
-
-Release-scale loading remains a profiling decision after real content expansion.
+Release-scale loading strategy remains a profiling decision after actual content expansion. Do not build streaming infrastructure based on hypothetical texture counts.
 
 ---
 
-## 15. Testing requirements
+## 16. Validation state
 
-Pure tests must cover at minimum:
+Current merged tree has passed:
 
-- Basic vs Charged profile selection;
-- Basic never standard-rolls Legendary;
-- Charged can standard-roll Legendary;
-- independent collectible rarity and CHIPS-cache resolution;
-- cache payout boundaries/weights from config;
-- Charged expected-value simulation guard or deterministic balance report showing expected CHIPS return below cost;
-- insufficient CHIPS rejects Charged without mutation;
-- Charged cost + base/cache/recycle reward atomicity;
-- duplicate recycle CHIPS by rarity config;
-- Signal +1 semantics and 4/4 lock;
-- exact legacy Signal mapping including 24/25/49/50/74/75/99/100 boundaries;
-- lock targets missing standard item in active Drop;
-- lock preserves Basic/Charged rarity profile among missing candidates;
-- when only Legendary remains, Basic performs a normal roll and retains `4/4` without ever awarding Legendary;
-- an eligible Charged opening after that state guarantees NEW Legendary and consumes the lock;
-- repeated duplicates while lock is armed do not overfill/duplicate Signal;
-- lock preserved for a fully complete active Drop;
-- Drop scoping for Basic/Charged;
-- save migration from pre-Lite version;
-- pending transaction recovery/idempotency with CHIPS/cache and retained Signal state;
-- existing Hidden Pocket/onboarding behavior under profiles;
-- rewarded dev CHIPS exactly-once path;
-- overlapping platform/ad/visibility pause reasons.
+- `npm ci`;
+- strict typecheck;
+- `87/87` Vitest tests;
+- asset self-test/validation;
+- production build;
+- exact-revision browser audit + manual artifact review;
+- post-merge CI.
 
-Browser visual regression must additionally cover:
-
-- normal CHIPS token transfer;
-- at least one large cache presentation;
-- recycle feedback;
-- crossing Charged-ready threshold, including a cache jump across it;
-- Basic vs Charged presentation;
-- Signal segment fill/lock;
-- `SIGNAL LOCK · CHARGED` state when Basic has no eligible NEW;
-- responsive 900/1024/1280/1728 states;
-- interrupted/recovered Charged reveal.
+The next gate is direct repeated hands-on. After acceptance, execute `YANDEX_SLICE_VALIDATION.md` in a real hosted draft.
 
 ---
 
-## 16. Engineering guardrails
+## 17. Engineering guardrails
 
 Do not introduce by default:
 
-- React;
-- Redux/Zustand-style state framework;
+- React/state framework;
 - ECS;
 - physics;
 - backend/websockets;
-- generalized economy/currency framework;
+- generalized multi-currency economy framework;
 - shop scene;
 - timers/offline scheduler;
 - real-time 3D;
 - content CMS/server;
-- abstractions for Overcharge/Archive/prestige systems that are not in Lite V2.
+- abstractions for parked Overcharge/Archive/prestige ideas.
 
-Build only scale boundaries already justified: Drop-aware content, typed pouch/cache profiles, versioned atomic save transactions and provider boundaries.
+Build new architecture only for a measured requirement, not for speculative flexibility.
