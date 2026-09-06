@@ -1,23 +1,130 @@
-# Open questions / release-expansion queue
+# Open questions / decision queue
 
-The internal Camera + Flip Phone vertical slice is implementation-ready. It does **not** need these release questions answered before coding because the slice exists specifically to inform them.
-
-After hands-on sign-off, resolve the queue below before public release.
+The core Lite V2 direction is now decided. This file contains only questions that are **actually unresolved** and should not be silently invented during implementation.
 
 ---
 
-# 1. Public content size — OPEN
+# 1. Lite V2 economy numbers — OPEN FOR TUNING
 
-We are definitely expanding beyond Camera + Flip Phone.
+Concept is locked; exact values are not.
 
-Need to lock:
+Need to choose/test:
 
-- target number of base gadget families for first public launch;
-- whether launch is one large catalog or several themed mini-collections;
-- how many Secrets belong to the launch roster;
-- which archetypes make the first expansion batch.
+- Charged Pouch CHIPS cost;
+- Basic CHIPS payout range/amount;
+- Charged CHIPS payout range/amount;
+- duplicate recycle CHIPS by rarity;
+- Charged rarity weights;
+- Basic Hidden Pocket chance;
+- Charged Hidden Pocket chance.
 
-Candidate families already identified:
+Constraints already decided:
+
+- Basic is free/unlimited in Lite V2;
+- Basic always grants CHIPS + one standard collectible;
+- Charged costs CHIPS and must feel meaningfully better;
+- Charged still has only one standard collectible roll;
+- duplicate recycle CHIPS are compensation, not a reason to prefer duplicates;
+- CHIPS income should make Charged a visible near-term goal, not a long grind.
+
+Start with simulation + hands-on and keep values in typed balance config.
+
+---
+
+# 2. Legacy Signal save migration — NEEDS EXPLICIT IMPLEMENTATION DECISION
+
+Current saves may contain old Signal values from `0..100`.
+
+Lite V2 changes Signal to `0..4` segments.
+
+We must deliberately choose a deterministic migration rule. Examples of possible policies (not yet selected):
+
+- floor proportional mapping (`0–24→0`, `25–49→1`, etc.);
+- ceil/progress-preserving mapping;
+- only preserve fully armed `100` and reset partial progress;
+- another explicit rule.
+
+Requirements:
+
+- do not silently wipe a fully armed lock;
+- do not accidentally grant more than one lock from a single legacy value;
+- migration must be unit-tested and versioned.
+
+This is the most important unresolved technical/product detail before the Signal rewrite lands.
+
+---
+
+# 3. Charged selection UX — SMALL UI QUESTION
+
+The product direction is fixed: Charged is chosen from the Opening screen with no store.
+
+Need to settle the smallest interaction that reads best:
+
+- separate `OPEN BASIC` / `OPEN CHARGED` actions;
+- one pouch selector/toggle with a single Open action;
+- another equally compact control.
+
+Requirements:
+
+- Basic remains instantly obvious/available;
+- current CHIPS balance and Charged cost are visible;
+- `CHARGED READY` is clear when affordability crosses threshold;
+- no modal/store flow;
+- 900 logical width remains clean.
+
+Resolve from a quick visual pass, not architecture discussion.
+
+---
+
+# 4. CHIPS asset implementation — SMALL ART QUESTION
+
+One CHIPS visual identity is required.
+
+Preferred direction is a tiny Y2K electronic chip/token rather than a gold coin.
+
+Need only decide whether final implementation is:
+
+- one reviewed `public/assets/ui/chip-token.webp`, or
+- an equally good vector/Phaser-rendered icon.
+
+Do not create an entire UI asset pack.
+
+---
+
+# 5. Lite V2 audio additions — OPTIONAL
+
+Potential new cues:
+
+- `chips-collect`;
+- `charged-ready`.
+
+First test whether current sounds/re-pitched variants are good enough. New audio is not automatically required.
+
+---
+
+# 6. Quick Reveal — REVIEW AFTER LITE V2
+
+The new reward sequence is longer than the current single-reward presentation, so repeated-use pacing must be rechecked.
+
+During 20–50+ openings ask:
+
+- does CHIPS/recycle presentation become repetitive?
+- is the full reveal now too slow?
+
+Only then consider a configurable faster reveal. No x5/mass opening is implied.
+
+---
+
+# 7. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
+
+After Lite V2 hands-on + real Yandex DRAFT validation, lock:
+
+- first additional gadget families;
+- first real Drop name/theme;
+- when Drop #2 exists;
+- exact grouping and Secret count.
+
+Candidate families remain:
 
 - MP3 player;
 - pager;
@@ -27,176 +134,95 @@ Candidate families already identified:
 - portable disc / MiniDisc-like player;
 - pocket radio;
 - virtual-pet-like electronic;
-- more Y2K gadget archetypes as research/production finds them.
+- other suitable Y2K archetypes.
 
-The old ~24-family planning target is back on the table as a **reference scale**, not a cap or commitment. Use actual art throughput/quality from the slice to decide.
-
----
-
-# 2. Public package / economy model — OPEN
-
-The internal slice intentionally keeps one unlimited free pouch so interaction can be judged without economy friction.
-
-That does **not** automatically lock the public release to unlimited free opening.
-
-Before release decide:
-
-- unlimited free openings vs soft-currency acquisition vs another light access model;
-- whether multiple package types/tiered pools create meaningful choice once many families exist;
-- where currency, if any, comes from;
-- how the package model interacts with ads without creating artificial frustration;
-- whether the core opener remains immediately available for a new player.
-
-This is one of the highest-impact release decisions because it affects balance and session pacing. Do not sneak an economy into the slice merely to answer it early.
+Rough 3–5 families per Drop is a heuristic, not a commitment.
 
 ---
 
-# 3. Release balance — OPEN
+# 8. Collection at multi-Drop scale — OPEN LATER
 
-Current numbers are slice-only.
+Current Shelf/Library stays.
 
-Once launch roster/package model is known, decide/re-simulate:
+When Drop #2 actually exists, decide:
 
-- family weights / grouping;
-- standard rarity odds;
-- onboarding protection;
-- duplicate rate;
-- Signal gain curve and SIGNAL LOCK behavior;
-- Hidden Pocket probability;
-- Secret pool / duplicate rules;
-- expected standard completion and chase horizon.
+- where the Drop selector belongs;
+- whether Shelf switches per Drop or shows global best finds;
+- Library grouping/filtering;
+- completion headline semantics;
+- Secret grouping.
 
-Do not preserve 60/28/10/2 or 3% just because they were convenient in the two-family slice.
+Do not redesign Collection before the content exists.
 
 ---
 
-# 4. Collection at scale — OPEN
+# 9. Family-targeted acquisition — PARKED
 
-The core roles are retained:
+Do not add family-specific pouches now.
 
-- Shelf = desirable best finds;
-- Library = exhaustive completion view.
-
-Need release design for many families:
-
-- pages vs scrolling vs themed shelves;
-- family groups / mini-collections;
-- Library filtering/navigation;
-- what the headline completion counter means;
-- Secret grouping;
-- whether environments/shelves change between collections;
-- how many hero items are visible without making the room look like a spreadsheet.
-
-Architecture must remain data-driven now so this becomes UI/content work rather than a rewrite.
+Revisit only if real completion data shows that Drop-level Signal protection still leaves players stuck/frustrated near completion.
 
 ---
 
-# 5. Advertising — IMPLEMENTATION RULES RESOLVED, RELEASE TUNING LATER
+# 10. Idle/incremental expansion systems — PARKED
 
-Advertising itself is **not an open implementation question**.
+Explicitly not part of Lite V2:
 
-From the internal slice onward, follow the current Yandex Games SDK and moderation rules:
+- timed Basic charges;
+- offline income;
+- Collection passive CHIPS/min;
+- Overcharge;
+- Archive levels;
+- upgrade/set-bonus trees;
+- prestige;
+- auto-open;
+- crafting/merge.
 
-- SDK-only ad calls;
-- logical-pause interstitials, never active tear/reveal;
-- optional rewarded ad with the exact reward stated up front;
-- reward granted exactly once on rewarded completion;
-- gameplay/audio paused for fullscreen/rewarded;
-- error/close/unavailable paths safe;
-- sticky banner configured and placed according to Yandex rules if used.
-
-The later release pass only tunes product choices that cannot be chosen intelligently yet:
-
-- where a compliant rewarded opportunity is actually useful;
-- exact reward value/type;
-- which logical pauses are worth requesting interstitial at;
-- whether sticky banner earns enough to justify its layout cost.
-
-These are optimization decisions after the expanded economy/content exists, not blockers and not a need for further user clarification now.
+They are ideas, not backlog commitments. Re-open one only if Lite V2 has a specific proven retention/progression problem that it solves cheaply.
 
 ---
 
-# 6. Quick Reveal — REVIEW DURING INTERNAL SLICE
+# 11. Advertising / public measurement — OPEN FOR RELEASE TUNING
 
-Do not wait for public analytics.
+Implementation/compliance is already resolved through the Yandex adapter.
 
-During 20–50+ repeated openings, decide whether the full ~1.0–1.4 s reveal becomes friction.
+After Lite V2 + expanded content, decide:
 
-Candidate:
+- actual rewarded reward and placement;
+- interstitial logical pause points worth requesting;
+- whether sticky banner is worth layout cost;
+- continuation/retention/playtime/monetization metrics for public release.
 
-- configurable ~0.4–0.6 s Quick Reveal;
-- same reward semantics;
-- no default x5/mass-open requirement.
-
----
-
-# 7. Tech Parts / Mod Bench — RE-EVALUATE WITH LARGE ROSTER
-
-They were removed from the two-family slice because Signal was enough there.
-
-With a materially larger catalog, ask again:
-
-- do duplicates need a second long-horizon sink?
-- does direct/choice-based upgrading improve agency without trivializing collection?
-- does this system justify its currency/UI complexity?
-
-Do not scaffold the scene/economy before this decision.
+The old dev-only `+25 Signal` rewarded test is deprecated by the new Signal model; use a dev-only CHIPS grant for technical exactly-once validation after migration.
 
 ---
 
-# 8. Daily Spotlight / shelf evolution / other retention — OPEN LATER
+# 12. Store/submission choices — DEFER UNTIL RELEASE BUILD
 
-These become more meaningful only with many families.
+Only after expanded content/key visual stabilizes:
 
-Potential jobs:
-
-- Daily Spotlight: rotate attention toward a family/group;
-- shelf evolution: cheap visible long-term progression;
-- package variation: different pools only if it creates real choice;
-- other light retention hooks: only where the expanded loop needs them.
-
-Evaluate after launch roster and package model are real.
-
----
-
-# 9. Public measurement plan — REQUIRED BEFORE RELEASE
-
-The private slice has no public KPI gate.
-
-Before public launch, define the release measurement plan using Yandex built-in metrics + Metrica gameplay/ad events. Choose the actual continuation, retention, playtime and monetization checkpoints only after the release loop/content/economy is known.
-
-Do not block the internal slice on invented KPI thresholds, but do not publish the final game without a measurement plan.
-
----
-
-# 10. Public store/submission choices — DEFER UNTIL RELEASE BUILD
-
-Need only after expanded content/key visual stabilizes:
-
-- final RU/EN title uniqueness;
+- final RU/EN title;
 - categories/tags/keywords;
 - icon/cover/hero;
 - localized screenshots;
-- final platform selection/iOS Team ID;
 - final monetization configuration;
 - moderation QA.
 
-Do **not** spend final-store-art effort on the two-family internal slice.
-
 ---
 
-# What does NOT need clarification before coding
+# What is NOT open anymore
 
-Already clear enough:
+Do not re-litigate during Lite V2 implementation without new evidence:
 
-- Phaser/Vite/strict TS;
-- Yandex SDK from day one;
-- Yandex-compliant ads adapter from day one;
-- storage/analytics adapters;
-- adaptive landscape layout;
-- Camera + Flip Phone slice assets;
-- current slice RNG/Signal/Hidden Pocket configuration;
-- canonical-master art pipeline;
-- reveal/Collection interaction model.
-
-So the next build can start without waiting on the release-scale decisions above.
+- one global CHIPS currency;
+- Basic remains free/unlimited for Lite;
+- duplicates auto-recycle;
+- duplicate gives CHIPS + one Signal segment;
+- target Signal threshold is 4;
+- Signal Lock guarantees NEW in active Drop and is not spent on a complete Drop;
+- Charged costs CHIPS, has one standard roll, gives more CHIPS, better rarity and higher Hidden Pocket chance;
+- no multi-standard drops in Lite;
+- no shop scene;
+- Drop/loot-pool architecture is required before content expansion;
+- CHIPS/Signal remain global across Drops;
+- idle/offline/Overcharge/Archive systems are parked.
