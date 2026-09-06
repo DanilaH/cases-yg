@@ -1,33 +1,90 @@
 # Open questions / decision queue
 
-This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and first-pass tuning are already implemented; do not treat implemented decisions as TODOs.
+This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction scope are already decided; do not treat implemented or locked-next behavior as TODO design debate.
+
+Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 ---
 
-# 1. Repeated-use feel — CURRENT GATE
+# 1. Opening Feel Correction — CURRENT IMPLEMENTATION QUESTION SET
 
-Run 20–50 direct openings and answer:
+The first repeated hands-on is complete and has already justified the correction. The unresolved items inside that correction are presentation choices, not mechanics.
 
-- does Basic → CHIPS → Charged create a genuine “one more pouch” pull?
-- does Charged feel materially better and worth saving `60 CHIPS` for?
-- does the player understand that Basic cannot standard-roll Legendary?
-- is CHIPS accumulation legible without explanatory text?
-- do Cache/Big/Mega outcomes feel exciting rather than arbitrary/noisy?
-- does duplicate recycle feel compensating rather than adding friction?
-- is `4 duplicates → next eligible NEW` understandable?
-- is `SIGNAL LOCK · CHARGED` clear when only Legendary remains?
-- does `CHARGED POUCH READY` help the loop or feel interruptive?
-- does the full reveal become tedious after repetition?
+## 1.1 Accent digital/pixel font — OPEN VISUAL CHOICE
 
-This is the next decision gate. Automation cannot answer it.
+Need one bundled accent typeface for short electronic UI only:
 
-If a problem is found, fix the smallest observed issue and rerun the relevant exact-revision audit. Do not pre-emptively add systems.
+- CHIPS number/label;
+- Signal label/value/lock;
+- short Cache/Charged/system labels where useful.
+
+Requirements:
+
+- readable at real 900/1024 layouts;
+- suitable for the Y2K/electronic direction;
+- license-safe for bundling;
+- RU/EN coverage for any localized text actually rendered with it;
+- must not force long instructions/navigation into pixel typography.
+
+Resolve by rendering real game states, not by choosing from a font specimen alone.
+
+## 1.2 Charged palette / iridescence intensity — OPEN VISUAL CHOICE
+
+Direction is locked: stronger cyan/violet electronic treatment with restrained pink/iridescent accents.
+
+Still tune visually:
+
+- how much pink/iridescence is enough;
+- whether star/seal/body all receive treatment or only selected surfaces;
+- sweep speed/intensity;
+- how to keep Charged desirable without stealing Legendary/Secret visual hierarchy.
+
+Use label-hidden Basic vs Charged comparison as the acceptance test.
+
+## 1.3 Dedicated Charged pouch raster — CONDITIONAL ONLY
+
+Default remains current pouch art + stronger runtime treatment.
+
+Only create a dedicated recolored Charged raster if the exact-revision audit still reads as “Basic with glow” after the no-shader runtime pass.
+
+If needed:
+
+- preserve exact silhouette/geometry;
+- preserve tear strip/tab interaction;
+- recolor/material treatment only;
+- do not restart pouch design.
+
+## 1.4 `charged-ready` SFX — OPTIONAL
+
+Dedicated `chips-collect` SFX is now **required** from hands-on evidence.
+
+A separate readiness sting remains open only if:
+
+> wallet count-up + CHIPS sound + Charged control activation still fail to make threshold crossing feel satisfying.
+
+Do not add it automatically.
+
+## 1.5 Exact presentation timings — OPEN FOR TUNING
+
+Semantics are locked, milliseconds are not.
+
+Tune from captured video + second hands-on:
+
+- callout readable hold;
+- count-up duration bounds;
+- payout transfer spacing;
+- fast-forward response;
+- post-tear input guard;
+- tear anticipation/recoil;
+- Charged/rarity shimmer duration.
+
+Goal: readable at normal pace, fast when the player taps, never sluggish by default.
 
 ---
 
-# 2. Lite V2 balance — OPEN FOR TUNING, NOT OPEN FOR REDESIGN
+# 2. Lite V2 balance — OPEN FOR TUNING, FROZEN DURING FEEL CORRECTION
 
-Current implemented starting values:
+Current values:
 
 ```text
 Basic
@@ -53,49 +110,80 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-Open questions are now evidence questions:
+Do not change these numbers in the feel-correction branch. After corrected hands-on/content-scale simulation, evidence questions remain:
 
-- is 60 CHIPS reached at a satisfying cadence in real repetition?
-- are Basic `6–10` payouts meaningful without feeling grindy?
-- are cache spikes frequent/large enough to be memorable but not dominant?
-- is Charged's 35/40/20/5 rarity profile visibly better in practice?
-- are recycle rebates useful but not so high that duplicates become preferable?
-- do 1.5% vs 6% Hidden Pocket chances create the intended Basic jackpot / Charged advantage relationship?
-- does Signal threshold `4` feel relevant without triggering constantly?
-
-Tune config from hands-on/simulation evidence only. The structural loop is not open for re-litigation without new evidence.
+- is 60 CHIPS reached at a satisfying cadence?
+- are Basic payouts meaningful without feeling grindy?
+- are cache spikes memorable but not dominant?
+- is Charged's stronger rarity profile perceptible?
+- are recycle rebates useful without making duplicates preferable?
+- do 1.5% vs 6% Hidden Pocket chances create the intended relationship?
+- does Signal threshold `4` feel relevant without becoming constant?
 
 ---
 
-# 3. Lite V2 audio — OPTIONAL AFTER HANDS-ON
+# 3. Odds / Drop contents / collection-progress surface — DEFERRED NEXT CANDIDATE
 
-Current runtime reuses the established SFX set and does not have dedicated `chips-collect` or `charged-ready` cues.
+Hands-on produced a valid information need:
 
-Question:
+- show exact rarity/drop probabilities;
+- show what can come from the active pouch/Drop;
+- show active collection/Drop names;
+- show discovered vs undiscovered items.
 
-> Does hands-on reveal a concrete sound-feedback gap for CHIPS transfer or Charged readiness?
+This is deliberately **not** in the current feel correction.
 
-If no, add nothing.
+Candidate solution after second hands-on:
 
-If yes, prefer one concise reusable CHIPS cue and/or one readiness cue. Do not create one sound per cache tier.
+```text
+Drop name · discovered/total · info
+→ on-demand drawer
+→ Basic/Charged exact odds from typed config
+→ family list
+→ discovered items visible
+→ undiscovered items obscured/silhouetted
+```
+
+Still unresolved after correction:
+
+- exact entry-point placement;
+- whether Secret count/slots are concealed;
+- whether odds show normalized standard-rarity percentages only or also Hidden Pocket separately;
+- whether the drawer previews all collectible art or silhouette-only for missing items.
+
+Rejected for now:
+
+- permanent giant sidebar;
+- permanently visible odds table on the main opener;
+- fake Drop selector before Drop #2 exists.
 
 ---
 
-# 4. Quick Reveal — PARKED UNTIL REPEATED-USE EVIDENCE
+# 4. Quick Reveal / mass opening — PARKED
 
-Only revisit if 20–50 openings show that full presentation is materially too slow.
+The first hands-on proves pacing friction, but the approved fix is **direct tap-to-fast-forward**, not another mode.
 
-Before adding a new mode, first ask whether a small duration reduction in ordinary CHIPS/cache/recycle beats solves the problem.
+Revisit Quick Reveal only if the second 20–30 opening test says per-beat acceleration is still insufficient.
 
-No x5/mass opening is implied.
+No x5/auto-open is implied.
 
 ---
 
-# 5. Real Yandex DRAFT findings — NEXT EXTERNAL QUESTION SET
+# 5. Shader work — PARKED
 
-After hands-on acceptance, hosted validation may reveal issues local CI cannot:
+No custom WebGL shader in the current correction.
 
-- SDK boot / loading timing;
+Use Phaser Text/Graphics/tint/blend/highlight/tweens first.
+
+Re-open exactly one local shader only if a reviewed no-shader result proves a specific effect cannot be achieved convincingly enough — likely Charged or Legendary holography. Do not create a shader system for general polish.
+
+---
+
+# 6. Real Yandex DRAFT findings — NEXT EXTERNAL QUESTION SET
+
+After corrected hands-on acceptance, hosted validation may reveal issues local CI cannot:
+
+- SDK boot/loading timing;
 - safe storage behavior;
 - pause/resume/audio lifecycle;
 - ad no-fill/throttle/close behavior;
@@ -107,36 +195,26 @@ Do not invent fixes before the draft exposes a problem.
 
 ---
 
-# 6. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
+# 7. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
 
-Only after Lite V2 hands-on + real Yandex DRAFT validation, lock:
+Only after corrected hands-on + real Yandex DRAFT validation, lock:
 
 - first additional gadget families;
 - first real Drop name/theme;
 - when Drop #2 exists;
 - exact grouping and Secret count.
 
-Candidate families remain:
-
-- MP3 player;
-- pager;
-- mini camcorder;
-- handheld console;
-- PDA;
-- portable disc / MiniDisc-like player;
-- pocket radio;
-- virtual-pet-like electronic;
-- other suitable Y2K archetypes.
+Candidate families remain MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronic and other suitable Y2K archetypes.
 
 Rough 3–5 families per Drop remains a heuristic, not a commitment.
 
 ---
 
-# 7. Collection at multi-Drop scale — OPEN LATER
+# 8. Collection at multi-Drop scale — OPEN LATER
 
 Current Shelf/Library stays.
 
-When Drop #2 actually exists, decide from real density:
+When Drop #2 exists, decide from real density:
 
 - where compact Drop selection belongs;
 - whether Shelf is global or Drop-scoped;
@@ -148,13 +226,7 @@ Do not redesign Collection before the content exists.
 
 ---
 
-# 8. Family-targeted acquisition — PARKED
-
-Revisit only if real completion data shows Drop-level Signal protection still leaves players frustratingly stuck near completion.
-
----
-
-# 9. Additional idle/incremental systems — PARKED
+# 9. Additional meta systems — PARKED
 
 Not backlog commitments:
 
@@ -165,60 +237,34 @@ Not backlog commitments:
 - Archive levels;
 - upgrade/set-bonus trees;
 - prestige;
-- auto-open;
-- crafting/merge.
+- auto-open/x5;
+- crafting/merge;
+- family-targeted acquisition.
 
-Re-open exactly one only if the proven current loop has a specific retention/progression problem that it solves cheaply.
-
----
-
-# 10. Advertising / public measurement — OPEN FOR RELEASE TUNING
-
-Implementation/compliance boundaries already exist.
-
-After hosted validation + expanded content, decide:
-
-- actual public rewarded benefit/placement;
-- interstitial logical pause points;
-- whether sticky banner is worth layout cost;
-- continuation/retention/playtime/monetization metrics for public release.
-
-The current dev rewarded CHIPS grant is a plumbing probe, not a public economy decision.
-
----
-
-# 11. Store/submission choices — DEFER UNTIL RELEASE BUILD
-
-Only after expanded content/key visual stabilizes:
-
-- final RU/EN title;
-- categories/tags/keywords;
-- icon/cover/hero;
-- localized screenshots;
-- final monetization configuration;
-- moderation QA.
+Re-open exactly one only if the proven loop has a specific retention/progression problem that it solves cheaply.
 
 ---
 
 # What is NOT open anymore
 
-Do not re-litigate without new evidence:
+Do not re-litigate without contradictory evidence:
 
 - one global CHIPS currency;
-- Basic free/unlimited in Lite V2;
+- Basic free/unlimited;
 - Basic always gives one standard collectible;
 - independent base CHIPS + cache luck;
 - Basic C/R/E only, no standard Legendary;
-- Charged has non-zero Legendary and stronger top-end profile;
-- duplicates auto-recycle into CHIPS + one Signal segment;
-- Signal threshold `4`;
-- legacy migration `min(4, floor(oldSignal / 25))`;
-- Signal respects active loot pool + selected-pouch eligibility;
-- Basic retains lock when only Legendary remains;
-- Charged cost/reward is one atomic recoverable transaction;
+- Charged stronger top-end + Legendary access;
+- duplicate auto-recycle into CHIPS + Signal;
+- Signal threshold `4` and selected-pouch eligibility;
+- atomic recoverable reveal transaction;
 - CHIPS/Signal global across Drops;
 - no shop scene;
-- no multi-standard drop in Lite;
-- Phaser-rendered CHIPS identity is sufficient unless hands-on disproves it;
-- Charged runtime aura can reuse current pouch art;
-- idle/offline/Overcharge/Archive systems are parked.
+- no multi-standard drop;
+- tap-to-fast-forward presentation is the current pacing fix;
+- earned CHIPS visually bank after result acceptance in the correction;
+- larger tactile CHIPS HUD + dedicated CHIPS SFX;
+- stronger Charged runtime differentiation;
+- digital/neon accents limited to electronic UI;
+- no arbitrary random callout placement;
+- no custom shader in the current pass.
