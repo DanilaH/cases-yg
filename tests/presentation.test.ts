@@ -113,6 +113,11 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.railUnavailableAlpha).toBeLessThan(0.9);
     expect(OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha).toBeGreaterThanOrEqual(0.7);
     expect(OPENING_FEEL_PRESENTATION.railUnavailableSurfaceAlpha).toBeLessThan(0.9);
+    expect(OPENING_FEEL_PRESENTATION.uiFadeInMs).toBeGreaterThanOrEqual(180);
+    expect(OPENING_FEEL_PRESENTATION.uiFadeInMs).toBeLessThanOrEqual(260);
+    expect(OPENING_FEEL_PRESENTATION.uiFadeOutMs).toBeGreaterThanOrEqual(150);
+    expect(OPENING_FEEL_PRESENTATION.uiFadeOutMs).toBeLessThanOrEqual(240);
+    expect(OPENING_FEEL_PRESENTATION.uiPressMs).toBeLessThanOrEqual(90);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {
