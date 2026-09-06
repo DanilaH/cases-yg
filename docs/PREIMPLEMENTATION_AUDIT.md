@@ -1,12 +1,10 @@
 # Pre-implementation audit — amended 2026-09-02
 
+> **HISTORICAL PLANNING RECORD.** This audit explains decisions made before the current opener and Gameplay Loop Lite V2 direction existed. It is retained for rationale only and is not a current roadmap/specification. Current truth lives in `DECISIONS.md`, `PRODUCT.md`, `GAMEPLAY_SYSTEMS.md`, `IMPLEMENTATION_ROADMAP.md` and `OPEN_QUESTIONS.md`.
+
 This audit supersedes the earlier assumption that Camera + Flip Phone would be the first **public** behavioral release.
 
-New product staging is explicit:
-
-> **Camera + Flip Phone = private internal vertical slice → direct user review → substantial content expansion → public Yandex release.**
-
-The slice is not submitted to moderation and is not expected to prove market KPIs.
+The staging recorded below was correct for this historical checkpoint but has since evolved. Current order is **Lite V2 → hands-on → real Yandex DRAFT → content expansion → public release**.
 
 ---
 
@@ -244,13 +242,6 @@ Yandex requirements still matter during engineering because SDK/lifecycle/ads/st
 
 # 13. Final conclusion
 
-No additional clarification is required to start Phase 1.
+No additional clarification was required for the historical implementation stage described here.
 
-The genuinely unresolved release decisions are intentionally later:
-
-1. exact public family count/collection grouping;
-2. release-scale balance;
-3. final ad reward/placement/cadence;
-4. whether Tech Parts/Mod Bench or package tiers become useful with the expanded catalog.
-
-Those decisions become better, not worse, after the user has the slice in hand.
+The current unresolved decisions are tracked only in `OPEN_QUESTIONS.md`; do not use this audit’s old release queue as an active backlog.

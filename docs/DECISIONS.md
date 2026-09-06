@@ -1,20 +1,19 @@
 # Decision ledger
 
-This file is the canonical decision ledger. The project now has **three explicit stages**:
-
-1. **INTERNAL SLICE** — Camera + Flip Phone vertical slice used only for developer/user hands-on review and technical validation. It is not a public release.
-2. **CONTENT / RELEASE BUILD** — expand the same game substantially with more gadget families, rebalance progression, finish monetization UX and scale Collection.
-3. **PUBLIC RELEASE** — Yandex Games submission only after the expanded content build is complete and release QA passes.
+This file is the canonical decision ledger.
 
 Status meanings:
 
 - **LOCKED** — source of truth unless new evidence invalidates it.
-- **LOCKED FOR SLICE** — fixed for the internal vertical slice; not automatically final release balance/content.
-- **LOCKED FOR RELEASE ARCHITECTURE** — must be designed correctly from the start because the public build will depend on it.
-- **OPEN FOR RELEASE** — intentionally deferred until internal feedback/content scale is known.
-- **PARKED** — not required for the slice; may return during release expansion.
-- **LOCKED OUT** — deliberately excluded unless the product direction changes materially.
-- **HYPOTHESIS** — assumption to validate.
+- **LOCKED TARGET** — agreed next implementation behavior; current runtime may still be on the pre-migration behavior until the corresponding pass lands.
+- **LOCKED FOR RELEASE ARCHITECTURE** — must scale correctly from the start because later content depends on it.
+- **CURRENT RUNTIME** — factual current implementation, retained here when it differs from the agreed next target.
+- **COMPLETE** — implementation/asset work is present and integrated.
+- **OPEN FOR TUNING** — concept is decided; numbers/pacing remain to be tuned.
+- **OPEN FOR RELEASE** — deliberately deferred until larger content scale exists.
+- **HYPOTHESIS** — useful working assumption, not a commitment.
+- **PARKED** — not part of current scope; may return only if evidence gives it a concrete job.
+- **LOCKED OUT** — excluded unless product direction changes materially.
 
 ---
 
@@ -26,17 +25,70 @@ Status meanings:
 | Engine | LOCKED | Phaser 4.2.1 + Vite + strict TypeScript |
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
-| Core loop | LOCKED | tear package → anticipation/reveal → rarity → new/duplicate progression → collection → repeat |
-| Internal slice purpose | LOCKED | private hands-on vertical slice for the user: validate feel, UX, correctness, SDK/ads integration and art pipeline; **do not publish it** |
-| Internal slice package model | LOCKED FOR SLICE | one unlimited free Mystery Pouch; no package currency/energy/tier friction while judging the core interaction |
-| Internal slice content | LOCKED FOR SLICE | Digital Camera + Flip Phone; 4 standard rarities each + 2 Secrets = 10 collectible assets |
-| Public content direction | LOCKED | materially expand beyond two families before release; Camera/Flip Phone are only the first production batch |
-| Public family count | OPEN FOR RELEASE | choose after the slice proves the production/art pipeline; previous ~24+ scale may be reconsidered, and a larger set is allowed if quality/throughput support it |
-| Candidate expansion families | OPEN FOR RELEASE | MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics, plus additional suitable Y2K gadget archetypes |
-| Public package/economy model | OPEN FOR RELEASE | unlimited free vs light soft-currency/access model, package pools/tiers and acquisition pacing are decided together with final content + monetization; do not assume slice unlimited-free rules are final |
-| Public balance | OPEN FOR RELEASE | slice odds/Signal/Hidden Pocket values must be re-simulated and rebalanced after final launch content count/package model is chosen |
-| Public Collection structure | OPEN FOR RELEASE | scale Shelf/Library for many families; exact grouping/pages/themed shelves depend on launch roster |
-| Production philosophy | LOCKED | low production burden per family; scale through a repeatable asset factory rather than feature-heavy gameplay |
+| Core physical loop | LOCKED | tear pouch → reveal reward → rarity/new/duplicate feedback → collection/progress → repeat |
+| Next gameplay loop | LOCKED TARGET | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat** |
+| Current stage | LOCKED | Implement Gameplay Loop Lite V2 on top of the visually accepted two-family opener, then hands-on, then real Yandex DRAFT |
+| Two-family build | LOCKED | private development base only; Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
+| Public content direction | LOCKED | materially expand beyond two families after Lite V2 + hosted draft validation |
+| Expansion organization | LOCKED FOR RELEASE ARCHITECTURE | themed Drops/loot pools; do not grow one global mega-pool |
+| Public family count | OPEN FOR RELEASE | choose from measured art throughput/quality; no arbitrary ~24 commitment |
+| Production philosophy | LOCKED | low production burden, repeatable content factory, minimal gameplay-system count |
+
+---
+
+## Gameplay Loop Lite V2
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Basic Pouch access | LOCKED TARGET | free/unlimited; no timer/energy in Lite V2 |
+| Basic reward | LOCKED TARGET | one standard collectible **always** + guaranteed base CHIPS + independent CHIPS-cache roll + optional Hidden Pocket |
+| Basic collectible role | LOCKED | never a currency-only empty opening; the gadget reveal remains the core fantasy |
+| CHIPS | LOCKED TARGET | one global spendable currency used for Charged Pouch |
+| CHIPS payout model | LOCKED TARGET | guaranteed small/base payout plus a separate independent cache/jackpot roll; do not use one flat fixed value or one very wide random range |
+| CHIPS cache | LOCKED TARGET | rare bonus tiers may award materially more CHIPS; the very rare top cache may fund multiple Charged openings |
+| CHIPS luck independence | LOCKED | collectible rarity roll and CHIPS-cache roll are independent axes of luck |
+| CHIPS HUD | LOCKED TARGET | persistent compact counter; reward tokens visibly fly into it after reveal resolution |
+| CHIPS presentation scale | LOCKED TARGET | visible token count is presentation only and does not equal economic amount; large payouts use stronger bursts rather than hundreds of sprites |
+| Charged Pouch | LOCKED TARGET | bought with CHIPS directly from Opening UI; no store scene |
+| Charged reward | LOCKED TARGET | one standard collectible, stronger normal CHIPS payout/cache profile, better rarity access, higher Hidden Pocket chance |
+| Charged economy invariant | LOCKED | over repeated play Charged is a net CHIPS sink in expectation; jackpot cache outcomes may occasionally pay for several future Charged openings |
+| Multi-standard drops | LOCKED OUT | not in Lite V2; multi-reward feel comes from CHIPS + hero collectible + optional Secret |
+| Duplicate behavior | LOCKED TARGET | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL`; no manual sell choice |
+| Duplicate CHIPS | OPEN FOR TUNING | rarity-dependent small rebate; exact values TBD |
+| Signal purpose | LOCKED | non-spendable duplicate pity, separate from CHIPS |
+| Signal Lite rule | LOCKED TARGET | any standard duplicate `+1`; `4/4` arms SIGNAL LOCK; the next standard roll that has at least one undiscovered candidate eligible for the selected pouch is guaranteed NEW; consume → `0/4` |
+| Legacy Signal migration | LOCKED TARGET | `newSignal = min(4, floor(oldSignal / 25))`; thus 0–24→0, 25–49→1, 50–74→2, 75–99→3, 100→4/LOCK |
+| Complete Drop + armed Signal | LOCKED TARGET | lock is not wasted/consumed if active Drop has no undiscovered standard item |
+| SIGNAL LOCK × pouch profile | LOCKED TARGET | filter missing items in active Drop through the selected pouch rarity profile; if eligible NEW candidates exist, preserve that profile and guarantee one; if none exist, resolve the pouch normally and keep SIGNAL armed |
+| Basic-only zero-eligible Signal edge | LOCKED TARGET | **strict Charged gate**: if only Legendary remains, Basic cannot bypass its Legendary=0 rule; Basic still opens normally for collectible/CHIPS/recycle, SIGNAL stays `4/4`, and UI should communicate `SIGNAL LOCK · CHARGED` until an eligible Charged opening consumes it |
+| Charged cost | OPEN FOR TUNING | exact CHIPS price TBD |
+| Base CHIPS payouts | OPEN FOR TUNING | exact Basic/Charged base ranges TBD |
+| CHIPS cache chances/amounts | OPEN FOR TUNING | exact cache tier probabilities and payout ranges TBD |
+| Charged rarity weights | OPEN FOR TUNING | exact table TBD; structural rarity access is locked below |
+| Basic/Charged Hidden Pocket | OPEN FOR TUNING | Charged must be meaningfully higher; exact probabilities TBD |
+| Reward sequencing | LOCKED TARGET | tear → CHIPS presentation/cache beat → one collectible → NEW/recycle → optional Hidden Pocket → resource transfer → result ready |
+| No fake economy choice | LOCKED | duplicate recycle is automatic; CHIPS spending choice is Basic vs Charged, not “sell or keep duplicate” |
+
+### Current runtime migration note
+
+Current `main` still uses the pre-Lite Signal model: threshold 100 with rarity-dependent duplicate gains and the existing slice late-lock behavior. That remains runtime truth until implementation changes it. The Lite decision above is the **superseding target**; do not keep both models after migration.
+
+---
+
+## Content growth / Drops
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Loot pool identity | LOCKED TARGET | families/collectibles carry `dropId` / `lootPoolId` data |
+| Active Drop | LOCKED TARGET | Basic/Charged/Signal resolve inside active Drop |
+| One-Drop UI | LOCKED | selector hidden while only one Drop exists |
+| Multi-Drop UI | OPEN FOR RELEASE | reveal a compact selector once Drop #2 exists; no separate complex world/map required |
+| Wallet across Drops | LOCKED | CHIPS global |
+| Signal across Drops | LOCKED | Signal meter global, but lock targets undiscovered standard item inside active Drop and respects selected pouch eligibility |
+| Drop size | HYPOTHESIS | roughly 3–5 families per Drop is a useful starting heuristic, not a hard rule |
+| Family targeting | PARKED | add only if real completion data shows Drop-level targeting is insufficient |
+
+Candidate future families remain MP3 player, pager, mini camcorder, handheld console, PDA, portable disc/MiniDisc-like player, pocket radio, virtual-pet-like electronics and other suitable Y2K archetypes.
 
 ---
 
@@ -45,74 +97,64 @@ Status meanings:
 | Decision | Status | Current answer |
 |---|---|---|
 | Package | LOCKED | silver/translucent-lavender anti-static / foil Mystery Pouch |
-| Tear | LOCKED | one short deterministic left-to-right drag using the star tear-tab; no physics/multistage unpacking |
-| Reveal | LOCKED | pouch remains source ~0.3–0.4 s; total standard reveal ~1.0–1.4 s; runtime FX; collectible becomes final hero |
-| Result hold | LOCKED | final result stays readable at least ~0.6 s; then tap/click outside navigation advances; no timer auto-dismiss |
-| Quick Reveal | PARKED | not needed for initial slice; explicitly review from hands-on repeated-opening feedback and before public release |
-| Scenes | LOCKED | `BootScene`, `OpeningScene`, `CollectionScene`; reveal remains a phase inside Opening |
-| Responsive | LOCKED | landscape adaptive layout, 16:9 reference, coherent ~5:4–12:5; no fixed-board FIT strategy |
-| Audio | LOCKED FOR SLICE | SFX-only + persistent mute; no background music requirement |
-| Localization | LOCKED FOR RELEASE ARCHITECTURE | RU + EN typed strings, EN fallback; no text baked into gameplay art |
+| Tear | LOCKED | one short deterministic left-to-right drag using star tear-tab; no physics/multistage unpacking |
+| Reveal | LOCKED | existing stable pouch→reward layering, runtime FX, collectible becomes final hero |
+| Result hold | LOCKED | at least ~0.6 s; no timer auto-dismiss |
+| Reward CTA | LOCKED | result becomes explicitly actionable after hold; tap/click continues |
+| Quick Reveal | PARKED | add only if repeated Lite V2 hands-on proves full reveal pacing is friction |
+| Scenes | LOCKED | `BootScene`, `OpeningScene`, `CollectionScene`; reveal remains inside Opening |
+| Responsive | LOCKED | landscape adaptive layout, logical height 720, coherent 900–1728 logical width |
+| Audio | LOCKED | SFX-only is sufficient; persistent mute |
+| Localization | LOCKED FOR RELEASE ARCHITECTURE | RU + EN typed strings, EN fallback, no text baked into gameplay art |
 
 ---
 
-## Slice balance — NOT PUBLIC-LAUNCH BALANCE
+## Rarity / Hidden Pocket
 
 | Decision | Status | Current answer |
 |---|---|---|
 | Standard rarity ladder | LOCKED | Common → Rare → Epic → Legendary |
-| Slice odds | LOCKED FOR SLICE | Common 60%, Rare 28%, Epic 10%, Legendary 2% |
-| Slice family split | LOCKED FOR SLICE | Camera / Flip Phone 50/50 |
-| Slice onboarding | LOCKED FOR SLICE | first 3 standard openings are undiscovered variants; #2 uses opposite family from #1 |
-| Signal gains | LOCKED FOR SLICE | Common dup +25, Rare +20, Epic +15, Legendary +10 |
-| Early SIGNAL LOCK | LOCKED FOR SLICE | next standard result is one missing non-Legendary variant while any remain |
-| Late SIGNAL LOCK | LOCKED FOR SLICE | Rare 60 / Epic 30 / Legendary 10, family 50/50; armed result does not immediately rebuild Signal |
-| Hidden Pocket | LOCKED FOR SLICE | disabled openings 1–3; 3% from #4 while an undiscovered Secret remains |
-| Secret behavior | LOCKED FOR SLICE | exactly one Camera Secret + one Flip Phone Secret; Hidden Pocket awards an undiscovered Secret; no Secret duplicates |
-| Slice completion | LOCKED FOR SLICE | standard 8/8; Secrets 0/2 separately |
-| Release rebalance | LOCKED | rerun probability/simulation work when the expanded content roster, package model and progression systems are known |
+| Basic rarity access | LOCKED TARGET | Basic normal standard table can roll Common + Rare + a small Epic chance; **Legendary has zero normal Basic weight** |
+| Charged rarity access | LOCKED TARGET | Charged can roll all standard rarities and is the main source of Epic/Legendary; Legendary has non-zero Charged standard access |
+| Exact Basic rarity weights | OPEN FOR TUNING | Common dominant, Rare meaningful, Epic small; exact percentages TBD |
+| Exact Charged rarity weights | OPEN FOR TUNING | materially stronger Rare/Epic distribution plus non-zero Legendary; exact percentages TBD |
+| Current onboarding | LOCKED TARGET | preserve first 3 standard openings as undiscovered variants; #2 opposite family where possible, subject to active pouch's allowed rarity set |
+| Hidden Pocket role | LOCKED | rare automatic Secret second beat outside the standard rarity ladder |
+| Basic Secret access | LOCKED TARGET | Basic can still very rarely trigger Hidden Pocket/Secret; Secret is not hard-gated behind Charged |
+| Charged Secret access | LOCKED TARGET | Charged has a materially higher Hidden Pocket chance than Basic |
+| Current slice Hidden Pocket | CURRENT RUNTIME | disabled openings 1–3; 3% from #4 while undiscovered Secret remains |
+| Lite Hidden Pocket probabilities | OPEN FOR TUNING | exact Basic/Charged chances TBD |
+| Secret duplicate behavior | OPEN FOR RELEASE | current two-family slice has no Secret duplicates; re-evaluate with expanded Secret pool |
 
 ---
 
-## Art/content system
+## Collection
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Core roles | LOCKED | Shelf = attractive best finds; Library = exhaustive ownership/completion view |
+| Current slice | LOCKED | Camera + Flip Phone presentation is valid for current content |
+| Release grouping | LOCKED TARGET | Drops become the first high-level grouping primitive |
+| Release pages/filtering | OPEN FOR RELEASE | add only when actual roster density requires it |
+| Targeted acquisition | PARKED | not part of Lite V2 |
+
+---
+
+## Art / assets
 
 | Decision | Status | Current answer |
 |---|---|---|
 | Rendering | LOCKED | stylized painted 2D/2.5D |
 | Brand/IP rule | LOCKED | recognizable archetypes; no logos/model names/unnecessary 1:1 copies |
-| Family production rule | LOCKED | ~6–10 exploratory candidates → one canonical master → Common/Rare/Epic/Legendary derived from that master |
-| Rarity consistency | LOCKED | same geometry/camera/core controls per family; rarity mainly changes material/color/detail hierarchy |
-| Secret rule | LOCKED | outside normal rarity ladder; stronger special-edition treatment; can alter ~15–25% of details/geometry |
-| Flip Phone master | LOCKED FOR SLICE | one open front-facing pink Y2K clamshell master; silhouette, hinge, camera, screen frame, circular navigation control and keypad remain stable across standard rarities |
-| Flip Phone standard progression | LOCKED FOR SLICE | solid glossy pink → translucent/frosted pink → pearlescent/iridescent pink → clear shell with visible circuitry/internals |
-| Flip Phone Secret | LOCKED FOR SLICE | Noir / Monochrome Edition: smoked/piano-black shell, visible dark internals, silver/chrome hardware, monochrome Saturn-heart display and restrained star/crescent identity |
-| Source collectible input | LOCKED | source dimensions may vary and do **not** need manual pre-resizing; prefer PNG/WebP with meaningful alpha and the full object intact; source quality must be at least 1024 px on the limiting dimension where practical |
-| Runtime export | LOCKED | every accepted collectible becomes an individual **1024×1024 transparent WebP** with preserved aspect ratio; no non-uniform stretch |
-| Framing contract | LOCKED | trim transparent excess, fit the complete object inside a **64 px safe margin on every side** (896×896 maximum content box), center geometrically, then apply only small manifest `offsetX/offsetY` corrections when optical centering requires them; charms/straps/antennas count as part of the object and must remain inside the safe area |
-| Family framing consistency | LOCKED | Common/Rare/Epic/Legendary/Secret for one family must use the same angle and comparable perceived scale; pipeline normalization must not make one rarity visibly larger/smaller merely because its source canvas differs |
-| Collectible naming | LOCKED | runtime IDs/files use lowercase kebab-case: `<family>-common`, `<family>-rare`, `<family>-epic`, `<family>-legendary`, `<family>-secret-<edition>`; Flip Phone is `flip-phone-common.webp` … `flip-phone-secret-noir.webp` |
-| Collectible preprocessing | LOCKED | manifest-driven pipeline preserves existing alpha, uses deterministic `sharp` cleanup for clean backgrounds and per-item local U2NetP segmentation only when a difficult source needs it, then trims, optically aligns, normalizes to the locked transparent canvas, exports WebP and validates; visual QA remains mandatory |
-| Atlas policy | LOCKED FOR SLICE | individual 1024 WebPs remain canonical runtime inputs; optional Phaser atlas generation is inspection/profiling tooling only until real release-scale memory/loading evidence justifies a runtime switch |
-| Expansion pipeline | LOCKED FOR RELEASE ARCHITECTURE | content registry, Collection rendering and loaders must accept additional families from data; never hard-code Camera/Flip Phone into core systems |
-
----
-
-## SDK / ads / analytics
-
-| Decision | Status | Current answer |
-|---|---|---|
-| Yandex SDK | LOCKED FOR RELEASE ARCHITECTURE | integrate from the first slice behind a thin platform adapter |
-| Advertising policy | LOCKED | advertising follows current Yandex Games SDK and moderation requirements by default; platform compliance is not an open product-design question |
-| Ads infrastructure | LOCKED FOR RELEASE ARCHITECTURE | implement from the first slice in `platform/ads.ts`: interstitial, rewarded and sticky-banner control boundary |
-| Internal ad testing | LOCKED FOR SLICE | test Yandex draft ad lifecycle/callbacks with dev-only hooks; ad failures must never block gameplay/save |
-| Rewarded compliance | LOCKED | rewarded is voluntary; UI clearly says an ad will be watched and names the exact reward; reward grants exactly once only after the rewarded callback; close/error without reward grants nothing |
-| Interstitial compliance | LOCKED | request only at logical pauses outside active tear/reveal; never use unsafe timer spam; Yandex controls actual display frequency |
-| Sticky-banner compliance | LOCKED | if sticky is used, configure it in Yandex Console; if the game controls visibility, enable API-managed sticky-banner mode; banner must not cover required game interaction/UI |
-| Ad pause/resume | LOCKED | fullscreen/rewarded ads pause gameplay and all audio; resume only when platform/game state is actually playable |
-| Ad state ownership | LOCKED | coordinate platform/ad/visibility/menu pause reasons so duplicate callbacks cannot cause double `start()`, premature resume, or state corruption |
-| Internal rewarded test | LOCKED FOR SLICE | a clearly dev-only test reward such as +25 Signal may verify callback/idempotency plumbing only; it is not public economy design |
-| Public monetization tuning | OPEN FOR RELEASE | after expanded content/economy exists, choose the most useful compliant placements/reward values and whether sticky is worth using; this is later tuning, not a blocker or architecture question |
-| Analytics adapter | LOCKED FOR RELEASE ARCHITECTURE | Yandex built-ins + typed Yandex Metrica gameplay/ad events; analytics failure never blocks gameplay |
+| Family production rule | LOCKED | ~6–10 explorations → one canonical master → standard rarity derivations |
+| Runtime collectible export | LOCKED | individual 1024×1024 transparent WebP; aspect ratio preserved |
+| Current collectible set | COMPLETE | Camera + Flip Phone standard rarities + Secrets are integrated and enabled |
+| Current environment/SFX | COMPLETE | Opening/Collection environment art and current SFX set are integrated |
+| Pouch runtime | LOCKED | body + star-tab + **compact authored tear strip**; layers use independent presentation transforms, not a required same-canvas registration contract |
+| Lite CHIPS visual asset | LOCKED TARGET | one small reusable CHIPS token/icon asset or equivalent reviewed vector; same identity serves HUD, ordinary payout and cache bursts |
+| Cache asset burden | LOCKED | no separate art pack for Cache/Big/Mega outcomes; differentiate by runtime amount, burst density/scale and copy/FX |
+| Charged pouch art | LOCKED TARGET | reuse current pouch art with runtime Charged treatment first; no mandatory second pouch raster set |
+| Lite new SFX | OPEN FOR TUNING | prefer reuse/synth where good; add only concise CHIPS collect/transfer and Charged-ready cues if existing sounds cannot sell feedback |
 
 ---
 
@@ -120,12 +162,25 @@ Status meanings:
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Save | LOCKED | local-first, versioned, through injected `StorageAdapter`; Yandex runtime uses `ysdk.getStorage()` |
-| Anti-reroll | LOCKED | full `pendingReveal` is persisted before presentation and committed once |
-| Data-driven content | LOCKED FOR RELEASE ARCHITECTURE | family IDs, variants, rarity data, Collection groups and asset paths come from config/registry rather than two-family conditionals |
-| Asset loading | LOCKED FOR SLICE | preload all slice-critical assets because only 10 collectibles exist |
-| Release asset loading | OPEN FOR RELEASE | after content expansion, profile individual textures vs family/group atlases and preload groups/lazy loading without introducing user-visible waits |
-| React / physics / backend | LOCKED OUT BY DEFAULT | no React runtime, no physics, no backend unless a concrete release requirement appears |
+| Save | LOCKED | local-first, versioned, injected `StorageAdapter`; Yandex runtime uses safe storage |
+| Anti-reroll | LOCKED | full `pendingReveal` persisted before presentation and committed once |
+| Lite transaction | LOCKED TARGET | Charged cost + base CHIPS + cache bonus + recycle + Signal + collectible + Hidden Pocket are one recoverable atomic transaction |
+| Save migration | LOCKED TARGET | existing slice saves migrate forward; do not wipe progression merely to add CHIPS/Drop fields |
+| Data-driven content | LOCKED FOR RELEASE ARCHITECTURE | family/collectible/drop IDs and balance profiles come from config/registry |
+| Asset loading | CURRENT RUNTIME | current small catalog can preload; release loading strategy waits for real expanded catalog profiling |
+| React / physics / backend | LOCKED OUT | no React runtime, physics or backend without a concrete need |
+
+---
+
+## SDK / ads / analytics
+
+| Decision | Status | Current answer |
+|---|---|---|
+| Yandex SDK | LOCKED FOR RELEASE ARCHITECTURE | thin platform adapter |
+| Ads | LOCKED | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
+| Legacy rewarded probe | LOCKED TARGET | old dev-only `+25 Signal` probe becomes invalid after 4-segment Signal; switch technical rewarded probe to a clearly dev-only CHIPS grant |
+| Public monetization tuning | OPEN FOR RELEASE | choose actual rewarded value/cadence/sticky use after Lite + expanded content |
+| Analytics | LOCKED | provider-independent semantic events + Yandex Metrica adapter; failure never blocks game |
 
 ---
 
@@ -133,35 +188,35 @@ Status meanings:
 
 | Decision | Status | Current answer |
 |---|---|---|
-| Acceptance states | LOCKED | **technical green ≠ visual approved ≠ hands-on approved**. CI/runtime correctness is necessary but never proof that the scene looks or feels good. |
-| Canvas rule | LOCKED | Phaser canvas DOM/runtime checks can prove that the app rendered and interacted without errors, but they do not count as visual QA. |
-| Static visual gate | LOCKED | Any visual/layout change must be reviewed from real browser screenshots of the exact candidate revision at representative target viewports before merge. |
-| Motion visual gate | LOCKED | Any animation/interaction/effect change must additionally be reviewed from a real browser video capture or sufficiently dense frame sequence covering the whole interaction, including settled/ready states. |
-| Artifact review | LOCKED | A browser audit is not considered visually passed merely because screenshots/video were generated. The reviewer must actually open and inspect the artifacts. |
-| Unproven effect rule | LOCKED | If capture timing/sampling does not clearly show an intended visual effect, status is **unverified**, not passed. Fix the capture or strengthen/fix the effect before approval. |
-| Autonomous defect handling | LOCKED | Obvious composition, overlap, hierarchy, centering, transition or effect defects visible in captures are blockers and should be corrected autonomously without waiting for user hands-on. |
-| Exact-revision rule | LOCKED | Visual approval must correspond to the exact PR/head revision intended for merge. Stale captures from an earlier revision do not approve later code. |
-| Interaction-state coverage | LOCKED | Capture must include the states relevant to the change: idle, active gesture/drag where applicable, transition/reveal, ready/result, and responsive/carousel variants where applicable. |
-| User hands-on role | LOCKED | User hands-on remains the final authority for tactile feel, pacing, repeated-use fatigue and audio/motion impression; it is not the first line of defense against obvious visual defects that captures can expose. |
-| Merge rule | LOCKED | Visual changes may merge only after technical validation passes **and** visual artifacts have been explicitly reviewed with no known blocking visual defect. |
-
-This gate exists specifically because a green CI/browser-runtime audit previously allowed visibly broken pouch composition to survive multiple iterations. The process must prevent that failure mode from recurring.
+| Acceptance states | LOCKED | technical green ≠ visual approved ≠ hands-on approved |
+| Static visual gate | LOCKED | visual/layout changes require real screenshots of exact candidate revision |
+| Motion visual gate | LOCKED | animation/interaction/effect changes require video or dense frame sequence |
+| Artifact review | LOCKED | generated captures do not pass themselves; reviewer must inspect them |
+| Exact-revision rule | LOCKED | approval must match the revision intended for merge |
+| User hands-on role | LOCKED | final authority for tactile feel, pacing, fatigue and reward satisfaction |
+| Merge rule | LOCKED | visual changes merge only after technical + visual gates |
 
 ---
 
-## Systems deferred to release expansion
+## Explicitly parked / excluded from Lite V2
 
-These are **not permanently rejected** just because they are absent from the internal slice:
+PARKED:
 
-- Tech Parts / Mod Bench;
-- package tiers / other light acquisition economy;
-- Daily Spotlight;
-- shelf/environment progression;
-- additional retention systems.
+- timed Basic Pouch charges/energy;
+- offline income;
+- collection passive CHIPS production;
+- Overcharge;
+- Archive levels;
+- collection upgrade/set-bonus trees;
+- separate shop;
+- multiple spendable currencies;
+- multi-standard collectible drops;
+- auto-open/x5;
+- prestige;
+- crafting/merge;
+- Daily Spotlight/shelf evolution unless later evidence gives them a clear job.
 
-Re-evaluate them after the content roster is larger. Each must solve a concrete retention/economy problem and stay proportional to production cost.
-
-Still locked out unless direction changes materially:
+LOCKED OUT unless direction changes materially:
 
 - trading/market;
 - crash/double/jackpot/betting framing;
@@ -173,6 +228,4 @@ Still locked out unless direction changes materially:
 
 ## Current stage
 
-> **GO: finish internal slice production assets using the now-stable runtime and asset pipeline.**
-
-The slice is complete when it is stable and good enough for the user's hands-on review. It does **not** need store media, moderation or public behavioral traffic. After sign-off, immediately move into content expansion and release design rather than publishing the two-family build.
+> **GO: implement Gameplay Loop Lite V2, then run independent visual/interaction review + direct hands-on. If accepted, move to real Yandex DRAFT validation before content expansion.**

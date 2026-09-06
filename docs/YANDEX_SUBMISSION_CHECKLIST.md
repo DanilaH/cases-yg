@@ -1,28 +1,30 @@
 # Yandex Games public-release checklist
 
-This checklist is for the **expanded public release**, not the private Camera + Flip Phone internal slice.
+This checklist is for the **expanded public release**, not the current two-family development build.
 
 Platform requirements were checked against Yandex Games documentation on 2026-09-02. Re-check immediately before submission.
 
+The project has a separate earlier hosted gate in `YANDEX_SLICE_VALIDATION.md`: **Lite V2 hands-on → real Yandex DRAFT validation → content expansion → final public-release hardening**.
+
 ---
 
-# 1. SDK is production infrastructure from day one
+# 1. SDK / hosted-runtime baseline
 
 Before public moderation verify:
 
 - Yandex Games SDK initializes correctly;
 - `LoadingAPI.ready()` fires only when required startup assets/save recovery are done and the game is interactive;
 - `GameplayAPI.start()/stop()` mapping matches actual gameplay/menu state if used;
-- `game_api_pause` / `game_api_resume` pause and resume gameplay/audio correctly;
+- platform pause/resume events pause and resume gameplay/audio correctly;
 - game remains usable without mandatory authorization unless release scope later adds an account-dependent feature.
 
-The internal slice should already have exercised these paths in Yandex draft/debug mode.
+These paths should already have been exercised in the real hosted Lite V2 DRAFT before content expansion. If the final release build materially changes startup/loading/platform behavior, repeat the relevant hosted checks.
 
 ---
 
 # 2. Advertising — PLATFORM RULES ARE THE BASELINE
 
-Advertising is not a bespoke design-policy question: implement it according to the **current Yandex Games SDK + moderation requirements**, then tune product placement/reward values later.
+Advertising follows the current Yandex Games SDK + moderation requirements, with product placement/reward values tuned against the final release loop.
 
 Required baseline:
 
@@ -38,31 +40,23 @@ Required baseline:
 - ad unavailability/error never deadlocks gameplay;
 - platform/ad/visibility pause reasons are coordinated so duplicate callbacks do not cause premature or double resume.
 
-Yandex controls the actual display frequency of interstitial ads. The game should request them only at deliberately chosen logical moments rather than implementing high-frequency timer spam.
+Yandex controls actual interstitial display frequency. The game should request interstitials only at deliberately chosen logical moments rather than implementing high-frequency timer spam.
 
 ### Sticky banner
 
 If sticky banner is used:
 
-- configure supported placement in the Yandex Games Console;
-- by default Yandex may manage/show it automatically;
-- if the game needs manual show/hide, enable the Console option **Use the API to display a sticky-banner**;
-- then control visibility only through the SDK adapter;
-- verify it never obscures required navigation/gameplay and behaves correctly across resize/orientation/layout changes.
+- configure supported placement in Yandex Games Console;
+- if the game needs manual show/hide, enable the matching API-managed sticky option in Console;
+- control visibility only through the SDK adapter;
+- verify it never obscures CHIPS/Signal/Charged controls or required navigation/gameplay;
+- verify behavior across resize/orientation/layout changes.
 
-Architecture must expose roughly:
-
-```text
-showInterstitial()
-showRewarded(rewardId)
-setStickyBannerVisible(boolean)
-```
-
-with explicit result/error semantics rather than scenes calling Yandex globals directly.
+Architecture continues to expose ad behavior through the project adapter rather than scenes calling Yandex globals directly.
 
 ---
 
-# 3. Final monetization tuning — LOCK BEFORE SUBMISSION, NOT BEFORE SLICE
+# 3. Final monetization tuning — LOCK BEFORE SUBMISSION
 
 After expanded content/economy is known, choose:
 
@@ -72,45 +66,56 @@ After expanded content/economy is known, choose:
 - any game-owned cooldown/config needed beyond platform behavior;
 - analytics events used to evaluate monetization impact.
 
-These are release optimization choices. They do not reopen the platform compliance rules above.
+These are release optimization choices. They do not reopen platform compliance rules.
 
 Do not manufacture energy/package scarcity solely to force ads.
 
+The old development-only `+25 Signal` rewarded probe belongs to the pre-Lite Signal model and must not survive into the final product. Lite technical rewarded validation uses a clearly dev-only CHIPS grant; public rewarded value is a separate final decision.
+
 ---
 
-# 4. Save / recovery
+# 4. Save / economy / recovery
 
 Use injected `StorageAdapter`:
 
-- Yandex runtime via `await ysdk.getStorage()`;
-- local development fallback via browser localStorage.
+- Yandex runtime through safe SDK-backed storage;
+- local development fallback through browser localStorage.
 
 Verify:
 
 - progress survives refresh;
+- save migrations from development versions are deterministic/idempotent;
 - `pendingReveal` survives interruption;
 - refresh cannot reroll;
 - ad open/close cannot double-commit;
-- save format migrates cleanly from internal/content-development versions where needed.
+- CHIPS wallet cannot double-credit;
+- duplicate recycle cannot grant twice;
+- Signal cannot increment/consume twice;
+- Charged Pouch cost and all rewards are one atomic transaction;
+- interrupted Charged opening cannot lose its cost without preserving the already-rolled reward.
 
 Cloud/player save remains a separate release choice if later needed.
 
 ---
 
-# 5. Expanded-content loading
+# 5. Expanded-content / Drop loading
 
-The public release will contain substantially more than 10 collectible assets.
+The public release will contain substantially more than the current 10 collectible assets.
+
+Content should be organized into themed Drops/loot pools rather than one global mega-pool.
 
 Before Game Ready / moderation:
 
 - profile actual startup payload;
 - preload only what is required for immediate interaction;
-- use grouped/on-demand loading for expanded Collection content if needed;
+- use grouped/on-demand loading for expanded Collection/Drop content if needed;
 - no user-visible network wait during ordinary Opening ↔ currently available Collection navigation;
 - decoded texture memory is tested on real mobile;
-- archive remains below current Yandex limits.
+- archive remains below current Yandex limits;
+- active Drop content is complete and deterministic;
+- switching Drops cannot corrupt pending rewards or Signal targeting.
 
-Do not blindly preload every 1024 texture merely because the internal slice could.
+Do not blindly preload every 1024 texture merely because the current small catalog can.
 
 ---
 
@@ -126,6 +131,7 @@ Fail release if there is:
 - overlapping controls;
 - unusable tear gesture;
 - hidden navigation;
+- CHIPS/Signal/Charged state hidden or clipped;
 - non-uniform sprite stretch;
 - system scrollbar;
 - swipe-to-refresh/overscroll stealing interaction;
@@ -141,7 +147,7 @@ Current architecture: RU + EN, unsupported language → EN.
 Before release:
 
 - choose language automatically from Yandex SDK environment;
-- verify all gameplay, Collection, progression and monetization copy in both languages;
+- verify all gameplay, Collection, Drop, CHIPS, Signal, Charged and monetization copy in both languages;
 - rewarded CTA states that an ad will be watched and names the reward;
 - screenshots/media match selected localization;
 - no important gameplay copy is baked into non-localizable raster art.
@@ -163,7 +169,7 @@ Before upload:
 
 - verify catalog uniqueness in Console;
 - choose real categories/tags/keywords from current Console options;
-- ensure metadata describes the expanded release, not the internal two-family slice;
+- ensure metadata describes the expanded release, not the current development catalog;
 - confirm platform/iOS Team ID requirements if iOS is selected.
 
 ---
@@ -180,35 +186,46 @@ Current planning targets:
 - optional hero 1560×520;
 - required landscape screenshots 16:9 within current allowed long-side range.
 
-Produce these from the **expanded release key visual/content**, not from the temporary two-family slice unless Camera/Flip Phone still happen to be the strongest marketing heroes.
+Produce these from the **expanded release key visual/content**, not automatically from the current two-family catalog unless Camera/Flip Phone still happen to be the strongest marketing heroes.
 
 Screenshots must show the actual release build. Real gameplay should occupy the required majority of screenshot composition under current Yandex moderation rules, and localization must match the selected language.
 
 ---
 
-# 10. Content completeness
+# 10. Content / loop completeness
 
 The public build must look intentionally complete:
 
 - expanded roster is present;
+- Drops/loot pools are coherently grouped when more than one exists;
 - no internal debug controls;
 - no placeholder assets;
 - no dead buttons;
 - no unexplained `coming soon` shells;
-- Collection organization fits the final family count;
-- progression/odds match release balance rather than old slice numbers;
+- Collection organization fits the final family/Drop count;
+- Basic/Charged economy is tuned against the final content matrix;
+- Signal/Hidden Pocket behavior matches release semantics rather than old slice numbers;
 - monetization UI is integrated coherently rather than bolted on;
 - total content/replayability meets current Yandex duration/replayability expectations.
 
-The old moderation concern about a two-family game is no longer relevant because that build is private.
+The old moderation concern about a two-family game is irrelevant because that build remains development-only.
 
 ---
 
 # 11. Analytics
 
-Verify built-in Yandex metrics and Metrica gameplay events in draft mode.
+Verify built-in Yandex metrics and Metrica gameplay/ad events in draft mode.
 
-Gameplay events should represent release semantics after roster/balance changes.
+Gameplay events should represent final semantics, including where relevant:
+
+- pouch type;
+- active Drop;
+- CHIPS earned/spent;
+- duplicate recycle;
+- Signal lock reach/consume;
+- Charged ready/open;
+- Hidden Pocket;
+- Collection navigation/completion.
 
 Ad events should allow diagnosing:
 
@@ -225,17 +242,18 @@ Analytics failure must never block gameplay/reward commits.
 
 At minimum:
 
-- fresh save + migration test;
-- drop/Signal/Hidden Pocket release rules;
+- fresh save + every supported migration path;
+- Basic/Charged/Drop/Signal/Hidden Pocket release rules;
 - forced rarity/Secret paths;
-- interrupted pending reveal;
-- Collection at early/mid/full states;
+- interrupted Basic pending reveal;
+- interrupted Charged pending reveal with exact wallet verification;
+- Collection at early/mid/full states across Drops;
 - expanded-content loading/memory test;
 - RU/EN automatic language selection;
 - Desktop/Mobile landscape;
 - resize/zoom/right-click/long-press/overscroll;
 - minimize/tab pause;
-- startup/platform pause-resume ad path;
+- startup/platform pause-resume/ad path;
 - interstitial call/return/error;
 - rewarded success/close/error/exactly-once reward;
 - sticky banner layout + API-managed mode if enabled;

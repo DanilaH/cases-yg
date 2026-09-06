@@ -66,35 +66,48 @@ Allowed:
 - signature faceplate/lens/control/accessory theme;
 - stronger bespoke identity while remaining recognizable as the family.
 
-Internal slice examples:
+Current examples:
 
 - Camera Secret: cold cyan/cosmic translucent edition + Saturn/planet charm;
-- Flip Phone Secret: **Noir / Monochrome Edition** — smoked/piano-black shell, silver/chrome hardware, visible dark internals, monochrome Saturn-heart screen and restrained star/crescent identity marks.
-
-The Flip Phone Secret is deliberately not part of the pink standard-rarity progression.
+- Flip Phone Secret: Noir / Monochrome Edition — smoked/piano-black shell, silver/chrome hardware, visible dark internals, monochrome Saturn-heart screen and restrained star/crescent identity marks.
 
 Public release Secret count/distribution is decided with the expanded roster.
 
 ---
 
-# 5. Internal slice vs public content
+# 5. Current content vs public content
 
-The first production batch is only:
+The integrated production catalog currently contains:
 
 1. Digital Camera;
 2. Flip Phone.
 
-This validates the opener and family-production pipeline. **It is not the final content scope.**
+This proves the opener and family-production pipeline. It is not the final content scope.
 
-After hands-on sign-off, use the same visual system to produce a substantially larger catalog.
+The next development pass is **Gameplay Loop Lite V2**, not mass content production. After Lite V2 hands-on + real Yandex DRAFT validation, resume batch production of a substantially larger catalog.
 
 Candidate next families include MP3 player, pager, mini camcorder, handheld console, PDA, portable disc player, pocket radio, virtual-pet-like electronics and other suitable Y2K gadget archetypes.
 
-The release should gain variety through different silhouettes/functions, not 20 nearly identical rectangular devices.
+The release should gain variety through different silhouettes/functions, not many nearly identical rectangular devices.
 
 ---
 
-# 6. Family production consistency
+# 6. Drops / themed content grouping
+
+As the catalog grows, families will be grouped into themed Drops/loot pools.
+
+Art implication:
+
+- each Drop should have a loose thematic identity without requiring a separate full UI skin;
+- individual collectible families must still feel like one coherent overall product line;
+- do not force every family in a Drop into the same color palette;
+- a rough 3–5-family Drop is a useful planning unit, not a hard art rule.
+
+Potential theme names such as `Y2K Essentials`, `Pocket Gaming` or `Music Tech` are placeholders until the real roster is locked.
+
+---
+
+# 7. Family production consistency
 
 For every family:
 
@@ -106,7 +119,7 @@ For every family:
 → derive Secret only if assigned in content plan
 ```
 
-Batch review during expansion must check:
+Batch review must check:
 
 - scale/proportion consistency;
 - similar painting/shading language;
@@ -120,7 +133,7 @@ Do not mass-produce dozens of families before correcting style drift discovered 
 
 ---
 
-# 7. Palette / decoration
+# 8. Palette / decoration
 
 Do not make the entire catalog pink/violet.
 
@@ -130,7 +143,7 @@ Charms/stickers/straps are garnish. Avoid repeating the same star charm or decal
 
 ---
 
-# 8. Runtime art vs effects
+# 9. Runtime art vs effects
 
 The same transparent collectible export is reused for reveal, Shelf and Library.
 
@@ -143,12 +156,14 @@ Keep primarily runtime-only:
 - particles;
 - ring/outline pulse;
 - camera bump;
-- NEW/duplicate labels;
-- Signal effects.
+- NEW/duplicate/recycle labels;
+- Signal effects;
+- CHIPS token motion;
+- Charged pouch glow/electric treatment.
 
 ---
 
-# 9. Mystery Pouch — LOCKED
+# 10. Mystery Pouch — LOCKED
 
 Canonical reference:
 
@@ -165,45 +180,66 @@ Visual grammar:
 - horizontal left-to-right tear line;
 - minimal/no baked title text.
 
-Runtime implementation uses body + tear strip + star-tab layers.
+Current runtime uses the existing body, compact authored tear strip and star-tab with independent presentation transforms.
+
+### Charged treatment
+
+Lite V2 should **reuse this same pouch art first**.
+
+Charged distinction should come from runtime treatment such as controlled electric/cyan-lavender glow, pulse/rings and clear status copy. Do not commission a second full pouch raster set unless visual review proves the runtime treatment is insufficient.
 
 ---
 
-# 10. Collection environment
+# 11. CHIPS visual identity — LITE V2
+
+CHIPS should look like tiny Y2K electronic tokens/components, not generic fantasy gold coins.
+
+Target:
+
+- tiny readable chip/circuit silhouette;
+- silver/lavender/cyan family;
+- usable at ~18–32 px HUD scale;
+- also readable when several tokens fly from reward to wallet;
+- no baked numeric value/text;
+- restrained enough not to compete with collectible rarity art.
+
+One reusable token/icon is enough. Do not create a large currency asset pack.
+
+---
+
+# 12. Collection environment
 
 Core mood remains a cozy illustrated Y2K shelf/desk/display.
 
-Internal slice can show two intentional hero positions.
+Current two-family composition is accepted for current content.
 
-Public release will have many families, so final environment may evolve into themed shelves/pages/groups. Preserve:
+Public content will have many families and multiple Drops, so final environment may evolve into themed shelves/pages/groups. Preserve:
 
 - collectible-first presentation;
-- fixed/curated display rather than free room editing;
+- curated display rather than free room editing;
 - enough atmospheric props to feel lived-in;
 - props must not masquerade as collectible slots.
 
-Exact release-scale shelf composition is decided after the launch roster is known.
+Exact multi-Drop Collection composition is decided only when expanded content exists.
 
 ---
 
-# 11. Store visual direction — PUBLIC RELEASE ONLY
+# 13. Store visual direction — PUBLIC RELEASE ONLY
 
-Do not finalize store creatives from the internal two-family slice.
+Do not finalize store creatives from the current two-family catalog.
 
 Once expanded release content is stable:
 
-- choose the strongest 1–3 gadget heroes for icon/cover;
-- use the Mystery Pouch as the recurring acquisition cue;
+- choose strongest 1–3 gadget heroes for icon/cover;
+- use Mystery Pouch as recurring acquisition cue;
 - show actual release art/material quality;
 - avoid fake platform UI/badges;
 - keep small-size readability first.
-
-Camera remains a strong icon candidate because a large lens reads well, but it is no longer automatically locked if a later family becomes a stronger CTR hero.
 
 Re-check Yandex media dimensions immediately before production/upload.
 
 ---
 
-# 12. Generator-facing prompt seed
+# 14. Generator-facing prompt seed
 
 > Generate a stylized collectible mini Y2K gadget inspired by real early-2000s pocket electronics. Use a front-facing or very soft 3/4 presentation, chunky simplified forms, soft painted 2.5D shading, large readable controls, and a cute but tasteful collectible finish. Prioritize recognizable gadget identity over kawaii decoration. Use candy plastic, translucent/frosted shells, pearlescent surfaces, restrained metallic accents, and stylized visible internals only where rarity calls for them. Keep the object consistent with a coherent blind-box mini gadget product line and readable at small in-game size. Avoid photoreal product rendering, generic glossy mobile 3D, excessive sparkles, and branded 1:1 product copies.

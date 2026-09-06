@@ -1,19 +1,18 @@
 # Asset manifest
 
-This manifest has two scopes:
+This manifest separates three scopes:
 
-1. **Internal vertical slice** — the concrete Camera + Flip Phone assets needed now.
-2. **Public release expansion** — a repeatable per-family asset factory; exact final count depends on the launch roster.
+1. **Integrated current runtime assets** — already present in the two-family build.
+2. **Gameplay Loop Lite V2 additions** — the minimal new visual/audio assets required by the agreed loop.
+3. **Public content expansion** — repeatable per-family production after Lite V2 + Yandex DRAFT validation.
 
-The internal slice is not submitted publicly, so final store creatives are not a slice blocker.
-
-The executable collectible processing manifest lives at `assets-src/collectibles.manifest.json`; production commands and constraints are documented in `docs/ASSET_PIPELINE.md`.
+The executable collectible processing manifest remains `assets-src/collectibles.manifest.json`; production commands and constraints remain in `docs/ASSET_PIPELINE.md`.
 
 ---
 
-# 1. Internal slice collectible art — 10 runtime assets
+# 1. Current collectible art — INTEGRATED
 
-Runtime target:
+Runtime contract:
 
 - transparent WebP;
 - 1024×1024;
@@ -21,7 +20,7 @@ Runtime target:
 - no baked reveal glow/particles/drop shadow;
 - same asset reused for reveal, Shelf and Library.
 
-Generation/source target: ~1536×1536 where practical; never accept a final source below 1024×1024. Raw generated art may arrive on a clean smooth background; accepted runtime output must have clean alpha.
+Integrated files:
 
 ```text
 public/assets/collectibles/camera-common.webp
@@ -37,11 +36,9 @@ public/assets/collectibles/flip-phone-legendary.webp
 public/assets/collectibles/flip-phone-secret-noir.webp
 ```
 
-Runtime URLs remain `assets/collectibles/...` because Vite serves `public/` as the web root.
+All ten are enabled in the current runtime art allowlist.
 
-After an export is reviewed, enable its collectible id in `AVAILABLE_COLLECTIBLE_ART_IDS` in `src/game/data/artAssets.ts`. Until then the procedural item remains the fallback.
-
-Per family working material:
+Per-family source workflow remains:
 
 ```text
 6–10 explorations
@@ -52,51 +49,47 @@ prompt/revision log
 Secret derivation where planned
 ```
 
-### Flip Phone slice family — locked
-
-```text
-Common     solid glossy pink
-Rare       translucent/frosted pink
-Epic       pearlescent/iridescent pink
-Legendary  clear shell + visible circuitry/internals
-Secret     Noir / Monochrome Edition
-```
-
-The Secret uses smoked/piano black + silver/chrome + monochrome Saturn-heart screen language and sits outside the standard material ladder.
-
 ---
 
-# 2. Mystery Pouch — 3 runtime layers
+# 2. Current Mystery Pouch — INTEGRATED
 
-Existing visual reference:
+Canonical visual reference remains:
 
 `docs/assets/package-mystery-pouch-v1.webp`
 
-Required runtime files:
+Current runtime mapping is:
 
 ```text
 public/assets/package/pouch-body.webp
-public/assets/package/pouch-tear-strip.webp
+public/assets/package/pouch-tear-strip-compact.webp   # actual runtime tear strip
 public/assets/package/pouch-star-tab.webp
 ```
 
-**Layer export contract:**
+The source/original full strip also exists as:
 
-- all three WebPs use the **same transparent canvas dimensions**;
-- all three are exported from the exact same registration/origin — no per-layer trim, crop, resize or re-centering;
-- body contains only the persistent pouch body;
-- tear-strip contains only the detachable top strip/tear-line art;
-- star-tab contains only the movable star/tab art;
-- do not bake an external drop shadow into these layers; runtime owns the grounding shadow;
-- the runtime applies one shared scale to the aligned canvas, then translates the tab and strip containers independently.
+```text
+public/assets/package/pouch-tear-strip.webp
+```
 
-This common-canvas contract is what lets a new reviewed pouch set drop in without changing interaction math. The slit/light remains runtime-generated.
+but runtime `pouch-tear-strip` resolves to the compact authored crop.
 
-Enable reviewed layers individually through `AVAILABLE_STATIC_ART_IDS` in `src/game/data/artAssets.ts`. Missing layers continue using procedural fallback.
+### Current pouch contract — IMPORTANT
+
+The old documentation requirement that all three runtime layers must share the exact same untrimmed transparent canvas is **obsolete**.
+
+The accepted implementation intentionally uses independent presentation transforms:
+
+- body has its own placement/scale;
+- compact authored tear strip preserves the real top-strip art but trims transparent padding;
+- star-tab has its own placement/scale and generous interaction hit area;
+- runtime owns shadow, tear-edge highlights and motion;
+- layers are composed by reviewed presentation coordinates, not by a mandatory shared-canvas origin.
+
+Do not restore the old same-canvas rule or the rejected synthetic dark slit/mouth.
 
 ---
 
-# 3. Internal scene/environment art — 3 runtime assets
+# 3. Current environment art — INTEGRATED
 
 ```text
 public/assets/backgrounds/opening-bg.webp
@@ -104,48 +97,13 @@ public/assets/backgrounds/collection-bg.webp
 public/assets/backgrounds/collection-foreground.webp
 ```
 
-Opening background: center-safe, decorative sides may crop. Runtime uses cover scaling across supported landscape ratios.
-
-Collection rear + foreground should be authored as an aligned pair so items feel placed inside a Y2K desk/shelf environment rather than pasted over one image. The foreground is a transparent **Shelf-only** depth layer and should keep the upper title/tab area transparent; it is rendered above Shelf collectibles but below Collection chrome. Library intentionally does not use this foreground so catalog cards cannot be obscured by shelf furniture/decor.
-
-Enable reviewed environment layers through `AVAILABLE_STATIC_ART_IDS`.
-
-The slice environment may be composed for two hero items, but do not make final release architecture dependent on only two fixed slots. The release Collection environment/grouping may change after the public family count is chosen.
+Opening background uses cover scaling. Collection rear + foreground are an aligned pair; foreground is Shelf-only and remains below Collection chrome.
 
 ---
 
-# 4. UI / FX
+# 4. Current audio — INTEGRATED
 
-Prefer Phaser Graphics/Text and tiny custom SVG/path icons rather than a generated raster UI pack.
-
-Needed now:
-
-- Collection navigation;
-- Shelf / Library switch;
-- Back / Open More;
-- mute;
-- Signal LCD;
-- rarity labels;
-- NEW / duplicate;
-- Secret `???`;
-- slice progress counters;
-- tear gesture cue;
-- dev/debug controls, including ad tests, excluded from production UI.
-
-Runtime FX:
-
-- rarity glow;
-- radial pouch flash;
-- sparkles;
-- ring pulse;
-- SIGNAL LOCK scan/glitch;
-- completion burst.
-
----
-
-# 5. Audio — internal slice
-
-Final SFX paths:
+Current SFX paths:
 
 ```text
 public/assets/audio/tear.mp3
@@ -162,37 +120,169 @@ public/assets/audio/secret-reveal.mp3
 public/assets/audio/collection-complete.mp3
 ```
 
-Enable reviewed cues in `AVAILABLE_SFX_CUES` in `src/game/data/audioAssets.ts`. Enabled samples are prefetched/decoded before game ready and replace the synthesized cue one by one. Missing or failed samples retain the synth fallback, so integrating final sound does not require changing scene code.
-
-No background music requirement. Reuse/pitch base sounds where quality remains good.
+No background music requirement.
 
 ---
 
-# 6. Internal-slice asset count
+# 5. Gameplay Loop Lite V2 — NEW ASSET COMMITMENT
 
-Bespoke runtime image files:
+Lite V2 should add as little bespoke art as possible.
+
+## 5.1 CHIPS token/icon — REQUIRED
+
+One reusable visual identity for CHIPS is required for:
+
+- CHIPS HUD counter;
+- ordinary base payout burst from pouch;
+- token flight into HUD;
+- duplicate recycle payout;
+- Charged affordability/ready UI;
+- rare Cache / Big Cache / Mega Cache-style payout presentation.
+
+Preferred asset:
 
 ```text
-10 collectibles
-3 pouch layers
-1 opening background
-2 collection environment layers
-= 16 images
+public/assets/ui/chip-token.webp
 ```
 
-Plus ~12 short SFX.
+Target guidance:
 
-This is the complete **Phase 1 asset commitment**, not the final public-game content commitment.
+- transparent square canvas;
+- 256×256 is sufficient; no need for collectible-scale 1024 source at runtime;
+- strong silhouette at ~18–32 px HUD size;
+- readable as a tiny Y2K electronic chip/token, not a generic gold coin;
+- no baked text/value;
+- restrained lavender/cyan/silver family so it belongs to the existing UI;
+- usable both as one HUD icon and as a bounded number of reward-particle instances.
 
-No final icon/cover/localized store screenshots are required before internal review.
+Large numeric payouts must **reuse the same token identity**. A `+150` result does not require 150 sprites or a new raster. Cache magnitude is communicated by runtime burst density/scale, stronger counter animation, copy and FX.
+
+A reviewed vector/SVG/Phaser-shape implementation is also acceptable if it looks as good; do not generate a whole UI sprite pack for one token.
+
+## 5.2 Cache tiers — NO EXTRA IMAGE ASSETS
+
+The CHIPS economy now includes guaranteed base payout plus an independent rare cache bonus roll.
+
+Asset consequence:
+
+```text
+0 additional raster assets for cache tiers
+```
+
+Do not create separate `cache`, `big-cache`, `mega-cache` coin/token images. If labels/icons beyond the CHIPS token are needed, prefer runtime text/vector emphasis first.
+
+## 5.3 Charged Pouch — NO NEW RASTER SET REQUIRED FOR LITE
+
+Do **not** create a second body/strip/star art set by default.
+
+Lite target:
+
+- reuse current pouch layers;
+- distinguish Charged using runtime glow/electric halo/accent/ring/label treatment;
+- stronger reveal anticipation/FX;
+- add bespoke Charged pouch raster art only if visual review proves runtime treatment cannot communicate the state.
+
+This keeps the gameplay experiment cheap and avoids duplicating the most fragile pouch asset pipeline.
+
+## 5.4 Signal meter — RUNTIME UI
+
+The new 4-segment Signal presentation should be Phaser Graphics/Text/vector-first.
+
+Needed presentation:
+
+```text
+◇ ◇ ◇ ◇
+◆ ◇ ◇ ◇
+...
+◆ ◆ ◆ ◆  → SIGNAL LOCK
+```
+
+No raster asset pack required unless later visual polish demonstrates a clear need.
+
+## 5.5 Lite V2 SFX — MINIMAL
+
+Existing cues should be reused wherever they remain semantically good:
+
+- `duplicate.mp3` can support duplicate/recycle identification beat;
+- `signal-gain.mp3` / `signal-lock.mp3` can remain if they suit new segmented presentation;
+- existing tear/reveal/rarity/Hidden Pocket cues remain.
+
+Potential new cues, only if existing/re-pitched cues are insufficient:
+
+```text
+public/assets/audio/chips-collect.mp3
+public/assets/audio/charged-ready.mp3
+```
+
+Jobs:
+
+- `chips-collect`: concise multi-token collect/transfer sound as tokens hit wallet;
+- `charged-ready`: short satisfying readiness sting when wallet crosses Charged threshold.
+
+Cache outcomes should first reuse/stack/pitch the same CHIPS cue with runtime emphasis. Do not add separate sounds for every chip particle, cache tier or Charged button state unless hands-on proves it necessary.
 
 ---
 
-# 7. Collectible processing / atlas policy
+# 6. Lite V2 asset count impact
 
-Canonical slice runtime remains **one individual 1024×1024 WebP per collectible**.
+Required new bespoke runtime image commitment:
 
-Project tooling now supports:
+```text
+1 CHIPS token/icon
+```
+
+Optional only if runtime reuse is insufficient:
+
+```text
+0..2 concise SFX
+0 cache-tier raster assets
+0 Charged pouch raster layers by default
+```
+
+This is intentional. The gameplay loop should earn its complexity through behavior/presentation, not a new asset-production branch.
+
+---
+
+# 7. Runtime UI / FX inventory after Lite V2
+
+Prefer Phaser Graphics/Text and reusable existing assets for:
+
+- Collection navigation;
+- Shelf / Library switch;
+- Back / Open More;
+- mute;
+- CHIPS HUD;
+- Charged affordability/ready state;
+- 4-segment Signal meter;
+- rarity labels;
+- NEW / DUPLICATE / RECYCLED;
+- CHIPS cache callout text/FX;
+- Secret `???`;
+- progress counters;
+- tear gesture cue;
+- dev/debug controls excluded from production UI.
+
+Runtime FX now include:
+
+- rarity glow;
+- radial pouch flash;
+- sparkles;
+- ring pulse;
+- ambient particles;
+- reward breathing;
+- Signal fill/lock feedback;
+- ordinary CHIPS token burst/flight;
+- stronger bounded cache burst/amount animation;
+- Charged runtime accent/ready feedback;
+- completion burst.
+
+---
+
+# 8. Collectible processing / atlas policy
+
+Canonical runtime remains one individual 1024×1024 WebP per collectible.
+
+Pipeline:
 
 ```text
 raw generated source
@@ -204,23 +294,21 @@ raw generated source
 → optional Phaser atlas build artifact
 ```
 
-Commands are documented in `docs/ASSET_PIPELINE.md`.
-
-Atlas generation does **not** imply an immediate runtime migration. The optional atlas is used to measure packed dimensions/weight and prove the pipeline. A public build may later choose per-family/group atlases or individual/on-demand textures based on real mobile profiling.
+Atlas generation remains profiling/inspection tooling, not an automatic runtime migration.
 
 ---
 
-# 8. Public release content factory
+# 9. Public release content factory
 
-After slice approval, each new base family normally adds:
+After Lite V2 + hosted Yandex validation, each new family normally adds:
 
 ```text
 4 standard runtime collectible assets
-+ 0..N Secrets according to release content plan
-+ one canonical source master/contact sheet/log
++ 0..N Secrets according to content plan
++ canonical source master/contact sheet/log
 ```
 
-The same rules apply:
+Rules remain:
 
 - recognizable Y2K archetype;
 - 6–10 explorations;
@@ -242,77 +330,51 @@ Candidate families:
 - virtual-pet-like electronics;
 - further researched Y2K devices.
 
-Exact final number is open; update this manifest when the release roster is locked.
+Content should be grouped into themed Drops/loot pools rather than one global pool.
 
 ---
 
-# 9. Release asset-loading implication
+# 10. Release asset-loading implication
 
-The slice can preload all reviewed slice assets because the pool is tiny.
+The current catalog can preload all reviewed production assets.
 
-A 10–24+ family release may contain 40–100+ collectible textures, so do not assume the same preload strategy scales.
+A multi-Drop release may contain dozens of 1024 textures, so before release:
 
-Before release:
-
-- profile mobile decoded texture memory with the **real** expanded catalog;
-- compare individual textures against family/group atlas residency rather than assuming atlases are automatically better;
+- profile decoded texture memory on real mobile;
+- compare individual textures against family/Drop atlas residency;
 - choose grouped/on-demand loading if profiling requires it;
-- derive 512/768 thumbnail/runtime variants from source masters if useful;
-- keep currently needed Opening/Collection transitions fast and avoid user-visible asset waits.
+- derive smaller thumbnail/runtime variants if useful;
+- keep Opening ↔ current Collection transitions fast.
 
-Do not build speculative streaming infrastructure before real asset dimensions/counts can be profiled.
+Do not build speculative streaming infrastructure before real expanded catalog measurements.
 
 ---
 
-# 10. Store assets — PUBLIC RELEASE ONLY
+# 11. Store assets — PUBLIC RELEASE ONLY
 
-Produce only after expanded release content and key visual are stable.
+Produce only after expanded release content/key visual are stable.
 
-Current Yandex-targeted deliverables to re-check before upload:
+Re-check Yandex requirements immediately before upload. Current planning targets remain:
 
 - icon 512×512 PNG;
 - cover 800×470 PNG;
 - optional maskable icon 512×512;
 - optional hero 1560×520;
-- actual gameplay screenshots for each selected platform/language.
+- actual localized gameplay screenshots.
 
-Do not build final promo art around the two-family slice if the public game will contain a materially larger catalog.
-
-Prefer object-led creatives without baked localized title text unless final marketing evidence says otherwise.
-
----
-
-# 11. Store text — PUBLIC RELEASE ONLY
-
-Prepare RU + EN after final title/content structure is chosen:
-
-- title;
-- SEO description;
-- description;
-- short description;
-- How to play;
-- categories/tags/keywords;
-- age/platform settings.
-
-The internal slice can use working names only.
+Do not build final promo art around the two-family internal catalog.
 
 ---
 
 # 12. Performance targets
 
-Internal slice targets remain useful for catching bloat:
+Current small-build targets remain useful for catching accidental bloat:
 
 - collectible WebP ideally ~150–350 KB; investigate >500 KB;
-- 10 slice collectibles preferably ≤4 MB encoded total;
-- pouch layers preferably ≤750 KB combined;
-- scene background layer preferably around/below ~1 MB encoded when quality permits;
-- SFX preferably ≤1.5 MB total.
+- pouch layers should remain compact;
+- scene background layer around/below ~1 MB where quality permits;
+- SFX set should remain small.
 
-For the release, replace a fixed total-build micro-budget with profiling:
+The Lite CHIPS token should be tiny relative to collectible assets and must not materially affect load time.
 
-- Yandex archive limit;
-- startup download time;
-- decoded GPU texture memory on real mobile;
-- cache/lazy-load behavior.
-
-Do not sacrifice visible asset quality merely to hit an arbitrary number; do prevent accidental multiplication of 1024 textures in memory.
+For release, profile startup download time, Yandex archive limits, decoded GPU texture memory and grouped/lazy behavior rather than enforcing an arbitrary total asset budget.

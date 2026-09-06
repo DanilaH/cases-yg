@@ -15,21 +15,25 @@ Target release platforms: Desktop + Mobile landscape. TV-specific UX is not curr
 
 ---
 
-# 2. Stage-aware architecture
+## 2. Current architecture goal
 
-The first build is an **internal vertical slice**, but architecture must already support the later content-heavy public release.
+The current two-family opener is already a functioning internal base. The next architecture work is narrowly scoped to **Gameplay Loop Lite V2**:
 
-Therefore:
+- global CHIPS wallet;
+- Basic/Charged pouch profiles;
+- guaranteed base CHIPS + independent cache bonus resolution;
+- automatic duplicate recycle;
+- simplified Signal pity;
+- Drop/loot-pool-aware reward selection;
+- atomic cost/reward recovery.
 
-- gameplay systems may use slice balance values, but must be config-driven;
-- content registries must support arbitrary gadget-family count;
-- Collection must render from data, not `if camera / if flip-phone` branches;
-- Yandex SDK, storage, lifecycle, analytics and ads are production boundaries from day one;
-- do not scaffold speculative large-game architecture unrelated to known release needs.
+Do not use this pass as an excuse to introduce a generalized economy framework, ECS, backend or content service.
 
 ---
 
-# 3. Scenes
+## 3. Scenes
+
+Keep:
 
 ```text
 BootScene
@@ -39,23 +43,19 @@ CollectionScene
 
 Reveal stays inside `OpeningScene` to preserve physical continuity with the pouch.
 
-`CollectionScene` has Shelf/Library internal states. The internal slice may display only two families, but the implementation must accept an arbitrary list of family records and layout/group them from config.
+Lite V2 UI also stays inside the existing scenes:
 
-Example opening presentation phase:
-
-```ts
-type OpeningPhase =
-  | 'idle'
-  | 'dragging'
-  | 'revealing'
-  | 'hidden-pocket'
-  | 'result-hold'
-  | 'result-ready';
-```
+- CHIPS counter in Opening chrome;
+- Basic/Charged choice/ready state in Opening;
+- no ShopScene;
+- Drop selector remains hidden while there is one Drop;
+- Collection remains Shelf/Library and becomes Drop-group-aware only when multiple Drops exist.
 
 ---
 
-# 4. Source structure
+## 4. Source structure
+
+Current structure remains appropriate:
 
 ```text
 src/
@@ -74,7 +74,7 @@ src/
     data/
       collectibles.ts
       balance.ts
-      collection-groups.ts
+      presentation.ts
     ui/
   platform/
     yandex.ts
@@ -88,35 +88,108 @@ src/
   main.ts
 ```
 
-Do not add React/Redux/ECS/backend just because the release will have more content.
+If a tiny `economy.ts` / `pouches.ts` pure module improves separation during Lite V2, that is acceptable. Do not build an abstract currency subsystem for hypothetical future currencies.
 
 ---
 
-# 5. Content registry — LOCKED FOR RELEASE ARCHITECTURE
+## 5. Content registry / Drops — LOCKED TARGET
 
-Use data-first definitions such as:
+Content must become explicitly Drop-aware before the catalog expands.
+
+Conceptual types:
 
 ```ts
+type PouchType = 'basic' | 'charged';
+type LootPoolId = string;
+
 interface GadgetFamilyDefinition {
   id: string;
+  dropId: LootPoolId;
   nameKey: string;
-  groupId?: string;
   standard: Record<StandardRarity, CollectibleDefinition>;
   secrets: CollectibleDefinition[];
 }
+
+interface LootPoolDefinition {
+  id: LootPoolId;
+  familyIds: readonly string[];
+}
 ```
 
-Core systems consume the registry. Camera and Flip Phone are just the first two entries.
+Exact shape may differ; invariants matter:
 
-Release expansion must be possible by adding/configuring families and assets rather than rewriting drop logic or Collection scene structure.
+- every eligible family is resolvable to one Drop/loot pool;
+- Basic and Charged take an active `lootPoolId`;
+- Signal Lock searches missing standard collectibles only inside that pool and only among rarities eligible for the selected pouch;
+- if the selected pouch has no eligible missing item, the resolver must retain the lock rather than bypass rarity gates;
+- CHIPS/Signal remain global state;
+- adding Drop #2 is data/config work, not a reward-engine rewrite.
+
+Do not implement player-facing Drop selection until multiple Drops exist.
 
 ---
 
-# 6. Persistent state / transaction
+## 6. Balance boundaries — LOCKED TARGET
+
+Keep all numbers in typed config.
+
+Lite V2 needs separate pouch profiles for cost, base CHIPS, cache bonus, rarity access/weights and Hidden Pocket chance.
+
+Conceptual shape:
+
+```ts
+interface ChipsRange {
+  min: number;
+  max: number;
+}
+
+interface ChipsCacheTier {
+  id: string;
+  weight: number;
+  reward: ChipsRange;
+}
+
+interface PouchProfile {
+  chipsCost: number;
+  baseChipsReward: ChipsRange;
+  cacheTiers: readonly ChipsCacheTier[];
+  rarityWeights: Readonly<Record<StandardRarity, number>>;
+  hiddenPocketChance: number;
+}
+
+interface EconomyBalance {
+  signalThreshold: number; // target: 4
+  duplicateRecycleChips: Readonly<Record<StandardRarity, number>>;
+  pouchProfiles: Readonly<Record<PouchType, PouchProfile>>;
+}
+```
+
+Do not lock implementation to this exact type shape. The semantic requirements are:
+
+- Basic cost = 0;
+- Basic always awards one standard collectible + guaranteed base CHIPS;
+- Basic rarity profile has `Legendary = 0`; Common/Rare/Epic remain eligible;
+- Charged cost > 0 CHIPS;
+- Charged standard profile has non-zero Legendary and materially stronger Rare/Epic than Basic;
+- both pouch profiles may define independent cache bonus tiers on top of base CHIPS;
+- cache roll is independent of collectible rarity roll;
+- a top cache may be large enough to fund several Charged openings;
+- Charged expected CHIPS return must remain below its cost over repeated play;
+- duplicate recycle CHIPS may scale by rarity and stack with pouch payout;
+- Signal increments exactly one segment per duplicate;
+- Signal threshold target is 4;
+- Signal never overrides a zero-weight rarity in the selected pouch profile;
+- Basic Hidden Pocket remains possible but lower than Charged.
+
+Open tuning values remain config, not magic constants scattered through scenes.
+
+---
+
+## 7. Persistent state / transaction — CRITICAL
 
 Keep save versioned and provider-agnostic.
 
-Conceptually:
+Existing state conceptually grows from:
 
 ```ts
 interface SaveState {
@@ -127,229 +200,283 @@ interface SaveState {
   totalOpens: number;
   pendingReveal: PendingReveal | null;
   muted: boolean;
-  stats: {
-    duplicates: number;
-    hiddenPockets: number;
-  };
+  stats: { ... };
 }
 ```
 
-`pendingReveal` must predetermine the complete reward transaction before presentation so refresh/crash cannot reroll or double-commit.
-
-Provider:
-
-- Yandex runtime: `await ysdk.getStorage()` behind `StorageAdapter`;
-- local development: browser `localStorage` fallback.
-
-Do not require account/backend/cloud sync for the internal slice. Reconsider cloud/player save only if release requirements justify it.
-
----
-
-# 7. Drop/balance boundaries
-
-All numbers live in typed config:
+toward Lite V2 fields such as:
 
 ```ts
-STANDARD_ODDS
-FAMILY_WEIGHTS
-SIGNAL_GAINS
-SIGNAL_LOCK_RULES
-HIDDEN_POCKET_RULES
-REVEAL_TIMINGS
-RESULT_HOLD_MS
+interface SaveState {
+  version: number;
+  discoveredStandard: string[];
+  discoveredSecrets: string[];
+  chips: number;
+  signal: number; // 0..threshold segments
+  activeLootPoolId: string;
+  totalOpens: number;
+  pendingReveal: PendingReveal | null;
+  muted: boolean;
+  stats: { ... };
+}
 ```
 
-The current 2-family numbers are `slice` balance, not permanent release constants.
+A migration must initialize new fields for existing saves without deleting collection progress.
 
-When content expands:
+### Atomic reveal contract
 
-1. choose release roster/grouping;
-2. define family weighting/package behavior;
-3. rerun progression simulations;
-4. update config without rewriting scenes.
+`pendingReveal` must predetermine the entire economic transaction before presentation.
+
+For Lite V2 it must retain enough information to recover conceptually:
+
+```text
+transaction id
+base total opens
+pouch type
+loot pool id
+base chips
+chips cost
+base pouch chips reward
+cache tier id / cache chips reward
+duplicate recycle chips reward
+standard collectible
+Signal before/after/lock reached/consumed/retained state
+Hidden Pocket result
+final committed progress/wallet snapshot
+```
+
+Critical invariants:
+
+- Charged cost and reward are one transaction;
+- crash after choosing Charged cannot lose cost without preserving reward;
+- refresh cannot reroll Charged, collectible rarity or cache tier into a better result;
+- recovery cannot grant base/cache/recycle wallet rewards twice;
+- a Basic result that retains an armed Signal lock must recover with the same retained-lock outcome rather than recomputing eligibility from later state;
+- visual token flight never owns currency state;
+- transaction keeps original lootPool/profile even if active UI selection changes later.
+
+Provider remains:
+
+- Yandex runtime: safe storage behind `StorageAdapter`;
+- local development: browser `localStorage` fallback.
 
 ---
 
-# 8. Yandex SDK boundary — REQUIRED FROM FIRST SLICE
+## 8. Signal migration — LOCKED
 
-`platform/yandex.ts` owns:
+Current runtime has a 0–100 rarity-weighted Signal implementation.
+
+Lite V2 target replaces it completely:
+
+```text
+standard duplicate → +1
+4/4 → armed lock
+next standard roll with eligible missing item → guaranteed NEW
+consume → 0
+```
+
+Legacy mapping is fixed:
+
+```ts
+newSignal = Math.min(4, Math.floor(oldSignal / 25));
+```
+
+Therefore `0–24→0`, `25–49→1`, `50–74→2`, `75–99→3`, `100→4`.
+
+Implementation rules:
+
+- do not retain late-lock weighted fallback as a second hidden rule;
+- if active Drop has no missing standard item, armed lock remains armed and is not consumed;
+- if the selected pouch has no missing item with non-zero eligibility/weight, that pouch resolves normally and the armed lock remains armed;
+- specifically, Basic can never receive Legendary from Signal because Basic `Legendary = 0`;
+- if only Legendary remains, repeated Basic openings may still produce normal Basic results while Signal stays `4/4`; an eligible Charged opening is required to consume it;
+- if a future Drop selector changes active pool while lock is armed, the lock applies to the newly selected active Drop at roll time;
+- new standard item does not add Signal;
+- a duplicate while Signal is already armed cannot increase it beyond `4/4`;
+- Secret handling stays outside standard Signal unless a later explicit design changes it;
+- a fully armed old lock must remain armed after migration;
+- migration must be versioned and idempotent.
+
+### Signal Lock candidate weighting
+
+When lock is armed:
+
+1. collect missing standard candidates in active Drop;
+2. remove candidates whose rarity has zero eligibility/weight for the selected pouch;
+3. if candidates remain, apply selected pouch rarity weighting among them, select one NEW result and consume lock;
+4. if none remain, execute the selected pouch's normal standard roll and retain lock unchanged.
+
+This preserves Charged's rarity advantage under pity and protects the strict Basic/Charged rarity gate.
+
+---
+
+## 9. Opening presentation / resource transfer
+
+CHIPS animation is visual feedback, not economy logic.
+
+Recommended structure:
+
+```text
+resolve + persist pending transaction
+→ play tear
+→ show base CHIPS burst
+→ if cache bonus: play stronger cache beat
+→ reveal collectible
+→ show duplicate recycle if applicable
+→ optional Hidden Pocket
+→ animate CHIPS/SIGNAL toward HUD
+→ commit/show final HUD state
+```
+
+Implementation may commit before visual flight for safety, while tweening displayed counter from stored pre-value to stored final value. Stopping a tween cannot change economic outcome.
+
+Do not instantiate one persisted object per visible chip particle. Particles are presentation instances of aggregate numeric rewards. A large jackpot should use a bounded number of visual tokens plus stronger FX/counter animation.
+
+When Signal is armed but Basic has no eligible NEW, the HUD/result presentation must not falsely imply that the lock was consumed. Prefer a concise state such as `SIGNAL LOCK · CHARGED` until an eligible opening occurs.
+
+---
+
+## 10. Yandex SDK boundary
+
+`platform/yandex.ts` continues to own:
 
 - `YaGames.init()`;
 - language/environment access;
 - safe storage acquisition;
 - `LoadingAPI.ready()`;
 - `GameplayAPI.start()/stop()` mapping;
-- `game_api_pause` / `game_api_resume` subscriptions;
-- platform availability/capability information needed by adapters.
+- platform pause/resume events;
+- capabilities needed by adapters.
 
-The slice must run in local mock/fallback mode and Yandex draft/debug mode.
+After Lite V2 hands-on, run real hosted Yandex DRAFT validation before content expansion.
 
 ---
 
-# 9. Advertising boundary — REQUIRED FROM FIRST SLICE
+## 11. Advertising boundary
 
-Advertising follows the **current Yandex Games SDK and moderation requirements by default**. Do not invent a separate ad policy when the platform already defines the compliance baseline.
+Advertising remains behind `platform/ads.ts`.
 
-Add `platform/ads.ts` immediately. A practical API may look like:
-
-```ts
-interface AdsAdapter {
-  showInterstitial(): Promise<{
-    wasShown: boolean;
-    reason?: string;
-  }>;
-
-  showRewarded(rewardId: string): Promise<{
-    rewardEarned: boolean;
-    reason?: string;
-  }>;
-
-  setStickyBannerVisible(visible: boolean): Promise<{
-    isShowing: boolean;
-    reason?: string;
-  }>;
-}
-```
-
-Yandex implementation wraps:
-
-- `ysdk.adv.showFullscreenAdv()`;
-- `ysdk.adv.showRewardedVideo()`;
-- sticky-banner SDK control when the release enables API-managed sticky banners in the Yandex Console.
-
-### Locked compliance behavior
+Locked behavior remains:
 
 - scenes do not call `ysdk.adv` directly;
-- interstitials are requested only at logical pauses and never during active tear/reveal;
-- do not implement repeating timer spam for fullscreen ads; Yandex controls actual interstitial display frequency;
-- rewarded is always voluntary;
-- rewarded CTA explicitly communicates that an ad will be watched and names the exact reward;
-- reward is persisted/granted **exactly once on the rewarded callback**, not merely because the ad closed;
-- close/error without rewarded completion grants nothing;
-- ad error/unavailability never blocks save/gameplay;
-- full-screen/rewarded ads pause gameplay and all audio;
-- sticky banner, if used, may be platform-managed or API-managed; if API-managed, enable the matching Yandex Console option and ensure it never covers required controls.
+- interstitials only at logical pauses outside active tear/reveal;
+- rewarded is voluntary and explicit;
+- reward grants exactly once only on rewarded completion;
+- ad failure never blocks gameplay;
+- fullscreen/rewarded pause gameplay/audio correctly;
+- pause reasons are coordinated.
 
-### Activity / pause ownership
+### Rewarded dev probe migration
 
-Do not let ad callbacks, visibility events and `game_api_pause/resume` each independently toggle Phaser activity.
+The old `+25 Signal` dev reward was valid only for old 0–100 slice pity.
 
-Use a tiny activity coordinator, e.g.:
+After Lite V2 Signal migration, use a clearly dev-only CHIPS grant to test exactly-once rewarded persistence. Do not use rewarded ads to mutate Signal pity merely because that was convenient in old harness.
 
-```ts
-type PauseReason = 'platform' | 'visibility' | 'ad' | 'menu';
-```
-
-Gameplay is active only when no blocking pause reason is present and the current scene/state is playable.
-
-This prevents:
-
-- duplicate `GameplayAPI.start()`;
-- premature resume while an ad/platform pause is still active;
-- audio restarting behind an ad;
-- double processing caused by `onClose` plus `game_api_resume`.
-
-### Internal slice ad test
-
-Expose deliberate dev-only actions for:
-
-- interstitial request;
-- rewarded request;
-- rewarded success;
-- close without reward;
-- error/unavailable;
-- sticky show/hide when API-managed mode is being exercised.
-
-For the internal slice only, a clearly dev-labelled test reward such as `+25 Signal` may prove reward plumbing. Do not encode that as public monetization design.
-
-Final release tuning — exact rewarded benefit, useful compliant pause points, whether sticky is worth using — happens after content/economy expansion. No additional architecture decision is required now.
+Final public rewarded benefit remains open for release tuning.
 
 ---
 
-# 10. Analytics
+## 12. Analytics
 
-Use Yandex built-in metrics + typed Yandex Metrica adapter.
+Keep semantic events provider-independent.
 
-Keep semantic gameplay events provider-independent. The internal slice uses events for verification/debugging; public KPI gates are defined later for the expanded release.
-
-Also log/test ad lifecycle semantically, for example:
+Lite V2 should add useful events around:
 
 ```text
-ad_interstitial_requested
-ad_interstitial_closed
-ad_rewarded_requested
-ad_rewarded_earned
-ad_error
+pouch_open_started { pouchType, lootPoolId }
+chips_earned { source, amount }
+chips_cache_hit { pouchType, tier, amount }
+duplicate_recycled { rarity, chips, signalAfter }
+signal_lock_reached
+signal_lock_waiting_for_eligible_pouch { pouchType, lootPoolId }
+signal_lock_consumed
+charged_ready
+charged_opened
+hidden_pocket_triggered { pouchType, lootPoolId }
 ```
 
-Do not let analytics failure block gameplay or rewards.
+Do not over-instrument individual chip particles. Analytics failure never blocks gameplay/reward.
 
 ---
 
-# 11. Responsive layout
+## 13. Responsive layout
 
-Locked landscape strategy remains:
+Locked strategy remains:
 
 ```text
 logicalHeight = 720
 logicalWidth = clamp(viewportAspect * 720, 900, 1728)
 ```
 
-Modes:
+Lite V2 UI must preserve established vertical rhythm:
 
-```text
-compact   1.25–1.50
-standard  >1.50–1.95
-wide      >1.95–2.40
-```
-
-Shared `LayoutMetrics`, safe insets, ~44 CSS px effective touch targets, no non-uniform stretching, no browser scrolling/overscroll gesture conflicts.
-
-The slice Shelf can be a two-hero composition. **Do not encode two slots into collection data structures.** Release Collection will choose pagination/grouping once family count is locked.
+- CHIPS HUD cannot compete with title/reward hero;
+- Charged-ready affordance must fit 900 logical width;
+- `SIGNAL LOCK · CHARGED` or equivalent must remain legible at compact width when applicable;
+- resource-flight destination must remain stable across resize;
+- large cache counter animation must not overflow compact HUD;
+- if resize occurs during result state, wallet/Signal state and Hidden Pocket selected page must remain correct.
 
 ---
 
-# 12. Asset loading
+## 14. Asset loading
 
-Internal slice: preload/cache the 10 collectibles, pouch layers, scene backgrounds and SFX before ready because the payload is tiny.
+Current integrated production assets are small enough to preload:
 
-Public release: do not assume dozens/hundreds of 1024 textures should all stay resident. Once the release roster exists, profile real mobile memory and choose among:
+- 10 collectible textures;
+- current pouch layers including compact tear strip;
+- Opening/Collection environment layers;
+- current SFX set.
 
-- preload essential opener/shared assets;
-- grouped Collection loading;
-- on-demand family batches;
-- smaller runtime derivatives for thumbnails.
+Lite V2 adds at most one tiny CHIPS icon/token asset plus optional concise SFX. The same CHIPS identity handles normal and cache payouts. Charged presentation should reuse current pouch assets with runtime treatment first.
 
-Whatever strategy is chosen, Opening ↔ currently available Collection content must not produce page-like waits.
-
----
-
-# 13. Localization/audio
-
-RU + EN typed dictionaries, unsupported language → EN. Keep text out of image assets.
-
-SFX-only is sufficient for the slice. Persist mute. Audio and tweens/input pause on Yandex/platform pause and during full-screen/rewarded ads.
+Release-scale loading remains a profiling decision after real content expansion.
 
 ---
 
-# 14. Testing
+## 15. Testing requirements
 
-Small pure-logic tests are required for:
+Pure tests must cover at minimum:
 
-- drop/onboarding rules;
-- Signal rules;
-- Hidden Pocket;
-- pendingReveal idempotency/recovery;
-- config-driven family addition;
-- rewarded-ad exactly-once reward handling;
-- ad close/error/no-reward paths;
-- activity coordinator with overlapping pause reasons.
+- Basic vs Charged profile selection;
+- Basic never standard-rolls Legendary;
+- Charged can standard-roll Legendary;
+- independent collectible rarity and CHIPS-cache resolution;
+- cache payout boundaries/weights from config;
+- Charged expected-value simulation guard or deterministic balance report showing expected CHIPS return below cost;
+- insufficient CHIPS rejects Charged without mutation;
+- Charged cost + base/cache/recycle reward atomicity;
+- duplicate recycle CHIPS by rarity config;
+- Signal +1 semantics and 4/4 lock;
+- exact legacy Signal mapping including 24/25/49/50/74/75/99/100 boundaries;
+- lock targets missing standard item in active Drop;
+- lock preserves Basic/Charged rarity profile among missing candidates;
+- when only Legendary remains, Basic performs a normal roll and retains `4/4` without ever awarding Legendary;
+- an eligible Charged opening after that state guarantees NEW Legendary and consumes the lock;
+- repeated duplicates while lock is armed do not overfill/duplicate Signal;
+- lock preserved for a fully complete active Drop;
+- Drop scoping for Basic/Charged;
+- save migration from pre-Lite version;
+- pending transaction recovery/idempotency with CHIPS/cache and retained Signal state;
+- existing Hidden Pocket/onboarding behavior under profiles;
+- rewarded dev CHIPS exactly-once path;
+- overlapping platform/ad/visibility pause reasons.
 
-Dev-only controls should force rarity, duplicates, SIGNAL LOCK, Hidden Pocket/Secret and ad flows.
+Browser visual regression must additionally cover:
+
+- normal CHIPS token transfer;
+- at least one large cache presentation;
+- recycle feedback;
+- crossing Charged-ready threshold, including a cache jump across it;
+- Basic vs Charged presentation;
+- Signal segment fill/lock;
+- `SIGNAL LOCK · CHARGED` state when Basic has no eligible NEW;
+- responsive 900/1024/1280/1728 states;
+- interrupted/recovered Charged reveal.
 
 ---
 
-# 15. Engineering guardrails
+## 16. Engineering guardrails
 
 Do not introduce by default:
 
@@ -358,8 +485,11 @@ Do not introduce by default:
 - ECS;
 - physics;
 - backend/websockets;
+- generalized economy/currency framework;
+- shop scene;
+- timers/offline scheduler;
 - real-time 3D;
-- generalized content CMS/pipeline server;
-- premature abstractions for systems that may never ship.
+- content CMS/server;
+- abstractions for Overcharge/Archive/prestige systems that are not in Lite V2.
 
-But **do** build the known scale boundaries correctly now: data-driven content, provider-based storage/analytics/ads and configurable balance.
+Build only scale boundaries already justified: Drop-aware content, typed pouch/cache profiles, versioned atomic save transactions and provider boundaries.

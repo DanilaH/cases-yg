@@ -1,5 +1,7 @@
 # Hands-on V2 correction pass
 
+> **HISTORICAL IMPLEMENTATION RECORD — COMPLETED.** This file records the presentation correction pass that produced the current opener baseline. It is not a current product specification. For current gameplay scope and decisions use `DECISIONS.md`, `GAMEPLAY_SYSTEMS.md` and `IMPLEMENTATION_ROADMAP.md`.
+
 ## Source feedback
 
 This pass addresses the third direct hands-on review of merged Reveal Presentation V2.
