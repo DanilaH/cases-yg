@@ -80,13 +80,13 @@ public/assets/backgrounds/collection-bg.webp
 public/assets/backgrounds/collection-foreground.webp
 ```
 
-No environment redesign is part of the current correction.
+No environment redesign was part of the correction.
 
 ---
 
 # 4. Audio
 
-## Current integrated reviewed SFX
+## Current integrated reviewed MP3 SFX
 
 ```text
 public/assets/audio/tear.mp3
@@ -96,7 +96,6 @@ public/assets/audio/rarity-rare.mp3
 public/assets/audio/rarity-epic.mp3
 public/assets/audio/rarity-legendary.mp3
 public/assets/audio/duplicate.mp3
-public/assets/audio/chips-collect.mp3
 public/assets/audio/signal-gain.mp3
 public/assets/audio/signal-lock.mp3
 public/assets/audio/hidden-pocket.mp3
@@ -106,25 +105,20 @@ public/assets/audio/collection-complete.mp3
 
 No background music requirement.
 
-## Opening Feel Correction audio — INTEGRATED
+## Opening Feel Correction CHIPS cue — INTEGRATED AS SYNTH
 
-First hands-on identified a concrete CHIPS feedback gap; the merged correction now includes:
+First hands-on identified a concrete CHIPS feedback gap. The merged correction adds the `chips-collect` cue through the existing Web Audio controller, but **there is no reviewed `public/assets/audio/chips-collect.mp3` in the current tree**.
 
-```text
-public/assets/audio/chips-collect.mp3
-```
+Current contract:
 
-Desired job:
+- `src/game/systems/audio.ts` defines the short three-tone `chips-collect` synth cue;
+- `src/game/data/audioAssets.ts` reserves `assets/audio/chips-collect.mp3` as a possible sample path, but the cue is deliberately absent from `AVAILABLE_SFX_CUES` while that reviewed file does not exist;
+- runtime therefore does not fetch a missing CHIPS MP3 and uses the synth cue;
+- the r3 exact-revision browser audit confirmed no failed asset request from this path.
 
-- short electronic token/chip cascade or light clatter;
-- synchronized with visual CHIPS banking/count-up;
-- satisfying in repetition;
-- avoid casino/slot-machine framing;
-- reusable for normal/cache/big/mega through bounded repetition, timing or playback variation where supported.
+The cue is synchronized with visual CHIPS banking/count-up, stays short for repeated use, and is shared across normal/cache/big/mega presentation rather than creating one sound asset per tier.
 
-Do not create separate SFX per cache tier.
-
-`charged-ready.mp3` remains **optional only**. Add it only if wallet count-up + CHIPS sound + Charged UI activation still fail the threshold moment in visual/audio review.
+A physical reviewed CHIPS sample may replace the synth later if hands-on proves the current sound insufficient. `charged-ready.mp3` remains optional only; do not add it unless wallet count-up + CHIPS cue + Charged UI activation still fail the threshold moment.
 
 ---
 
@@ -172,9 +166,9 @@ Use Phaser Text/Graphics, translucent duplicate layers, tint, blend, moving high
 
 ## 6.3 Custom shaders — NOT PART OF CURRENT PASS
 
-Do not add WebGL shaders for the initial neon/iridescent pass.
+No WebGL shader was added for the neon/iridescent correction.
 
-Reason: the visual hypothesis can be tested cheaply without creating a new mobile/WebGL compatibility surface.
+Reason: the visual hypothesis was proved cheaply without creating a new mobile/WebGL compatibility surface.
 
 A single local shader may be reconsidered later only if a reviewed no-shader result proves a specific effect cannot be sold convincingly.
 
@@ -269,7 +263,7 @@ Store creative is public-release work only; do not build final promo art around 
 - collectible WebP ideally ~150–350 KB; investigate >500 KB;
 - pouch layers compact;
 - scene backgrounds around/below ~1 MB where quality permits;
-- SFX set stays small;
-- one small accent font + one concise CHIPS SFX should not materially affect startup;
+- reviewed MP3 SFX set stays small;
+- the locally bundled accent font + synthesized CHIPS cue should not materially affect startup;
 - runtime neon/iridescence must be bounded and tested on representative mobile landscape rendering;
 - do not add shader/per-particle complexity without measured need.
