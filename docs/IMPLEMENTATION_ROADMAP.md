@@ -46,21 +46,36 @@ Add typed config and pure logic for:
 
 - `PouchType = 'basic' | 'charged'`;
 - global `chips` wallet;
-- Basic and Charged payout/rarity/Hidden Pocket profiles;
+- guaranteed base CHIPS payout per pouch profile;
+- independent CHIPS-cache bonus roll per pouch profile;
+- Basic rarity access: Common / Rare / small Epic, **no Legendary**;
+- Charged rarity access: Common / Rare / Epic / Legendary, with materially stronger Rare/Epic weighting;
 - rarity-dependent duplicate recycle CHIPS;
-- simplified Signal (`+1` per duplicate, target threshold `4`);
+- simplified Signal (`+1` per duplicate, threshold `4`);
 - `dropId` / `lootPoolId` membership;
 - active Drop selection state, even though selector remains hidden with one Drop.
 
-Do **not** hard-code final tuning numbers that have not been decided. The following are still explicit tuning inputs:
+Do **not** hard-code final tuning numbers. Still-open inputs:
 
 - Charged cost;
-- Basic/Charged CHIPS payouts;
+- Basic/Charged base CHIPS payout ranges;
+- cache tier probabilities/ranges by pouch profile;
 - duplicate recycle CHIPS by rarity;
-- Charged rarity weights;
+- Basic rarity weights inside Common/Rare/Epic;
+- Charged rarity weights inside Common/Rare/Epic/Legendary;
 - Basic/Charged Hidden Pocket probabilities.
 
-Definition of done: pure engine can resolve Basic/Charged reward transactions and Signal/Drop behavior deterministically without Phaser.
+Locked economy invariants:
+
+- every Basic opening gives one collectible + base CHIPS;
+- collectible rarity luck and cache luck are independent;
+- a very rare top cache may fund several Charged openings;
+- Charged remains a net CHIPS sink in expectation;
+- Basic cannot standard-roll Legendary;
+- Charged is the standard route to Legendary;
+- Basic may still very rarely reach Secret through Hidden Pocket.
+
+Definition of done: pure engine can resolve Basic/Charged reward transactions, cache outcomes, rarity gating and Signal/Drop behavior deterministically without Phaser.
 
 ## 1.2 Extend transactional save/recovery
 
@@ -73,7 +88,8 @@ pouchType
 lootPoolId
 baseChips
 chipsCost
-pouchChipsReward
+basePouchChipsReward
+cacheTier/cacheChipsReward
 recycleChipsReward
 standard result
 signal before/after/lock state
@@ -83,58 +99,17 @@ final committed snapshot
 
 Required invariants:
 
-- refresh cannot reroll a reward;
+- refresh cannot reroll a reward or cache tier;
 - Charged cost cannot be lost without its reward;
-- one transaction cannot grant CHIPS twice;
-- recovered reveal preserves the original Drop and pouch profile;
-- Signal Lock is not consumed when the active Drop has no undiscovered standard item.
+- one transaction cannot grant base/cache/recycle CHIPS twice;
+- recovered reveal preserves original Drop and pouch profile;
+- Signal Lock is not consumed when active Drop has no undiscovered standard item.
 
 Add save migration for existing slice saves rather than invalidating user state.
 
-## 1.3 Opening UI / reward presentation
+## 1.3 Signal migration
 
-Add only the minimum new UI:
-
-- CHIPS HUD counter;
-- Basic/Charged affordability/ready state on Opening screen;
-- no separate shop;
-- chip-token reward burst;
-- chip-token flight into HUD;
-- duplicate `RECYCLED` feedback;
-- Signal segmented HUD (`0..4` / `SIGNAL LOCK`);
-- clear `CHARGED POUCH READY` beat when a payout crosses the cost threshold.
-
-Reward sequencing target:
-
-```text
-tear
-→ CHIPS reward presentation
-→ one standard collectible
-→ NEW or duplicate/recycle
-→ optional Hidden Pocket
-→ resource transfer to HUD
-→ result ready
-```
-
-Important: token-flight/tween completion is never the durable economy mutation.
-
-## 1.4 Charged Pouch presentation
-
-Charged must feel clearly better without new systemic complexity.
-
-Use:
-
-- same core tear interaction;
-- runtime glow/electric/accent treatment around the existing pouch where practical;
-- stronger reward/rarity anticipation;
-- larger CHIPS payout presentation;
-- better rarity profile + higher Hidden Pocket profile.
-
-Do not add a second/third standard collectible in Lite V2.
-
-## 1.5 Signal migration
-
-Replace the old 0–100 weighted pity with:
+Replace old 0–100 weighted pity with:
 
 ```text
 any standard duplicate → +1 SIGNAL
@@ -143,19 +118,80 @@ next standard collectible → undiscovered item in active Drop
 consume → 0/4
 ```
 
-Remove/retire the old rarity-dependent `+25/+20/+15/+10` behavior and late-lock weighted fallback when the migration lands. Do not leave two competing pity semantics in code or UI.
+Legacy conversion is locked:
+
+```text
+newSignal = min(4, floor(oldSignal / 25))
+```
+
+So `0–24→0`, `25–49→1`, `50–74→2`, `75–99→3`, `100→4/LOCK`.
+
+When lock is armed:
+
+1. filter candidates to undiscovered standard items in active Drop;
+2. preserve selected pouch rarity profile across those candidates;
+3. pick guaranteed NEW;
+4. consume lock.
+
+Thus Charged does not lose its rarity advantage under SIGNAL LOCK.
+
+Remove old rarity-dependent `+25/+20/+15/+10` and late-lock fallback completely when migration lands.
+
+## 1.4 Opening UI / reward presentation
+
+Add only minimum new UI:
+
+- CHIPS HUD counter;
+- Basic/Charged affordability/ready state on Opening screen;
+- no separate shop;
+- chip-token reward burst;
+- stronger runtime burst/copy for rare cache outcomes;
+- chip-token flight into HUD;
+- duplicate `RECYCLED` feedback;
+- Signal segmented HUD (`0..4` / `SIGNAL LOCK`);
+- clear `CHARGED POUCH READY` beat when payout crosses threshold.
+
+Reward sequencing target:
+
+```text
+tear
+→ base CHIPS presentation
+→ optional cache bonus beat
+→ one standard collectible
+→ NEW or duplicate/recycle
+→ optional Hidden Pocket
+→ resource transfer to HUD
+→ result ready
+```
+
+Important: visible token count is not the economic amount, and tween completion is never the durable economy mutation.
+
+## 1.5 Charged Pouch presentation
+
+Charged must feel clearly better without new systemic complexity.
+
+Use:
+
+- same core tear interaction;
+- runtime glow/electric/accent treatment around existing pouch where practical;
+- stronger reward/rarity anticipation;
+- stronger CHIPS/cache presentation;
+- access to Legendary plus materially better Rare/Epic profile;
+- higher Hidden Pocket profile.
+
+Do not add a second/third standard collectible in Lite V2.
 
 ## 1.6 Drop-aware architecture
 
 Current content belongs to one initial Drop. No player-facing selector yet.
 
-Core systems must nevertheless resolve against an active `lootPoolId` so later content expansion becomes configuration work.
+Core systems must nevertheless resolve against active `lootPoolId` so later content expansion becomes configuration work.
 
 Future behavior when Drop #2 exists:
 
 - expose compact Drop selector;
 - Basic/Charged roll only in selected Drop;
-- Signal Lock targets NEW in selected Drop;
+- Signal Lock targets NEW in selected Drop while preserving selected pouch profile;
 - CHIPS/Signal remain global.
 
 No family-targeted pouch in this phase.
@@ -174,23 +210,25 @@ Use the established workflow:
 6. final combined visual/interaction gate;
 7. direct user repeated-opening test.
 
-Hands-on should answer only the questions that automation cannot:
+Hands-on should answer only questions automation cannot:
 
 - does every opening feel meaningfully rewarding?
 - is CHIPS acquisition legible without explanation?
-- does duplicate recycle soften disappointment rather than clutter the reveal?
+- do rare cache outcomes feel exciting rather than arbitrary/noisy?
+- does duplicate recycle soften disappointment rather than clutter reveal?
 - is `4 duplicates → next NEW` immediately understandable?
-- does Charged feel worth saving for?
+- does Basic still feel worth opening even without Legendary access?
+- does Charged feel worth saving for because top standard rarity lives there?
 - does Basic → Charged create a natural “one more pouch” impulse?
-- does the extra reward sequencing make the opener slower/annoying after 20–50 repetitions?
+- does extra sequencing make opener slower/annoying after 20–50 repetitions?
 
-If the Lite loop works, **stop adding meta systems**.
+If Lite loop works, **stop adding meta systems**.
 
 ---
 
 # Phase 3 — real Yandex DRAFT validation
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` against the hosted Lite V2 build.
+Run `docs/YANDEX_SLICE_VALIDATION.md` against hosted Lite V2 build.
 
 Must cover:
 
@@ -198,7 +236,7 @@ Must cover:
 - pause/resume/audio;
 - storage and save migration;
 - interrupted Basic reveal recovery;
-- interrupted Charged reveal recovery with atomic cost/reward;
+- interrupted Charged reveal recovery with atomic cost/reward/cache outcome;
 - interstitial;
 - rewarded exactly-once behavior;
 - sticky boundary if enabled;
@@ -263,25 +301,27 @@ For each family:
 
 Re-simulate:
 
-- Basic rarity profile;
-- Charged rarity profile;
+- Basic Common/Rare/Epic profile;
+- Charged Common/Rare/Epic/Legendary profile;
 - Charged cost;
-- CHIPS income/recycle economy;
+- base CHIPS income;
+- cache tier frequency/size;
+- recycle economy;
 - Signal threshold if 4 proves too generous/slow at release scale;
 - Hidden Pocket by pouch type;
 - completion/chase horizon.
 
-Preserve the simple player-facing semantics unless evidence demands a change.
+Preserve simple player-facing semantics unless evidence demands change.
 
 ## 4.5 Scale Collection only when required
 
-Use Drops as the first grouping primitive. Add pages/filtering/themed shelves only when real content density requires them.
+Use Drops as first grouping primitive. Add pages/filtering/themed shelves only when real content density requires them.
 
 Family-targeted acquisition remains deferred until completion data shows a real problem.
 
 ## 4.6 Final monetization tuning
 
-Infrastructure already exists. Decide final rewarded benefit, interstitial pause points and sticky use only after the actual release loop/content exists.
+Infrastructure already exists. Decide final rewarded benefit, interstitial pause points and sticky use only after actual release loop/content exists.
 
 ---
 
@@ -297,7 +337,7 @@ Only now:
 - release ad configuration;
 - save/recovery/lifecycle QA;
 - analytics QA;
-- final Yandex draft pass if release build materially differs from the earlier hosted validation;
+- final Yandex draft pass if release build materially differs from earlier hosted validation;
 - moderation submission.
 
 Use `docs/YANDEX_SUBMISSION_CHECKLIST.md`.
