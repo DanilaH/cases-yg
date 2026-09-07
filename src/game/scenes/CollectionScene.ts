@@ -460,14 +460,36 @@ export class CollectionScene extends Phaser.Scene {
   private renderFailure(): void {
     const root = this.createRoot();
     const metrics = this.metrics!;
-    root.add(
-      this.add
-        .text(metrics.centerX, metrics.centerY, getMessages(getPlatformRuntime().language).collection.loadError, {
-          color: '#ffb7c8',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '18px',
-        })
-        .setOrigin(0.5),
+    const panelWidth = Math.min(660, metrics.logicalWidth - 100);
+    const panelHeight = 128;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x21172e, 0.92);
+    panel.fillRoundedRect(
+      metrics.centerX - panelWidth / 2,
+      metrics.centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      22,
     );
+    panel.lineStyle(1.5, 0xffb7c8, 0.52);
+    panel.strokeRoundedRect(
+      metrics.centerX - panelWidth / 2,
+      metrics.centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      22,
+    );
+    const text = this.add
+      .text(metrics.centerX, metrics.centerY, getMessages(getPlatformRuntime().language).collection.loadError, {
+        color: '#fff1f5',
+        align: 'center',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        wordWrap: { width: panelWidth - 56 },
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#120d19', 3, true, true);
+    root.add([panel, text]);
   }
 }
