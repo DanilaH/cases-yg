@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Assert exact audited product tree
         shell: bash
         run: |
@@ -32,13 +34,20 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: Install Playwright driver and video helper
+      - name: Install pinned Playwright driver and video helper
+        shell: bash
         run: |
-          npx playwright install chromium
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+          node node_modules/playwright/cli.js install ffmpeg
       - name: Start Vite
+        shell: bash
         run: |
+          set -euo pipefail
           npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
           for i in {1..60}; do
             if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
@@ -53,4 +62,5 @@ jobs:
         with:
           name: final-ui-third-pass
           path: /tmp/final-ui-third-pass
+          if-no-files-found: error
           retention-days: 3
