@@ -1171,6 +1171,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (this.phase !== 'result') return;
     if (!this.resultReady && this.requestPresentationFastForward()) {
+      this.ignoreNextResultTap = true;
       getGameAudio().play('ui-skip');
       return;
     }
@@ -1225,6 +1226,7 @@ export class OpeningScene extends Phaser.Scene {
   private handlePointerUp(pointer: Phaser.Input.Pointer): void {
     if (this.ignoreNextResultTap) {
       this.ignoreNextResultTap = false;
+      this.resultCarouselDrag = null;
       return;
     }
 
