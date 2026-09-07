@@ -69,12 +69,12 @@ jobs:
           assert 'final hands-on acceptance' in readme
           print('canonical docs consistency PASS')
           PY
-      - name: Commit scope audio sync
+      - name: Commit canonical audio wording sync
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'DanilaH'
           git config user.email '41333602+DanilaH@users.noreply.github.com'
-          git add docs/OPENING_FEEL_CORRECTION_SCOPE.md
-          git commit -m 'Align canonical CHIPS audio contract'
+          git add docs/OPENING_FEEL_CORRECTION_SCOPE.md docs/PROBE_VALIDATION.md
+          git commit -m 'Align canonical audio wording'
           git push origin HEAD:docs/sync-post-result-feel-polish-v2
