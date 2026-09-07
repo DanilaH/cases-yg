@@ -1,0 +1,52 @@
+name: Third independent UI audit
+
+on:
+  push:
+    branches:
+      - audit/final-ui-third-pass
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT_HEAD='7a47bab77e27ffa1d92111ffd12283901314ea3d'
+          git diff --quiet "$PRODUCT_HEAD" -- . ':(exclude).github/**'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install Playwright driver and video helper
+        run: |
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mpt-vite.log
+          exit 1
+      - name: Run interaction blind-spot audit
+        run: node .github/scripts/final-ui-third-pass.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-ui-third-pass
+          path: /tmp/final-ui-third-pass
+          retention-days: 3
