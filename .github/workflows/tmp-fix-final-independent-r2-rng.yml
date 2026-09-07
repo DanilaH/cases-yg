@@ -1,0 +1,68 @@
+name: Temporary fix final independent R2 RNG
+
+on:
+  push:
+    branches:
+      - audit/final-independent-acceptance-r2
+    paths:
+      - .github/workflows/tmp-fix-final-independent-r2-rng.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Scope deterministic RNG to reward roll
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/scripts/final-independent-acceptance-r2.mjs')
+          s = p.read_text()
+
+          s = s.replace("const realTear = async (page, width, beforeOpens) => {", "const realTear = async (page, width, beforeOpens, randomValue = 0.1) => {", 1)
+
+          old = """    await page.mouse.up();
+              await page.waitForTimeout(250);"""
+          new = """    await page.evaluate(value => {
+                const original = Math.random;
+                let deterministicCalls = 8;
+                Math.random = () => deterministicCalls-- > 0 ? value : original();
+                window.setTimeout(() => {
+                  Math.random = original;
+                }, 120);
+              }, randomValue);
+              await page.mouse.up();
+              await page.waitForTimeout(250);"""
+          assert s.count(old) == 1, f'mouse block count={s.count(old)}'
+          s = s.replace(old, new, 1)
+
+          for line in [
+              "    await ctx.addInitScript(value => { Math.random = () => value; }, 0.001);\n",
+              "    await ctx.addInitScript(value => { Math.random = () => value; }, 0.1);\n",
+          ]:
+              s = s.replace(line, '')
+
+          old = """    const attempts = await realTear(page, width, before.totalOpens);"""
+          new = """    const attempts = await realTear(page, width, before.totalOpens, 0.001);"""
+          assert s.count(old) >= 1, s.count(old)
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+          git diff --check
+          grep -n "realTear\|addInitScript\|deterministicCalls" .github/scripts/final-independent-acceptance-r2.mjs
+      - name: Commit harness correction and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DanilaH'
+          git config user.email '41333602+DanilaH@users.noreply.github.com'
+          git add .github/scripts/final-independent-acceptance-r2.mjs
+          git rm .github/workflows/tmp-fix-final-independent-r2-rng.yml
+          git commit -m 'Scope R2 deterministic RNG to reward roll'
+          git push origin HEAD:audit/final-independent-acceptance-r2
