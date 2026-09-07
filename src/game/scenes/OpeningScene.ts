@@ -1438,7 +1438,10 @@ export class OpeningScene extends Phaser.Scene {
   private getRewardBankOrigin(): { x: number; y: number } {
     if (this.rewardTrayContainer?.active) {
       const height = Number(this.rewardTrayContainer.getData('height') ?? 0);
-      return { x: this.rewardTrayContainer.x, y: this.rewardTrayContainer.y + height / 2 };
+      return {
+        x: this.rewardTrayContainer.x - OPENING_FEEL_PRESENTATION.rewardTrayWidth / 2 - 4,
+        y: this.rewardTrayContainer.y + height / 2,
+      };
     }
     return { x: this.metrics?.centerX ?? 450, y: 430 };
   }
@@ -1533,7 +1536,7 @@ export class OpeningScene extends Phaser.Scene {
   ): Promise<void> {
     if (!this.root || !this.metrics) return;
     const tray = this.renderRewardTray(pending, this.root, true);
-    const anchor = this.getRewardBankOrigin();
+    const trayCenterX = tray.x;
     const heroY = getCollectiblePresentation(pending.standard.familyId).revealY;
 
     if (!pending.standard.isNew && pending.chips.recycle > 0) {
@@ -1561,7 +1564,7 @@ export class OpeningScene extends Phaser.Scene {
         this.root.add(token);
         this.tweens.add({
           targets: token,
-          x: anchor.x - 70 + index * 18,
+          x: trayCenterX - 70 + index * 18,
           y: tray.y + 48,
           scale: 0.42,
           alpha: 0.68,
@@ -1621,8 +1624,8 @@ export class OpeningScene extends Phaser.Scene {
         const lane = index % 5;
         const token = createFlyingChipToken(
           this,
-          origin.x - 54 + lane * 27,
-          origin.y + ((index % 3) - 1) * 7,
+          origin.x + lane * 6,
+          origin.y + ((index % 5) - 2) * 4,
           0.72 + (index % 2) * 0.08,
         );
         this.root!.add(token);
@@ -1675,7 +1678,7 @@ export class OpeningScene extends Phaser.Scene {
         OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
     };
     const spark = this.add
-      .circle(origin.x + 60, origin.y + 10, 8, 0x76e9f5, 0.94)
+      .circle(origin.x + 17, origin.y + 10, 8, 0x76e9f5, 0.94)
       .setStrokeStyle(2, 0xffffff, 0.58);
     this.root.add(spark);
     await this.runSkippableTween(
