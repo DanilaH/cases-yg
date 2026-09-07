@@ -6,7 +6,7 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2 and the previous feel-correction passes are implemented/audited. Final direct hands-on completed with a bounded new finding set. The current product gate is Phase 2.6: fix those issues and implement the approved deterministic Signal Overcharge extension, then exact/direct regression; real Yandex DRAFT follows only if accepted.**
+**Gameplay Loop Lite V2, the feel-correction passes, and Phase 2.6 Signal Overcharge are implemented and exact-audited. The remaining internal gate is one final direct hands-on regression; real Yandex DRAFT follows only if that subjective pass is accepted.**
 
 Current approved scope: [`docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`](docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md). Historical feel-correction contract: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
@@ -90,7 +90,7 @@ Completed:
 
 - Lite V2 engine/save/recovery;
 - Opening economy presentation;
-- 108-test current suite + typecheck/assets/build;
+- 114-test current suite + typecheck/assets/build;
 - original exact-revision browser/video audit + manual review;
 - Opening Feel Correction + Charged-ready correction;
 - first repeated hands-on;
@@ -101,9 +101,9 @@ Completed:
 
 Current order:
 
-1. implement final-hands-on fixes + Signal Overcharge;
-2. simulate Overcharge gain/cap, then exact-audit + directly regress;
-3. if accepted, real hosted Yandex DRAFT;
+1. run the final direct repeated-use hands-on regression on the exact Phase 2.6 candidate;
+2. if accepted, run real hosted Yandex DRAFT validation;
+3. fix only hosted-platform defects that the draft actually exposes;
 4. decide deferred Drop/odds/progress work from evidence;
 5. content expansion only after hosted validation.
 

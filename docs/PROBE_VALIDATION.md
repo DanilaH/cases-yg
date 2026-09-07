@@ -17,10 +17,11 @@ Current status:
 - R3 normal-flow audit artifact digest: `sha256:86f19d7a564b10d5fdf6228b096084b6b8f7c82a823553647c0b4da0dec3bd83`;
 - squash-merged `main`: `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a`, identical audited tree;
 - post-merge main CI #248: **PASS**;
-- current suite baseline: **108 unit tests** + typecheck + asset self-test/validation + production build;
+- current suite baseline: **114 unit tests** + typecheck + asset self-test/validation + production build;
 - final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
-- Phase 2.6 final-hands-on correction + Signal Overcharge: **CURRENT APPROVED PASS**;
-- real Yandex DRAFT: **BLOCKED until Phase 2.6 exact/direct acceptance**.
+- Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
+- final direct repeated-use Phase 2.6 regression: **PENDING**;
+- real Yandex DRAFT: **BLOCKED only on that final direct acceptance**.
 
 Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
 
@@ -50,7 +51,7 @@ The current merged implementation has established:
 - Basic/Charged selection continuity and insufficient-wallet fallback work;
 - compact 900/1024 and RU states are technically valid.
 
-Current suite baseline: **108 unit tests** plus typecheck, asset self-test/validation and production build.
+Current suite baseline: **114 unit tests** plus typecheck, asset self-test/validation and production build.
 
 The correction must preserve all of these properties.
 

@@ -34,7 +34,7 @@ This file states what is **actually present in current `main`** after the merged
 
 ### Persistence / platform
 
-- V2 save + migration;
+- V3 save + migration with Overcharge state;
 - deterministic `pendingReveal` anti-reroll transaction;
 - atomic Charged cost/reward/cache/recycle/Signal/Hidden outcome;
 - ambiguous storage-write reconciliation;
@@ -45,7 +45,7 @@ This file states what is **actually present in current `main`** after the merged
 ### Tooling / QA
 
 - permanent CI;
-- 108-test current suite;
+- 114-test current suite;
 - asset tooling + production build;
 - deterministic debug controls;
 - exact-revision screenshot/video audit workflow;
@@ -129,7 +129,7 @@ Rules:
 
 This keeps feel work from weakening recovery correctness.
 
-The approved Phase 2.6 Overcharge extension must obey the same rule: multiplier/bonus/gain/reset are persisted in the reveal transaction first; later count-up, gain flight and discharge are cosmetic staging only.
+The implemented Phase 2.6 Overcharge extension obeys the same rule: multiplier/bonus/gain/reset are persisted in the reveal transaction first; later count-up, gain flight and discharge are cosmetic staging only.
 
 ---
 
@@ -177,8 +177,8 @@ No tuning occurred in the feel-correction pass. Keep these provisional values un
 
 ## Current validation path
 
-1. implement the bounded final-hands-on fixes + Signal Overcharge;
-2. run exact browser/video audit + direct repeated-use regression;
+1. Phase 2.6 implementation + exact browser/video validation — complete;
+2. run one final direct repeated-use regression;
 3. if accepted, real Yandex DRAFT;
 4. fix only hosted-platform defects;
 5. content expansion.
@@ -223,6 +223,6 @@ Collectible pipeline remains unchanged:
 
 ## Current critical path
 
-> **Phase 2.6 implementation → exact/direct regression → real Yandex DRAFT → content expansion.**
+> **Final direct Phase 2.6 regression → real Yandex DRAFT → content expansion.**
 
 Runtime architecture remains intentionally small; the current gates are the bounded Overcharge/save extension, direct product acceptance and real hosted-platform validation.

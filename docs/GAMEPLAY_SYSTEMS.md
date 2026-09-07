@@ -225,9 +225,9 @@ SIGNAL
 
 At lock, use a brief electronic pulse/flicker/glitch. No long blocking animation.
 
-## 5.1 Approved next extension — Signal Overcharge (NOT CURRENT RUNTIME)
+## 5.1 Signal Overcharge — CURRENT PHASE 2.6 RUNTIME
 
-Canonical next-pass detail: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Current validation tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`.
 
 When Signal was already `4/4` before an opening and the selected pouch has no eligible missing standard item, the lock is retained and Overcharge gives Signal a secondary economic role.
 
@@ -244,7 +244,7 @@ finalEarned = rawEarned + bonus
 - retained lock: current multiplier applies, then pouch-specific gain affects the next opening;
 - consumed lock: current multiplier applies to the cash-out opening, then resets to `x1.00`;
 - finite cap remains an active max multiplier; cap state shows MAX rather than fake `+gain`;
-- exact Basic/Charged gains and cap remain open for simulation/tuning.
+- current candidate uses Basic `+0.10`, Charged `+0.50`, cap `x1.50`; reopen only from later hosted/content-scale evidence.
 
 Durable truth remains transaction-first: the Overcharge before/bonus/after transition is prepared with `pendingReveal`; reward-tray/HUD gain or discharge is only delayed presentation of that stored result. Near cap, the persisted/displayed gain is the actual clamped delta, not the pouch's nominal configured gain.
 
@@ -261,7 +261,7 @@ Presentation must make inactive/active/MAX states, bonus CHIPS, post-reward gain
 - current slice does not roll Secret duplicates;
 - at most one Secret per opening.
 
-Current Secret value is collection discovery, not recycle income. The next bounded pass must explicitly communicate that reward meaning and strengthen the reveal with a bounded aura/cloud + particle/burst/shake treatment.
+Current Secret value is collection discovery, not recycle income. Phase 2.6 now communicates that reward meaning explicitly and strengthens the reveal with the bounded aura/cloud + particle/burst/shake treatment.
 
 Hidden Pocket remains the strongest surprise beat. New neon/rarity treatment must not flatten it.
 
@@ -304,7 +304,7 @@ Hidden Pocket result
 final snapshot
 ```
 
-Approved Phase 2.6 extends this transaction with Overcharge multiplier-before, bonus CHIPS, actual applied gain/reset and multiplier-after. Those fields must be recoverable/idempotent before presentation work is considered valid.
+Phase 2.6 extends this transaction with Overcharge multiplier-before, bonus CHIPS, actual applied gain/reset and multiplier-after. These fields are implemented, migration-covered and recoverable/idempotent before presentation is replayed.
 
 Critical invariants:
 
@@ -441,7 +441,7 @@ Correction implementation + exact-revision screenshot/video + manual review are 
 
 Current gate:
 
-> **bounded final-hands-on correction + approved Signal Overcharge extension, followed by exact audit and direct regression**.
+> **Phase 2.6 implementation + exact audit are complete; one final direct repeated-use regression remains before real Yandex DRAFT**.
 
 Only after acceptance: real Yandex DRAFT.
 

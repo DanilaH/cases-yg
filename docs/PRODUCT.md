@@ -61,9 +61,9 @@ Visual rule:
 
 Implementation, repeated-use follow-up fixes, exact-revision video/screenshot audits and manual reviews are complete through PR #45. The subsequent final direct hands-on completed with bounded findings.
 
-### Stage B3 — final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS
+### Stage B3 — final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED
 
-Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Fix rarity/reward/Charged-denial issues, make Signal/Secret self-explanatory, add the deterministic recoverable Overcharge extension, simulate gain/cap tuning, then exact-audit and directly regress it. The future expensive pouch remains a hypothesis only.
+Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Current validation tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`. One final direct repeated-use regression remains before Yandex DRAFT. The future expensive pouch remains a hypothesis only.
 
 ### Stage C — real Yandex DRAFT validation — NEXT AFTER STAGE B3 ACCEPTANCE
 
@@ -139,7 +139,7 @@ Basic always gives one standard collectible + base CHIPS + independent cache cha
 
 At `4/4`, Signal guarantees NEW only among selected-pouch-eligible missing standard items. If only Legendary remains, Basic resolves normally and Signal stays armed until Charged.
 
-CHIPS = spendable progress toward Charged. Current runtime Signal = non-spendable duplicate protection. Approved next: while an already-armed lock cannot be consumed, Signal also carries a capped Overcharge multiplier over earned `base + cache + recycle` CHIPS; cash-out occurs before a consuming lock visually discharges/reset.
+CHIPS = spendable progress toward Charged. Signal remains non-spendable duplicate protection and, while an already-armed lock cannot be consumed, also carries the capped Overcharge multiplier over earned `base + cache + recycle` CHIPS. Current Phase 2.6 tuning: Basic retained-lock gain `+0.10`, Charged `+0.50`, cap `x1.50`; consuming lock cashes out the current multiplier before the staged discharge/reset.
 
 The durable Overcharge transition remains part of the atomic reveal transaction, not a presentation-owned mutation.
 
@@ -165,7 +165,7 @@ Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15 CHIPS`.
 
 Cache remains independent; Mega pays `120–180 CHIPS` at current provisional tuning.
 
-No legacy balance tuning was mixed into the presentation pass. Keep existing pouch costs/base/cache/rarity/recycle values unchanged in Phase 2.6; only new Overcharge gain/cap values are simulation-driven tuning candidates.
+No legacy balance tuning was mixed into Phase 2.6. Existing pouch costs/base/cache/rarity/recycle values remain unchanged. The current candidate locks only the new Overcharge parameters at Basic `+0.10`, Charged `+0.50`, cap `x1.50`; later content-scale evidence may reopen them.
 
 ---
 

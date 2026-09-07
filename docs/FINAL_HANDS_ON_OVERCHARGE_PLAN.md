@@ -1,8 +1,8 @@
 # Final hands-on correction + Signal Overcharge
 
-Status: **APPROVED NEXT / NOT CURRENT RUNTIME**.
+Status: **IMPLEMENTED / EXACT-AUDITED / FINAL DIRECT HANDS-ON PENDING**.
 
-This document captures the evidence-backed findings from the latest direct hands-on plus the approved Signal Overcharge extension. It supersedes older statements that Overcharge is globally parked. Existing Lite V2 balance remains the runtime baseline until this pass is implemented and independently revalidated.
+This document is the canonical contract for the implemented Phase 2.6 correction and Signal Overcharge extension. The legacy Lite V2 pouch/cache/rarity/recycle values remain unchanged; the new Overcharge state/economy/presentation has passed exact technical/browser validation and now awaits final direct repeated-use hands-on before hosted Yandex DRAFT.
 
 The pass must remain bounded: fix the observed UI/input issues, make Signal and Secret self-explanatory, add one small Signal-to-economy extension, simulate its tuning, and stop. It is not permission to add a shop, multiple currencies, crafting, auto-open, new families or a large meta layer.
 
@@ -209,20 +209,20 @@ Hidden Pocket/Secret collection value itself is not multiplied because it is not
 
 Each pouch profile owns an `overchargeGain` tuning value.
 
-Initial simulation candidates, **not release-locked values**:
+Current Phase 2.6 validation tuning:
 
 ```text
 Basic   +0.10
 Charged +0.50
 ```
 
-Future pouch types may use different gains. The gain is a balance lever and must be simulated before implementation is considered tuned.
+These values are implemented in typed pouch profiles and passed the current EV sanity/transaction/browser gates. They are locked for this validation candidate, not claimed as immutable public-release balance. Future pouch types may use different gains.
 
 When a pouch gain would cross the cap, apply only the real clamped delta. Example: `x1.40 + 0.50` with cap `x1.50` resolves as actual gain `+0.10`, not `+0.50`. Presentation must report the actual applied delta.
 
 ## 5.5 Cap
 
-Overcharge must have a finite cap. The exact cap is **OPEN FOR TUNING**.
+Overcharge has a finite current validation cap of **x1.50** (`150` hundredths). This is implemented and locked for the Phase 2.6 candidate; content-scale release balancing may reopen it only from evidence.
 
 At cap:
 
@@ -232,7 +232,7 @@ At cap:
 - reward/HUD may show `OVERCHARGE MAX` / `MAX OVERCHARGE ACTIVE`;
 - max state uses a visibly saturated treatment rather than looking disabled.
 
-Candidate caps to compare in simulation include `x1.30`, `x1.50` and, only if economy permits, a higher ceiling.
+The validation pass compared lower-cap alternatives conceptually/through EV sanity work and selected `x1.50` for the current candidate. Do not raise it further without new economy evidence.
 
 ## 5.6 Completion behavior
 
@@ -351,9 +351,9 @@ Discharge/reset should be a stronger beat than an ordinary `+0.10` gain.
 
 ---
 
-# 7. Economy simulation before tuning lock
+# 7. Economy tuning status
 
-The mechanic contract above is approved; tuning is not.
+The mechanic contract and current Phase 2.6 validation tuning are implemented. Legacy Lite V2 balance remains unchanged; only Overcharge uses the selected Basic `+0.10`, Charged `+0.50`, cap `x1.50` parameters. Public-release/content-scale rebalancing remains a later evidence gate.
 
 Before locking numbers, simulate at minimum:
 

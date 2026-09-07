@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2 and the bounded **Opening Feel Correction** are implemented in current `main`. Final direct hands-on completed with bounded findings. The immediate gate is Phase 2.6: targeted fixes plus the approved Signal Overcharge transaction extension, followed by exact/direct regression — not broad architecture work.
+Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, and Phase 2.6 Signal Overcharge are implemented on the current merge candidate. The Phase 2.6 candidate has passed exact technical/browser validation; the immediate gate is one final direct repeated-use regression, then real Yandex DRAFT if accepted — not broad architecture work.
 
 Existing architecture already contains the required truth boundaries:
 
