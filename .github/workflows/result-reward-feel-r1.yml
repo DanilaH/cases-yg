@@ -1,0 +1,56 @@
+name: Result reward feel R1
+
+on:
+  push:
+    branches:
+      - audit/result-reward-feel-polish-r1
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet afeb2ac50cba02cec68dcabd60a18e16ced97094 -- . \
+            ':(exclude).github/scripts/result-reward-feel-r1.mjs' \
+            ':(exclude).github/workflows/result-reward-feel-r1.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install browser helpers
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chrome
+      - name: Start Vite
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run exact browser/video audit
+        run: node .github/scripts/result-reward-feel-r1.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-reward-feel-r1
+          path: /tmp/result-reward-feel-r1
+          retention-days: 3
