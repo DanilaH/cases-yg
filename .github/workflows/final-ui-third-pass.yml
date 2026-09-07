@@ -56,7 +56,11 @@ jobs:
           cat /tmp/mpt-vite.log
           exit 1
       - name: Run interaction blind-spot audit
-        run: node .github/scripts/final-ui-third-pass.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/final-ui-third-pass
+          node .github/scripts/final-ui-third-pass.mjs 2>&1 | tee /tmp/final-ui-third-pass/harness.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
