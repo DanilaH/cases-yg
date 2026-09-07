@@ -88,7 +88,7 @@ const wireDiagnostics = (page, tag) => {
   });
 };
 
-const realTear = async (page, width, beforeOpens) => {
+const realTear = async (page, width, beforeOpens, randomValue = 0.1) => {
   const candidates = [
     { dx: 0, dy: 0 },
     { dx: 0, dy: 8 },
@@ -106,6 +106,14 @@ const realTear = async (page, width, beforeOpens) => {
       await page.mouse.move(startX + (312 * step) / 14, startY, { steps: 1 });
       await page.waitForTimeout(15);
     }
+    await page.evaluate(value => {
+      const original = Math.random;
+      let deterministicCalls = 8;
+      Math.random = () => deterministicCalls-- > 0 ? value : original();
+      window.setTimeout(() => {
+        Math.random = original;
+      }, 120);
+    }, randomValue);
     await page.mouse.up();
     await page.waitForTimeout(250);
     const state = await readSave(page);
@@ -163,7 +171,6 @@ try {
       locale: 'ru-RU',
       recordVideo: { dir: outDir, size: { width, height: 720 } },
     });
-    await ctx.addInitScript(value => { Math.random = () => value; }, 0.001);
     const page = await ctx.newPage();
     wireDiagnostics(page, 'hidden-pocket-real');
     await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
@@ -172,7 +179,7 @@ try {
     await shot(page, '10-hidden-idle-before');
 
     const before = await readSave(page);
-    const attempts = await realTear(page, width, before.totalOpens);
+    const attempts = await realTear(page, width, before.totalOpens, 0.001);
     assert('hidden-star-acquired', attempts > 0, attempts);
     if (!attempts) throw new Error('hidden-pocket: star acquisition failed');
     const pendingState = await waitPending(page, before.totalOpens);
@@ -205,7 +212,6 @@ try {
       locale: 'en-US',
       recordVideo: { dir: outDir, size: { width, height: 720 } },
     });
-    await ctx.addInitScript(value => { Math.random = () => value; }, 0.1);
     const page = await ctx.newPage();
     wireDiagnostics(page, 'signal-reach-consume');
     await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
@@ -262,7 +268,6 @@ try {
       locale: 'ru-RU',
       recordVideo: { dir: outDir, size: { width, height: 720 } },
     });
-    await ctx.addInitScript(value => { Math.random = () => value; }, 0.1);
     const page = await ctx.newPage();
     wireDiagnostics(page, 'signal-waits-charged');
     await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
