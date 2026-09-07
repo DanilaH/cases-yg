@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 
-# Audit-only rerun marker after correcting transaction-state expectations.
+# Audit-only rerun marker after hardening synthetic star acquisition.
 jobs:
   audit:
     runs-on: ubuntu-24.04
