@@ -24,48 +24,21 @@ jobs:
           p = Path('.github/scripts/final-independent-acceptance-r1.mjs')
           s = p.read_text()
 
-          old = """        return state.totalOpens === before + 1 && state.pendingReveal !== null;"""
-          new = """        return (
+          old = '        return state.totalOpens === before + 1 && state.pendingReveal !== null;'
+          new = '''        return (
                   state.totalOpens === before &&
                   state.pendingReveal !== null &&
                   state.pendingReveal.openingNumber === before + 1
-                );"""
-          assert s.count(old) == 1, s.count(old)
+                );'''
+          if old not in s:
+              raise SystemExit('pending wait contract marker missing')
           s = s.replace(old, new, 1)
 
-          old = """  await stageScenario(page, 'Force Epic');
-          const first = await readSave(page);
-          await page.waitForTimeout(180);
-          await page.reload({ waitUntil: 'domcontentloaded' });
-          await waitGame(page);
-          await hideDebug(page);
-          const second = await readSave(page);
-          await shot(page, '30-recovery-after-second-reload');
-          const fingerprint = state => state?.pendingReveal ? {
-            transactionId: state.pendingReveal.transactionId,
-            openingNumber: state.pendingReveal.openingNumber,
-            collectibleId: state.pendingReveal.standard?.collectibleId,
-            chips: state.pendingReveal.chips,
-            signal: state.pendingReveal.signal,
-          } : null;
-          assert('recovery-pending-identical-after-second-reload', JSON.stringify(fingerprint(first)) === JSON.stringify(fingerprint(second)), {
-            first: fingerprint(first), second: fingerprint(second),
-          });
-          const recoveredBeforeOpens = second.totalOpens - 1;
-          await finishPendingPresentation(page, width, recoveredBeforeOpens, 'recovery');
-          const completed = await readSave(page);
-          assert('recovery-completes-once', completed?.totalOpens === second.totalOpens && completed?.pendingReveal === null, {
-            before: second.totalOpens, after: completed?.totalOpens, pending: completed?.pendingReveal,
-          });
-          await page.reload({ waitUntil: 'domcontentloaded' });
-          await waitGame(page);
-          await hideDebug(page);
-          const afterReload = await readSave(page);
-          assert('recovery-stays-complete-after-reload', afterReload?.totalOpens === completed?.totalOpens && afterReload?.chips === completed?.chips && afterReload?.pendingReveal === null, {
-            completed, afterReload,
-          });
-          await shot(page, '31-recovery-final-idle');"""
-          new = """  await showDebug(page);
+          recovery_scope = s.index('// C. Recovery idempotency')
+          start = s.index("  await stageScenario(page, 'Force Epic');", recovery_scope)
+          end_marker = "  await shot(page, '31-recovery-final-idle');"
+          end = s.index(end_marker, start) + len(end_marker)
+          recovery = '''  await showDebug(page);
           await Promise.all([
             page.waitForEvent('framenavigated', { timeout: 10000 }),
             page.getByRole('button', { name: 'Force Epic', exact: true }).click(),
@@ -105,7 +78,6 @@ jobs:
           );
           const completed = await readSave(page);
           assert('recovery-completes-once', completed?.totalOpens === 18 && completed?.pendingReveal === null, completed);
-          // Clear the recovered result presentation with separate gestures before the persistence re-check.
           for (let i = 0; i < 5; i += 1) {
             await tap(page, width / 2, 585, 45);
             await page.waitForTimeout(140);
@@ -117,24 +89,23 @@ jobs:
           assert('recovery-stays-complete-after-reload', afterReload?.totalOpens === completed?.totalOpens && afterReload?.chips === completed?.chips && afterReload?.pendingReveal === null, {
             completed, afterReload,
           });
-          await shot(page, '31-recovery-final-idle');"""
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
+          await shot(page, '31-recovery-final-idle');'''
+          s = s[:start] + recovery + s[end:]
 
-          old = """  await stageScenario(page, 'Force Common');
-          // Finish staged reveal first so Seed can safely replace a stable save.
-          const staged = await readSave(page);
-          await finishPendingPresentation(page, 1280, staged.totalOpens - 1, 'collection-prep');
-          await showDebug(page);"""
-          new = """  await setSave(page, baseSave({ chips: 120, totalOpens: 3 }));
-          await showDebug(page);"""
-          assert s.count(old) == 1, s.count(old)
-          s = s.replace(old, new, 1)
+          collection_scope = s.index('// D. Fully populated collection')
+          start = s.index("  await stageScenario(page, 'Force Common');", collection_scope)
+          end_marker = '  await showDebug(page);'
+          end = s.index(end_marker, start) + len(end_marker)
+          collection = '''  await setSave(page, baseSave({ chips: 120, totalOpens: 3 }));
+          await showDebug(page);'''
+          s = s[:start] + collection + s[end:]
 
           p.write_text(s)
           PY
           git diff --check
-          git diff -- .github/scripts/final-independent-acceptance-r1.mjs
+          grep -Fq 'state.pendingReveal.openingNumber === before + 1' .github/scripts/final-independent-acceptance-r1.mjs
+          grep -Fq "assert('recovery-first-load-has-pending'" .github/scripts/final-independent-acceptance-r1.mjs
+          grep -Fq 'baseSave({ chips: 120, totalOpens: 3 })' .github/scripts/final-independent-acceptance-r1.mjs
       - name: Commit harness fix and remove temporary workflow
         shell: bash
         run: |
