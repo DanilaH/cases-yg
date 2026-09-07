@@ -146,6 +146,7 @@ const portrait = await portraitContext.newPage();
 attachDiagnostics(portrait, 'orientation-gate');
 await portrait.goto('http://127.0.0.1:5173/?platform=mock', { waitUntil: 'domcontentloaded' });
 await portrait.waitForFunction(() => document.querySelector('#orientation-gate')?.getAttribute('data-visible') === 'true', null, { timeout: 20_000 });
+await hideDebug(portrait);
 await portrait.waitForTimeout(500);
 await shot(portrait, '10-portrait-gate');
 const gateStyles = await portrait.evaluate(() => {
@@ -181,6 +182,7 @@ assertions.push({
 await portrait.setViewportSize({ width: 900, height: 430 });
 await portrait.waitForFunction(() => document.querySelector('#orientation-gate')?.getAttribute('data-visible') !== 'true', null, { timeout: 20_000 });
 await portrait.waitForSelector('#game canvas', { state: 'visible', timeout: 20_000 });
+await hideDebug(portrait);
 await portrait.waitForTimeout(500);
 await shot(portrait, '11-landscape-after-gate');
 assertions.push({ name: 'portrait-gate-releases', pass: true });
