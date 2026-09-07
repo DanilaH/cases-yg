@@ -59,12 +59,13 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p /tmp/final-ui-third-pass
-          node .github/scripts/final-ui-third-pass.mjs 2>&1 | tee /tmp/final-ui-third-pass/harness.log
+          node .github/scripts/final-ui-third-pass.mjs 2>&1 | tee /tmp/third-pass-harness.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: final-ui-third-pass
-          path: /tmp/final-ui-third-pass
+          path: |
+            /tmp/final-ui-third-pass
+            /tmp/third-pass-harness.log
           if-no-files-found: error
           retention-days: 3
