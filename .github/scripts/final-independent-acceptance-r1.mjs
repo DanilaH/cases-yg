@@ -111,7 +111,11 @@ const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
       if (!raw) return false;
       try {
         const state = JSON.parse(raw);
-        return state.totalOpens === before + 1 && state.pendingReveal !== null;
+        return (
+        state.totalOpens === before &&
+        state.pendingReveal !== null &&
+        state.pendingReveal.openingNumber === before + 1
+      );
       } catch {
         return false;
       }
@@ -246,38 +250,58 @@ const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
   await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
   await waitGame(page);
   await setSave(page, baseSave({ chips: 87, totalOpens: 17 }));
-  await stageScenario(page, 'Force Epic');
-  const first = await readSave(page);
-  await page.waitForTimeout(180);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await waitGame(page);
-  await hideDebug(page);
-  const second = await readSave(page);
-  await shot(page, '30-recovery-after-second-reload');
-  const fingerprint = state => state?.pendingReveal ? {
-    transactionId: state.pendingReveal.transactionId,
-    openingNumber: state.pendingReveal.openingNumber,
-    collectibleId: state.pendingReveal.standard?.collectibleId,
-    chips: state.pendingReveal.chips,
-    signal: state.pendingReveal.signal,
-  } : null;
-  assert('recovery-pending-identical-after-second-reload', JSON.stringify(fingerprint(first)) === JSON.stringify(fingerprint(second)), {
-    first: fingerprint(first), second: fingerprint(second),
-  });
-  const recoveredBeforeOpens = second.totalOpens - 1;
-  await finishPendingPresentation(page, width, recoveredBeforeOpens, 'recovery');
-  const completed = await readSave(page);
-  assert('recovery-completes-once', completed?.totalOpens === second.totalOpens && completed?.pendingReveal === null, {
-    before: second.totalOpens, after: completed?.totalOpens, pending: completed?.pendingReveal,
-  });
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await waitGame(page);
-  await hideDebug(page);
-  const afterReload = await readSave(page);
-  assert('recovery-stays-complete-after-reload', afterReload?.totalOpens === completed?.totalOpens && afterReload?.chips === completed?.chips && afterReload?.pendingReveal === null, {
-    completed, afterReload,
-  });
-  await shot(page, '31-recovery-final-idle');
+  await showDebug(page);
+await Promise.all([
+  page.waitForEvent('framenavigated', { timeout: 10000 }),
+  page.getByRole('button', { name: 'Force Epic', exact: true }).click(),
+]);
+await page.waitForLoadState('domcontentloaded');
+const first = await readSave(page);
+assert('recovery-first-load-has-pending', first?.pendingReveal !== null && first?.totalOpens === 17, {
+  totalOpens: first?.totalOpens,
+  pending: first?.pendingReveal?.transactionId ?? null,
+});
+
+// Reload again immediately, while the first recovery presentation is still active.
+await page.reload({ waitUntil: 'domcontentloaded' });
+const second = await readSave(page);
+const fingerprint = state => state?.pendingReveal ? {
+  transactionId: state.pendingReveal.transactionId,
+  openingNumber: state.pendingReveal.openingNumber,
+  collectibleId: state.pendingReveal.standard?.collectibleId,
+  chips: state.pendingReveal.chips,
+  signal: state.pendingReveal.signal,
+} : null;
+assert('recovery-pending-identical-after-second-reload', JSON.stringify(fingerprint(first)) === JSON.stringify(fingerprint(second)), {
+  first: fingerprint(first), second: fingerprint(second),
+});
+await waitGame(page);
+await hideDebug(page);
+await shot(page, '30-recovery-after-second-reload');
+await page.waitForFunction(
+  key => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    return state.totalOpens === 18 && state.pendingReveal === null;
+  },
+  SAVE_KEY,
+  { timeout: 12000 },
+);
+const completed = await readSave(page);
+assert('recovery-completes-once', completed?.totalOpens === 18 && completed?.pendingReveal === null, completed);
+for (let i = 0; i < 5; i += 1) {
+  await tap(page, width / 2, 585, 45);
+  await page.waitForTimeout(140);
+}
+await page.reload({ waitUntil: 'domcontentloaded' });
+await waitGame(page);
+await hideDebug(page);
+const afterReload = await readSave(page);
+assert('recovery-stays-complete-after-reload', afterReload?.totalOpens === completed?.totalOpens && afterReload?.chips === completed?.chips && afterReload?.pendingReveal === null, {
+  completed, afterReload,
+});
+await shot(page, '31-recovery-final-idle');
   await ctx.close();
 }
 
@@ -292,11 +316,8 @@ const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
   wireDiagnostics(page, 'collection-cycle');
   await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'domcontentloaded' });
   await waitGame(page);
-  await stageScenario(page, 'Force Common');
-  // Finish staged reveal first so Seed can safely replace a stable save.
-  const staged = await readSave(page);
-  await finishPendingPresentation(page, 1280, staged.totalOpens - 1, 'collection-prep');
-  await showDebug(page);
+  await setSave(page, baseSave({ chips: 120, totalOpens: 3 }));
+await showDebug(page);
   await Promise.all([
     page.waitForEvent('framenavigated', { timeout: 10000 }),
     page.getByRole('button', { name: 'Seed all 8/8 + 2/2', exact: true }).click(),
