@@ -102,15 +102,17 @@ const runScenario = async ({ locale, width, tag }) => {
     overchargeHundredths: committed?.overchargeHundredths,
   });
 
-  // Allow the result hold to finish so this frame is the actual actionable cash-out result,
-  // not the earlier fast-forward prompt. Visual review must show 4/4 + the pre-opening multiplier.
+  // Capture the cash-out result. It must visually keep the pre-opening 4/4 lock and multiplier.
   await page.waitForTimeout(2400);
   await page.screenshot({ path: path.join(outDir, `${tag}-cashout-result.png`) });
 
   const beforeAck = await readSave(page);
   assert(`${tag}-result-hold-no-mutation`, JSON.stringify(beforeAck) === JSON.stringify(committed), beforeAck);
 
-  // One distinct acknowledgement now begins banking/discharge.
+  // Two separate gestures are deliberate: the first may finish any remaining result presentation;
+  // the second acknowledges the now-actionable result. During banking, a second gesture is only a safe fast-forward.
+  await tap(page, width / 2, 585, 55);
+  await page.waitForTimeout(1200);
   await tap(page, width / 2, 585, 55);
   await page.waitForTimeout(3400);
   await page.screenshot({ path: path.join(outDir, `${tag}-idle-after-discharge.png`) });
