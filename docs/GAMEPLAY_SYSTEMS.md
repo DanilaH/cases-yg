@@ -225,6 +225,29 @@ SIGNAL
 
 At lock, use a brief electronic pulse/flicker/glitch. No long blocking animation.
 
+## 5.1 Approved next extension — Signal Overcharge (NOT CURRENT RUNTIME)
+
+Canonical next-pass detail: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+
+When Signal was already `4/4` before an opening and the selected pouch has no eligible missing standard item, the lock is retained and Overcharge gives Signal a secondary economic role.
+
+Locked semantics:
+
+```text
+rawEarned = base + cache + recycle
+bonus = round(rawEarned * (multiplier - 1))
+finalEarned = rawEarned + bonus
+```
+
+- pouch cost is not multiplied;
+- first `3/4 → 4/4` does not gain Overcharge on the same opening;
+- retained lock: current multiplier applies, then pouch-specific gain affects the next opening;
+- consumed lock: current multiplier applies to the cash-out opening, then resets to `x1.00`;
+- finite cap remains an active max multiplier; cap state shows MAX rather than fake `+gain`;
+- exact Basic/Charged gains and cap remain open for simulation/tuning.
+
+Presentation must make inactive/active/MAX states, bonus CHIPS, post-reward gain and discharge/reset visible.
+
 ---
 
 # 6. Hidden Pocket — CURRENT RUNTIME
@@ -235,6 +258,8 @@ At lock, use a brief electronic pulse/flicker/glitch. No long blocking animation
 - only while an undiscovered Secret exists in active pool;
 - current slice does not roll Secret duplicates;
 - at most one Secret per opening.
+
+Current Secret value is collection discovery, not recycle income. The next bounded pass must explicitly communicate that reward meaning and strengthen the reveal with a bounded aura/cloud + particle/burst/shake treatment.
 
 Hidden Pocket remains the strongest surprise beat. New neon/rarity treatment must not flatten it.
 
@@ -412,7 +437,7 @@ Correction implementation + exact-revision screenshot/video + manual review are 
 
 Current gate:
 
-> **second 20–30 opening hands-on on merged `main`**.
+> **bounded final-hands-on correction + approved Signal Overcharge extension, followed by exact audit and direct regression**.
 
 Only after acceptance: real Yandex DRAFT.
 
@@ -425,7 +450,7 @@ Do not add by default:
 - balance changes in this branch;
 - timed Basic energy;
 - offline/passive income;
-- Overcharge / Archive;
+- Archive;
 - upgrades;
 - second currency;
 - shop;
@@ -437,4 +462,4 @@ Do not add by default:
 - backend/ECS/physics/3D;
 - custom shader system.
 
-The pass should make the same mechanics feel substantially more expensive and responsive.
+The approved exception is the small Signal Overcharge extension specified in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; do not treat it as permission for unrelated meta-system expansion.
