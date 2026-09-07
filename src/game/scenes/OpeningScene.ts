@@ -1821,7 +1821,11 @@ export class OpeningScene extends Phaser.Scene {
 
   private getResultPresentationState(pending: PendingReveal): SaveState | null {
     if (!this.saveState) return null;
-    const visualSignal = pending.signal.gain > 0 ? pending.signal.before : pending.signal.after;
+    const visualSignal = pending.signal.lockConsumed
+      ? pending.signal.before
+      : pending.signal.gain > 0
+        ? pending.signal.before
+        : pending.signal.after;
     return {
       ...this.saveState,
       chips: pending.chips.before - pending.chips.cost,
