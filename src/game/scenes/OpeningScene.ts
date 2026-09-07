@@ -1159,6 +1159,7 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;
 
     this.stopStarPulse();
+    getGameAudio().play('pouch-grab');
     this.phase = 'dragging';
     this.drag = {
       pointerId: pointer.id,
@@ -1536,6 +1537,8 @@ export class OpeningScene extends Phaser.Scene {
     this.rewardTrayContainer?.destroy(true);
     const messages = getMessages(getPlatformRuntime().language);
     const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
+    const rarityColor = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
+    const rarityCode = pending.standard.rarity.toUpperCase();
     const rows: Array<{ kind: 'chips' | 'signal'; text: string; color: string }> = [
       { kind: 'chips', text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
     ];
@@ -1543,11 +1546,15 @@ export class OpeningScene extends Phaser.Scene {
       rows.push({
         kind: 'chips',
         text: `${cacheLabel} +${pending.chips.cacheBonus}`,
-        color: pending.chips.cacheTier === 'mega' ? '#ffe59a' : pending.chips.cacheTier === 'big' ? CHARGED_TEXT_COLOR : CHIPS_TEXT_COLOR,
+        color: pending.chips.cacheTier === 'mega' ? '#ffe59a' : pending.chips.cacheTier === 'big' ? CHARGED_TEXT_COLOR : '#7ee8c8',
       });
     }
     if (pending.chips.recycle > 0) {
-      rows.push({ kind: 'chips', text: `${messages.opening.recycled} +${pending.chips.recycle}`, color: '#aefcff' });
+      rows.push({
+        kind: 'chips',
+        text: `${messages.opening.recycled} +${pending.chips.recycle} · ${rarityCode}`,
+        color: rarityColor,
+      });
     }
     if (pending.signal.gain > 0) {
       rows.push({ kind: 'signal', text: `+${pending.signal.gain} SIGNAL`, color: '#b7a7ff' });
@@ -2602,6 +2609,7 @@ export class OpeningScene extends Phaser.Scene {
       Math.min(RESULT_PRESENTATION.panelMaxWidth, this.metrics.logicalWidth - 120),
     );
     const panel = this.add.container(this.metrics.centerX, RESULT_PRESENTATION.panelY + 7).setAlpha(0);
+    const rarityColorNumber = Number.parseInt(copy.rarityColor.slice(1), 16);
     const background = this.add.graphics();
     background.fillStyle(0x21172e, 0.84);
     background.fillRoundedRect(
@@ -2611,7 +2619,7 @@ export class OpeningScene extends Phaser.Scene {
       RESULT_PRESENTATION.panelHeight,
       22,
     );
-    background.lineStyle(1.5, 0xf0ddff, 0.24);
+    background.lineStyle(2, Number.isFinite(rarityColorNumber) ? rarityColorNumber : 0xf0ddff, 0.44);
     background.strokeRoundedRect(
       -panelWidth / 2,
       -RESULT_PRESENTATION.panelHeight / 2,
@@ -2638,10 +2646,13 @@ export class OpeningScene extends Phaser.Scene {
     });
     const rarity = this.add.text(0, -32, `◆ ${copy.rarity.toUpperCase()}`, {
       color: copy.rarityColor,
+      backgroundColor: '#18101f',
+      padding: { x: 8, y: 4 },
       stroke: '#160f20',
-      strokeThickness: 2,
+      strokeThickness: 1,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '8px',
+      fontSize: '10px',
+      fontStyle: 'bold',
     });
     this.positionResultHeading(title, rarity);
     const status = this.add.text(0, 0, copy.status, {
@@ -2693,12 +2704,21 @@ export class OpeningScene extends Phaser.Scene {
     panel.setData('hint', hint);
     this.root.add(panel);
     this.resultActionPanel = panel;
+    rarity.setScale(0.92).setAlpha(0);
     this.tweens.add({
       targets: panel,
       y: RESULT_PRESENTATION.panelY,
       alpha: 1,
       duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
       ease: 'Sine.Out',
+    });
+    this.tweens.add({
+      targets: rarity,
+      scale: 1,
+      alpha: 1,
+      delay: 55,
+      duration: 135,
+      ease: 'Back.Out',
     });
     if (this.resultReady) this.startResultPanelPulse();
   }
@@ -2756,7 +2776,7 @@ export class OpeningScene extends Phaser.Scene {
       this.startRewardBreathing(standard.group, standard.presentation.revealScale);
     }
 
-    this.renderRewardTray(pending, root, true);
+    this.renderRewardTray(pending, root, false);
     this.renderResultActionPanel(pending);
   }
 
