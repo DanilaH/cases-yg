@@ -98,6 +98,7 @@ export class OpeningScene extends Phaser.Scene {
   private standardResultScrim: Phaser.GameObjects.Graphics | null = null;
   private resultCarouselItems: Phaser.GameObjects.Container[] = [];
   private resultCarouselDots: Phaser.GameObjects.Arc[] = [];
+  private resultCarouselHeading: Phaser.GameObjects.Text | null = null;
   private resultCarouselIndex = 0;
   private resultCarouselDrag: ResultCarouselDrag | null = null;
   private resultCarouselZone: Phaser.GameObjects.Zone | null = null;
@@ -106,6 +107,7 @@ export class OpeningScene extends Phaser.Scene {
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
   private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
+  private pouchSelectorLabel: Phaser.GameObjects.Text | null = null;
   private chipsHudContainer: Phaser.GameObjects.Container | null = null;
   private chipsHudText: Phaser.GameObjects.Text | null = null;
   private chipsHudValue = 0;
@@ -232,10 +234,12 @@ export class OpeningScene extends Phaser.Scene {
     this.standardResultScrim = null;
     this.resultCarouselItems = [];
     this.resultCarouselDots = [];
+    this.resultCarouselHeading = null;
     this.resultCarouselIndex = 0;
     this.resultCarouselDrag = null;
     this.resultCarouselZone = null;
     this.pouchSelectorButtons = [];
+    this.pouchSelectorLabel = null;
     this.chipsHudContainer = null;
     this.chipsHudText = null;
     this.signalHudContainer = null;
@@ -634,6 +638,18 @@ export class OpeningScene extends Phaser.Scene {
       ease: 'Cubic.Out',
     });
 
+    if (this.pouchSelectorLabel) {
+      const targetY = this.pouchSelectorLabel.y;
+      this.pouchSelectorLabel.setY(targetY + 2).setAlpha(0);
+      this.tweens.add({
+        targets: this.pouchSelectorLabel,
+        y: targetY,
+        alpha: 1,
+        duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+        ease: 'Sine.Out',
+      });
+    }
+
     for (const card of this.pouchSelectorButtons) {
       const targetY = card.y;
       const targetAlpha = Number(card.getData('idleAlpha') ?? 1);
@@ -838,6 +854,7 @@ export class OpeningScene extends Phaser.Scene {
       fontSize: '9px',
     });
     root.add(sectionLabel);
+    this.pouchSelectorLabel = sectionLabel;
 
     const createCard = (
       pouchType: PouchType,
@@ -1794,6 +1811,10 @@ export class OpeningScene extends Phaser.Scene {
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
     if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
     if (this.resultActionPanel?.active) fadeTargets.push(this.resultActionPanel);
+    if (this.resultCarouselHeading?.active) fadeTargets.push(this.resultCarouselHeading);
+    if (this.resultCarouselDots.length > 0) {
+      fadeTargets.push(...this.resultCarouselDots.filter((dot) => dot.active));
+    }
     if (this.resultCarouselItems.length > 0) {
       fadeTargets.push(...this.resultCarouselItems.filter((item) => item.active));
     } else if (this.resultBreathTarget?.active) {
@@ -2252,16 +2273,16 @@ export class OpeningScene extends Phaser.Scene {
     if (!pending.hiddenPocket) return;
     const messages = getMessages(getPlatformRuntime().language);
 
-    root.add(
-      this.add.text(metrics.centerX, 126, messages.opening.hiddenPocket, {
-        color: '#8df8ff',
-        stroke: '#160f20',
-        strokeThickness: 3,
-        fontFamily: 'monospace',
-        fontSize: '22px',
-        fontStyle: 'bold',
-      }).setOrigin(0.5),
-    );
+    const heading = this.add.text(metrics.centerX, 126, messages.opening.hiddenPocket, {
+      color: '#8df8ff',
+      stroke: '#160f20',
+      strokeThickness: 3,
+      fontFamily: 'monospace',
+      fontSize: '22px',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    root.add(heading);
+    this.resultCarouselHeading = heading;
 
     const standardPage = this.add.container(0, getCollectiblePresentation(pending.standard.familyId).revealY);
     root.add(standardPage);
