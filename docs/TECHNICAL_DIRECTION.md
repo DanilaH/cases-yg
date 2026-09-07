@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2 and the bounded **Opening Feel Correction** are implemented in current `main`. Exact-revision browser/video and manual visual review passed; the immediate gate is second repeated hands-on, not more architecture work.
+Gameplay Loop Lite V2 and the bounded **Opening Feel Correction** are implemented in current `main`. Final direct hands-on completed with bounded findings. The immediate gate is Phase 2.6: targeted fixes plus the approved Signal Overcharge transaction extension, followed by exact/direct regression — not broad architecture work.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -107,7 +107,7 @@ A small focused presentation helper is acceptable if the fast-forward/banking ch
 
 ---
 
-## 5. Content / balance boundaries — UNCHANGED
+## 5. Content / balance boundaries — LEGACY VALUES UNCHANGED
 
 Current registry remains loot-pool-aware. Current `LITE_V2_BALANCE` remains the single tuning source.
 
@@ -121,12 +121,13 @@ Structural invariants remain:
 - CHIPS/Signal global across Drops;
 - Charged remains a CHIPS sink in expectation;
 - balance numbers stayed unchanged through the feel correction and remain provisional pending later evidence.
+- Phase 2.6 may add only Overcharge-specific pouch gain/cap tuning; legacy pouch cost/base/cache/rarity/recycle numbers do not move by intuition.
 
 No player Drop selector before Drop #2.
 
 ---
 
-## 6. Save / atomic reveal contract — CRITICAL AND UNCHANGED
+## 6. Save / atomic reveal contract — CRITICAL BASELINE + PHASE 2.6 EXTENSION
 
 Current save is versioned (`SAVE_VERSION = 2`) behind `StorageAdapter`.
 
@@ -158,6 +159,13 @@ Invariants:
 - retained/consumed Signal outcome cannot change during recovery;
 - original pouch profile/loot pool survive recovery;
 - presentation tweens, fast-forward and visual banking never determine durable state.
+
+Phase 2.6 must extend this same boundary rather than bypass it:
+
+- persist Overcharge multiplier-before, bonus CHIPS, actual clamped gain/reset and multiplier-after in the prepared reveal;
+- migrate existing saves to an inactive `x1.00` Overcharge state without losing pending-reveal safety;
+- recovery must never recalculate a different multiplier transition;
+- reward count-up, gain flight, MAX pulse and discharge are presentation-only views of the stored transition.
 
 ---
 
@@ -234,7 +242,7 @@ Do not mutate `SaveState.chips` from count-up callbacks.
 
 ## 10. Signal presentation
 
-Signal resolver semantics stay unchanged.
+Current Signal pity resolver semantics remain the baseline. Phase 2.6 extends the same pure/domain layer with Overcharge; scene tweens remain non-authoritative.
 
 Presentation may add:
 
@@ -243,7 +251,7 @@ Presentation may add:
 - short electronic lock flicker/glitch;
 - stronger digital/pixel label treatment.
 
-Do not turn Signal into a spendable animation/state machine. Resolver + pending transaction remain authoritative.
+Do not turn Signal into a scene-owned/spendable animation state machine. Signal + Overcharge resolver state and the pending transaction remain authoritative.
 
 ---
 
@@ -322,17 +330,13 @@ No recolored raster is required by the current audit. Re-open one only if later 
 
 The evidence-backed cue is integrated through the existing audio abstraction and persistent mute behavior:
 
-```text
-chips-collect
-```
-
-Do not add one cue per cache tier. Optional `charged-ready` cue is conditional on review.
+Current integrated cues include synthesized `chip-clack` for CHIPS banking and synth-only `pouch-grab` for star grab. Do not add one cue per cache tier. Optional `charged-ready` cue remains conditional on review.
 
 ---
 
 ## 15. Current regression coverage
 
-Current suite is 91 tests plus typecheck/assets/build. Focused coverage and the r3 exact-revision audit cover:
+Current suite baseline is 108 tests plus typecheck/assets/build. Focused coverage and the r3 exact-revision audit cover:
 
 - fast-forward cannot prepare/commit twice;
 - fast-forward cannot alter pending reveal data;
@@ -349,7 +353,7 @@ The r3 browser/video regression covered the matrix in `PROBE_VALIDATION.md`, inc
 
 ## 16. Yandex boundary
 
-Real hosted Yandex DRAFT remains required **after** corrected exact-revision + second hands-on approval.
+Real hosted Yandex DRAFT remains required **after Phase 2.6 implementation + exact audit + direct regression approval**.
 
 Hosted gate still covers SDK boot/loading, storage, lifecycle/audio, ad behavior, interrupted Basic/Charged recovery and Metrica.
 
@@ -372,6 +376,6 @@ Do not introduce by default:
 - real-time 3D;
 - content CMS/server;
 - custom shader system;
-- abstractions for parked Overcharge/Archive/prestige ideas.
+- generalized abstractions for Archive/prestige or future Overcharge expansion beyond the approved small Signal extension.
 
-The correction should primarily be a better choreography of systems already present.
+Phase 2.6 should stay narrow: preserve existing boundaries, add only the smallest pure-state/save fields needed for deterministic Overcharge, and keep presentation helpers local.

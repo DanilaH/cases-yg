@@ -38,7 +38,7 @@ Status meanings:
 
 ## Gameplay Loop Lite V2
 
-The mechanics remain accepted. The current correction is presentation/interaction work and must not silently redesign the economy.
+The Lite V2 baseline remains accepted. Phase 2.6 contains one explicit bounded economy extension — Signal Overcharge — and otherwise must not silently redesign legacy CHIPS, rarity, cache, recycle or pouch-cost economics.
 
 | Decision | Status | Current answer |
 |---|---|---|
@@ -137,7 +137,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 |---|---|---|
 | Permanent odds on main screen | LOCKED OUT | would overload the opener and flatten surprise |
 | Permanent full collection sidebar | LOCKED OUT | does not scale to 15–25 items per Drop and competes with the hero reward |
-| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | after final hands-on acceptance, consider one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
+| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | revisit after Phase 2.6 + hosted DRAFT evidence; candidate remains one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
 | Player-facing Drop selector | OPEN FOR RELEASE | expose only when Drop #2 actually exists |
 
 ---
@@ -165,6 +165,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Anti-reroll | CURRENT RUNTIME | full `pendingReveal` persisted before presentation and committed once |
 | Presentation ownership | LOCKED | tween completion, fast-forward and cosmetic banking never own durable economy state |
 | Recovery | CURRENT RUNTIME | original pouch/result/cache/Signal/Hidden outcome preserved; no duplicate reward |
+| Overcharge transaction extension | LOCKED NEXT | multiplier-before, bonus CHIPS, actual clamped gain/reset and multiplier-after are predetermined in `pendingReveal`; visual gain/discharge occurs later and never owns durable state |
 | Engineering scope | LOCKED | small presentation helpers are allowed; no generalized animation/economy framework |
 | React / physics / backend | LOCKED OUT | do not add without a concrete need |
 
@@ -177,7 +178,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Yandex SDK | CURRENT RUNTIME | thin platform adapter |
 | Ads | CURRENT RUNTIME | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
 | Rewarded dev probe | CURRENT RUNTIME | clearly dev-only CHIPS grant; pity state is not manipulated |
-| Real hosted validation | OPEN | Yandex DRAFT follows final hands-on acceptance of the latest merged/audited build |
+| Real hosted validation | OPEN | Yandex DRAFT follows Phase 2.6 implementation + exact audit + direct regression acceptance |
 
 ---
 

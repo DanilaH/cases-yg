@@ -6,9 +6,9 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2, the Opening Feel Correction and the bounded post-hands-on UI/feel follow-ups are implemented, exact-revision audited, manually reviewed, and merged. The second repeated-use hands-on produced narrow findings that are now fixed. The current product gate is final hands-on acceptance of the latest merged build; real Yandex DRAFT follows if accepted.**
+**Gameplay Loop Lite V2 and the previous feel-correction passes are implemented/audited. Final direct hands-on completed with a bounded new finding set. The current product gate is Phase 2.6: fix those issues and implement the approved deterministic Signal Overcharge extension, then exact/direct regression; real Yandex DRAFT follows only if accepted.**
 
-Canonical scope: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
+Current approved scope: [`docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`](docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md). Historical feel-correction contract: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
 Current private content:
 
@@ -82,7 +82,7 @@ Visual rule:
 
 No custom shader was added in this pass. The runtime treatment uses Phaser Text/Graphics/tint/blend/highlight/tweens.
 
-The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after final hands-on acceptance**. No permanent giant sidebar or always-visible odds table is planned now.
+The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after Phase 2.6 + hosted DRAFT evidence**. No permanent giant sidebar or always-visible odds table is planned now.
 
 ## Acceptance path
 
@@ -101,12 +101,13 @@ Completed:
 
 Current order:
 
-1. final hands-on acceptance on the latest merged build;
-2. if accepted, real hosted Yandex DRAFT;
-3. decide the deferred Drop/odds/progress info surface from evidence;
-4. content expansion only after hosted validation.
+1. implement final-hands-on fixes + Signal Overcharge;
+2. simulate Overcharge gain/cap, then exact-audit + directly regress;
+3. if accepted, real hosted Yandex DRAFT;
+4. decide deferred Drop/odds/progress work from evidence;
+5. content expansion only after hosted validation.
 
-Do not add new meta systems/content or tune the economy before final hands-on acceptance and hosted DRAFT provide evidence.
+Do not add unrelated meta systems/content or tune legacy economy values by intuition. Overcharge-specific gain/cap tuning is the explicit bounded exception and must be simulation-driven.
 
 ## Production-grade boundaries already present
 
@@ -145,6 +146,7 @@ Raw generated collectible files live under git-ignored `assets-src/raw/`. Accept
 Canonical current docs:
 
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — decisions/current state;
+- [`docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`](docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md) — current Phase 2.6 mechanic/presentation/validation contract;
 - [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md) — implemented correction contract and acceptance history;
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — product staging/guardrails;
 - [`docs/GAMEPLAY_SYSTEMS.md`](docs/GAMEPLAY_SYSTEMS.md) — mechanics + current presentation contract;

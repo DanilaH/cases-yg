@@ -122,7 +122,7 @@ When an eligible NEW is guaranteed:
 - current reward resolves normally;
 - UI shows `LOCK CONSUMED` / equivalent;
 - energy/discharge should visually connect Signal to the guaranteed result;
-- Signal resets to `0/4` only after the current reward/Overcharge cash-out semantics have been presented.
+- the durable transaction may already contain Signal `0/4`; the **displayed** Signal reset/discharge is staged only after the current reward/Overcharge cash-out has been presented.
 
 ---
 
@@ -175,7 +175,7 @@ Overcharge is inactive at `x1.00`.
 
 The key ordering rule:
 
-> the multiplier used for an opening is the multiplier that existed **before that opening's reward was calculated**. Any gain or reset caused by that opening happens only after the reward is shown.
+> the multiplier used for an opening is the multiplier that existed **before that opening's reward was calculated**. The complete Overcharge transition for that opening is predetermined and persisted inside the same recoverable reveal transaction; only its **player-facing gain/reset presentation** happens after the reward is shown.
 
 Consequences:
 
@@ -183,6 +183,12 @@ Consequences:
 - if Signal was already `4/4` and the lock is retained, the current multiplier applies to this opening, then the selected pouch adds Overcharge for the **next** opening;
 - if Signal was already `4/4` and the lock is consumed, the current multiplier still applies to this opening, then resets to `x1.00`;
 - if Overcharge is already at cap and the lock is retained, the multiplier still applies but no fake `+gain` mutation/flight is shown.
+
+Atomicity requirement:
+
+- `pendingReveal` must persist multiplier-before, actual bonus CHIPS, multiplier-after and whether the transition was retained/consumed/capped;
+- refresh/recovery must replay the exact economic outcome without recalculating Overcharge from current UI state;
+- tweens/count-ups/token flights never mutate the durable multiplier.
 
 ## 5.3 CHIPS calculation
 
@@ -211,6 +217,8 @@ Charged +0.50
 ```
 
 Future pouch types may use different gains. The gain is a balance lever and must be simulated before implementation is considered tuned.
+
+When a pouch gain would cross the cap, apply only the real clamped delta. Example: `x1.40 + 0.50` with cap `x1.50` resolves as actual gain `+0.10`, not `+0.50`. Presentation must report the actual applied delta.
 
 ## 5.5 Cap
 
@@ -294,7 +302,7 @@ When multiplier is `x1.00`, do not add an unnecessary Overcharge bonus row to or
 
 ## 6.3 Gain after reward
 
-If lock is retained and multiplier is below cap, the final reward-tray beat shows the pouch contribution, for example:
+If lock is retained and multiplier is below cap, the final reward-tray beat shows the **actual applied** pouch contribution after clamping to cap, for example:
 
 ```text
 OVERCHARGE +0.10
@@ -313,6 +321,8 @@ x1.20 → x1.30
 ```
 
 This happens **after** the current reward calculation/presentation.
+
+If the configured pouch gain is larger than the remaining headroom, show only the applied delta and then enter MAX (for example `+0.10 → MAX`). Never show the nominal `+0.50` when only `+0.10` was persisted.
 
 ## 6.4 Cap after reward
 

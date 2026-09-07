@@ -18,14 +18,13 @@ Current status:
 - squash-merged `main`: `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a`, identical audited tree;
 - post-merge main CI #248: **PASS**;
 - current suite baseline: **108 unit tests** + typecheck + asset self-test/validation + production build;
-- final hands-on acceptance: **CURRENT / PENDING**;
-- real Yandex DRAFT: **BLOCKED until final hands-on acceptance**.
+- final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
+- Phase 2.6 final-hands-on correction + Signal Overcharge: **CURRENT APPROVED PASS**;
+- real Yandex DRAFT: **BLOCKED until Phase 2.6 exact/direct acceptance**.
 
-Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
 
-The remaining question is no longer whether the Lite mechanics work. It is:
-
-> **Can the same loop feel tactile, responsive, readable and rewarding enough to repeat without adding more systems?**
+The Lite baseline is proven. Current validation must preserve it while proving the bounded Phase 2.6 fixes and Signal Overcharge extension are understandable, deterministic/recoverable and pleasant in repetition.
 
 ---
 
@@ -254,9 +253,9 @@ No custom shader is introduced in this pass, so no shader-specific compatibility
 
 ---
 
-# 8. Second hands-on — GO / FIX
+# 8. Historical second hands-on gate — COMPLETE WITH FINDINGS
 
-Exact-revision visual approval is complete. Current gate: run **20–30 normal openings**.
+This gate produced the findings now captured in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Do not use this section as the current GO-to-DRAFT decision by itself.
 
 ## GO to real Yandex DRAFT when
 
@@ -288,11 +287,15 @@ Exact-revision visual approval is complete. Current gate: run **20–30 normal o
 
 Fix only the observed problem; do not add another progression system.
 
+## Current Phase 2.6 delta gate
+
+In addition to preserving every baseline invariant above, current acceptance must cover rarity-badge cleanup, reward overflow, 20+ denial clicks without drift, Signal gain/ready/retain/consume clarity, Secret collection meaning + celebration, Overcharge persisted/recovered transitions, bonus count-up, actual clamped gain near cap, MAX behavior, cash-out/reset and complete-Drop behavior. The canonical detailed matrix is `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+
 ---
 
 # 9. Deferred information need
 
-After corrected hands-on, separately decide whether to implement an on-demand Drop info drawer containing:
+After Phase 2.6 + hosted DRAFT evidence, separately decide whether to implement an on-demand Drop info drawer containing:
 
 - active Drop/collection name;
 - discovered/total progress;

@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. The correction and bounded post-hands-on follow-ups are merged; current work is final hands-on acceptance of the latest audited loop rather than adding another system.
+The project is deliberately **not** a full idle/incremental economy. Final direct hands-on exposed a bounded remaining finding set; current work is Phase 2.6: those fixes plus the explicitly approved Signal Overcharge extension, then exact/direct regression before Yandex DRAFT.
 
 ---
 
@@ -59,9 +59,13 @@ Visual rule:
 
 > **Cozy Y2K world, electric digital UI.**
 
-Implementation, repeated-use follow-up fixes, exact-revision video/screenshot audits and manual reviews are complete through PR #45. **Current gate: final hands-on acceptance on the latest merged build.**
+Implementation, repeated-use follow-up fixes, exact-revision video/screenshot audits and manual reviews are complete through PR #45. The subsequent final direct hands-on completed with bounded findings.
 
-### Stage C — real Yandex DRAFT validation — NEXT AFTER FINAL HANDS-ON ACCEPTANCE
+### Stage B3 — final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS
+
+Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Fix rarity/reward/Charged-denial issues, make Signal/Secret self-explanatory, add the deterministic recoverable Overcharge extension, simulate gain/cap tuning, then exact-audit and directly regress it. The future expensive pouch remains a hypothesis only.
+
+### Stage C — real Yandex DRAFT validation — NEXT AFTER STAGE B3 ACCEPTANCE
 
 Validate hosted SDK boot/loading, lifecycle/audio, safe storage, interrupted Basic/Charged recovery, ads, rewarded exactly-once CHIPS probe and analytics/Metrica where configured.
 
@@ -135,9 +139,9 @@ Basic always gives one standard collectible + base CHIPS + independent cache cha
 
 At `4/4`, Signal guarantees NEW only among selected-pouch-eligible missing standard items. If only Legendary remains, Basic resolves normally and Signal stays armed until Charged.
 
-CHIPS = spendable progress toward Charged. Signal = non-spendable duplicate protection.
+CHIPS = spendable progress toward Charged. Current runtime Signal = non-spendable duplicate protection. Approved next: while an already-armed lock cannot be consumed, Signal also carries a capped Overcharge multiplier over earned `base + cache + recycle` CHIPS; cash-out occurs before a consuming lock visually discharges/reset.
 
-No mechanic changes here in the feel correction.
+The durable Overcharge transition remains part of the atomic reveal transaction, not a presentation-owned mutation.
 
 ---
 
@@ -161,7 +165,7 @@ Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15 CHIPS`.
 
 Cache remains independent; Mega pays `120–180 CHIPS` at current provisional tuning.
 
-No balance tuning was mixed into the presentation pass. Keep numbers unchanged through the second hands-on; revisit only from corrected hands-on/content-scale simulation evidence.
+No legacy balance tuning was mixed into the presentation pass. Keep existing pouch costs/base/cache/rarity/recycle values unchanged in Phase 2.6; only new Overcharge gain/cap values are simulation-driven tuning candidates.
 
 ---
 
@@ -222,7 +226,7 @@ Hands-on also produced a desire to see:
 
 This is a valid progression-comprehension surface but is **not core feel choreography**.
 
-After corrected hands-on, consider one on-demand Drop info drawer sourced from typed balance/content config. Avoid a permanent giant sidebar or permanently visible probability table.
+After Phase 2.6 + hosted DRAFT evidence, consider one on-demand Drop info drawer sourced from typed balance/content config. Avoid a permanent giant sidebar or permanently visible probability table.
 
 Player-facing Drop selector waits for Drop #2.
 
@@ -248,7 +252,8 @@ Explicitly excluded from the current correction:
 - permanent odds/collection sidebar;
 - Basic energy/timers;
 - offline/passive income;
-- Overcharge / Archive levels;
+- Archive levels;
+- any Overcharge expansion beyond the bounded Signal extension in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`;
 - upgrades/set bonuses;
 - shop;
 - multiple currencies;

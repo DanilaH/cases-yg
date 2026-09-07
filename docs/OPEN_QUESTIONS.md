@@ -2,13 +2,13 @@
 
 This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction are implemented; do not treat merged behavior as TODO design debate.
 
-Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Current approved correction/extension scope: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical contract for the already-merged feel correction.
 
 ---
 
 # 1. Post-correction evidence question set
 
-The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for the second hands-on and later hosted/content-scale work.
+The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for Phase 2.6, its direct regression, and later hosted/content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
@@ -87,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-No balance numbers changed in the feel-correction or bounded follow-up passes. Keep them unchanged through final hands-on acceptance; after hosted/content-scale simulation, evidence questions remain:
+No balance numbers changed in the feel-correction or bounded follow-up passes. Keep these legacy values unchanged during Phase 2.6 except for the explicitly new Overcharge parameters; after hosted/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
@@ -134,7 +134,7 @@ Hands-on produced a valid information need:
 
 This is deliberately **not** in the current feel correction.
 
-Candidate solution after final hands-on acceptance:
+Candidate solution after Phase 2.6 + hosted DRAFT evidence:
 
 ```text
 Drop name · discovered/total · info

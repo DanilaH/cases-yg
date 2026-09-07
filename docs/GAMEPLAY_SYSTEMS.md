@@ -246,6 +246,8 @@ finalEarned = rawEarned + bonus
 - finite cap remains an active max multiplier; cap state shows MAX rather than fake `+gain`;
 - exact Basic/Charged gains and cap remain open for simulation/tuning.
 
+Durable truth remains transaction-first: the Overcharge before/bonus/after transition is prepared with `pendingReveal`; reward-tray/HUD gain or discharge is only delayed presentation of that stored result. Near cap, the persisted/displayed gain is the actual clamped delta, not the pouch's nominal configured gain.
+
 Presentation must make inactive/active/MAX states, bonus CHIPS, post-reward gain and discharge/reset visible.
 
 ---
@@ -301,6 +303,8 @@ Signal transition
 Hidden Pocket result
 final snapshot
 ```
+
+Approved Phase 2.6 extends this transaction with Overcharge multiplier-before, bonus CHIPS, actual applied gain/reset and multiplier-after. Those fields must be recoverable/idempotent before presentation work is considered valid.
 
 Critical invariants:
 
@@ -423,7 +427,7 @@ Do not randomize core rhythm enough to hurt learnability.
 
 The desire to see exact odds, active collection/Drop and missing items is valid but not part of current feel choreography.
 
-After corrected hands-on, consider an on-demand drawer reading exact values from typed config and showing discovered/unknown items.
+After Phase 2.6 and hosted DRAFT evidence, consider an on-demand drawer reading exact values from typed config and showing discovered/unknown items.
 
 Do not add a permanent full collection sidebar or permanent odds table to main Opening.
 

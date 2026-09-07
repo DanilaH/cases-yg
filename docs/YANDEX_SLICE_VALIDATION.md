@@ -1,6 +1,6 @@
 # Yandex DRAFT validation
 
-This checklist is the hosted-platform gate that runs **after Gameplay Loop Lite V2 hands-on acceptance**.
+This checklist is the hosted-platform gate that runs **after Phase 2.6 final-hands-on correction + Signal Overcharge exact/direct acceptance**.
 
 Unit tests, CI and local browser automation prove code behavior; they do not prove the actual Yandex-hosted SDK/storage/ad lifecycle.
 
@@ -39,6 +39,7 @@ Lite-specific automated coverage must include:
 - strict Signal gate: Basic retains `4/4` when only Legendary remains, then Charged guarantees/consumes it;
 - save migration from pre-Lite state;
 - pending reveal recovery/idempotency with wallet/cache/Signal-retention fields;
+- save migration into inactive Overcharge state plus pending-reveal recovery/idempotency for multiplier-before, bonus CHIPS, actual gain/reset and multiplier-after;
 - rewarded dev CHIPS exactly-once path.
 
 ## DRAFT — boot / LoadingAPI
@@ -109,6 +110,8 @@ Expected:
 
 Repeat with a forced large cache outcome, duplicate/recycle and Hidden Pocket paths through debug tooling. Also repeat a Basic opening while Signal is armed and only Legendary remains; after recovery the same Basic result must be preserved and Signal must still be `4/4`.
 
+After Phase 2.6, also interrupt retained-lock Overcharge openings before/after visible bonus/gain staging. Reload must preserve the same multiplier-before, bonus CHIPS and multiplier-after without double gain.
+
 ## DRAFT — interrupted Charged reveal recovery — CRITICAL
 
 This is a Lite V2 release blocker.
@@ -130,6 +133,7 @@ Expected:
 - same collectible/Hidden Pocket outcome is preserved;
 - final wallet equals transaction's deterministic committed value;
 - active Drop/profile remains the one stored in transaction.
+- if the opening cashes out Overcharge through a consuming lock, the same bonus CHIPS and reset-to-`x1.00` outcome are recovered exactly once.
 
 This must be tested in actual Yandex storage environment, not only localStorage.
 
@@ -149,6 +153,10 @@ With migrated legacy saves and/or debug seeds:
 - a following eligible Charged opening guarantees a missing Legendary, preserves Charged weighting if multiple candidates exist, and consumes the lock;
 - repeated duplicates while the lock waits do not increase Signal beyond `4/4`;
 - complete active Drop does not consume/waste armed lock.
+- with an armed retained lock, Overcharge applies the persisted multiplier to `base + cache + recycle`, then persists only the actual clamped pouch gain for the next opening;
+- at cap, the multiplier still applies while no fake gain is persisted;
+- an eligible consuming lock cashes out the current multiplier and persists reset to `x1.00`;
+- reload cannot recalculate or double-apply any Overcharge transition.
 
 ## DRAFT — CHIPS / cache / Charged UI
 
@@ -163,6 +171,7 @@ Confirm at representative hosted sizes:
 - `SIGNAL LOCK · CHARGED` or equivalent does not collide with CHIPS/Charged controls at compact width;
 - Charged cannot be opened when balance is insufficient;
 - no modal/store is required for Basic/Charged choice.
+- when Overcharge is active, hosted reward UI shows raw earned CHIPS, multiplier contribution and final total without overflow; inactive `x1.00` remains visually dormant and MAX remains clearly saturated rather than error-like.
 
 ## DRAFT — Metrica
 
@@ -179,6 +188,10 @@ duplicate_recycled
 signal_lock_reached
 signal_lock_waiting_for_eligible_pouch
 signal_lock_consumed
+overcharge_bonus_applied
+overcharge_gain
+overcharge_max
+overcharge_discharged
 charged_ready
 charged_opened
 hidden_pocket_triggered
@@ -194,4 +207,4 @@ Do not mark Yandex DRAFT validation complete from CI or local visual audits.
 
 The pass is complete only when exact hosted Lite V2 build proves:
 
-> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache persistence + strict Signal gating + ads + audio + analytics are all safe in the real Yandex environment.**
+> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache/Signal/Overcharge persistence + ads + audio + analytics are all safe in the real Yandex environment.**
