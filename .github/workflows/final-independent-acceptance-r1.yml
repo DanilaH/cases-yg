@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
 
+# Audit-only rerun marker after correcting transaction-state expectations.
 jobs:
   audit:
     runs-on: ubuntu-24.04
