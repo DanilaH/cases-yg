@@ -1,0 +1,57 @@
+name: Phase 2.6 cash-out visual audit R3
+
+on:
+  push:
+    branches:
+      - audit/phase26-cashout-visual-r3
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet 40db07a3c8069ef8ca01c5c35de0c355337d410e -- . \
+            ':(exclude).github/scripts/phase26-cashout-visual-r3.mjs' \
+            ':(exclude).github/workflows/phase26-cashout-visual-r3.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install browser helpers
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chrome
+      - name: Start Vite
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..50}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run focused cash-out visual/state audit
+        run: node .github/scripts/phase26-cashout-visual-r3.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase26-cashout-visual-r3
+          path: /tmp/phase26-cashout-visual-r3
+          retention-days: 3
