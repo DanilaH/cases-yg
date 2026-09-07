@@ -30,6 +30,7 @@ import {
   isSignalWaitingForCharged,
 } from '../systems/openingEconomy';
 import { OpeningSession } from '../systems/openingSession';
+import { formatOverchargeMultiplier } from '../systems/overcharge';
 import { MathRandomSource } from '../systems/random';
 import { PresentationSkipController } from '../systems/presentationSkip';
 import { SaveRepository, type SaveState } from '../systems/save';
@@ -798,13 +799,17 @@ export class OpeningScene extends Phaser.Scene {
 
     const threshold = LITE_V2_BALANCE.signalThreshold;
     const clamped = Phaser.Math.Clamp(Math.floor(state.signal), 0, threshold);
+    const lockReady = clamped >= threshold;
     const waitingForCharged = isSignalWaitingForCharged(state, SLICE_REGISTRY, LITE_V2_BALANCE);
+    const overcharge = Phaser.Math.Clamp(
+      state.overchargeHundredths,
+      100,
+      LITE_V2_BALANCE.overchargeCapHundredths,
+    );
+    const overchargeActive = overcharge > 100;
+    const overchargeMax = overcharge >= LITE_V2_BALANCE.overchargeCapHundredths;
     const messages = getMessages(getPlatformRuntime().language);
-    const labelText = waitingForCharged
-      ? messages.opening.signalCharged
-      : clamped >= threshold
-        ? messages.opening.signalLock
-        : 'SIGNAL';
+    const labelText = lockReady ? messages.opening.signalLockReady : messages.opening.signal;
     const x = this.metrics.safeLeft;
     const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + OPENING_FEEL_PRESENTATION.chipsHudHeight + 10;
     const width = OPENING_FEEL_PRESENTATION.signalHudWidth;
@@ -813,27 +818,50 @@ export class OpeningScene extends Phaser.Scene {
     const background = this.add.graphics();
     background.fillStyle(0x17101f, 0.84);
     background.fillRoundedRect(0, 0, width, height, 18);
-    background.lineStyle(1.5, waitingForCharged ? 0x9d7cff : 0x76e9f5, 0.38);
+    background.lineStyle(
+      overchargeMax ? 1.9 : 1.5,
+      overchargeMax ? 0xff6f9f : waitingForCharged ? 0x9d7cff : 0x76e9f5,
+      overchargeMax ? 0.64 : 0.38,
+    );
     background.strokeRoundedRect(0, 0, width, height, 18);
     container.add(background);
     const shimmer = this.addHudShimmer(container, width, height, 360);
     container.setData('shimmer', shimmer);
 
-    const label = this.add.text(14, 10, labelText, {
-      color: waitingForCharged ? CHARGED_TEXT_COLOR : '#b9f7ff',
+    const label = this.add.text(14, 7, labelText, {
+      color: lockReady ? '#d7ceff' : '#b9f7ff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: waitingForCharged ? '8px' : '10px',
+      fontSize: lockReady ? '8px' : '9px',
     });
-    const value = this.add.text(width - 14, 10, `${clamped}/${threshold}`, {
+    const value = this.add.text(width - 14, 7, `${clamped}/${threshold}`, {
       color: '#f7fdff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '10px',
+      fontSize: '9px',
     }).setOrigin(1, 0);
-    container.add([label, value]);
+
+    const overchargeColor = overchargeMax ? '#ff7aa8' : overchargeActive ? '#8df8ff' : '#81788a';
+    const overchargeLabel = this.add.text(14, 27, messages.opening.overcharge, {
+      color: overchargeActive || overchargeMax ? overchargeColor : '#6e6677',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '7px',
+    });
+    const overchargeValue = this.add.text(
+      width - 14,
+      27,
+      `${formatOverchargeMultiplier(overcharge)}${overchargeMax ? ' · MAX' : ''}`,
+      {
+        color: overchargeColor,
+        stroke: '#160f20',
+        strokeThickness: overchargeActive || overchargeMax ? 2 : 0,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '7px',
+      },
+    ).setOrigin(1, 0);
+    container.add([label, value, overchargeLabel, overchargeValue]);
 
     const segmentGap = 6;
     const segmentWidth = (width - 28 - segmentGap * (threshold - 1)) / threshold;
@@ -842,9 +870,9 @@ export class OpeningScene extends Phaser.Scene {
       const segment = this.add
         .rectangle(
           14 + index * (segmentWidth + segmentGap),
-          47,
+          50,
           segmentWidth,
-          9,
+          8,
           active ? (waitingForCharged ? 0x9d7cff : 0x76e9f5) : 0x3a3146,
           active ? 0.98 : 0.72,
         )
@@ -852,6 +880,21 @@ export class OpeningScene extends Phaser.Scene {
         .setStrokeStyle(1, active ? 0xeefcff : 0x766b82, active ? 0.5 : 0.18);
       container.add(segment);
       this.signalHudSegments.push(segment);
+    }
+
+    if (lockReady) {
+      const readyDot = this.add.circle(width - 10, 10, 3, overchargeMax ? 0xff6f9f : 0x9d7cff, 0.8);
+      container.add(readyDot);
+      this.tweens.add({
+        targets: readyDot,
+        alpha: 0.24,
+        scale: 1.45,
+        duration: 620,
+        yoyo: true,
+        repeat: -1,
+        repeatDelay: 1150,
+        ease: 'Sine.InOut',
+      });
     }
 
     container.bringToTop(shimmer);
@@ -927,6 +970,8 @@ export class OpeningScene extends Phaser.Scene {
       card.setAlpha(idleAlpha);
       card.setData('available', available);
       card.setData('idleAlpha', idleAlpha);
+      card.setData('baseX', railX);
+      card.setData('baseY', y);
       card.setData('pouchType', pouchType);
       card.setData('hitTarget', hitTarget);
       hitTarget.on('pointerover', () => {
@@ -965,7 +1010,7 @@ export class OpeningScene extends Phaser.Scene {
       messages.opening.free,
       true,
     );
-    createCard(
+    const chargedCard = createCard(
       'charged',
       firstCardY + height + OPENING_FEEL_PRESENTATION.railGap,
       `⚡ ${messages.opening.chargedPouch}`,
@@ -974,14 +1019,36 @@ export class OpeningScene extends Phaser.Scene {
         : `${this.saveState.chips}/${cost} ${messages.opening.chips}`,
       chargedAvailable,
     );
+    if (chargedAvailable && this.selectedPouchType !== 'charged') {
+      this.startPaidPouchAvailabilityPulse(chargedCard, this.saveState.signal >= LITE_V2_BALANCE.signalThreshold);
+    }
+  }
+
+  private startPaidPouchAvailabilityPulse(card: Phaser.GameObjects.Container, linkedToSignal: boolean): void {
+    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
+    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const outline = this.add.graphics().setAlpha(0.04);
+    outline.lineStyle(2.5, linkedToSignal ? 0x9d7cff : CHARGED_ACCENT, linkedToSignal ? 0.72 : 0.46);
+    outline.strokeRoundedRect(2, 2, width - 4, height - 4, 14);
+    card.add(outline);
+    this.tweens.add({
+      targets: outline,
+      alpha: linkedToSignal ? 0.34 : 0.2,
+      duration: linkedToSignal ? 520 : 720,
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: linkedToSignal ? 1550 : 3300,
+      ease: 'Sine.InOut',
+    });
   }
 
   private showUnavailableChargedFeedback(card: Phaser.GameObjects.Container): void {
     if (!this.chipsHudContainer) return;
     getGameAudio().play('ui-denied');
-    const baseX = card.x;
+    const baseX = Number(card.getData('baseX') ?? card.x);
+    const baseY = Number(card.getData('baseY') ?? card.y);
     this.tweens.killTweensOf(card);
-    card.setScale(1);
+    card.setPosition(baseX, baseY).setScale(1);
     this.tweens.add({
       targets: card,
       x: baseX + 6,
@@ -989,7 +1056,7 @@ export class OpeningScene extends Phaser.Scene {
       yoyo: true,
       repeat: 2,
       ease: 'Sine.InOut',
-      onComplete: () => card.setX(baseX),
+      onComplete: () => card.setPosition(baseX, baseY).setScale(1),
     });
     this.setChipsHudValue(this.chipsHudValue, true);
   }
@@ -1539,7 +1606,15 @@ export class OpeningScene extends Phaser.Scene {
     const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
     const rarityColor = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
     const rarityCode = pending.standard.rarity.toUpperCase();
-    const rows: Array<{ kind: 'chips' | 'signal'; text: string; color: string }> = [
+    type RewardRow = {
+      kind: 'chips' | 'signal' | 'overcharge' | 'secret' | 'total';
+      text: string;
+      color: string;
+      tag?: string;
+      tagColor?: string;
+      countBonus?: boolean;
+    };
+    const rows: RewardRow[] = [
       { kind: 'chips', text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
     ];
     if (cacheLabel && pending.chips.cacheBonus > 0) {
@@ -1552,16 +1627,66 @@ export class OpeningScene extends Phaser.Scene {
     if (pending.chips.recycle > 0) {
       rows.push({
         kind: 'chips',
-        text: `${messages.opening.recycled} +${pending.chips.recycle} · ${rarityCode}`,
-        color: rarityColor,
+        text: `${messages.opening.recycled} +${pending.chips.recycle}`,
+        color: '#c7f8ff',
+        tag: rarityCode,
+        tagColor: rarityColor,
+      });
+    }
+    if (pending.overcharge.beforeHundredths > 100) {
+      rows.push({
+        kind: 'chips',
+        text: `${messages.opening.raw} +${pending.chips.rawEarned}`,
+        color: '#b9c8d7',
+      });
+      rows.push({
+        kind: 'overcharge',
+        text: `${messages.opening.overcharge} ${formatOverchargeMultiplier(pending.overcharge.beforeHundredths)}`,
+        color: '#8df8ff',
+        tag: `+${animate ? 0 : pending.chips.overchargeBonus}`,
+        tagColor: '#8df8ff',
+        countBonus: animate && pending.chips.overchargeBonus > 0,
+      });
+      rows.push({
+        kind: 'total',
+        text: `${messages.opening.total} +${pending.chips.totalEarned}`,
+        color: '#f4feff',
       });
     }
     if (pending.signal.gain > 0) {
-      rows.push({ kind: 'signal', text: `+${pending.signal.gain} SIGNAL`, color: '#b7a7ff' });
+      const signalResult = pending.signal.lockReached
+        ? messages.opening.signalLockReady
+        : `${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
+      rows.push({
+        kind: 'signal',
+        text: `${messages.opening.signal} +${pending.signal.gain} · ${signalResult}`,
+        color: '#b7a7ff',
+      });
+    } else if (pending.signal.lockConsumed) {
+      rows.push({ kind: 'signal', text: messages.opening.signalLockConsumed, color: '#ff9ed4' });
+    } else if (pending.signal.lockRetained) {
+      rows.push({ kind: 'signal', text: messages.opening.signalLockRetained, color: '#b7a7ff' });
+    }
+    if (pending.hiddenPocket) {
+      rows.push({ kind: 'secret', text: messages.opening.addedToCollection, color: '#8df8ff' });
+    }
+    if (pending.signal.lockRetained) {
+      if (pending.overcharge.appliedGainHundredths > 0) {
+        rows.push({
+          kind: 'overcharge',
+          text: `${messages.opening.overcharge} +${(pending.overcharge.appliedGainHundredths / 100).toFixed(2)}`,
+          color: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff7aa8' : '#8df8ff',
+          tag: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? 'MAX' : '',
+          tagColor: '#ff7aa8',
+        });
+      } else if (pending.overcharge.beforeHundredths >= LITE_V2_BALANCE.overchargeCapHundredths) {
+        rows.push({ kind: 'overcharge', text: messages.opening.overchargeMax, color: '#ff7aa8' });
+      }
     }
 
     const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
-    const height = 30 + rows.length * 22;
+    const rowHeight = 21;
+    const height = 30 + rows.length * rowHeight;
     const placement = computeRewardTrayPlacement({
       safeLeft: this.metrics!.safeLeft,
       safeRight: this.metrics!.safeRight,
@@ -1579,29 +1704,54 @@ export class OpeningScene extends Phaser.Scene {
     tray.setData('height', height);
     tray.setData('side', placement.side);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.88);
+    background.fillStyle(0x17101f, 0.9);
     background.fillRoundedRect(-width / 2, 0, width, height, 16);
     background.lineStyle(1.5, 0x8df8ff, 0.3);
     background.strokeRoundedRect(-width / 2, 0, width, height, 16);
-    const header = this.add.text(-width / 2 + 13, 10, 'REWARD', {
+    const header = this.add.text(-width / 2 + 13, 9, 'REWARD', {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '7px',
     });
     tray.add([background, header]);
     rows.forEach((row, index) => {
-      const iconY = 31 + index * 22;
-      const icon = row.kind === 'chips'
-        ? createChipToken(this, -width / 2 + 17, iconY, 0.42)
-        : createSignalToken(this, -width / 2 + 17, iconY, false);
-      const text = this.add.text(-width / 2 + 31, 26 + index * 22, row.text, {
+      const iconY = 30 + index * rowHeight;
+      const icon = row.kind === 'signal'
+        ? createSignalToken(this, -width / 2 + 17, iconY, false)
+        : row.kind === 'secret'
+          ? this.add.circle(-width / 2 + 17, iconY, 5.5, SECRET_REVEAL_COLOR, 0.94).setStrokeStyle(1.5, 0xffffff, 0.5)
+          : createChipToken(this, -width / 2 + 17, iconY, row.kind === 'overcharge' ? 0.36 : 0.42);
+      if (row.kind === 'overcharge') icon.setAlpha(0.88);
+      const text = this.add.text(-width / 2 + 31, 25 + index * rowHeight, row.text, {
         color: row.color,
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '7px' : '8px',
+        fontSize: getPlatformRuntime().language === 'ru' ? '6px' : '7px',
       });
       tray.add([icon, text]);
+      if (row.tag) {
+        const tag = this.add.text(width / 2 - 12, 25 + index * rowHeight, row.tag, {
+          color: row.tagColor ?? row.color,
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+        }).setOrigin(1, 0);
+        tray.add(tag);
+        if (row.countBonus) {
+          const counter = { value: 0 };
+          this.tweens.add({
+            targets: counter,
+            value: pending.chips.overchargeBonus,
+            delay: 90,
+            duration: 360,
+            ease: 'Cubic.Out',
+            onUpdate: () => tag.setText(`+${Math.round(counter.value)}`),
+            onComplete: () => tag.setText(`+${pending.chips.overchargeBonus}`),
+          });
+        }
+      }
     });
     root.add(tray);
     this.rewardTrayContainer = tray;
@@ -1676,6 +1826,7 @@ export class OpeningScene extends Phaser.Scene {
       ...this.saveState,
       chips: pending.chips.before - pending.chips.cost,
       signal: visualSignal,
+      overchargeHundredths: pending.overcharge.beforeHundredths,
     };
   }
 
@@ -1798,6 +1949,102 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().play(pending.signal.lockReached ? 'signal-lock' : 'signal-gain');
   }
 
+  private async animateOverchargeTransition(pending: PendingReveal): Promise<void> {
+    if (!this.root || !this.metrics || !this.saveState) return;
+    const before = pending.overcharge.beforeHundredths;
+    const after = pending.overcharge.afterHundredths;
+    const signalTarget = {
+      x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
+      y:
+        this.metrics.safeTop +
+        OPENING_FEEL_PRESENTATION.railTopOffset +
+        OPENING_FEEL_PRESENTATION.chipsHudHeight +
+        10 +
+        OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
+    };
+
+    if (pending.signal.lockRetained && pending.overcharge.appliedGainHundredths > 0) {
+      const origin = this.getRewardBankOrigin();
+      const reachesMax = after >= LITE_V2_BALANCE.overchargeCapHundredths;
+      const color = reachesMax ? 0xff6f9f : 0x8df8ff;
+      const fragment = this.add
+        .circle(origin.x + 26, origin.y + 7, 7, color, 0.96)
+        .setStrokeStyle(2, 0xffffff, 0.58);
+      this.root.add(fragment);
+      getGameAudio().play('signal-gain');
+      await this.runSkippableTween(
+        {
+          targets: fragment,
+          x: signalTarget.x,
+          y: signalTarget.y,
+          scale: 0.42,
+          alpha: 0.28,
+          duration: 330,
+          ease: 'Cubic.In',
+        },
+        () => fragment.destroy(),
+      );
+      if (this.isSceneShutdown()) return;
+      this.renderSignalHud(this.root, { ...this.saveState, signal: pending.signal.after, overchargeHundredths: after });
+      if (this.signalHudContainer) {
+        this.tweens.killTweensOf(this.signalHudContainer);
+        this.tweens.add({
+          targets: this.signalHudContainer,
+          scale: reachesMax ? 1.055 : 1.035,
+          duration: 105,
+          yoyo: true,
+          repeat: reachesMax ? 1 : 0,
+          ease: 'Sine.Out',
+        });
+      }
+      return;
+    }
+
+    if (pending.signal.lockRetained && before >= LITE_V2_BALANCE.overchargeCapHundredths) {
+      this.renderSignalHud(this.root, { ...this.saveState, signal: pending.signal.after, overchargeHundredths: after });
+      if (this.signalHudContainer) {
+        this.tweens.add({ targets: this.signalHudContainer, scale: 1.035, duration: 100, yoyo: true, ease: 'Sine.Out' });
+      }
+      return;
+    }
+
+    if (pending.signal.lockConsumed) {
+      const targetY = getCollectiblePresentation(pending.standard.familyId).revealY;
+      const discharge = this.add
+        .circle(signalTarget.x, signalTarget.y, 9, 0xff8ed1, 0.96)
+        .setStrokeStyle(2, 0xffffff, 0.62);
+      const ring = this.add.circle(signalTarget.x, signalTarget.y, 18, 0x9d7cff, 0.12).setStrokeStyle(3, 0x9d7cff, 0.72);
+      this.root.add([ring, discharge]);
+      getGameAudio().play('signal-lock');
+      this.tweens.add({
+        targets: ring,
+        scale: 2.4,
+        alpha: 0,
+        duration: 280,
+        ease: 'Cubic.Out',
+        onComplete: () => ring.destroy(),
+      });
+      await this.runSkippableTween(
+        {
+          targets: discharge,
+          x: this.metrics.centerX,
+          y: targetY,
+          scale: 0.55,
+          alpha: 0.2,
+          duration: 360,
+          ease: 'Cubic.In',
+        },
+        () => discharge.destroy(),
+      );
+      if (this.isSceneShutdown()) return;
+      this.cameras.main.shake(95, 0.0019);
+      this.renderSignalHud(this.root, this.saveState);
+      if (this.signalHudContainer) {
+        this.tweens.add({ targets: this.signalHudContainer, scale: 0.97, duration: 85, yoyo: true, ease: 'Sine.Out' });
+      }
+    }
+  }
+
   private finishDeferredBankingResize(): boolean {
     if (!this.deferredResize || this.phase !== 'banking' || this.isSceneShutdown()) return false;
     this.presentationSkip.reset();
@@ -1843,7 +2090,11 @@ export class OpeningScene extends Phaser.Scene {
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await bankLeg(pending.chips.recycle);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+    await bankLeg(pending.chips.overchargeBonus);
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await this.bankSignalGain(pending);
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+    await this.animateOverchargeTransition(pending);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
     this.setChipsHudValue(pending.chips.after, false);
@@ -2112,10 +2363,14 @@ export class OpeningScene extends Phaser.Scene {
   private getStandardResultStatus(pending: PendingReveal): string {
     const messages = getMessages(getPlatformRuntime().language);
     let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
-    if (pending.signal.lockConsumed || pending.signal.lockReached) {
-      status += ` · ${messages.opening.signalLock}`;
+    if (pending.signal.lockConsumed) {
+      status += ` · ${messages.opening.signalLockConsumed}`;
+    } else if (pending.signal.lockRetained) {
+      status += ` · ${messages.opening.signalLockRetained}`;
+    } else if (pending.signal.lockReached) {
+      status += ` · ${messages.opening.signalLockReady}`;
     } else if (pending.signal.gain > 0) {
-      status += ` · +${pending.signal.gain} SIGNAL`;
+      status += ` · ${messages.opening.signal} +${pending.signal.gain} · ${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
     }
     return status;
   }
@@ -2210,6 +2465,24 @@ export class OpeningScene extends Phaser.Scene {
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
     this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
+    const auraCloud = this.add.container(heroX, heroY).setAlpha(0);
+    const cloudA = this.add.ellipse(-28, 8, 280, 176, SECRET_REVEAL_COLOR, 0.13).setBlendMode(Phaser.BlendModes.ADD);
+    const cloudB = this.add.ellipse(42, -20, 220, 142, 0xff8ed1, 0.09).setBlendMode(Phaser.BlendModes.ADD);
+    auraCloud.add([cloudA, cloudB]);
+    root.add(auraCloud);
+    this.tweens.add({
+      targets: auraCloud,
+      alpha: 0.9,
+      scale: 1.12,
+      angle: 3,
+      duration: 520,
+      yoyo: true,
+      hold: 210,
+      ease: 'Sine.InOut',
+      onComplete: () => auraCloud.destroy(),
+    });
+    this.tweens.add({ targets: cloudA, x: 18, duration: 760, yoyo: true, ease: 'Sine.InOut' });
+    this.tweens.add({ targets: cloudB, x: -16, y: 8, duration: 680, yoyo: true, ease: 'Sine.InOut' });
     const halo = this.add.circle(heroX, heroY, 158, SECRET_REVEAL_COLOR, fx.glowAlpha).setScale(0.34);
     const flash = this.add.circle(heroX, heroY, 118, SECRET_REVEAL_COLOR, fx.flashAlpha).setScale(0.22);
     const coreFlash = this.add
@@ -2300,7 +2573,17 @@ export class OpeningScene extends Phaser.Scene {
       duration: fx.settleDuration,
       ease: 'Sine.Out',
     });
-    this.cameras.main.shake(110, fx.shake);
+    this.cameras.main.shake(120, Math.min(0.0054, fx.shake * 1.18));
+    await this.runSkippableTween({
+      targets: secret.group,
+      x: heroX + 5,
+      angle: 1.1,
+      duration: 52,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Sine.InOut',
+    });
+    secret.group.setPosition(heroX, heroY).setAngle(0);
   }
 
   private renderHiddenPocketCarousel(
@@ -2479,6 +2762,10 @@ export class OpeningScene extends Phaser.Scene {
       chipsAfter: committed.chips,
       cacheTier: pending.chips.cacheTier,
       recycleChips: pending.chips.recycle,
+      overchargeBefore: pending.overcharge.beforeHundredths,
+      overchargeBonusChips: pending.chips.overchargeBonus,
+      overchargeGain: pending.overcharge.appliedGainHundredths,
+      overchargeAfter: committed.overchargeHundredths,
       signalAfter: committed.signal,
     });
 
@@ -2490,6 +2777,22 @@ export class OpeningScene extends Phaser.Scene {
     }
     if (pending.signal.lockRetained) {
       analytics.track('signal_lock_retained', { openingNumber: pending.openingNumber, pouchType: pending.pouchType });
+    }
+    if (pending.overcharge.appliedGainHundredths > 0) {
+      analytics.track('overcharge_gained', {
+        openingNumber: pending.openingNumber,
+        pouchType: pending.pouchType,
+        before: pending.overcharge.beforeHundredths,
+        gain: pending.overcharge.appliedGainHundredths,
+        after: pending.overcharge.afterHundredths,
+      });
+    }
+    if (pending.signal.lockConsumed && pending.overcharge.beforeHundredths > 100) {
+      analytics.track('overcharge_cashed_out', {
+        openingNumber: pending.openingNumber,
+        before: pending.overcharge.beforeHundredths,
+        bonusChips: pending.chips.overchargeBonus,
+      });
     }
     if (pending.chips.cacheTier !== 'none') {
       analytics.track('chips_cache_hit', {
@@ -2560,6 +2863,15 @@ export class OpeningScene extends Phaser.Scene {
     const startX = -totalWidth / 2;
     title.setOrigin(0, 0.5).setPosition(startX, -32);
     rarity.setOrigin(0, 0.5).setPosition(startX + title.width + gap, -32);
+    const capsule = rarity.getData('capsule') as Phaser.GameObjects.Graphics | undefined;
+    if (capsule) {
+      const capsuleColor = Number(rarity.getData('capsuleColor') ?? 0xf0ddff);
+      capsule.clear();
+      capsule.fillStyle(capsuleColor, 0.1);
+      capsule.fillRoundedRect(rarity.x - 7, rarity.y - rarity.height / 2 - 4, rarity.width + 14, rarity.height + 8, 9);
+      capsule.lineStyle(1.5, capsuleColor, 0.5);
+      capsule.strokeRoundedRect(rarity.x - 7, rarity.y - rarity.height / 2 - 4, rarity.width + 14, rarity.height + 8, 9);
+    }
   }
 
   private renderResultActionPanel(pending: PendingReveal): void {
@@ -2580,6 +2892,7 @@ export class OpeningScene extends Phaser.Scene {
       if (title && rarity && status && hint) {
         title.setText(copy.title);
         rarity.setText(`◆ ${copy.rarity.toUpperCase()}`).setColor(copy.rarityColor);
+        rarity.setData('capsuleColor', Number.parseInt(copy.rarityColor.slice(1), 16));
         status.setText(copy.status).setColor(copy.statusColor);
         this.positionResultHeading(title, rarity);
         if (hint.text !== hintText) {
@@ -2644,16 +2957,18 @@ export class OpeningScene extends Phaser.Scene {
       fontSize: '21px',
       fontStyle: 'bold',
     });
+    const rarityCapsule = this.add.graphics();
     const rarity = this.add.text(0, -32, `◆ ${copy.rarity.toUpperCase()}`, {
       color: copy.rarityColor,
-      backgroundColor: '#18101f',
-      padding: { x: 8, y: 4 },
+      padding: { x: 3, y: 2 },
       stroke: '#160f20',
       strokeThickness: 1,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '10px',
       fontStyle: 'bold',
     });
+    rarity.setData('capsule', rarityCapsule);
+    rarity.setData('capsuleColor', Number.parseInt(copy.rarityColor.slice(1), 16));
     this.positionResultHeading(title, rarity);
     const status = this.add.text(0, 0, copy.status, {
       color: copy.statusColor,
@@ -2696,7 +3011,7 @@ export class OpeningScene extends Phaser.Scene {
       // here would let this same pointerdown be reinterpreted as a banking skip.
     });
 
-    panel.add([background, readyGlow, title, rarity, status, hint, actionZone]);
+    panel.add([background, readyGlow, title, rarityCapsule, rarity, status, hint, actionZone]);
     panel.setData('readyGlow', readyGlow);
     panel.setData('title', title);
     panel.setData('rarity', rarity);
