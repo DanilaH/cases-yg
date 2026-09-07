@@ -17,6 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: python .github/tmp-fix-scope-audio-doc.py
+      - name: Locate stale cue wording
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -nF '`chips-collect`' README.md docs/ASSET_MANIFEST.md docs/DECISIONS.md docs/GAMEPLAY_SYSTEMS.md docs/IMPLEMENTATION_ROADMAP.md docs/OPENING_FEEL_CORRECTION_SCOPE.md docs/OPEN_QUESTIONS.md docs/PROBE_VALIDATION.md docs/PRODUCT.md || true
       - name: Assert canonical docs consistency
         shell: bash
         run: |
