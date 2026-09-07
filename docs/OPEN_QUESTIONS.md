@@ -2,13 +2,13 @@
 
 This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction are implemented; do not treat merged behavior as TODO design debate.
 
-Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Phase 2.6 correction/Overcharge is implemented and exact-audited under `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; only final direct repeated-use acceptance remains before Yandex DRAFT. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical feel-correction contract.
 
 ---
 
 # 1. Post-correction evidence question set
 
-The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for the second hands-on and later hosted/content-scale work.
+The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for Phase 2.6, its direct regression, and later hosted/content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
@@ -87,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-No balance numbers changed in the feel-correction or bounded follow-up passes. Keep them unchanged through final hands-on acceptance; after hosted/content-scale simulation, evidence questions remain:
+No balance numbers changed in the feel-correction or bounded follow-up passes. Keep these legacy values unchanged during Phase 2.6 except for the explicitly new Overcharge parameters; after hosted/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
@@ -97,29 +97,17 @@ No balance numbers changed in the feel-correction or bounded follow-up passes. K
 - do 1.5% vs 6% Hidden Pocket chances create the intended relationship?
 - does Signal threshold `4` feel relevant without becoming constant?
 
-## 2.1 Signal Overcharge tuning — APPROVED MECHANIC, NUMBERS OPEN
+## 2.1 Signal Overcharge tuning — RESOLVED FOR CURRENT VALIDATION BUILD
 
-The mechanic contract is approved in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; only its tuning remains unresolved.
+Current Phase 2.6 candidate uses:
 
-Locked semantics:
+```text
+Basic retained-lock gain:   +0.10
+Charged retained-lock gain: +0.50
+Overcharge cap:             x1.50
+```
 
-- multiply `base + cache + recycle` CHIPS earned by the opening; never multiply pouch cost;
-- current multiplier applies before any gain/reset caused by the same opening;
-- retained lock gains Overcharge only after reward;
-- consumed lock cashes out current multiplier then resets to `x1.00`;
-- first `3/4 → 4/4` opening does not gain Overcharge;
-- cap remains an active multiplier and shows MAX rather than fake gain.
-
-Simulation questions:
-
-- Basic/Charged gain: compare at least `+0.05/+0.15`, `+0.10/+0.25`, `+0.10/+0.50`;
-- cap: compare at least `x1.30` and `x1.50`;
-- long-run CHIPS inflation after Drop completion;
-- cache/Big/Mega jackpot amplification;
-- effect on time-to-Charged and all-duplicate Charged net return;
-- viable future several-hundred-CHIPS sink price.
-
-Initial product-feel candidate is Basic `+0.10`, Charged `+0.50`; this is not release-locked until simulation.
+The mechanic and these values are implemented, transaction-tested and exact-browser-audited. Legacy Lite V2 pouch/cache/rarity/recycle values were not changed. Re-open Overcharge tuning only if final direct hands-on, hosted DRAFT, or later content-scale economy evidence shows a concrete problem.
 
 ---
 
@@ -134,7 +122,7 @@ Hands-on produced a valid information need:
 
 This is deliberately **not** in the current feel correction.
 
-Candidate solution after final hands-on acceptance:
+Candidate solution after Phase 2.6 + hosted DRAFT evidence:
 
 ```text
 Drop name · discovered/total · info

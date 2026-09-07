@@ -69,6 +69,7 @@ describe('Lite V2 save migration', () => {
       discoveredSecrets: [],
       chips: 0,
       signal: 3,
+      overchargeHundredths: 100,
       activeLootPoolId: 'y2k-essentials',
       totalOpens: 7,
       pendingReveal: null,
@@ -142,8 +143,16 @@ describe('Lite V2 save migration', () => {
       cacheTier: 'none',
       cacheBonus: 0,
       recycle: 0,
+      rawEarned: 0,
+      overchargeBonus: 0,
       totalEarned: 0,
       after: 0,
+    });
+    expect(pending.overcharge).toEqual({
+      beforeHundredths: 100,
+      afterHundredths: 100,
+      appliedGainHundredths: 0,
+      bonusChips: 0,
     });
     expect(pending.signal).toMatchObject({
       before: 4,
@@ -192,6 +201,49 @@ describe('Lite V2 save migration', () => {
       after: 4,
       lockConsumed: false,
       lockRetained: true,
+    });
+  });
+
+  it('migrates an interrupted V2 pending reveal into neutral Overcharge without changing its reward', () => {
+    const current = currentPendingState();
+    const pending = current.pendingReveal!;
+    const v2 = {
+      ...current,
+      version: 2,
+      overchargeHundredths: undefined,
+      pendingReveal: {
+        ...pending,
+        chips: {
+          before: pending.chips.before,
+          cost: pending.chips.cost,
+          base: pending.chips.base,
+          cacheTier: pending.chips.cacheTier,
+          cacheBonus: pending.chips.cacheBonus,
+          recycle: pending.chips.recycle,
+          totalEarned: pending.chips.rawEarned,
+          after: pending.chips.before - pending.chips.cost + pending.chips.rawEarned,
+        },
+        overcharge: undefined,
+        commit: {
+          ...pending.commit,
+          chips: pending.chips.before - pending.chips.cost + pending.chips.rawEarned,
+          overchargeHundredths: undefined,
+        },
+      },
+    };
+    delete (v2 as Record<string, unknown>).overchargeHundredths;
+    delete (v2.pendingReveal as Record<string, unknown>).overcharge;
+    delete (v2.pendingReveal.commit as Record<string, unknown>).overchargeHundredths;
+
+    const migrated = parseSaveState(JSON.stringify(v2));
+    expect(migrated.version).toBe(SAVE_VERSION);
+    expect(migrated.overchargeHundredths).toBe(100);
+    expect(migrated.pendingReveal?.chips.overchargeBonus).toBe(0);
+    expect(migrated.pendingReveal?.overcharge).toEqual({
+      beforeHundredths: 100,
+      afterHundredths: 100,
+      appliedGainHundredths: 0,
+      bonusChips: 0,
     });
   });
 

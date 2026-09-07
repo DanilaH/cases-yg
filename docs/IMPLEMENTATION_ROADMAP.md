@@ -9,9 +9,9 @@ The two-family build is a private development base, not the public release.
 3. **Second repeated-use hands-on — COMPLETE WITH FOLLOW-UP FINDINGS**
 4. **Bounded post-hands-on UI/feel polish — COMPLETE / AUDITED / MERGED**
 5. **Final direct hands-on — COMPLETE WITH NEW BOUNDED FINDINGS**
-6. **Final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS**
-7. **Exact audit + direct regression of that pass — REQUIRED**
-8. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
+6. **Final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED**
+7. **Final direct repeated-use regression — REQUIRED INTERNAL GATE**
+8. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE IF DIRECT REGRESSION PASSES**
 9. **Content/release expansion — BLOCKED until draft passes**
 10. **Public release hardening**
 
@@ -283,7 +283,7 @@ These findings justify one final bounded pass before DRAFT.
 
 ---
 
-# Phase 2.6 — final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS
+# Phase 2.6 — final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED
 
 Canonical contract: `docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
 
@@ -298,7 +298,7 @@ Execution order:
 7. simulate pouch gains/cap and lock only evidence-backed tuning;
 8. run exact browser/video audit + direct repeated-use regression.
 
-Initial tuning candidates include Basic `+0.10` and Charged `+0.50`, but those numbers and the multiplier cap are explicitly **OPEN FOR TUNING** until simulation.
+Current validation tuning is implemented as Basic `+0.10`, Charged `+0.50`, with cap `x1.50`. The legacy pouch economy is unchanged; these new parameters may be reopened later only from hosted/content-scale evidence.
 
 The future several-hundred-CHIPS high-tier/Secret-oriented pouch is a later hypothesis only; do not implement it in Phase 2.6.
 
@@ -430,4 +430,4 @@ Remain parked:
 - custom shaders;
 - permanent odds/collection sidebar.
 
-> **Current next action: implement `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`, simulate Overcharge tuning, exact-audit/directly regress the result, then go to Yandex DRAFT only if accepted.**
+> **Current next action: run one final direct repeated-use regression on the exact Phase 2.6 candidate; if accepted, move immediately to real Yandex DRAFT validation.**

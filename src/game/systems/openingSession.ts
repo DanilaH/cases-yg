@@ -30,6 +30,7 @@ const matchesCommittedPending = (state: SaveState, pending: PendingReveal): bool
   state.totalOpens === pending.commit.totalOpens &&
   state.chips === pending.commit.chips &&
   state.signal === pending.commit.signal &&
+  state.overchargeHundredths === pending.commit.overchargeHundredths &&
   state.activeLootPoolId === pending.commit.activeLootPoolId &&
   state.stats.duplicates === pending.commit.stats.duplicates &&
   state.stats.hiddenPockets === pending.commit.stats.hiddenPockets &&

@@ -17,15 +17,15 @@ Current status:
 - R3 normal-flow audit artifact digest: `sha256:86f19d7a564b10d5fdf6228b096084b6b8f7c82a823553647c0b4da0dec3bd83`;
 - squash-merged `main`: `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a`, identical audited tree;
 - post-merge main CI #248: **PASS**;
-- current suite baseline: **108 unit tests** + typecheck + asset self-test/validation + production build;
-- final hands-on acceptance: **CURRENT / PENDING**;
-- real Yandex DRAFT: **BLOCKED until final hands-on acceptance**.
+- current suite baseline: **114 unit tests** + typecheck + asset self-test/validation + production build;
+- final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
+- Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
+- final direct repeated-use Phase 2.6 regression: **PENDING**;
+- real Yandex DRAFT: **BLOCKED only on that final direct acceptance**.
 
-Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
 
-The remaining question is no longer whether the Lite mechanics work. It is:
-
-> **Can the same loop feel tactile, responsive, readable and rewarding enough to repeat without adding more systems?**
+The Lite baseline is proven. Current validation must preserve it while proving the bounded Phase 2.6 fixes and Signal Overcharge extension are understandable, deterministic/recoverable and pleasant in repetition.
 
 ---
 
@@ -51,7 +51,7 @@ The current merged implementation has established:
 - Basic/Charged selection continuity and insufficient-wallet fallback work;
 - compact 900/1024 and RU states are technically valid.
 
-Current suite baseline: **108 unit tests** plus typecheck, asset self-test/validation and production build.
+Current suite baseline: **114 unit tests** plus typecheck, asset self-test/validation and production build.
 
 The correction must preserve all of these properties.
 
@@ -254,9 +254,9 @@ No custom shader is introduced in this pass, so no shader-specific compatibility
 
 ---
 
-# 8. Second hands-on — GO / FIX
+# 8. Historical second hands-on gate — COMPLETE WITH FINDINGS
 
-Exact-revision visual approval is complete. Current gate: run **20–30 normal openings**.
+This gate produced the findings now captured in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Do not use this section as the current GO-to-DRAFT decision by itself.
 
 ## GO to real Yandex DRAFT when
 
@@ -288,11 +288,15 @@ Exact-revision visual approval is complete. Current gate: run **20–30 normal o
 
 Fix only the observed problem; do not add another progression system.
 
+## Current Phase 2.6 delta gate
+
+In addition to preserving every baseline invariant above, current acceptance must cover rarity-badge cleanup, reward overflow, 20+ denial clicks without drift, Signal gain/ready/retain/consume clarity, Secret collection meaning + celebration, Overcharge persisted/recovered transitions, bonus count-up, actual clamped gain near cap, MAX behavior, cash-out/reset and complete-Drop behavior. The canonical detailed matrix is `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+
 ---
 
 # 9. Deferred information need
 
-After corrected hands-on, separately decide whether to implement an on-demand Drop info drawer containing:
+After Phase 2.6 + hosted DRAFT evidence, separately decide whether to implement an on-demand Drop info drawer containing:
 
 - active Drop/collection name;
 - discovered/total progress;

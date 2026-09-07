@@ -34,7 +34,7 @@ This file states what is **actually present in current `main`** after the merged
 
 ### Persistence / platform
 
-- V2 save + migration;
+- V3 save + migration with Overcharge state;
 - deterministic `pendingReveal` anti-reroll transaction;
 - atomic Charged cost/reward/cache/recycle/Signal/Hidden outcome;
 - ambiguous storage-write reconciliation;
@@ -45,7 +45,7 @@ This file states what is **actually present in current `main`** after the merged
 ### Tooling / QA
 
 - permanent CI;
-- 91-test current suite;
+- 114-test current suite;
 - asset tooling + production build;
 - deterministic debug controls;
 - exact-revision screenshot/video audit workflow;
@@ -92,7 +92,7 @@ Infrastructure impact was deliberately small and is now integrated.
 - staged reward representation;
 - visual bank-on-accept sequence;
 - CHIPS count-up/local HUD reaction;
-- one `chips-collect` SFX;
+- synthesized `chip-clack` CHIPS cue + synth-only `pouch-grab` interaction cue;
 - Signal destination feedback;
 - left-side gameplay rail;
 - one bundled accent digital/pixel font;
@@ -128,6 +128,8 @@ Rules:
 - Signal consume/retain outcome stays fixed.
 
 This keeps feel work from weakening recovery correctness.
+
+The implemented Phase 2.6 Overcharge extension obeys the same rule: multiplier/bonus/gain/reset are persisted in the reveal transaction first; later count-up, gain flight and discharge are cosmetic staging only.
 
 ---
 
@@ -175,10 +177,11 @@ No tuning occurred in the feel-correction pass. Keep these provisional values un
 
 ## Current validation path
 
-1. second 20–30 opening hands-on on merged corrected `main`;
-2. if accepted, real Yandex DRAFT;
-3. fix only hosted-platform defects;
-4. content expansion.
+1. Phase 2.6 implementation + exact browser/video validation — complete;
+2. run one final direct repeated-use regression;
+3. if accepted, real Yandex DRAFT;
+4. fix only hosted-platform defects;
+5. content expansion.
 
 Hosted DRAFT must still prove real SDK boot/loading, storage, lifecycle/audio, Basic/Charged recovery, ads and analytics.
 
@@ -194,7 +197,8 @@ CI/local browser automation cannot replace it.
 - family-targeted acquisition;
 - timed Basic energy;
 - offline/passive income;
-- Overcharge / Archive / upgrades;
+- Archive / upgrades;
+- any Overcharge expansion beyond the approved bounded Signal extension;
 - shop;
 - multi-standard drops;
 - release texture streaming;
@@ -219,6 +223,6 @@ Collectible pipeline remains unchanged:
 
 ## Current critical path
 
-> **Second hands-on → real Yandex DRAFT → content expansion.**
+> **Final direct Phase 2.6 regression → real Yandex DRAFT → content expansion.**
 
-Runtime architecture remains outside the critical bottleneck; the current gates are repeated-use product acceptance and real hosted-platform validation.
+Runtime architecture remains intentionally small; the current gates are the bounded Overcharge/save extension, direct product acceptance and real hosted-platform validation.

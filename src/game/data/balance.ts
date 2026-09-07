@@ -1,5 +1,7 @@
 import type { StandardRarity } from './collectibles';
 
+export const OVERCHARGE_BASE_HUNDREDTHS = 100;
+
 export const POUCH_TYPES = ['basic', 'charged'] as const;
 export type PouchType = (typeof POUCH_TYPES)[number];
 
@@ -23,6 +25,8 @@ export interface PouchProfile {
   cacheTiers: readonly ChipsCacheTier[];
   rarityWeights: Readonly<Record<StandardRarity, number>>;
   hiddenPocketChance: number;
+  /** Hundredths of multiplier added after a retained armed Signal opening: 10 = +0.10. */
+  overchargeGainHundredths: number;
 }
 
 export interface LiteBalanceConfig {
@@ -32,6 +36,8 @@ export interface LiteBalanceConfig {
     secondOpeningDifferentFamily: boolean;
   };
   signalThreshold: number;
+  /** Stored multiplier uses hundredths: 100 = x1.00, 150 = x1.50. */
+  overchargeCapHundredths: number;
   hiddenPocketStartOpening: number;
   duplicateRecycleChips: Readonly<Record<StandardRarity, number>>;
   pouchProfiles: Readonly<Record<PouchType, PouchProfile>>;
@@ -52,6 +58,8 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
     secondOpeningDifferentFamily: true,
   },
   signalThreshold: 4,
+  // Phase 2.6 provisional tuning, selected after the first EV sanity pass.
+  overchargeCapHundredths: 150,
   hiddenPocketStartOpening: 4,
   duplicateRecycleChips: {
     common: 2,
@@ -76,6 +84,7 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
         legendary: 0,
       },
       hiddenPocketChance: 0.015,
+      overchargeGainHundredths: 10,
     },
     charged: {
       chipsCost: 60,
@@ -93,6 +102,7 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
         legendary: 5,
       },
       hiddenPocketChance: 0.06,
+      overchargeGainHundredths: 50,
     },
   },
 };
