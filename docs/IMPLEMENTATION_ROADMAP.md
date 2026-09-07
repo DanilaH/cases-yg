@@ -8,14 +8,16 @@ The two-family build is a private development base, not the public release.
 2. **Exact-revision combined visual/video audit + manual review — COMPLETE**
 3. **Second repeated-use hands-on — COMPLETE WITH FOLLOW-UP FINDINGS**
 4. **Bounded post-hands-on UI/feel polish — COMPLETE / AUDITED / MERGED**
-5. **Final hands-on acceptance on latest merged build — CURRENT REQUIRED GATE**
-6. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
-7. **Content/release expansion — BLOCKED until draft passes**
-8. **Public release hardening**
+5. **Final direct hands-on — COMPLETE WITH NEW BOUNDED FINDINGS**
+6. **Final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS**
+7. **Exact audit + direct regression of that pass — REQUIRED**
+8. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
+9. **Content/release expansion — BLOCKED until draft passes**
+10. **Public release hardening**
 
-The repeated-use passes have already produced and closed specific presentation/input findings. The correct response remains bounded correction of evidence-backed defects, not another gameplay-system pass.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response is still bounded: fix those findings and add only the explicitly specified Signal Overcharge extension.
 
-Do not change balance numbers, expand content or add new meta systems before final hands-on acceptance + hosted DRAFT provide evidence.
+Do not tune legacy economy numbers by intuition. Overcharge gain/cap are allowed only as simulation-driven tuning inside the approved pass. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
 ---
 
@@ -264,21 +266,41 @@ The full current baseline remains 108 unit tests + typecheck + asset self-test/v
 
 ---
 
-# Phase 2.5 — final hands-on acceptance — CURRENT REQUIRED GATE
+# Phase 2.5 — final direct hands-on — COMPLETE WITH FINDINGS
 
-Play the latest merged build normally before moving to hosted validation. This is not another open-ended polish pass. The goal is to confirm that the fixes feel right in real repetition.
+Direct play confirmed the opener is broadly enjoyable but exposed a bounded set of remaining issues:
 
-Judge especially:
+- opaque black rarity backing feels visually foreign;
+- maximum-density reward copy can overflow;
+- Signal's purpose/retain/consume behavior is not self-explanatory enough;
+- unaffordable Charged denial tween can accumulate displacement under rapid clicking;
+- affordable non-selected paid pouches need a restrained availability affordance;
+- Secret discovery lacks explicit reward/collection meaning;
+- Secret reveal can support a stronger premium aura/burst/shake settle;
+- completed/zero-eligible states leave armed Signal without enough continuing value.
 
-- whether the new star-grab `pouch-grab` cue sounds satisfying rather than cheap or irritating;
-- whether reward tray → result panel staging now reads as one continuous composition;
-- whether rarity is easier to read without overpowering the collectible name;
-- whether cache/recycle/Signal colors improve scanning without turning the tray into a rainbow;
-- whether tap-to-speed-up → separate tap-to-collect remains natural;
-- whether CHIPS banking and `chip-clack` stay pleasant across repeated openings;
-- whether any remaining delay or animation becomes irritating over a normal session.
+These findings justify one final bounded pass before DRAFT.
 
-If this passes, stop polishing the same loop and go to hosted DRAFT. If one narrow issue remains, make the smallest correction and re-audit only the affected behavior plus regression essentials.
+---
+
+# Phase 2.6 — final-hands-on correction + Signal Overcharge — CURRENT APPROVED PASS
+
+Canonical contract: `docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+
+Execution order:
+
+1. fix rarity badge treatment, reward overflow and Charged denial drift;
+2. add subtle affordance for affordable non-selected paid pouches;
+3. make Signal gain → ready → retain/consume semantics explicit;
+4. make current Secret collection reward explicit and strengthen the Secret celebration;
+5. implement deterministic/recoverable Signal Overcharge state/economy;
+6. add HUD/reward presentation for multiplier bonus, post-reward gain, MAX and discharge;
+7. simulate pouch gains/cap and lock only evidence-backed tuning;
+8. run exact browser/video audit + direct repeated-use regression.
+
+Initial tuning candidates include Basic `+0.10` and Charged `+0.50`, but those numbers and the multiplier cap are explicitly **OPEN FOR TUNING** until simulation.
+
+The future several-hundred-CHIPS high-tier/Secret-oriented pouch is a later hypothesis only; do not implement it in Phase 2.6.
 
 ---
 
@@ -310,7 +332,7 @@ Player-facing Drop selection remains deferred until Drop #2 exists.
 
 # Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.5 acceptance.
+Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.6 implementation, exact audit and direct regression are accepted.
 
 Must cover:
 
@@ -397,7 +419,7 @@ Remain parked:
 
 - timed Basic energy;
 - offline/passive income;
-- Overcharge / Archive levels;
+- Archive levels;
 - upgrade trees/set bonuses;
 - shop scene;
 - multiple currencies;
@@ -408,4 +430,4 @@ Remain parked:
 - custom shaders;
 - permanent odds/collection sidebar.
 
-> **Current next action: run final hands-on acceptance on the latest merged/audited build; if accepted, go to Yandex DRAFT.**
+> **Current next action: implement `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`, simulate Overcharge tuning, exact-audit/directly regress the result, then go to Yandex DRAFT only if accepted.**

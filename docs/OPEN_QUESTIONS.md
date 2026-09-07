@@ -97,6 +97,30 @@ No balance numbers changed in the feel-correction or bounded follow-up passes. K
 - do 1.5% vs 6% Hidden Pocket chances create the intended relationship?
 - does Signal threshold `4` feel relevant without becoming constant?
 
+## 2.1 Signal Overcharge tuning — APPROVED MECHANIC, NUMBERS OPEN
+
+The mechanic contract is approved in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; only its tuning remains unresolved.
+
+Locked semantics:
+
+- multiply `base + cache + recycle` CHIPS earned by the opening; never multiply pouch cost;
+- current multiplier applies before any gain/reset caused by the same opening;
+- retained lock gains Overcharge only after reward;
+- consumed lock cashes out current multiplier then resets to `x1.00`;
+- first `3/4 → 4/4` opening does not gain Overcharge;
+- cap remains an active multiplier and shows MAX rather than fake gain.
+
+Simulation questions:
+
+- Basic/Charged gain: compare at least `+0.05/+0.15`, `+0.10/+0.25`, `+0.10/+0.50`;
+- cap: compare at least `x1.30` and `x1.50`;
+- long-run CHIPS inflation after Drop completion;
+- cache/Big/Mega jackpot amplification;
+- effect on time-to-Charged and all-duplicate Charged net return;
+- viable future several-hundred-CHIPS sink price.
+
+Initial product-feel candidate is Basic `+0.10`, Charged `+0.50`; this is not release-locked until simulation.
+
 ---
 
 # 3. Odds / Drop contents / collection-progress surface — DEFERRED NEXT CANDIDATE
@@ -210,7 +234,6 @@ Not backlog commitments:
 - timed Basic charges;
 - offline income;
 - passive Collection CHIPS/min;
-- Overcharge;
 - Archive levels;
 - upgrade/set-bonus trees;
 - prestige;
@@ -219,6 +242,12 @@ Not backlog commitments:
 - family-targeted acquisition.
 
 Re-open exactly one only if the proven loop has a specific retention/progression problem that it solves cheaply.
+
+## 9.1 Future expensive pouch — HYPOTHESIS AFTER OVERCHARGE VALIDATION
+
+A several-hundred-CHIPS pouch may later provide a high-tier collection sink, stronger Secret access or another premium pool. Overcharge may make that target more reachable, but price/content/guarantee rules are deliberately unresolved until Overcharge simulation + hosted/content-scale evidence.
+
+Do not implement it in the current bounded pass.
 
 ---
 

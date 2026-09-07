@@ -28,7 +28,7 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Second repeated-use hands-on completed with narrow findings; bounded follow-up polish through PR #45 is merged and exact-revision/manual-review approved. Current gate is **final hands-on acceptance** of the latest build, then real Yandex DRAFT if accepted |
+| Current stage | LOCKED | Final direct hands-on produced a bounded new finding set. Current gate is **final hands-on correction + approved Signal Overcharge extension**, followed by exact audit/direct regression; real Yandex DRAFT follows only after that pass is accepted |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
 | Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
@@ -53,6 +53,9 @@ The mechanics remain accepted. The current correction is presentation/interactio
 | Duplicate behavior | CURRENT RUNTIME | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL` |
 | Signal | CURRENT RUNTIME | non-spendable duplicate pity, separate from CHIPS |
 | Signal rule | CURRENT RUNTIME | duplicate `+1`; `4/4` arms lock; next selected-pouch-eligible NEW is guaranteed; consume → `0/4` |
+| Signal clarity extension | LOCKED NEXT | make gain → `4/4 LOCK READY` → retain/consume cause→effect explicit in reward tray + Signal HUD; no tutorial modal required |
+| Signal Overcharge | LOCKED NEXT | if Signal was already `4/4` and the selected pouch cannot consume the lock, current Overcharge multiplies `base + cache + recycle`, then that pouch increases the multiplier for the next opening; consuming the lock cashes out the current multiplier then resets to `x1.00`; cap is finite and remains useful at MAX |
+| Overcharge tuning | OPEN FOR TUNING | initial simulation candidates include Basic `+0.10`, Charged `+0.50`; exact pouch gains and cap are not release-locked until simulation |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
 | Reward transaction | CURRENT RUNTIME | pouch cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable deterministic transaction |
 | Balance through feel correction | COMPLETE | no tuning-number changes occurred; current provisional values remain unchanged pending later evidence |
@@ -86,7 +89,9 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Quick Reveal mode | PARKED | no separate setting/toggle; first solve responsiveness with direct fast-forward |
 | Pouch tactile feel | CURRENT RUNTIME | immediate grab response with synth-only `pouch-grab` pop/zip cue, progressive tension, short tear recoil/snap; no physics |
 | Reward arrival | CURRENT RUNTIME | preserve established emerge/overshoot/settle; reward tray enters once and remains visually continuous while the result panel arrives on a later beat |
-| Result rarity hierarchy | CURRENT RUNTIME | larger rarity capsule + rarity-tinted result border; rarity remains secondary to item name but no longer reads as incidental metadata |
+| Result rarity hierarchy | CURRENT RUNTIME | rarity remains secondary to item name but must read clearly |
+| Rarity badge follow-up | LOCKED NEXT | remove the opaque black backing from the current rarity badge; retain prominence with a lighter integrated tinted/outlined treatment |
+| Reward tray density | LOCKED NEXT | prevent long recycle/rarity rows from overflowing at compact widths while preserving semantic colors and readability |
 | CHIPS staging | CURRENT RUNTIME | earned base/cache/recycle first read beside result in a persistent tray; visual banking occurs on result acceptance |
 | Charged cost presentation | CURRENT RUNTIME | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
 | CHIPS bank order | CURRENT RUNTIME | base → optional cache → optional recycle; Signal has its own destination transfer |
@@ -97,6 +102,8 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Signal presentation | CURRENT RUNTIME | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
 | Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
 | Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
+| Charged denial re-entry | LOCKED NEXT | rapid repeated denial input must kill/reset the previous denial tween to canonical transform; no cumulative x/y drift |
+| Available paid-pouch affordance | LOCKED NEXT | affordable non-selected paid pouches may use a rare subtle nudge/pulse; no permanent shake, no Basic/free attention loop |
 | Charged differentiation | CURRENT RUNTIME | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
 | Charged raster fallback | NOT REQUIRED NOW | r3 label-hidden review passed with runtime treatment; reopen only if later hands-on contradicts it |
 | Callout readability | CURRENT RUNTIME | longer readable holds + semantic positions; experienced player can fast-forward |
@@ -116,6 +123,8 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Neon implementation | CURRENT RUNTIME | Phaser Text/Graphics, duplicate glow layers, tint, blend, moving highlights, rings/sparks/tweens first |
 | Custom shader | LOCKED OUT FOR THIS PASS | no custom WebGL shader until a reviewed no-shader result proves one specific effect cannot be sold cheaply |
 | Rarity shimmer | CURRENT RUNTIME | restrained Common → stronger Rare/Epic/Legendary electronic/iridescent hierarchy; Secret remains strongest/distinct |
+| Secret reward meaning | LOCKED NEXT | current undiscovered-only Secret roll is a collection discovery, not recycle income; reward/result UI must explicitly communicate `SECRET DISCOVERED` / added-to-collection meaning |
+| Secret celebration | LOCKED NEXT | add bounded moving aura/cloud, particles, stronger burst and short object shake/overshoot, then settle; no permanent fireworks loop |
 | Fullscreen CRT/VHS | LOCKED OUT FOR THIS PASS | no global scanlines/noise/chromatic-aberration treatment |
 
 ---
@@ -181,8 +190,9 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Feel correction exact-revision audit | COMPLETE | r3 exact-revision browser/video audit + manual artifact review passed on the audited product tree |
 | Second repeated hands-on | COMPLETE WITH FINDINGS | repeated-use feedback exposed narrow UI/feel issues; no economy/content expansion was justified |
 | Post-hands-on follow-up polish | COMPLETE | transition/input/resize/error-state fixes plus reward continuity, `pouch-grab`, stronger rarity hierarchy and semantic reward colors were independently audited and merged through PR #45 |
-| Final hands-on acceptance | OPEN | **current product gate**: play the latest merged build and judge the corrected tactile/audio/result feel in normal repetition |
-| Real Yandex DRAFT | OPEN | next external gate after final hands-on acceptance |
+| Final hands-on acceptance | COMPLETE WITH FINDINGS | direct play exposed rarity-badge styling, reward overflow, Charged denial drift, Signal/Secret clarity and completed-collection Signal-value issues |
+| Final hands-on correction + Signal Overcharge | LOCKED NEXT | current product gate; detailed contract in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md` |
+| Real Yandex DRAFT | OPEN | next external gate only after the new bounded pass + exact/direct regression are accepted |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 
@@ -195,7 +205,6 @@ PARKED:
 - timed Basic charges/energy;
 - offline income;
 - collection passive CHIPS production;
-- Overcharge;
 - Archive levels;
 - upgrade/set-bonus trees;
 - separate shop;
@@ -219,4 +228,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: run final hands-on acceptance on the latest merged/audited build. If accepted, proceed to real Yandex DRAFT. Do not add mechanics/content or tune balance before that evidence.**
+> **GO: implement the bounded final-hands-on correction plus the approved Signal Overcharge contract in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; simulate its tuning, exact-audit the result and run direct regression. Do not add the future expensive pouch or unrelated meta/content before that evidence.**
