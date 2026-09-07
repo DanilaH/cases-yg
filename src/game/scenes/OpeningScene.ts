@@ -560,7 +560,7 @@ export class OpeningScene extends Phaser.Scene {
     return this.presentationSkip.request(this.time.now);
   }
 
-  private renderIdle(message?: string): void {
+  private renderIdle(message?: string, animateEntry = false): void {
     if (!this.saveState || this.isSceneShutdown()) return;
 
     this.phase = 'idle';
@@ -615,6 +615,48 @@ export class OpeningScene extends Phaser.Scene {
           })
           .setOrigin(0.5),
       );
+    }
+
+    if (animateEntry) this.animateIdleEntry();
+  }
+
+  private animateIdleEntry(): void {
+    if (!this.pouch) return;
+
+    const pouch = this.pouch.group;
+    const pouchTargetY = pouch.y;
+    pouch.setY(pouchTargetY + 8).setAlpha(0);
+    this.tweens.add({
+      targets: pouch,
+      y: pouchTargetY,
+      alpha: 1,
+      duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+      ease: 'Cubic.Out',
+    });
+
+    for (const card of this.pouchSelectorButtons) {
+      const targetY = card.y;
+      const targetAlpha = Number(card.getData('idleAlpha') ?? 1);
+      card.setY(targetY + 4).setAlpha(0);
+      this.tweens.add({
+        targets: card,
+        y: targetY,
+        alpha: targetAlpha,
+        duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+        ease: 'Sine.Out',
+      });
+    }
+
+    if (this.tearHint) {
+      const targetY = this.tearHint.y;
+      this.tearHint.setY(targetY + 4).setAlpha(0);
+      this.tweens.add({
+        targets: this.tearHint,
+        y: targetY,
+        alpha: 1,
+        duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
+        ease: 'Sine.Out',
+      });
     }
   }
 
@@ -1752,6 +1794,11 @@ export class OpeningScene extends Phaser.Scene {
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
     if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
     if (this.resultActionPanel?.active) fadeTargets.push(this.resultActionPanel);
+    if (this.resultCarouselItems.length > 0) {
+      fadeTargets.push(...this.resultCarouselItems.filter((item) => item.active));
+    } else if (this.resultBreathTarget?.active) {
+      fadeTargets.push(this.resultBreathTarget);
+    }
     if (fadeTargets.length > 0) {
       this.tweens.add({
         targets: fadeTargets,
@@ -1762,7 +1809,7 @@ export class OpeningScene extends Phaser.Scene {
       });
     }
     await this.waitPresentation(OPENING_FEEL_PRESENTATION.uiFadeOutMs);
-    if (!this.isSceneShutdown()) this.renderIdle();
+    if (!this.isSceneShutdown()) this.renderIdle(undefined, true);
   }
 
   private async animatePostStandardEconomy(
