@@ -1,0 +1,36 @@
+name: Temporary one gesture result fix
+
+on:
+  push:
+    branches:
+      - fix/one-gesture-one-result-action
+    paths:
+      - .github/tmp-one-gesture-fix.py
+      - .github/workflows/tmp-one-gesture-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: python .github/tmp-one-gesture-fix.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Commit source fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DanilaH'
+          git config user.email '41333602+DanilaH@users.noreply.github.com'
+          git add src/game/scenes/OpeningScene.ts
+          git commit -m 'Preserve one gesture per result action'
+          git push origin HEAD:fix/one-gesture-one-result-action
