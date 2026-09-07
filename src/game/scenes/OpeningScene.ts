@@ -583,8 +583,8 @@ export class OpeningScene extends Phaser.Scene {
     this.renderResourceHud(root, this.saveState);
     if (this.saveState.totalOpens > 0) {
       this.createCollectionButton(root, true);
-      this.createMuteButton(root);
     }
+    this.createMuteButton(root);
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
