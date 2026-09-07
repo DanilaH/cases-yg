@@ -30,7 +30,7 @@ Status meanings:
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
 | Current stage | LOCKED | Second repeated-use hands-on completed with narrow findings; bounded follow-up polish through PR #45 is merged and exact-revision/manual-review approved. Current gate is **final hands-on acceptance** of the latest build, then real Yandex DRAFT if accepted |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
-| Public content direction | LOCKED | materially expand only after corrected hands-on + hosted draft validation |
+| Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
 | Production philosophy | LOCKED | low production burden, repeatable content factory, minimal gameplay-system count |
 
