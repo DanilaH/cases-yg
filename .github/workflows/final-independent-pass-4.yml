@@ -1,0 +1,48 @@
+name: Final independent UI pass 4
+
+on:
+  push:
+    branches:
+      - audit/final-independent-pass-4
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet fae3ad271c51c5788aad6a01f4f9858590e7ecbc -- . ':(exclude).github/scripts/final-independent-pass-4.mjs' ':(exclude).github/workflows/final-independent-pass-4.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install browser helpers
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chrome
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..40}; do curl -fsS http://127.0.0.1:5173/ >/dev/null && exit 0; sleep 0.5; done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run fourth independent browser audit
+        run: node .github/scripts/final-independent-pass-4.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-independent-pass-4
+          path: /tmp/final-independent-pass-4
+          retention-days: 3
