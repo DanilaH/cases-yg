@@ -21,7 +21,7 @@ Current status:
 - final hands-on acceptance: **CURRENT / PENDING**;
 - real Yandex DRAFT: **BLOCKED until final hands-on acceptance**.
 
-Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
+Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
 The remaining question is no longer whether the Lite mechanics work. It is:
 

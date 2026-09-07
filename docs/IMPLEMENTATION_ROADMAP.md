@@ -19,7 +19,7 @@ Do not change balance numbers, expand content or add new meta systems before fin
 
 ---
 
-# Phase 0 — established opener baseline — COMPLETE# Phase 0 — established opener baseline — COMPLETE
+# Phase 0 — established opener baseline — COMPLETE
 
 Current `main` already includes:
 
@@ -282,7 +282,7 @@ If this passes, stop polishing the same loop and go to hosted DRAFT. If one narr
 
 ---
 
-# Deferred information pass — NOT PART OF 2.1# Deferred information pass — NOT PART OF 2.1
+# Deferred information pass — NOT PART OF 2.1
 
 Hands-on also raised a valid information need:
 

@@ -121,7 +121,7 @@ A reviewed physical sample may replace either synth later only if hands-on prove
 
 ---
 
-# 5. Current Lite V2 UI/economy visuals — INTEGRATED# 5. Current Lite V2 UI/economy visuals — INTEGRATED
+# 5. Current Lite V2 UI/economy visuals — INTEGRATED
 
 ## CHIPS token
 
