@@ -91,17 +91,35 @@ const stageScenario = async (page, name) => {
 };
 const assert = (name, pass, observed) => assertions.push({ name, pass: Boolean(pass), observed });
 
-const realTear = async (page, width) => {
-  const startX = width / 2 - 158;
-  const startY = 177;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.waitForTimeout(65);
-  for (let step = 1; step <= 14; step += 1) {
-    await page.mouse.move(startX + (312 * step) / 14, startY, { steps: 1 });
-    await page.waitForTimeout(15);
+const realTear = async (page, width, beforeOpens) => {
+  const candidates = [
+    { dx: 0, dy: 0 },
+    { dx: 0, dy: 8 },
+    { dx: -7, dy: 2 },
+    { dx: 7, dy: 2 },
+  ];
+  for (let attempt = 0; attempt < candidates.length; attempt += 1) {
+    const { dx, dy } = candidates[attempt];
+    const startX = width / 2 - 158 + dx;
+    const startY = 177 + dy;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.waitForTimeout(65);
+    for (let step = 1; step <= 14; step += 1) {
+      await page.mouse.move(startX + (312 * step) / 14, startY, { steps: 1 });
+      await page.waitForTimeout(15);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(260);
+    const state = await readSave(page);
+    if (
+      state?.pendingReveal?.openingNumber === beforeOpens + 1 ||
+      state?.totalOpens === beforeOpens + 1
+    ) {
+      return attempt + 1;
+    }
   }
-  await page.mouse.up();
+  return 0;
 };
 
 const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
@@ -166,7 +184,9 @@ const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
 
   for (let index = 1; index <= 10; index += 1) {
     const before = (await readSave(page)) ?? baseSave();
-    await realTear(page, width);
+    const tearAttempts = await realTear(page, width, before.totalOpens);
+    assert(`repeat-${index}-star-acquired`, tearAttempts > 0, tearAttempts);
+    if (tearAttempts === 0) throw new Error(`repeat-${index}: star could not be acquired inside hit area`);
     await finishPendingPresentation(page, width, before.totalOpens, `repeat-${index}`);
     const after = await readSave(page);
     assert(`repeat-${index}-one-open`, after?.totalOpens === before.totalOpens + 1, {
@@ -218,8 +238,10 @@ const finishPendingPresentation = async (page, width, beforeOpens, tag) => {
   await page.waitForTimeout(180);
   await shot(page, '22-charged-60-selected');
   const before = await readSave(page);
-  await realTear(page, width);
-  await page.waitForFunction(
+  const chargedTearAttempts = await realTear(page, width, before.totalOpens);
+    assert('charged-star-acquired', chargedTearAttempts > 0, chargedTearAttempts);
+    if (chargedTearAttempts === 0) throw new Error('charged: star could not be acquired inside hit area');
+    await page.waitForFunction(
     key => {
       const raw = localStorage.getItem(key);
       if (!raw) return false;
