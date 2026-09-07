@@ -1,7 +1,7 @@
 from pathlib import Path
 
-p = Path('docs/OPENING_FEEL_CORRECTION_SCOPE.md')
-text = p.read_text(encoding='utf-8')
+scope = Path('docs/OPENING_FEEL_CORRECTION_SCOPE.md')
+text = scope.read_text(encoding='utf-8')
 old = '''# 8. CHIPS audio
 
 Add **one concise reusable `chips-collect` SFX** because hands-on identified a real feedback gap.
@@ -35,5 +35,20 @@ A dedicated `charged-ready` SFX remains optional; first test whether the CHIPS i
 '''
 if text.count(old) != 1:
     raise SystemExit(f'expected one old CHIPS audio section, found {text.count(old)}')
-p.write_text(text.replace(old, new, 1), encoding='utf-8')
-print('scope audio contract updated')
+text = text.replace(old, new, 1)
+old_pass = '- `chips-collect` SFX;'
+new_pass = '- CHIPS-banking SFX (`chip-clack` in current runtime);'
+if text.count(old_pass) != 1:
+    raise SystemExit(f'expected one old Pass B cue line, found {text.count(old_pass)}')
+text = text.replace(old_pass, new_pass, 1)
+scope.write_text(text, encoding='utf-8')
+
+probe = Path('docs/PROBE_VALIDATION.md')
+probe_text = probe.read_text(encoding='utf-8')
+old_probe = '- `chips-collect` SFX is satisfying over repetition and not casino-like.'
+new_probe = '- `chip-clack` is satisfying over repetition and not casino-like.'
+if probe_text.count(old_probe) != 1:
+    raise SystemExit(f'expected one old probe cue line, found {probe_text.count(old_probe)}')
+probe.write_text(probe_text.replace(old_probe, new_probe, 1), encoding='utf-8')
+
+print('canonical audio wording updated')
