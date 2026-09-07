@@ -1,6 +1,6 @@
 # Infrastructure status
 
-This file states what is **actually present in current `main`** after the merged evidence-backed Opening Feel Correction.
+This file states what is **actually present in current `main`** after the merged Opening Feel Correction and Phase 2.6 Signal Overcharge pass (PR #48).
 
 ## Completed / established
 

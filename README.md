@@ -96,8 +96,10 @@ Completed:
 - first repeated hands-on;
 - second repeated hands-on — complete with narrow follow-up findings;
 - bounded follow-up fixes through PR #45, exact-revision audited and merged;
-- latest audited product tree verified identical to merged `main`;
-- post-merge CI #248 — PASS.
+- Phase 2.6 comprehensive exact browser/state audit — **43/43 PASS**;
+- focused post-fix cash-out audit on exact product head `40db07a3c8069ef8ca01c5c35de0c355337d410e` — **15/15 PASS**, with reviewed RU 900 + EN 1280 result/discharge frames;
+- Phase 2.6 squash-merged through PR #48 as `main` `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020`;
+- post-merge CI #274 — **PASS**.
 
 Current order:
 
