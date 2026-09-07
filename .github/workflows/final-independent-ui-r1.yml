@@ -48,7 +48,9 @@ jobs:
           tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
           node node_modules/playwright/cli.js install ffmpeg
       - name: Normalize synthetic result fixture
-        run: sed -i "s/signalBefore: 3, signalGain: 1/signalGain: 1/" .github/scripts/final-independent-ui-r1.mjs
+        shell: bash
+        run: |
+          sed -i 's/signalBefore: 3, signalGain: 1/signalGain: 1/' .github/scripts/final-independent-ui-r1.mjs
       - name: Start Vite
         shell: bash
         run: |
