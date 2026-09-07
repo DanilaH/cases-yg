@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
 
+# Audit-only rerun marker after scoping deterministic RNG to the reward roll.
 jobs:
   audit:
     runs-on: ubuntu-24.04
