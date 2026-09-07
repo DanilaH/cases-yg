@@ -1,0 +1,52 @@
+name: Sync Phase 2.6 post-merge evidence docs
+
+on:
+  push:
+    branches:
+      - docs/sync-phase26-post-merge
+    paths:
+      - .github/phase26-post-merge-docs-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Sync post-merge evidence
+        run: python .github/scripts/sync-phase26-post-merge-docs.py
+      - name: Assert docs-only diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' README.md docs/INFRASTRUCTURE_STATUS.md docs/PROBE_VALIDATION.md docs/TECHNICAL_DIRECTION.md | sort)"
+          test "$changed" = "$expected"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit docs sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/INFRASTRUCTURE_STATUS.md docs/PROBE_VALIDATION.md docs/TECHNICAL_DIRECTION.md
+          git commit -m "Sync Phase 2.6 post-merge evidence"
+          git push origin HEAD:docs/sync-phase26-post-merge
