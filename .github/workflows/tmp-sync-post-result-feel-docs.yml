@@ -1,0 +1,40 @@
+name: Temporary post-result feel docs sync
+
+on:
+  push:
+    branches:
+      - docs/sync-post-result-feel-polish-v2
+    paths:
+      - .github/tmp-sync-post-result-feel-docs.py
+      - .github/workflows/tmp-sync-post-result-feel-docs.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Apply asserted documentation sync
+        run: python .github/tmp-sync-post-result-feel-docs.py
+      - name: Validate docs diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          grep -q 'final hands-on acceptance' README.md
+          grep -q '108-test current suite' README.md
+          grep -q '`chip-clack`' docs/DECISIONS.md
+          grep -q 'Phase 2.5 — final hands-on acceptance' docs/IMPLEMENTATION_ROADMAP.md
+          grep -q 'post-merge main CI #248: \*\*PASS\*\*' docs/PROBE_VALIDATION.md
+          grep -q '`pouch-grab`' docs/ASSET_MANIFEST.md
+      - name: Commit canonical docs sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DanilaH'
+          git config user.email '41333602+DanilaH@users.noreply.github.com'
+          git add README.md docs/DECISIONS.md docs/IMPLEMENTATION_ROADMAP.md docs/OPENING_FEEL_CORRECTION_SCOPE.md docs/PROBE_VALIDATION.md docs/PRODUCT.md docs/GAMEPLAY_SYSTEMS.md docs/OPEN_QUESTIONS.md docs/ASSET_MANIFEST.md
+          git commit -m 'Sync canonical docs after result feel polish'
+          git push origin HEAD:docs/sync-post-result-feel-polish-v2
