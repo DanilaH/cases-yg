@@ -583,8 +583,8 @@ export class OpeningScene extends Phaser.Scene {
     this.renderResourceHud(root, this.saveState);
     if (this.saveState.totalOpens > 0) {
       this.createCollectionButton(root, true);
-      this.createMuteButton(root);
     }
+    this.createMuteButton(root);
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
@@ -680,17 +680,37 @@ export class OpeningScene extends Phaser.Scene {
   private renderFailure(message: string): void {
     const root = this.createRoot();
     const metrics = this.metrics!;
-    root.add(
-      this.add
-        .text(metrics.centerX, metrics.centerY, message, {
-          color: '#ffb7c8',
-          align: 'center',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '20px',
-          wordWrap: { width: Math.min(620, metrics.logicalWidth - 100) },
-        })
-        .setOrigin(0.5),
+    const panelWidth = Math.min(660, metrics.logicalWidth - 100);
+    const panelHeight = 128;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x21172e, 0.92);
+    panel.fillRoundedRect(
+      metrics.centerX - panelWidth / 2,
+      metrics.centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      22,
     );
+    panel.lineStyle(1.5, 0xffb7c8, 0.52);
+    panel.strokeRoundedRect(
+      metrics.centerX - panelWidth / 2,
+      metrics.centerY - panelHeight / 2,
+      panelWidth,
+      panelHeight,
+      22,
+    );
+    const text = this.add
+      .text(metrics.centerX, metrics.centerY, message, {
+        color: '#fff1f5',
+        align: 'center',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        fontStyle: 'bold',
+        wordWrap: { width: panelWidth - 56 },
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 2, '#120d19', 3, true, true);
+    root.add([panel, text]);
   }
 
   private renderResourceHud(root: Phaser.GameObjects.Container, state: SaveState): void {
