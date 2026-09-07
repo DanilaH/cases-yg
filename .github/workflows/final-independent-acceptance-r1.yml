@@ -1,0 +1,57 @@
+name: Final independent acceptance R1
+
+on:
+  push:
+    branches:
+      - audit/final-independent-acceptance-r1
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet ac6ab29cb3bdd521a2fcabf723290816947e4b85 -- . \
+            ':(exclude).github/scripts/final-independent-acceptance-r1.mjs' \
+            ':(exclude).github/workflows/final-independent-acceptance-r1.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install browser helpers
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chrome
+      - name: Start Vite
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Run independent repeated-play/state-transition audit
+        run: node .github/scripts/final-independent-acceptance-r1.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-independent-acceptance-r1
+          path: /tmp/final-independent-acceptance-r1
+          retention-days: 3
