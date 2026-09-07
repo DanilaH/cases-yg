@@ -33,22 +33,27 @@ Normal / Cache / Big / Mega reuse the same `chip-clack` identity through bounded
 
 A dedicated `charged-ready` SFX remains optional; first test whether the CHIPS intake cue + UI activation is sufficient.
 '''
-if text.count(old) != 1:
-    raise SystemExit(f'expected one old CHIPS audio section, found {text.count(old)}')
-text = text.replace(old, new, 1)
+if old in text:
+    text = text.replace(old, new, 1)
+elif 'Current runtime implements it as the synthesized `chip-clack` cue.' not in text:
+    raise SystemExit('neither old nor current CHIPS audio section found')
+
 old_pass = '- `chips-collect` SFX;'
 new_pass = '- CHIPS-banking SFX (`chip-clack` in current runtime);'
-if text.count(old_pass) != 1:
-    raise SystemExit(f'expected one old Pass B cue line, found {text.count(old_pass)}')
-text = text.replace(old_pass, new_pass, 1)
+if old_pass in text:
+    text = text.replace(old_pass, new_pass, 1)
+elif new_pass not in text:
+    raise SystemExit('neither old nor current Pass B cue line found')
 scope.write_text(text, encoding='utf-8')
 
 probe = Path('docs/PROBE_VALIDATION.md')
 probe_text = probe.read_text(encoding='utf-8')
 old_probe = '- `chips-collect` SFX is satisfying over repetition and not casino-like.'
 new_probe = '- `chip-clack` is satisfying over repetition and not casino-like.'
-if probe_text.count(old_probe) != 1:
-    raise SystemExit(f'expected one old probe cue line, found {probe_text.count(old_probe)}')
-probe.write_text(probe_text.replace(old_probe, new_probe, 1), encoding='utf-8')
+if old_probe in probe_text:
+    probe_text = probe_text.replace(old_probe, new_probe, 1)
+elif new_probe not in probe_text:
+    raise SystemExit('neither old nor current probe cue line found')
+probe.write_text(probe_text, encoding='utf-8')
 
-print('canonical audio wording updated')
+print('canonical audio wording current')
