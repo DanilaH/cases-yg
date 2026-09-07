@@ -5,7 +5,7 @@ on:
     branches:
       - docs/sync-post-result-feel-polish-v2
     paths:
-      - .github/tmp-sync-post-result-feel-docs.py
+      - .github/tmp-sync-post-result-feel-docs-v2.py
       - .github/workflows/tmp-sync-post-result-feel-docs.yml
 
 permissions:
@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Apply asserted documentation sync
-        run: python .github/tmp-sync-post-result-feel-docs.py
+        run: python .github/tmp-sync-post-result-feel-docs-v2.py
       - name: Validate docs diff
         shell: bash
         run: |
