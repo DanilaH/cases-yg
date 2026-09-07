@@ -19,7 +19,11 @@ jobs:
         run: |
           set -euo pipefail
           PRODUCT_HEAD='7a47bab77e27ffa1d92111ffd12283901314ea3d'
-          git diff --quiet "$PRODUCT_HEAD" -- . ':(exclude).github/**'
+          PRODUCT_DIFF="$(git diff --name-only "$PRODUCT_HEAD" -- . | grep -v '^\.github/' || true)"
+          if [ -n "$PRODUCT_DIFF" ]; then
+            printf 'Unexpected product diff:\n%s\n' "$PRODUCT_DIFF"
+            exit 1
+          fi
       - uses: actions/setup-node@v6
         with:
           node-version: 22.12.0
