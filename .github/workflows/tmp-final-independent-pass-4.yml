@@ -1,0 +1,36 @@
+name: Temporary final independent pass 4 patch
+
+on:
+  push:
+    branches:
+      - fix/final-independent-pass-4
+    paths:
+      - .github/tmp-final-independent-pass-4.py
+      - .github/workflows/tmp-final-independent-pass-4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: python .github/tmp-final-independent-pass-4.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Commit product fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'DanilaH'
+          git config user.email '41333602+DanilaH@users.noreply.github.com'
+          git add src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts
+          git commit -m 'Polish first-run audio and load failures'
+          git push origin HEAD:fix/final-independent-pass-4
