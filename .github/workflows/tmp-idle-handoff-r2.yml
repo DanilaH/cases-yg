@@ -1,0 +1,21 @@
+name: Temporary idle handoff R2 patch
+on:
+  push:
+    branches: [patch/idle-handoff-r2]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - run: python .github/tmp-idle-handoff-r2.py
+      - name: Commit source patch
+        run: |
+          git config user.name "DanilaH"
+          git config user.email "41333602+DanilaH@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts
+          git commit -m "Complete idle handoff transition"
+          git push origin HEAD:patch/idle-handoff-r2
