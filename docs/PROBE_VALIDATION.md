@@ -138,7 +138,7 @@ Must prove:
 - ordinary intake produces restrained pulse;
 - Big/Mega produce stronger local reaction without whole-screen noise;
 - HUD shake is local, not camera shake;
-- `chips-collect` SFX is satisfying over repetition and not casino-like.
+- `chip-clack` is satisfying over repetition and not casino-like.
 
 ## Charged-ready threshold
 
