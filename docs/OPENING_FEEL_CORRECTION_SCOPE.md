@@ -277,16 +277,17 @@ HUD shake must move the CHIPS card/container, not the entire camera. Camera shak
 
 # 8. CHIPS audio
 
-Add **one concise reusable `chips-collect` SFX** because hands-on identified a real feedback gap.
+Use **one concise reusable CHIPS-banking sonic identity** because hands-on identified a real feedback gap. Current runtime implements it as the synthesized `chip-clack` cue.
 
-Desired character:
+Current character:
 
-- fast electronic token/chip cascade or light clatter;
+- short dry/percussive plastic-chip clack rather than a soft tonal puff;
 - satisfying but not casino/slot-machine coded;
 - short enough for repeated play;
-- aligned with the visual bank/count-up.
+- aligned with visual chip arrivals and HUD count-up;
+- audio density is bounded independently of the exact visual chip count, so large rewards never create unbounded simultaneous sources.
 
-Normal / Cache / Big / Mega should reuse the same sonic identity through timing, bounded repetition, playback variation or layering where supported. Do not create one new file per cache tier.
+Normal / Cache / Big / Mega reuse the same `chip-clack` identity through bounded repetition/timing rather than one sound asset per tier. A reviewed physical sample may replace the synth only if hands-on proves the current sound quality insufficient.
 
 A dedicated `charged-ready` SFX remains optional; first test whether the CHIPS intake cue + UI activation is sufficient.
 
@@ -526,7 +527,7 @@ Use one feature branch with reviewable internal commits/subpasses:
 
 - larger CHIPS HUD;
 - count-up + punch/shake;
-- `chips-collect` SFX;
+- CHIPS-banking SFX (`chip-clack` in current runtime);
 - duplicate recycle transfer;
 - Signal fragment/destination response;
 - Charged-ready threshold response moved into bank/HUD flow.
