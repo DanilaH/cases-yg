@@ -1,0 +1,65 @@
+name: Pre-first-open mute visual gate
+
+on:
+  push:
+    branches:
+      - audit/pre-first-open-mute-gate
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT_HEAD='31b4534f633ceab4968eb5e3b5e7bf22dfb07124'
+          PRODUCT_DIFF="$(git diff --name-only "$PRODUCT_HEAD" -- . | grep -v '^\.github/' || true)"
+          if [ -n "$PRODUCT_DIFF" ]; then
+            printf 'Unexpected product diff:\n%s\n' "$PRODUCT_DIFF"
+            exit 1
+          fi
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install pinned Playwright driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw-pack node_modules/playwright node_modules/playwright-core
+          npm pack playwright@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pw-name.txt
+          npm pack playwright-core@1.55.0 --pack-destination /tmp/pw-pack >/tmp/pwc-name.txt
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pw-name.txt)" --strip-components=1 -C node_modules/playwright
+          tar -xzf "/tmp/pw-pack/$(cat /tmp/pwc-name.txt)" --strip-components=1 -C node_modules/playwright-core
+      - name: Start Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/mpt-vite.log
+          exit 1
+      - name: Run fresh mute browser audit
+        run: node .github/scripts/pre-first-open-mute-gate.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pre-first-open-mute-gate
+          path: /tmp/pre-first-open-mute-gate
+          if-no-files-found: error
+          retention-days: 3
