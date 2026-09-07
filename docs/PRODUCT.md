@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. The correction is merged; current work is to validate the corrected loop in repeated hands-on rather than add another system.
+The project is deliberately **not** a full idle/incremental economy. The correction and bounded post-hands-on follow-ups are merged; current work is final hands-on acceptance of the latest audited loop rather than adding another system.
 
 ---
 
@@ -28,7 +28,7 @@ Current runtime contains CHIPS, cache, recycle, segmented Signal, Basic/Charged 
 
 Technical + original exact-revision visual gates passed.
 
-### Stage B2 — Opening Feel Correction — COMPLETE
+### Stage B2 — Opening Feel Correction + bounded follow-up polish — COMPLETE
 
 The first real repeated-use hands-on is complete and found specific evidence-backed problems:
 
@@ -48,7 +48,8 @@ This pass adds **presentation quality**, not new gameplay rules:
 - input fast-forward;
 - tactile grab/tear response;
 - staged reward → HUD banking;
-- CHIPS count-up / local HUD reaction / dedicated collect SFX;
+- CHIPS count-up / local HUD reaction / synthesized `chip-clack`;
+- synth-only `pouch-grab` feedback on star grab;
 - duplicate + Signal physical transfer;
 - clearer left-side pouch-selection hierarchy;
 - stronger Charged presentation;
@@ -58,9 +59,9 @@ Visual rule:
 
 > **Cozy Y2K world, electric digital UI.**
 
-Implementation, exact-revision video/screenshot audit and manual review are complete. **Current gate: second 20–30 opening hands-on.**
+Implementation, repeated-use follow-up fixes, exact-revision video/screenshot audits and manual reviews are complete through PR #45. **Current gate: final hands-on acceptance on the latest merged build.**
 
-### Stage C — real Yandex DRAFT validation — NEXT AFTER CORRECTED HANDS-ON
+### Stage C — real Yandex DRAFT validation — NEXT AFTER FINAL HANDS-ON ACCEPTANCE
 
 Validate hosted SDK boot/loading, lifecycle/audio, safe storage, interrupted Basic/Charged recovery, ads, rewarded exactly-once CHIPS probe and analytics/Metrica where configured.
 

@@ -12,11 +12,11 @@ The first repeated hands-on justified the correction, which is now merged and re
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
-Current implementation uses locally bundled **Press Start 2P** for short electronic UI only. The package is license-safe (`OFL-1.1`), exact-revision RU/EN 900/1024 review passed, and long instructions/navigation remain in readable sans. Re-open only if second hands-on finds an actual readability/fatigue problem.
+Current implementation uses locally bundled **Press Start 2P** for short electronic UI only. The package is license-safe (`OFL-1.1`), exact-revision RU/EN 900/1024 review passed, and long instructions/navigation remain in readable sans. Re-open only if final hands-on finds an actual readability/fatigue problem.
 
 ## 1.2 Charged palette / iridescence intensity — RESOLVED FOR CURRENT BUILD
 
-The merged cyan/violet runtime treatment with restrained iridescent accents passed the label-hidden exact-revision comparison and did not require new pouch art. Re-open intensity only if repeated hands-on finds Charged unclear, visually tiring, or in conflict with rarity hierarchy.
+The merged cyan/violet runtime treatment with restrained iridescent accents passed the label-hidden exact-revision comparison and did not require new pouch art. Re-open intensity only if final hands-on finds Charged unclear, visually tiring, or in conflict with rarity hierarchy.
 
 ## 1.3 Dedicated Charged pouch raster — NOT REQUIRED NOW
 
@@ -33,7 +33,7 @@ If needed:
 
 ## 1.4 `charged-ready` SFX — PARKED
 
-Dedicated `chips-collect` SFX is integrated from hands-on evidence.
+The current CHIPS banking cue is synthesized `chip-clack`; star grab also has a synth-only `pouch-grab` cue from later hands-on evidence.
 
 A separate readiness sting remains open only if:
 
@@ -45,7 +45,7 @@ Do not add it automatically.
 
 Semantics are locked, milliseconds are not.
 
-Tune from captured video + second hands-on:
+Tune from captured video + final hands-on:
 
 - callout readable hold;
 - count-up duration bounds;
@@ -87,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-No balance numbers changed in the feel-correction pass. Keep them unchanged through the second hands-on; after corrected hands-on/content-scale simulation, evidence questions remain:
+No balance numbers changed in the feel-correction or bounded follow-up passes. Keep them unchanged through final hands-on acceptance; after hosted/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
@@ -110,7 +110,7 @@ Hands-on produced a valid information need:
 
 This is deliberately **not** in the current feel correction.
 
-Candidate solution after second hands-on:
+Candidate solution after final hands-on acceptance:
 
 ```text
 Drop name · discovered/total · info
@@ -140,7 +140,7 @@ Rejected for now:
 
 The first hands-on proves pacing friction, but the approved fix is **direct tap-to-fast-forward**, not another mode.
 
-Revisit Quick Reveal only if the second 20–30 opening test says per-beat acceleration is still insufficient.
+Revisit Quick Reveal only if final hands-on says per-beat acceleration is still insufficient.
 
 No x5/auto-open is implied.
 

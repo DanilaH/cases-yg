@@ -6,7 +6,7 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2 and the Opening Feel Correction are implemented, exact-revision audited, manually reviewed, and merged. The current product gate is the second 20–30 opening hands-on; real Yandex DRAFT follows if that corrected loop is accepted.**
+**Gameplay Loop Lite V2, the Opening Feel Correction and the bounded post-hands-on UI/feel follow-ups are implemented, exact-revision audited, manually reviewed, and merged. The second repeated-use hands-on produced narrow findings that are now fixed. The current product gate is final hands-on acceptance of the latest merged build; real Yandex DRAFT follows if accepted.**
 
 Canonical scope: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
@@ -69,7 +69,7 @@ The merged correction adds **feel, not mechanics**:
 - immediate grab/tension/tear recoil;
 - staged reward → sequential CHIPS banking;
 - larger CHIPS card, animated count-up, local pulse/shake;
-- one dedicated `chips-collect` SFX;
+- synthesized `chip-clack` banking cue plus a synth-only `pouch-grab` cue;
 - duplicate → recycle CHIPS + Signal physical transfer;
 - clearer left-side Basic/Charged gameplay rail;
 - stronger Charged cyan/violet/iridescent treatment;
@@ -82,7 +82,7 @@ Visual rule:
 
 No custom shader was added in this pass. The runtime treatment uses Phaser Text/Graphics/tint/blend/highlight/tweens.
 
-The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after the second corrected hands-on**. No permanent giant sidebar or always-visible odds table is planned now.
+The player request for exact odds + Drop contents + discovered/unknown items is valid but deliberately deferred to a possible on-demand info drawer **after final hands-on acceptance**. No permanent giant sidebar or always-visible odds table is planned now.
 
 ## Acceptance path
 
@@ -90,19 +90,23 @@ Completed:
 
 - Lite V2 engine/save/recovery;
 - Opening economy presentation;
-- 91-test current suite + typecheck/assets/build;
+- 108-test current suite + typecheck/assets/build;
 - original exact-revision browser/video audit + manual review;
-- final Charged-ready correction + re-audit;
-- first repeated hands-on.
+- Opening Feel Correction + Charged-ready correction;
+- first repeated hands-on;
+- second repeated hands-on — complete with narrow follow-up findings;
+- bounded follow-up fixes through PR #45, exact-revision audited and merged;
+- latest audited product tree verified identical to merged `main`;
+- post-merge CI #248 — PASS.
 
 Current order:
 
-1. second 20–30 opening hands-on on the merged corrected build;
+1. final hands-on acceptance on the latest merged build;
 2. if accepted, real hosted Yandex DRAFT;
 3. decide the deferred Drop/odds/progress info surface from evidence;
 4. content expansion only after hosted validation.
 
-Do not add new meta systems/content or tune the economy before the second hands-on and hosted DRAFT provide evidence.
+Do not add new meta systems/content or tune the economy before final hands-on acceptance and hosted DRAFT provide evidence.
 
 ## Production-grade boundaries already present
 

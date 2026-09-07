@@ -1,8 +1,8 @@
 # Opening Feel Correction — implementation scope
 
-Status: **IMPLEMENTED / EXACT-REVISION VALIDATED**
+Status: **IMPLEMENTED / EXACT-REVISION VALIDATED / POST-HANDS-ON FOLLOW-UP MERGED**
 
-Completion record: implementation merged via PR #34. Audited product head `89f2a722942886cf5a5aae3acfaf5b70e15c98e3`; r3 browser/video artifact + manual visual review passed; squash-merged `main` has the identical product tree; post-merge CI #170 passed. **Current gate: second 20–30 opening hands-on.**
+Completion record: the original correction merged via PR #34 and passed its exact-revision/manual-review gate. The second repeated-use hands-on then produced narrow follow-up findings. Those bounded fixes are now merged through PR #45; latest audited product head `afeb2ac50cba02cec68dcabd60a18e16ced97094`, audited product tree `8a8375b27c2f4001ab4160922d447d7b56d5f36f`, merged `main` `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a` with identical tree, post-merge CI #248 PASS. **Current gate: final hands-on acceptance, then real Yandex DRAFT if accepted.**
 
 This pass is the direct response to the first real repeated-use hands-on of the merged Gameplay Loop Lite V2 build. The Lite V2 mechanics, transaction model and first-pass balance remain intact. The problem exposed by hands-on is primarily **feel, pacing, hierarchy and feedback**, not missing economy systems.
 
@@ -64,7 +64,7 @@ This is one integrated presentation/interaction pass, implemented in small inter
 - bounded controlled micro-variation;
 - exact-revision screenshot/video + manual visual review.
 
-Small utility assets directly required by feel are allowed: the chosen bundled accent font and one concise `chips-collect` SFX. This is **not** a new art-production pass.
+Small utility assets directly required by feel are allowed: the bundled accent font and concise audio feedback through the existing audio abstraction. Current runtime uses synthesized `chip-clack` for CHIPS banking and synth-only `pouch-grab` for star grab; no reviewed MP3 is required for either cue. This is **not** a new art-production pass.
 
 ## Explicitly out of scope
 
@@ -83,7 +83,21 @@ Small utility assets directly required by feel are allowed: the chosen bundled a
 - fullscreen CRT/VHS/noise/chromatic-aberration treatment;
 - generalized animation/economy framework.
 
-The desired information surface for odds + Drop contents remains a **separate follow-up candidate after this feel pass is re-tested**. Bespoke pouch/content art work also remains a later asset pass; this correction must first prove that the existing game can feel good through interaction, choreography, UI and lightweight runtime FX.
+The desired information surface for odds + Drop contents remains a **separate follow-up candidate after final hands-on acceptance**. Bespoke pouch/content art work also remains a later asset pass; this correction must first prove that the existing game can feel good through interaction, choreography, UI and lightweight runtime FX.
+
+---
+
+## 2.1 Post-hands-on bounded follow-up — COMPLETE
+
+The second repeated-use pass did not reopen mechanics or balance. It produced a bounded presentation/input cleanup that is now part of current runtime:
+
+- reward tray enters once and remains continuous while the result panel appears later;
+- result rarity is reinforced by a larger capsule and rarity-tinted border;
+- reward rows use semantic colors, including rarity-aware recycle copy;
+- star grab has a short synth-only `pouch-grab` material cue;
+- result/input/resize/error-state edge cases found by independent audits were corrected without changing transaction semantics.
+
+The latest exact normal-flow audit explicitly covered fresh-save drag → reveal → reward staging → result on EN 1280 and RU 900, plus a dense four-row EPIC/cache/recycle/Signal stress case.
 
 ---
 

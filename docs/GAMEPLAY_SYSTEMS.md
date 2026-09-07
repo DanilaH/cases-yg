@@ -30,14 +30,14 @@ Reveal remains in `OpeningScene`. No physics and no auto-dismiss.
 The merged correction keeps exactly the same mechanic/result contract and changes how the sequence reads:
 
 ```text
-star grab response
+star grab response + `pouch-grab` material cue
 → drag tension
 → tear snap/recoil
 → short anticipation
 → collectible arrival + rarity bloom
-→ earned CHIPS/cache/recycle staged beside result
+→ earned CHIPS/cache/recycle staged once beside result
 → optional Hidden Pocket
-→ resolved readable result
+→ resolved readable result enters on a later beat while reward tray remains continuous
 → player accepts
 → base/cache/recycle bank to CHIPS HUD in order
 → Signal fragment resolves to Signal HUD
@@ -135,7 +135,7 @@ Current contract:
 - recycle banks next when present;
 - HUD number counts between displayed values;
 - local CHIPS card reacts with bounded pulse/shake/glow;
-- one `chips-collect` SFX sells the transfer;
+- synthesized `chip-clack` sells the transfer with bounded audio density;
 - final displayed wallet equals deterministic committed state.
 
 Cosmetic staging/banking never owns durable currency state.
@@ -175,7 +175,7 @@ Current presentation:
 1. actual duplicate collectible reveals normally;
 2. `DUPLICATE` remains readable;
 3. a short scan/glint/conversion beat may reinforce recycle;
-4. `RECYCLED +N CHIPS` stages near the item;
+4. rarity-aware `RECYCLED +N · RARITY` stages near the item;
 5. recycle CHIPS later bank to wallet;
 6. one Signal fragment/spark travels to Signal HUD;
 7. destination segment pulses/fills.

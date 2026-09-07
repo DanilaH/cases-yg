@@ -105,24 +105,23 @@ public/assets/audio/collection-complete.mp3
 
 No background music requirement.
 
-## Opening Feel Correction CHIPS cue — INTEGRATED AS SYNTH
+## Opening feel tactile cues — INTEGRATED AS SYNTH
 
-First hands-on identified a concrete CHIPS feedback gap. The merged correction adds the `chips-collect` cue through the existing Web Audio controller, but **there is no reviewed `public/assets/audio/chips-collect.mp3` in the current tree**.
+Hands-on identified two tactile audio needs that are currently satisfied through the existing Web Audio controller without requiring new reviewed MP3 files.
 
 Current contract:
 
-- `src/game/systems/audio.ts` defines the short three-tone `chips-collect` synth cue;
-- `src/game/data/audioAssets.ts` reserves `assets/audio/chips-collect.mp3` as a possible sample path, but the cue is deliberately absent from `AVAILABLE_SFX_CUES` while that reviewed file does not exist;
-- runtime therefore does not fetch a missing CHIPS MP3 and uses the synth cue;
-- the r3 exact-revision browser audit confirmed no failed asset request from this path.
+- `chip-clack` is the short dry/percussive CHIPS-banking cue; audio density is throttled independently of the exact visual chip count;
+- `pouch-grab` is a short plastic/zip-like pop on star grab;
+- `src/game/data/audioAssets.ts` reserves possible `assets/audio/chip-clack.mp3` and `assets/audio/pouch-grab.mp3` paths, but synth-only cues remain absent from the available/preloaded MP3 manifest while those files do not exist;
+- runtime therefore does not fetch missing MP3s for either cue;
+- exact browser audits around the post-hands-on feel polish confirmed no missing `pouch-grab.mp3` request and no failed asset requests.
 
-The cue is synchronized with visual CHIPS banking/count-up, stays short for repeated use, and is shared across normal/cache/big/mega presentation rather than creating one sound asset per tier.
-
-A physical reviewed CHIPS sample may replace the synth later if hands-on proves the current sound insufficient. `charged-ready.mp3` remains optional only; do not add it unless wallet count-up + CHIPS cue + Charged UI activation still fail the threshold moment.
+A reviewed physical sample may replace either synth later only if hands-on proves the current sound quality insufficient. `charged-ready.mp3` remains optional only; do not add it unless wallet count-up + CHIPS cue + Charged UI activation still fail the threshold moment.
 
 ---
 
-# 5. Current Lite V2 UI/economy visuals — INTEGRATED
+# 5. Current Lite V2 UI/economy visuals — INTEGRATED# 5. Current Lite V2 UI/economy visuals — INTEGRATED
 
 ## CHIPS token
 
@@ -193,14 +192,15 @@ The merged correction is implemented mostly with runtime primitives:
 
 - larger CHIPS card + animated count-up;
 - local CHIPS HUD punch/shake/glow;
-- staged reward tray near hero;
+- staged reward tray near hero with single-entry continuity into the later result panel;
 - sequential CHIPS bank trajectories;
 - Signal fragment flight + destination pulse;
 - Basic/Charged left gameplay rail;
 - selected/unavailable micro-interactions;
 - stronger Charged contour/aura/sweep;
 - digital/pixel accent typography;
-- Common/Rare/Epic/Legendary escalating shimmer;
+- Common/Rare/Epic/Legendary escalating shimmer + larger rarity capsule/tinted result border;
+- semantic reward-row colors including rarity-aware recycle copy;
 - short Signal lock glitch;
 - controlled tiny variation in spark/token trajectories.
 
