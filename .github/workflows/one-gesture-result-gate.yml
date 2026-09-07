@@ -1,0 +1,46 @@
+name: One gesture result regression gate
+
+on:
+  push:
+    branches:
+      - audit/one-gesture-result-gate
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact audited product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet 5ba702d8e418b430b4c8ee7bf13b338c49652505 -- . ':(exclude).github/scripts/one-gesture-result-gate.mjs' ':(exclude).github/workflows/one-gesture-result-gate.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chrome
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          for i in {1..40}; do curl -fsS http://127.0.0.1:5173/ >/dev/null && exit 0; sleep 0.5; done
+          cat /tmp/vite.log
+          exit 1
+      - run: node .github/scripts/one-gesture-result-gate.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: one-gesture-result-gate
+          path: /tmp/one-gesture-result-gate
+          retention-days: 3
