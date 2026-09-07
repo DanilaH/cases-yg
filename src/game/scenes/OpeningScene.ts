@@ -202,6 +202,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (this.phase === 'revealing' || this.phase === 'banking') {
       this.deferredResize = true;
+      if (this.phase === 'banking') this.requestPresentationFastForward();
       return;
     }
 
@@ -1768,6 +1769,13 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().play(pending.signal.lockReached ? 'signal-lock' : 'signal-gain');
   }
 
+  private finishDeferredBankingResize(): boolean {
+    if (!this.deferredResize || this.phase !== 'banking' || this.isSceneShutdown()) return false;
+    this.presentationSkip.reset();
+    this.renderIdle();
+    return true;
+  }
+
   private async animateRewardBanking(pending: PendingReveal): Promise<void> {
     if (!this.saveState || !this.root || this.isSceneShutdown()) return;
     this.phase = 'banking';
@@ -1781,6 +1789,8 @@ export class OpeningScene extends Phaser.Scene {
         ease: 'Sine.Out',
       });
     }
+
+    if (this.finishDeferredBankingResize()) return;
 
     let nextValue = pending.chips.before - pending.chips.cost;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
@@ -1799,13 +1809,13 @@ export class OpeningScene extends Phaser.Scene {
     };
 
     await bankLeg(pending.chips.base);
-    if (this.isSceneShutdown()) return;
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await bankLeg(pending.chips.cacheBonus);
-    if (this.isSceneShutdown()) return;
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await bankLeg(pending.chips.recycle);
-    if (this.isSceneShutdown()) return;
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await this.bankSignalGain(pending);
-    if (this.isSceneShutdown()) return;
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
     this.setChipsHudValue(pending.chips.after, false);
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
