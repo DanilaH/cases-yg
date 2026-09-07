@@ -1,0 +1,36 @@
+name: Cleanup Phase 2.6 temporary automation
+
+on:
+  push:
+    branches:
+      - feature/final-hands-on-overcharge
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Remove temporary automation
+        run: |
+          rm -f .github/scripts/apply-independent-doc-audit.py
+          rm -f .github/scripts/apply-overcharge-engine.py
+          rm -f .github/scripts/fix-overcharge-engine-output.py
+          rm -f .github/scripts/fix-overcharge-engine-tests.py
+          rm -f .github/workflows/apply-independent-doc-audit.yml
+          rm -f .github/workflows/apply-overcharge-engine.yml
+          rm -f .github/workflows/apply-overcharge-engine-v2.yml
+          rm -f .github/workflows/apply-overcharge-engine-v3.yml
+          rm -f .github/workflows/cleanup-phase26-temp.yml
+      - name: Commit cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A .github
+          git commit -m 'Remove temporary Phase 2.6 automation'
+          git push
