@@ -1,0 +1,52 @@
+name: Apply Phase 2.6 presentation v2
+
+on:
+  push:
+    branches:
+      - feature/final-hands-on-overcharge
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Apply presentation patch
+        run: |
+          python .github/scripts/apply-phase26-presentation.py
+          python .github/scripts/fix-phase26-presentation-types.py
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Assets
+        run: |
+          npm run assets:selftest
+          npm run assets:validate
+      - name: Build
+        run: npm run build
+      - name: Diff check
+        run: |
+          git diff --check
+          git status --short
+      - name: Commit presentation pass
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts src/i18n/en.ts src/i18n/ru.ts
+          git commit -m "Implement Phase 2.6 Signal and Secret presentation"
+          git push origin HEAD:feature/final-hands-on-overcharge
