@@ -12,11 +12,11 @@ Current status:
 - second repeated-use hands-on: **COMPLETE WITH NARROW FOLLOW-UP FINDINGS**;
 - bounded post-hands-on transition/input/error-state/UI polish: **COMPLETE / MERGED**;
 - latest reward/result feel polish PR #45: **MERGED**;
-- latest audited product head: `afeb2ac50cba02cec68dcabd60a18e16ced97094`;
-- latest audited product tree: `8a8375b27c2f4001ab4160922d447d7b56d5f36f`;
-- R3 normal-flow audit artifact digest: `sha256:86f19d7a564b10d5fdf6228b096084b6b8f7c82a823553647c0b4da0dec3bd83`;
-- squash-merged `main`: `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a`, identical audited tree;
-- post-merge main CI #248: **PASS**;
+- latest exact-audited Phase 2.6 runtime product head: `40db07a3c8069ef8ca01c5c35de0c355337d410e`;
+- comprehensive Phase 2.6 exact browser/state audit: **43/43 PASS** with zero runtime/request/HTTP failures;
+- focused post-fix cash-out audit: **15/15 PASS** in RU 900 + EN 1280; artifact digest `sha256:0d55df870f9b4c90c1d8c566c8c6cb7a4af4b6e6486ab991077670271de6a1cd`;
+- squash-merged `main`: `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020` via PR #48; subsequent differences from the exact audit head are canonical-doc synchronization/merge history, not runtime behavior;
+- post-merge main CI #274: **PASS**;
 - current suite baseline: **114 unit tests** + typecheck + asset self-test/validation + production build;
 - final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
 - Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
