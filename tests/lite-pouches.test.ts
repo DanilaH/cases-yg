@@ -14,6 +14,7 @@ import { SequenceRandom } from './helpers';
 const makeState = (overrides: Partial<LiteRewardState> = {}): LiteRewardState => ({
   chips: 0,
   signal: 0,
+  overchargeHundredths: 100,
   totalOpens: 3,
   activeLootPoolId: SLICE_LOOT_POOL_ID,
   discoveredStandard: [],
@@ -202,6 +203,117 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     expect(result.standard.collectibleId).toBe('flip-phone-legendary');
     expect(result.standard.isNew).toBe(true);
     expect(result.signal).toMatchObject({ before: 4, after: 0, lockConsumed: true, lockRetained: false });
+  });
+
+  it('does not start Overcharge on the same opening that first reaches 4/4', () => {
+    const result = resolveLitePouchReward({
+      state: makeState({ signal: 3, discoveredStandard: ['camera-common'] }),
+      pouchType: 'basic',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+    });
+
+    expect(result.signal.lockReached).toBe(true);
+    expect(result.overcharge).toEqual({
+      beforeHundredths: 100,
+      afterHundredths: 100,
+      appliedGainHundredths: 0,
+      bonusChips: 0,
+    });
+  });
+
+  it('applies the existing multiplier first and only then gains from a retained Basic lock', () => {
+    const state = makeState({
+      signal: 4,
+      overchargeHundredths: 110,
+      discoveredStandard: allStandardIdsExcept('flip-phone-legendary'),
+    });
+    const result = resolveLitePouchReward({
+      state,
+      pouchType: 'basic',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+    });
+
+    expect(result.signal.lockRetained).toBe(true);
+    expect(result.chips.rawEarned).toBe(8);
+    expect(result.chips.overchargeBonus).toBe(1);
+    expect(result.chips.totalEarned).toBe(9);
+    expect(result.overcharge).toMatchObject({
+      beforeHundredths: 110,
+      afterHundredths: 120,
+      appliedGainHundredths: 10,
+      bonusChips: 1,
+    });
+  });
+
+  it('cashes out the current multiplier before a consuming lock resets Overcharge', () => {
+    const result = resolveLitePouchReward({
+      state: makeState({
+        chips: 60,
+        signal: 4,
+        overchargeHundredths: 130,
+        discoveredStandard: allStandardIdsExcept('flip-phone-legendary'),
+      }),
+      pouchType: 'charged',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0.999]),
+    });
+
+    expect(result.signal.lockConsumed).toBe(true);
+    const expectedBonus = Math.round(result.chips.rawEarned * 0.3);
+    expect(result.chips.overchargeBonus).toBe(expectedBonus);
+    expect(result.overcharge).toMatchObject({
+      beforeHundredths: 130,
+      afterHundredths: 100,
+      appliedGainHundredths: 0,
+      bonusChips: expectedBonus,
+    });
+  });
+
+  it('clamps a retained pouch gain to the actual remaining cap headroom', () => {
+    const result = resolveLitePouchReward({
+      state: makeState({
+        chips: 60,
+        signal: 4,
+        overchargeHundredths: 140,
+        discoveredStandard: allStandardIdsExcept(),
+      }),
+      pouchType: 'charged',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+    });
+
+    expect(result.signal.lockRetained).toBe(true);
+    expect(result.overcharge.afterHundredths).toBe(150);
+    expect(result.overcharge.appliedGainHundredths).toBe(10);
+  });
+
+  it('keeps applying a MAX multiplier without inventing another gain', () => {
+    const result = resolveLitePouchReward({
+      state: makeState({
+        signal: 4,
+        overchargeHundredths: 150,
+        discoveredStandard: allStandardIdsExcept(),
+      }),
+      pouchType: 'basic',
+      registry: SLICE_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+    });
+
+    expect(result.chips.rawEarned).toBe(8);
+    expect(result.chips.overchargeBonus).toBe(4);
+    expect(result.overcharge).toMatchObject({
+      beforeHundredths: 150,
+      afterHundredths: 150,
+      appliedGainHundredths: 0,
+      bonusChips: 4,
+    });
   });
 
   it('preserves onboarding protection and makes opening two use another family when possible', () => {

@@ -103,6 +103,7 @@ describe('OpeningSession', () => {
     expect(committed.totalOpens).toBe(pending.openingNumber);
     expect(committed.chips).toBe(pending.chips.after);
     expect(committed.signal).toBe(pending.signal.after);
+    expect(committed.overchargeHundredths).toBe(pending.overcharge.afterHundredths);
     expect(committedAgain).toEqual(committed);
     expect(persisted).toEqual(committed);
   });

@@ -12,11 +12,13 @@ import {
   type StandardCollectibleRecord,
   type StandardRarity,
 } from '../data/collectibles';
+import { resolveOverchargeTransition, type OverchargeTransition } from './overcharge';
 import { nextUnit, pickWeighted, type RandomSource, type WeightedEntry } from './random';
 
 export interface LiteRewardState {
   chips: number;
   signal: number;
+  overchargeHundredths: number;
   totalOpens: number;
   activeLootPoolId: LootPoolId;
   discoveredStandard: readonly string[];
@@ -42,6 +44,8 @@ export interface LiteChipsReward {
   cacheTier: ChipsCacheTierId;
   cacheBonus: number;
   recycle: number;
+  rawEarned: number;
+  overchargeBonus: number;
   totalEarned: number;
   after: number;
 }
@@ -56,6 +60,8 @@ export interface LiteSignalReward {
   lockRetained: boolean;
 }
 
+export type LiteOverchargeReward = OverchargeTransition;
+
 export interface LiteRewardDraft {
   pouchType: PouchType;
   lootPoolId: LootPoolId;
@@ -63,6 +69,7 @@ export interface LiteRewardDraft {
   standard: LiteStandardReward;
   chips: LiteChipsReward;
   signal: LiteSignalReward;
+  overcharge: LiteOverchargeReward;
   hiddenPocket: LiteHiddenPocketReward | null;
 }
 
@@ -368,6 +375,14 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
   if (state.chips < profile.chipsCost) {
     throw new Error(`Insufficient CHIPS for ${pouchType} pouch`);
   }
+  if (
+    !Number.isInteger(state.overchargeHundredths) ||
+    state.overchargeHundredths < 100 ||
+    state.overchargeHundredths > balance.overchargeCapHundredths ||
+    (state.signal < balance.signalThreshold && state.overchargeHundredths !== 100)
+  ) {
+    throw new Error(`Invalid Overcharge state: ${state.overchargeHundredths}`);
+  }
 
   const openingNumber = state.totalOpens + 1;
   const { selected, signalLockConsumed } = resolveStandard(
@@ -390,7 +405,17 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
   const base = rollRange(profile.baseChipsReward, random);
   const cache = chooseCache(profile, random);
   const recycle = isNew ? 0 : balance.duplicateRecycleChips[selected.rarity];
-  const totalEarned = base + cache.reward + recycle;
+  const rawEarned = base + cache.reward + recycle;
+  const overcharge = resolveOverchargeTransition({
+    beforeHundredths: state.overchargeHundredths,
+    rawEarnedChips: rawEarned,
+    lockArmedBefore: signal.lockArmedBefore,
+    lockConsumed: signal.lockConsumed,
+    lockRetained: signal.lockRetained,
+    pouchGainHundredths: profile.overchargeGainHundredths,
+    capHundredths: balance.overchargeCapHundredths,
+  });
+  const totalEarned = rawEarned + overcharge.bonusChips;
   const chips: LiteChipsReward = {
     before: state.chips,
     cost: profile.chipsCost,
@@ -398,6 +423,8 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
     cacheTier: cache.tier,
     cacheBonus: cache.reward,
     recycle,
+    rawEarned,
+    overchargeBonus: overcharge.bonusChips,
     totalEarned,
     after: state.chips - profile.chipsCost + totalEarned,
   };
@@ -411,6 +438,7 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
     standard,
     chips,
     signal,
+    overcharge,
     hiddenPocket,
   };
 };

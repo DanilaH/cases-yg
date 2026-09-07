@@ -4,6 +4,7 @@ import {
   resolveLitePouchReward,
   type LiteChipsReward,
   type LiteHiddenPocketReward,
+  type LiteOverchargeReward,
   type LiteSignalReward,
 } from './pouches';
 import type { RandomSource } from './random';
@@ -27,6 +28,7 @@ export interface PendingReveal {
   standard: StandardRevealResult;
   chips: LiteChipsReward;
   signal: LiteSignalReward;
+  overcharge: LiteOverchargeReward;
   hiddenPocket: HiddenPocketResult | null;
   commit: ProgressSnapshot;
 }
@@ -53,6 +55,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
     state: {
       chips: state.chips,
       signal: state.signal,
+      overchargeHundredths: state.overchargeHundredths,
       totalOpens: state.totalOpens,
       activeLootPoolId: state.activeLootPoolId,
       discoveredStandard: state.discoveredStandard,
@@ -76,6 +79,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
     discoveredSecrets,
     chips: resolved.chips.after,
     signal: resolved.signal.after,
+    overchargeHundredths: resolved.overcharge.afterHundredths,
     activeLootPoolId: resolved.lootPoolId,
     totalOpens: resolved.openingNumber,
     stats: {
@@ -93,6 +97,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
     standard: resolved.standard,
     chips: resolved.chips,
     signal: resolved.signal,
+    overcharge: resolved.overcharge,
     hiddenPocket: resolved.hiddenPocket,
     commit,
   };

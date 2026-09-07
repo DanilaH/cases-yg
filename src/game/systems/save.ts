@@ -4,9 +4,10 @@ import { SLICE_LOOT_POOL_ID, STANDARD_RARITIES, type StandardRarity } from '../d
 import type { PendingReveal } from './drops';
 import { LITE_SIGNAL_THRESHOLD, migrateLegacySignal } from './signal';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';
 export const DEFAULT_CHIPS = 0;
+export const DEFAULT_OVERCHARGE_HUNDREDTHS = 100;
 export const DEFAULT_LOOT_POOL_ID = SLICE_LOOT_POOL_ID;
 
 export interface ProgressStats {
@@ -19,6 +20,7 @@ export interface ProgressSnapshot {
   discoveredSecrets: readonly string[];
   chips: number;
   signal: number;
+  overchargeHundredths: number;
   activeLootPoolId: string;
   totalOpens: number;
   stats: ProgressStats;
@@ -72,6 +74,7 @@ export const createInitialSaveState = (): SaveState => ({
   discoveredSecrets: [],
   chips: DEFAULT_CHIPS,
   signal: 0,
+  overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
   activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   totalOpens: 0,
   pendingReveal: null,
@@ -129,6 +132,9 @@ const isProgressSnapshot = (value: unknown): value is ProgressSnapshot => {
     isNonNegativeInteger(value.chips) &&
     isNonNegativeInteger(value.signal) &&
     value.signal <= LITE_SIGNAL_THRESHOLD &&
+    isNonNegativeInteger(value.overchargeHundredths) &&
+    value.overchargeHundredths >= DEFAULT_OVERCHARGE_HUNDREDTHS &&
+    (value.signal >= LITE_SIGNAL_THRESHOLD || value.overchargeHundredths === DEFAULT_OVERCHARGE_HUNDREDTHS) &&
     typeof value.activeLootPoolId === 'string' &&
     value.activeLootPoolId.length > 0 &&
     isNonNegativeInteger(value.totalOpens)
@@ -204,7 +210,7 @@ const isSignalTransitionConsistent = (
 };
 
 const isPendingReveal = (value: unknown): value is PendingReveal => {
-  if (!isRecord(value) || !isRecord(value.chips) || !isRecord(value.signal)) return false;
+  if (!isRecord(value) || !isRecord(value.chips) || !isRecord(value.signal) || !isRecord(value.overcharge)) return false;
   const standard = value.standard;
   if (
     typeof value.id !== 'string' ||
@@ -231,10 +237,14 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
     isCacheTier(chips.cacheTier) &&
     isNonNegativeInteger(chips.cacheBonus) &&
     isNonNegativeInteger(chips.recycle) &&
+    isNonNegativeInteger(chips.rawEarned) &&
+    isNonNegativeInteger(chips.overchargeBonus) &&
     isNonNegativeInteger(chips.totalEarned) &&
     isNonNegativeInteger(chips.after) &&
     chips.before >= chips.cost &&
-    chips.totalEarned === chips.base + chips.cacheBonus + chips.recycle &&
+    chips.rawEarned === chips.base + chips.cacheBonus + chips.recycle &&
+    chips.overchargeBonus === Math.round((chips.rawEarned * (Number(value.overcharge.beforeHundredths) - DEFAULT_OVERCHARGE_HUNDREDTHS)) / 100) &&
+    chips.totalEarned === chips.rawEarned + chips.overchargeBonus &&
     chips.after === chips.before - chips.cost + chips.totalEarned;
   const signalValid =
     isNonNegativeInteger(signal.before) &&
@@ -247,14 +257,34 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
     typeof signal.lockReached === 'boolean' &&
     typeof signal.lockRetained === 'boolean';
 
-  if (!chipsValid || !signalValid) return false;
+  const overcharge = value.overcharge;
+  const overchargeValid =
+    isNonNegativeInteger(overcharge.beforeHundredths) &&
+    overcharge.beforeHundredths >= DEFAULT_OVERCHARGE_HUNDREDTHS &&
+    isNonNegativeInteger(overcharge.afterHundredths) &&
+    overcharge.afterHundredths >= DEFAULT_OVERCHARGE_HUNDREDTHS &&
+    isNonNegativeInteger(overcharge.appliedGainHundredths) &&
+    isNonNegativeInteger(overcharge.bonusChips);
+
+  if (!chipsValid || !signalValid || !overchargeValid) return false;
   const typedSignal = signal as unknown as PendingReveal['signal'];
+  const typedOvercharge = overcharge as unknown as PendingReveal['overcharge'];
   if (!isSignalTransitionConsistent(typedSignal, standard.isNew)) return false;
+  if (typedOvercharge.bonusChips !== chips.overchargeBonus) return false;
+  if (typedSignal.lockArmedBefore === false && typedOvercharge.beforeHundredths !== DEFAULT_OVERCHARGE_HUNDREDTHS) return false;
+  if (typedSignal.lockConsumed) {
+    if (typedOvercharge.afterHundredths !== DEFAULT_OVERCHARGE_HUNDREDTHS || typedOvercharge.appliedGainHundredths !== 0) return false;
+  } else if (typedSignal.lockRetained) {
+    if (typedOvercharge.afterHundredths < typedOvercharge.beforeHundredths || typedOvercharge.appliedGainHundredths !== typedOvercharge.afterHundredths - typedOvercharge.beforeHundredths) return false;
+  } else if (typedOvercharge.afterHundredths !== typedOvercharge.beforeHundredths || typedOvercharge.appliedGainHundredths !== 0) {
+    return false;
+  }
 
   return (
     value.commit.totalOpens === value.openingNumber &&
     value.commit.chips === chips.after &&
     value.commit.signal === signal.after &&
+    value.commit.overchargeHundredths === value.overcharge.afterHundredths &&
     value.commit.activeLootPoolId === value.lootPoolId
   );
 };
@@ -265,6 +295,7 @@ const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): bool
     pending.openingNumber !== state.totalOpens + 1 ||
     pending.chips.before !== state.chips ||
     pending.signal.before !== state.signal ||
+    pending.overcharge.beforeHundredths !== state.overchargeHundredths ||
     pending.lootPoolId !== state.activeLootPoolId
   ) {
     return false;
@@ -289,6 +320,7 @@ const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): bool
     sameStrings(pending.commit.discoveredSecrets, expectedSecrets) &&
     pending.commit.chips === pending.chips.after &&
     pending.commit.signal === pending.signal.after &&
+    pending.commit.overchargeHundredths === pending.overcharge.afterHundredths &&
     pending.commit.activeLootPoolId === pending.lootPoolId &&
     pending.commit.totalOpens === pending.openingNumber &&
     pending.commit.stats.duplicates === state.stats.duplicates + (pending.standard.isNew ? 0 : 1) &&
@@ -308,6 +340,7 @@ const migrateLegacyProgress = (legacy: LegacyProgressSnapshot): ProgressSnapshot
   discoveredSecrets: [...legacy.discoveredSecrets],
   chips: DEFAULT_CHIPS,
   signal: migrateLegacySignal(legacy.signal),
+  overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
   activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   totalOpens: legacy.totalOpens,
   stats: { ...legacy.stats },
@@ -333,6 +366,8 @@ const migrateLegacyPending = (legacy: LegacyPendingReveal, outer: ProgressSnapsh
       cacheTier: 'none',
       cacheBonus: 0,
       recycle: 0,
+      rawEarned: 0,
+      overchargeBonus: 0,
       totalEarned: 0,
       after: outer.chips,
     },
@@ -344,6 +379,12 @@ const migrateLegacyPending = (legacy: LegacyPendingReveal, outer: ProgressSnapsh
       lockConsumed,
       lockReached: !lockConsumed && signalBefore < LITE_SIGNAL_THRESHOLD && signalAfter >= LITE_SIGNAL_THRESHOLD,
       lockRetained: !lockConsumed && signalBefore >= LITE_SIGNAL_THRESHOLD && signalAfter >= LITE_SIGNAL_THRESHOLD,
+    },
+    overcharge: {
+      beforeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+      afterHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+      appliedGainHundredths: 0,
+      bonusChips: 0,
     },
     hiddenPocket: legacy.hiddenPocket ? { ...legacy.hiddenPocket } : null,
     commit: {
@@ -374,6 +415,44 @@ const parseLegacySave = (value: Record<string, unknown>): SaveState => {
   });
 };
 
+const migrateV2Save = (value: Record<string, unknown>): SaveState => {
+  if (value.version !== 2) {
+    throw new Error('Invalid V2 save payload');
+  }
+
+  let pendingReveal: unknown = value.pendingReveal;
+  if (pendingReveal !== null) {
+    if (!isRecord(pendingReveal) || !isRecord(pendingReveal.chips) || !isRecord(pendingReveal.commit)) {
+      throw new Error('Invalid V2 pending reveal');
+    }
+    pendingReveal = {
+      ...pendingReveal,
+      chips: {
+        ...pendingReveal.chips,
+        rawEarned: pendingReveal.chips.totalEarned,
+        overchargeBonus: 0,
+      },
+      overcharge: {
+        beforeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+        afterHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+        appliedGainHundredths: 0,
+        bonusChips: 0,
+      },
+      commit: {
+        ...pendingReveal.commit,
+        overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+      },
+    };
+  }
+
+  return parseCurrentSave({
+    ...value,
+    version: SAVE_VERSION,
+    overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+    pendingReveal,
+  });
+};
+
 const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
   if (
     value.version !== SAVE_VERSION ||
@@ -394,6 +473,9 @@ export const parseSaveState = (raw: string): SaveState => {
   }
   if (value.version === 1) {
     return parseLegacySave(value);
+  }
+  if (value.version === 2) {
+    return migrateV2Save(value);
   }
   if (value.version === SAVE_VERSION) {
     return parseCurrentSave(value);
