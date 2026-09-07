@@ -6,14 +6,16 @@ The two-family build is a private development base, not the public release.
 
 1. **Opening Feel Correction — COMPLETE**
 2. **Exact-revision combined visual/video audit + manual review — COMPLETE**
-3. **Second direct 20–30 opening hands-on — CURRENT REQUIRED GATE**
-4. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
-5. **Content/release expansion — BLOCKED until draft passes**
-6. **Public release hardening**
+3. **Second repeated-use hands-on — COMPLETE WITH FOLLOW-UP FINDINGS**
+4. **Bounded post-hands-on UI/feel polish — COMPLETE / AUDITED / MERGED**
+5. **Final hands-on acceptance on latest merged build — CURRENT REQUIRED GATE**
+6. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE**
+7. **Content/release expansion — BLOCKED until draft passes**
+8. **Public release hardening**
 
-The first Lite V2 hands-on has already happened and found specific presentation/input friction. The correct response is the bounded correction in `OPENING_FEEL_CORRECTION_SCOPE.md`, not another gameplay-system pass.
+The repeated-use passes have already produced and closed specific presentation/input findings. The correct response remains bounded correction of evidence-backed defects, not another gameplay-system pass.
 
-Do not change balance numbers, expand content or add new meta systems during this correction unless a separate evidence-backed decision explicitly opens that scope.
+Do not change balance numbers, expand content or add new meta systems before final hands-on acceptance + hosted DRAFT provide evidence.
 
 ---
 
@@ -93,7 +95,7 @@ Current deterministic economy analysis keeps Charged a net CHIPS sink. Tuning re
 Already passed:
 
 - strict typecheck;
-- 91 unit tests;
+- 108 unit tests;
 - asset self-test/validation;
 - production build;
 - exact-revision browser screenshots/video;
@@ -152,7 +154,7 @@ Implement:
 - digital numeric treatment;
 - count-up animation to deterministic target;
 - local HUD punch/shake/glow;
-- one `chips-collect` SFX;
+- one bounded synthesized `chip-clack` CHIPS-banking cue;
 - base → cache → recycle banking order;
 - duplicate → CHIPS + Signal physical transfer;
 - Signal destination segment response;
@@ -221,27 +223,62 @@ Generated artifacts do not self-approve. Manual review remains mandatory.
 
 ---
 
-# Phase 2.3 — second hands-on — CURRENT REQUIRED GATE
+# Phase 2.3 — second repeated-use hands-on — COMPLETE WITH FOLLOW-UP FINDINGS
 
-The corrected exact revision is merged and approved. Now run **20–30 normal openings**.
+The corrected opener was played again rather than being approved from automation alone. The repeated-use pass and independent pre-hands-on reviews found narrow presentation/input issues, not a need for new mechanics or balance changes.
 
-Questions:
+Evidence-backed findings included:
 
-- does grabbing/tearing feel more physical?
-- does every deliberate tap feel acknowledged?
-- can the player naturally accelerate repetition without a separate mode?
-- do CHIPS feel tangible rather than like a changing number?
-- is resource progress obvious without overwhelming the collectible?
-- is Basic vs Charged immediately clear?
-- does Charged feel materially more desirable?
-- do longer labels remain readable without slowing experienced play?
-- does duplicate → recycle → Signal feel like progress?
-- does neon/digital styling add identity without becoming generic synthwave?
-- is the loop still pleasant after repetition?
+- abrupt result/banking → idle handoff;
+- resize during active banking leaving stale wide geometry;
+- weak portrait orientation blocker;
+- one-gesture → two-actions result input race;
+- mute unavailable before the first opening;
+- low-contrast load-failure UI;
+- reward tray replaying its entry when result UI appeared;
+- star grab lacking a material interaction cue;
+- rarity metadata under-emphasized in the result panel;
+- reward rows too visually uniform to communicate cache/recycle/Signal semantics.
 
-If this passes, stop polishing the same loop and go to hosted DRAFT.
+No finding justified balance tuning, new content, odds UI, Quick Reveal, x5 or a larger scene architecture rewrite.
 
-If a narrow defect remains, make the smallest correction and re-audit only the affected behavior plus regression essentials.
+---
+
+# Phase 2.4 — bounded post-hands-on polish — COMPLETE
+
+The follow-up fixes were implemented in small patches and independently re-audited. Current merged runtime now includes:
+
+- smooth result/banking → idle handoff;
+- safe compact resize policy during banking;
+- polished orientation/load-failure states;
+- one physical gesture → one semantic action;
+- mute available before the first opening;
+- reward tray continuity: tray appears once, then result panel enters on a later beat;
+- synth-only `pouch-grab` pop/zip cue;
+- stronger rarity capsule + rarity-tinted result border;
+- semantic reward-row colors and rarity-aware recycle copy.
+
+Latest reward/result polish merged via PR #45. Audited product head `afeb2ac50cba02cec68dcabd60a18e16ced97094`; audited product tree `8a8375b27c2f4001ab4160922d447d7b56d5f36f`; R3 normal-flow browser/video audit passed; squash merge `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a` has the identical tree; post-merge CI #248 passed.
+
+The full current baseline remains 108 unit tests + typecheck + asset self-test/validation + production build.
+
+---
+
+# Phase 2.5 — final hands-on acceptance — CURRENT REQUIRED GATE
+
+Play the latest merged build normally before moving to hosted validation. This is not another open-ended polish pass. The goal is to confirm that the fixes feel right in real repetition.
+
+Judge especially:
+
+- whether the new star-grab `pouch-grab` cue sounds satisfying rather than cheap or irritating;
+- whether reward tray → result panel staging now reads as one continuous composition;
+- whether rarity is easier to read without overpowering the collectible name;
+- whether cache/recycle/Signal colors improve scanning without turning the tray into a rainbow;
+- whether tap-to-speed-up → separate tap-to-collect remains natural;
+- whether CHIPS banking and `chip-clack` stay pleasant across repeated openings;
+- whether any remaining delay or animation becomes irritating over a normal session.
+
+If this passes, stop polishing the same loop and go to hosted DRAFT. If one narrow issue remains, make the smallest correction and re-audit only the affected behavior plus regression essentials.
 
 ---
 
@@ -256,7 +293,7 @@ Hands-on also raised a valid information need:
 
 Do not put all of this permanently on the main Opening screen now.
 
-After the feel correction is re-tested, consider an on-demand information drawer:
+After final hands-on acceptance, consider an on-demand information drawer:
 
 ```text
 Drop name · discovered/total · info
@@ -273,7 +310,7 @@ Player-facing Drop selection remains deferred until Drop #2 exists.
 
 # Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.3 acceptance.
+Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.5 acceptance.
 
 Must cover:
 
@@ -371,4 +408,4 @@ Remain parked:
 - custom shaders;
 - permanent odds/collection sidebar.
 
-> **Current next action: re-test the merged corrected loop with 20–30 normal openings; if accepted, go to Yandex DRAFT.**
+> **Current next action: run final hands-on acceptance on the latest merged/audited build; if accepted, go to Yandex DRAFT.**

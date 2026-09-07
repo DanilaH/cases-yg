@@ -6,18 +6,20 @@ Current status:
 
 - Lite V2 implementation: **COMPLETE**;
 - technical tests/build/assets: **PASS**;
-- original exact-revision browser audit: **PASS**;
-- original manual screenshot/video review: **PASS**;
-- first 20–50 opening hands-on: **COMPLETE WITH FINDINGS**;
+- original exact-revision browser audit + manual review: **PASS**;
+- first repeated-use hands-on: **COMPLETE WITH FINDINGS**;
 - Opening Feel Correction: **COMPLETE / MERGED**;
-- corrected exact-revision browser/video audit: **PASS**;
-- corrected manual screenshot/video review: **PASS**;
-- audited product head: `89f2a722942886cf5a5aae3acfaf5b70e15c98e3`;
-- r3 audit artifact digest: `sha256:7e352be95a2eea913ab713bcdce05107d3f3df38a7acb93ca44072ceb82d0a41`;
-- squash-merge product tree verified identical to the audited tree;
-- post-merge main CI #170: **PASS**;
-- second 20–30 opening hands-on: **CURRENT / PENDING**;
-- real Yandex DRAFT: **BLOCKED until corrected hands-on acceptance**.
+- second repeated-use hands-on: **COMPLETE WITH NARROW FOLLOW-UP FINDINGS**;
+- bounded post-hands-on transition/input/error-state/UI polish: **COMPLETE / MERGED**;
+- latest reward/result feel polish PR #45: **MERGED**;
+- latest audited product head: `afeb2ac50cba02cec68dcabd60a18e16ced97094`;
+- latest audited product tree: `8a8375b27c2f4001ab4160922d447d7b56d5f36f`;
+- R3 normal-flow audit artifact digest: `sha256:86f19d7a564b10d5fdf6228b096084b6b8f7c82a823553647c0b4da0dec3bd83`;
+- squash-merged `main`: `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a`, identical audited tree;
+- post-merge main CI #248: **PASS**;
+- current suite baseline: **108 unit tests** + typecheck + asset self-test/validation + production build;
+- final hands-on acceptance: **CURRENT / PENDING**;
+- real Yandex DRAFT: **BLOCKED until final hands-on acceptance**.
 
 Canonical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 
@@ -49,7 +51,7 @@ The current merged implementation has established:
 - Basic/Charged selection continuity and insufficient-wallet fallback work;
 - compact 900/1024 and RU states are technically valid.
 
-Current suite baseline: **91 unit tests** plus typecheck, asset self-test/validation and production build.
+Current suite baseline: **108 unit tests** plus typecheck, asset self-test/validation and production build.
 
 The correction must preserve all of these properties.
 
@@ -70,7 +72,7 @@ The first repeated-use pass found:
 - UI needs more distinctive electronic/neon Y2K character;
 - player wants better visibility into probabilities, Drop contents and discovered/unknown items.
 
-The first nine points justify the current feel correction. The final information request is valid but deferred into a separate possible info-drawer pass after corrected hands-on.
+The first nine points justify the current feel correction. The final information request is valid but deferred into a separate possible info-drawer pass after final hands-on acceptance.
 
 ---
 
@@ -136,7 +138,7 @@ Must prove:
 - ordinary intake produces restrained pulse;
 - Big/Mega produce stronger local reaction without whole-screen noise;
 - HUD shake is local, not camera shake;
-- `chips-collect` SFX is satisfying over repetition and not casino-like.
+- `chip-clack` is satisfying over repetition and not casino-like.
 
 ## Charged-ready threshold
 

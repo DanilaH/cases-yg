@@ -28,9 +28,9 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Opening Feel Correction is merged and exact-revision/manual-review approved; current gate is the second **20–30 opening hands-on**, then real Yandex DRAFT if accepted |
+| Current stage | LOCKED | Second repeated-use hands-on completed with narrow findings; bounded follow-up polish through PR #45 is merged and exact-revision/manual-review approved. Current gate is **final hands-on acceptance** of the latest build, then real Yandex DRAFT if accepted |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
-| Public content direction | LOCKED | materially expand only after corrected hands-on + hosted draft validation |
+| Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
 | Production philosophy | LOCKED | low production burden, repeatable content factory, minimal gameplay-system count |
 
@@ -84,15 +84,16 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Reveal acceleration | CURRENT RUNTIME | intentional tap/click fast-forwards active presentation only; transaction/result never changes |
 | Tear-release safety | CURRENT RUNTIME | short input guard prevents drag release from accidentally skipping the next beat |
 | Quick Reveal mode | PARKED | no separate setting/toggle; first solve responsiveness with direct fast-forward |
-| Pouch tactile feel | CURRENT RUNTIME | immediate grab response, progressive tension, short tear recoil/snap; no physics |
-| Reward arrival | CURRENT RUNTIME | preserve established emerge/overshoot/settle, improve anticipation/rarity impact where useful |
-| CHIPS staging | CURRENT RUNTIME | earned base/cache/recycle first read beside result; visual banking occurs on result acceptance |
+| Pouch tactile feel | CURRENT RUNTIME | immediate grab response with synth-only `pouch-grab` pop/zip cue, progressive tension, short tear recoil/snap; no physics |
+| Reward arrival | CURRENT RUNTIME | preserve established emerge/overshoot/settle; reward tray enters once and remains visually continuous while the result panel arrives on a later beat |
+| Result rarity hierarchy | CURRENT RUNTIME | larger rarity capsule + rarity-tinted result border; rarity remains secondary to item name but no longer reads as incidental metadata |
+| CHIPS staging | CURRENT RUNTIME | earned base/cache/recycle first read beside result in a persistent tray; visual banking occurs on result acceptance |
 | Charged cost presentation | CURRENT RUNTIME | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
 | CHIPS bank order | CURRENT RUNTIME | base → optional cache → optional recycle; Signal has its own destination transfer |
 | CHIPS HUD | CURRENT RUNTIME | larger resource card, clearer token, larger digital number, animated count-up and bounded local punch/shake |
-| CHIPS sound | CURRENT RUNTIME | add one concise reusable `chips-collect` cue; no sound per cache tier |
+| CHIPS sound | CURRENT RUNTIME | synthesized percussive `chip-clack` follows CHIPS banking with bounded audio density; no sound per cache tier |
 | Charged-ready feedback | CURRENT RUNTIME | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
-| Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into recycle CHIPS + one Signal transfer after collectible reveal |
+| Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into rarity-aware recycle feedback + CHIPS + one Signal transfer after collectible reveal |
 | Signal presentation | CURRENT RUNTIME | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
 | Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
 | Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
@@ -127,7 +128,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 |---|---|---|
 | Permanent odds on main screen | LOCKED OUT | would overload the opener and flatten surprise |
 | Permanent full collection sidebar | LOCKED OUT | does not scale to 15–25 items per Drop and competes with the hero reward |
-| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | after corrected hands-on, consider one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
+| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | after final hands-on acceptance, consider one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
 | Player-facing Drop selector | OPEN FOR RELEASE | expose only when Drop #2 actually exists |
 
 ---
@@ -167,7 +168,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Yandex SDK | CURRENT RUNTIME | thin platform adapter |
 | Ads | CURRENT RUNTIME | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
 | Rewarded dev probe | CURRENT RUNTIME | clearly dev-only CHIPS grant; pity state is not manipulated |
-| Real hosted validation | OPEN | Yandex DRAFT follows corrected hands-on and exact-revision approval |
+| Real hosted validation | OPEN | Yandex DRAFT follows final hands-on acceptance of the latest merged/audited build |
 
 ---
 
@@ -178,8 +179,10 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Existing Lite V2 technical/visual gate | COMPLETE | typecheck/tests/assets/build + exact-revision videos/screens reviewed |
 | First direct hands-on | COMPLETE WITH FINDINGS | exposed reward/input/UI feel problems; therefore DRAFT is not yet approved |
 | Feel correction exact-revision audit | COMPLETE | r3 exact-revision browser/video audit + manual artifact review passed on the audited product tree |
-| Second repeated hands-on | OPEN | **current product gate**: 20–30 normal openings on the merged corrected build before hosted DRAFT |
-| Real Yandex DRAFT | OPEN | next external gate after second hands-on acceptance |
+| Second repeated hands-on | COMPLETE WITH FINDINGS | repeated-use feedback exposed narrow UI/feel issues; no economy/content expansion was justified |
+| Post-hands-on follow-up polish | COMPLETE | transition/input/resize/error-state fixes plus reward continuity, `pouch-grab`, stronger rarity hierarchy and semantic reward colors were independently audited and merged through PR #45 |
+| Final hands-on acceptance | OPEN | **current product gate**: play the latest merged build and judge the corrected tactile/audio/result feel in normal repetition |
+| Real Yandex DRAFT | OPEN | next external gate after final hands-on acceptance |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 
@@ -202,7 +205,7 @@ PARKED:
 - prestige;
 - crafting/merge;
 - family-targeted pouch;
-- odds/Drop-info drawer until the feel correction is re-tested.
+- odds/Drop-info drawer until final hands-on acceptance.
 
 LOCKED OUT unless direction changes materially:
 
@@ -216,4 +219,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: run the second 20–30 opening hands-on on the merged/audited correction. If accepted, proceed to real Yandex DRAFT. Do not add mechanics/content or tune balance before that evidence.**
+> **GO: run final hands-on acceptance on the latest merged/audited build. If accepted, proceed to real Yandex DRAFT. Do not add mechanics/content or tune balance before that evidence.**
