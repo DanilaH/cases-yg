@@ -102,15 +102,17 @@ const runScenario = async ({ locale, width, tag }) => {
     overchargeHundredths: committed?.overchargeHundredths,
   });
 
-  await page.waitForTimeout(650);
+  // Allow the result hold to finish so this frame is the actual actionable cash-out result,
+  // not the earlier fast-forward prompt. Visual review must show 4/4 + the pre-opening multiplier.
+  await page.waitForTimeout(2400);
   await page.screenshot({ path: path.join(outDir, `${tag}-cashout-result.png`) });
 
-  // Result remains on screen until an explicit separate acknowledgement gesture.
   const beforeAck = await readSave(page);
   assert(`${tag}-result-hold-no-mutation`, JSON.stringify(beforeAck) === JSON.stringify(committed), beforeAck);
 
+  // One distinct acknowledgement now begins banking/discharge.
   await tap(page, width / 2, 585, 55);
-  await page.waitForTimeout(2800);
+  await page.waitForTimeout(3400);
   await page.screenshot({ path: path.join(outDir, `${tag}-idle-after-discharge.png`) });
   const stable = await readSave(page);
   assert(`${tag}-banking-no-durable-mutation`, JSON.stringify(stable) === JSON.stringify(committed), stable);
