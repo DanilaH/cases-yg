@@ -68,9 +68,8 @@ replace_once(
 ambient_method = """  private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
     const colors = [0xf4e5ff, 0xb9efff, 0xffe7f2];
 
-    // Large, extremely faint pools keep the authored room from reading as a
-    // frozen backdrop once the audio bed is alive. They remain behind gameplay
-    // chrome and move on deliberately slow, asynchronous cycles.
+    // Extremely faint, slow light pools stop the authored room from reading as
+    // a frozen bitmap once the audio bed is alive. They stay behind game chrome.
     for (let index = 0; index < AMBIENT_PRESENTATION.glowCount; index += 1) {
       const radius = Phaser.Math.FloatBetween(
         AMBIENT_PRESENTATION.minGlowRadius,
@@ -95,7 +94,10 @@ ambient_method = """  private addAmbientMotion(root: Phaser.GameObjects.Containe
         targets: glow,
         x: x + Phaser.Math.FloatBetween(-38, 38),
         y: y + Phaser.Math.FloatBetween(-24, 24),
-        alpha: Math.min(AMBIENT_PRESENTATION.maxGlowAlpha * 1.35, alpha * Phaser.Math.FloatBetween(1.08, 1.3)),
+        alpha: Math.min(
+          AMBIENT_PRESENTATION.maxGlowAlpha * 1.35,
+          alpha * Phaser.Math.FloatBetween(1.08, 1.3),
+        ),
         scaleX: baseScaleX * Phaser.Math.FloatBetween(1.025, 1.06),
         scaleY: baseScaleY * Phaser.Math.FloatBetween(1.025, 1.07),
         duration: Phaser.Math.Between(
@@ -183,53 +185,27 @@ sub_once(
     standard_sparkles,
 )
 
-spawn_method = """  private spawnSparkles(
-    x: number,
-    y: number,
-    color: number,
-    count: number,
-    distance: number,
-    duration: number,
-    sizeScale = 1,
-  ): void {
-    if (!this.root) return;
-    const root = this.root;
-    for (let index = 0; index < count; index += 1) {
-      // Presentation randomness only: loot resolution is already persisted before
-      // this runs. Breaking the old spoke/grid pattern makes repeated openings
-      // feel less stamped without touching any gameplay RNG.
-      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-      const distanceJitter = distance * Phaser.Math.FloatBetween(0.68, 1.08);
-      const sparkle = this.add
-        .circle(
-          x,
-          y,
-          Phaser.Math.FloatBetween(3.2, 7.2) * sizeScale,
-          color,
-          Phaser.Math.FloatBetween(0.72, 1),
-        )
-        .setStrokeStyle(1.5, 0xffffff, Phaser.Math.FloatBetween(0.34, 0.56));
-      root.add(sparkle);
-      this.tweens.add({
-        targets: sparkle,
-        x: x + Math.cos(angle) * distanceJitter,
-        y: y + Math.sin(angle) * distanceJitter * Phaser.Math.FloatBetween(0.7, 0.86) - Phaser.Math.FloatBetween(6, 18),
-        alpha: 0,
-        scale: Phaser.Math.FloatBetween(0.12, 0.24),
-        duration: Math.round(duration * Phaser.Math.FloatBetween(0.88, 1.14)),
-        delay: Phaser.Math.Between(0, 72),
-        ease: 'Cubic.Out',
-        onComplete: () => sparkle.destroy(),
-      });
-    }
-  }
-
-  private createRevealBackdrop"""
-sub_once(
-    opening,
-    r"  private spawnSparkles\(.*?\n  \}\n\n  private createRevealBackdrop",
-    spawn_method,
-)
+# The transient burst used equally-spaced spokes and modulo-based sizes/timings.
+# Keep all randomness presentation-only while preserving the same bounded profile.
+for old, new in [
+    (
+        'const angle = (Math.PI * 2 * index) / count + 0.12 * (index % 3);',
+        'const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);',
+    ),
+    (
+        'const distanceJitter = distance * (0.74 + (index % 4) * 0.09);',
+        'const distanceJitter = distance * Phaser.Math.FloatBetween(0.68, 1.08);',
+    ),
+    (
+        '(index % 3 === 0 ? 7 : index % 2 === 0 ? 5 : 3.5) * sizeScale,',
+        'Phaser.Math.FloatBetween(3.2, 7.2) * sizeScale,',
+    ),
+    (
+        'duration: duration + (index % 4) * 34,\n        ease:',
+        'duration: Math.round(duration * Phaser.Math.FloatBetween(0.88, 1.14)),\n        delay: Phaser.Math.Between(0, 72),\n        ease:',
+    ),
+]:
+    replace_once(opening, old, new)
 
 tests = 'tests/presentation.test.ts'
 replace_once(tests, 'expect(rare.sparkleCount).toBe(0);', 'expect(rare.sparkleCount).toBeGreaterThanOrEqual(1);')
