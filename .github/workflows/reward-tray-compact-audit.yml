@@ -1,0 +1,43 @@
+name: Reward tray compact visual audit
+
+on:
+  push:
+    branches:
+      - ui/reward-tray-compromise
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm install --no-save playwright@1.55.0
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Start Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/reward-tray-vite.log 2>&1 &
+          echo $! > /tmp/reward-tray-vite.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/reward-tray-vite.log
+          exit 1
+      - name: Run visual/state audit
+        run: node .github/scripts/reward-tray-compact-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reward-tray-compact-audit
+          path: /tmp/reward-tray-compact-audit
+          retention-days: 3
