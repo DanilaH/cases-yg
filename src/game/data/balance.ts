@@ -39,6 +39,7 @@ export interface LiteBalanceConfig {
   /** Stored multiplier uses hundredths: 100 = x1.00, 150 = x1.50. */
   overchargeCapHundredths: number;
   hiddenPocketStartOpening: number;
+  secretBonusChips: number;
   duplicateRecycleChips: Readonly<Record<StandardRarity, number>>;
   pouchProfiles: Readonly<Record<PouchType, PouchProfile>>;
 }
@@ -61,6 +62,7 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
   // Phase 2.6 provisional tuning, selected after the first EV sanity pass.
   overchargeCapHundredths: 150,
   hiddenPocketStartOpening: 4,
+  secretBonusChips: 40,
   duplicateRecycleChips: {
     common: 2,
     rare: 4,

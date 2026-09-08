@@ -35,6 +35,9 @@ export interface LiteStandardReward {
 export interface LiteHiddenPocketReward {
   collectibleId: string;
   familyId: string;
+  isNew: boolean;
+  /** Persisted jackpot payout for this exact Hidden Pocket transaction. */
+  bonusChips: number;
 }
 
 export interface LiteChipsReward {
@@ -46,6 +49,7 @@ export interface LiteChipsReward {
   recycle: number;
   rawEarned: number;
   overchargeBonus: number;
+  secretBonus: number;
   totalEarned: number;
   after: number;
 }
@@ -87,6 +91,7 @@ export interface PouchEconomyAnalysis {
   expectedBaseChips: number;
   expectedCacheBonus: number;
   expectedRecycleIfAllDuplicate: number;
+  expectedSecretBonus: number;
   expectedReturnIfAllDuplicate: number;
   expectedNetIfAllDuplicate: number;
 }
@@ -344,22 +349,23 @@ const chooseHiddenPocket = (
     return null;
   }
 
-  const discovered = new Set(state.discoveredSecrets);
-  const missing = registry.secrets.filter(
-    ({ lootPoolId, collectible }) =>
-      lootPoolId === state.activeLootPoolId && !discovered.has(collectible.id),
-  );
-  if (missing.length === 0 || nextUnit(random) >= profile.hiddenPocketChance) {
+  const available = registry.secrets.filter(({ lootPoolId }) => lootPoolId === state.activeLootPoolId);
+  if (available.length === 0 || nextUnit(random) >= profile.hiddenPocketChance) {
     return null;
   }
 
+  const discovered = new Set(state.discoveredSecrets);
+  const missing = available.filter(({ collectible }) => !discovered.has(collectible.id));
+  const candidates = missing.length > 0 ? missing : available;
   const selected = pickWeighted(
-    missing.map((candidate) => ({ value: candidate, weight: 1 })),
+    candidates.map((candidate) => ({ value: candidate, weight: 1 })),
     random,
   );
   return {
     collectibleId: selected.collectible.id,
     familyId: selected.familyId,
+    isNew: !discovered.has(selected.collectible.id),
+    bonusChips: balance.secretBonusChips,
   };
 };
 
@@ -415,7 +421,9 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
     pouchGainHundredths: profile.overchargeGainHundredths,
     capHundredths: balance.overchargeCapHundredths,
   });
-  const totalEarned = rawEarned + overcharge.bonusChips;
+  const hiddenPocket = chooseHiddenPocket(state, registry, balance, profile, openingNumber, random);
+  const secretBonus = hiddenPocket?.bonusChips ?? 0;
+  const totalEarned = rawEarned + overcharge.bonusChips + secretBonus;
   const chips: LiteChipsReward = {
     before: state.chips,
     cost: profile.chipsCost,
@@ -425,11 +433,10 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
     recycle,
     rawEarned,
     overchargeBonus: overcharge.bonusChips,
+    secretBonus,
     totalEarned,
     after: state.chips - profile.chipsCost + totalEarned,
   };
-
-  const hiddenPocket = chooseHiddenPocket(state, registry, balance, profile, openingNumber, random);
 
   return {
     pouchType,
@@ -472,7 +479,9 @@ export const analyzePouchEconomy = (
     (rarity) => profile.rarityWeights[rarity],
     (rarity) => balance.duplicateRecycleChips[rarity],
   );
-  const expectedReturnIfAllDuplicate = expectedBaseChips + expectedCacheBonus + expectedRecycleIfAllDuplicate;
+  const expectedSecretBonus = profile.hiddenPocketChance * balance.secretBonusChips;
+  const expectedReturnIfAllDuplicate =
+    expectedBaseChips + expectedCacheBonus + expectedRecycleIfAllDuplicate + expectedSecretBonus;
 
   return {
     pouchType,
@@ -480,6 +489,7 @@ export const analyzePouchEconomy = (
     expectedBaseChips,
     expectedCacheBonus,
     expectedRecycleIfAllDuplicate,
+    expectedSecretBonus,
     expectedReturnIfAllDuplicate,
     expectedNetIfAllDuplicate: expectedReturnIfAllDuplicate - profile.chipsCost,
   };
