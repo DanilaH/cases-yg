@@ -20,7 +20,9 @@ jobs:
           node-version: 22
           cache: npm
       - name: Apply bounded alignment patch
-        run: python tools/tmp-alignment-pass.py
+        run: |
+          python tools/tmp-alignment-pass.py
+          python tools/tmp-alignment-followup.py
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -31,6 +33,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/game/data/presentation.ts src/game/systems/rewardLayout.ts src/game/scenes/OpeningScene.ts tests/reward-layout.test.ts tests/presentation.test.ts
+          git add src/game/data/presentation.ts src/game/systems/rewardLayout.ts src/game/scenes/OpeningScene.ts src/game/ui/openingVisuals.ts tests/reward-layout.test.ts tests/presentation.test.ts
           git commit -m "Align reward and result UI grid [skip ci]"
           git push
