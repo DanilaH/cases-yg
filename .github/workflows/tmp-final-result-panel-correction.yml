@@ -39,3 +39,5 @@ jobs:
           git diff --cached --exit-code && { echo "No product changes staged"; exit 1; } || true
           git commit -m "Polish result panel signal state [skip ci]"
           git push
+
+# Registration nudge: workflow existed before this push.
