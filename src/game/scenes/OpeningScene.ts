@@ -281,17 +281,6 @@ export class OpeningScene extends Phaser.Scene {
 
     this.addAmbientMotion(root, metrics);
 
-    root.add(
-      this.add
-        .text(metrics.centerX, 62, getMessages(getPlatformRuntime().language).appTitle, {
-          color: '#f5eefc',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '30px',
-          fontStyle: 'bold',
-        })
-        .setOrigin(0.5),
-    );
-
     return root;
   }
 
@@ -1547,8 +1536,13 @@ export class OpeningScene extends Phaser.Scene {
 
     this.deferredResize = false;
     this.renderResolvedResult(pending);
+    // Signal is part of resolving the duplicate reward, not a late CHIPS-banking leg.
+    // Start the cosmetic transfer during the readable result phase; durable state is
+    // already committed above, so this remains presentation-only.
+    const signalTransfer = this.bankSignalGain(pending);
 
     await this.waitPresentation(RESULT_HOLD_MS);
+    await signalTransfer;
     if (this.phase !== 'result') return;
     this.resultReady = true;
     this.renderResultActionPanel(pending);
@@ -2018,6 +2012,7 @@ export class OpeningScene extends Phaser.Scene {
       .circle(origin.x + 17, origin.y + 10, 8, 0x76e9f5, 0.94)
       .setStrokeStyle(2, 0xffffff, 0.58);
     this.root.add(spark);
+    let lastTrailAt = Number.NEGATIVE_INFINITY;
     await this.runSkippableTween(
       {
         targets: spark,
@@ -2025,8 +2020,25 @@ export class OpeningScene extends Phaser.Scene {
         y: signalTarget.y,
         scale: 0.38,
         alpha: 0.22,
-        duration: 280,
+        duration: 320,
         ease: 'Cubic.In',
+        onUpdate: () => {
+          if (!spark.active || !this.root || this.isSceneShutdown()) return;
+          if (this.time.now - lastTrailAt < 34) return;
+          lastTrailAt = this.time.now;
+          const trail = this.add
+            .circle(spark.x, spark.y, 4.2, 0x8df8ff, 0.58)
+            .setBlendMode(Phaser.BlendModes.ADD);
+          this.root.add(trail);
+          this.tweens.add({
+            targets: trail,
+            alpha: 0,
+            scale: 0.18,
+            duration: 180,
+            ease: 'Sine.Out',
+            onComplete: () => trail.destroy(),
+          });
+        },
       },
       () => spark.destroy(),
     );
@@ -2190,8 +2202,6 @@ export class OpeningScene extends Phaser.Scene {
     await bankLeg(pending.chips.overchargeBonus);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await bankLeg(pending.chips.secretBonus);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-    await this.bankSignalGain(pending);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await this.animateOverchargeTransition(pending);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
@@ -2468,8 +2478,6 @@ export class OpeningScene extends Phaser.Scene {
       status += ` · ${messages.opening.signalLockRetained}`;
     } else if (pending.signal.lockReached) {
       status += ` · ${messages.opening.signalLockReady}`;
-    } else if (pending.signal.gain > 0) {
-      status += ` · ${messages.opening.signal} +${pending.signal.gain} · ${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
     }
     return status;
   }

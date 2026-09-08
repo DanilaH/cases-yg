@@ -38,9 +38,9 @@ star grab response + `pouch-grab` material cue
 → earned CHIPS/cache/recycle staged once beside result
 → optional Hidden Pocket
 → resolved readable result enters on a later beat while reward tray remains continuous
+→ duplicate Signal gain, when present, transfers from reward tray to Signal HUD during the result read
 → player accepts
 → base/cache/recycle bank to CHIPS HUD in order
-→ Signal fragment resolves to Signal HUD
 → next action
 ```
 

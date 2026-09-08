@@ -38,38 +38,20 @@ export const computeRewardTrayPlacement = ({
   safeRight,
   safeTop,
   centerX,
-  railRight,
-  resultPanelTop,
   trayWidth,
   trayHeight,
-  heroHalfWidth,
-  sideGap,
-  resultGap,
 }: RewardTrayPlacementInput): RewardTrayPlacement => {
   const halfWidth = trayWidth / 2;
   const halfHeight = trayHeight / 2;
-  const leftX = railRight + sideGap + halfWidth;
-  const rightX = safeRight - sideGap - halfWidth;
-  const heroLeft = centerX - heroHalfWidth;
-  const heroRight = centerX + heroHalfWidth;
-  const leftClearance = heroLeft - (leftX + halfWidth);
-  const rightClearance = rightX - halfWidth - heroRight;
+  const safeWidth = Math.max(1, safeRight - safeLeft);
 
-  let side: RewardTrayPlacement['side'];
-  // The persistent pouch/gameplay rail owns the left side. Prefer the free right
-  // reward slot whenever it fits; only fall back left when right is genuinely blocked.
-  if (rightClearance >= 0) {
-    side = 'right';
-  } else if (leftClearance >= 0) {
-    side = 'left';
-  } else {
-    side = rightClearance > leftClearance ? 'right' : 'left';
-  }
+  // Result rewards belong to the hero/result reading path. Keep the tray in the
+  // upper center-right space previously occupied by the decorative product title,
+  // rather than pinning it to the far screen edge. The bounded offset preserves
+  // clear separation from the persistent left resource rail across supported widths.
+  const centerOffset = clamp(safeWidth * 0.12, 96, 160);
+  const x = clamp(centerX + centerOffset, safeLeft + halfWidth, safeRight - halfWidth);
+  const y = safeTop + halfHeight + 18;
 
-  const preferredX = side === 'left' ? leftX : rightX;
-  const x = clamp(preferredX, safeLeft + halfWidth, safeRight - halfWidth);
-  const preferredY = resultPanelTop - resultGap - halfHeight;
-  const y = Math.max(safeTop + halfHeight, preferredY);
-
-  return { x, y, side };
+  return { x, y, side: 'right' };
 };
