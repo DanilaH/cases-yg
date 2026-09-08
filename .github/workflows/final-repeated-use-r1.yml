@@ -47,7 +47,7 @@ jobs:
           done
           cat /tmp/vite.log
           exit 1
-      - name: Normalize first-run empty storage for audit harness
+      - name: Normalize audit harness only
         shell: bash
         run: |
           python - <<'PY'
@@ -57,8 +57,13 @@ jobs:
           old = "    const before = await readSave(page);\n    if (!before || before.pendingReveal) throw new Error(`Opening ${index}: invalid idle save`);"
           new = "    const before = (await readSave(page)) ?? { chips: 0, totalOpens: 0, pendingReveal: null };\n    if (before.pendingReveal) throw new Error(`Opening ${index}: invalid idle save`);"
           if old not in s:
-              raise SystemExit('audit harness patch target not found')
-          p.write_text(s.replace(old, new, 1))
+              raise SystemExit('first-run patch target not found')
+          s = s.replace(old, new, 1)
+          old2 = "  await waitGame(page);\n  await shot(page, '00-fresh-idle');"
+          new2 = "  await waitGame(page);\n  await page.evaluate(() => { const panel = document.querySelector('.mpt-debug-panel'); if (panel) panel.style.display = 'none'; });\n  await shot(page, '00-fresh-idle');"
+          if old2 not in s:
+              raise SystemExit('debug-panel patch target not found')
+          p.write_text(s.replace(old2, new2, 1))
           PY
       - name: Run repeated-use normal-loop review
         run: node .github/scripts/final-repeated-use-r1.mjs
