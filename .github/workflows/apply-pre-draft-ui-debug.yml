@@ -21,7 +21,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - name: Apply correction
-        run: node .github/scripts/apply-pre-draft-ui-debug.mjs
+        run: node .github/scripts/apply-pre-draft-ui-debug-v2.mjs
       - name: Verify product change
         run: |
           npm run typecheck
