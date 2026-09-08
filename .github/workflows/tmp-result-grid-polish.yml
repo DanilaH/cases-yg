@@ -79,13 +79,27 @@ jobs:
       - name: Reuse corrected grid audit harness
         run: |
           git fetch origin audit/grid-polish-r1 --depth=1
-          git show FETCH_HEAD:tools/tmp-grid-polish-local-audit.mjs > tools/.tmp-grid-polish-local-audit.mjs
+          git show FETCH_HEAD:tools/tmp-grid-local-audit.mjs > tools/.tmp-grid-local-audit.mjs
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/.tmp-grid-local-audit.mjs')
+          text = path.read_text()
+          old = "const rewardMetrics = data.reward ? { width: 244, left: data.reward.x - 122, right: data.reward.x + 122, top: data.reward.y, bottom: data.reward.y + data.reward.height } : null;"
+          new = "const rewardMetrics = data.reward ? { width: 248, left: data.reward.x - 124, right: data.reward.x + 124, top: data.reward.y, bottom: data.reward.y + data.reward.height } : null;"
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = "rect.left < -122 - 0.1 || rect.right > 122 + 0.1"
+          new = "rect.left < -124 - 0.1 || rect.right > 124 + 0.1"
+          assert old in text
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
           npm run dev -- --host 127.0.0.1 > /tmp/mpt-grid-vite.log 2>&1 &
           for i in {1..40}; do
             if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
             sleep 0.5
           done
-          node tools/.tmp-grid-polish-local-audit.mjs
+          node tools/.tmp-grid-local-audit.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -95,7 +109,7 @@ jobs:
       - name: Commit only product changes and remove temporary harness
         if: success()
         run: |
-          rm -f tools/.tmp-grid-polish-local-audit.mjs
+          rm -f tools/.tmp-grid-local-audit.mjs
           rm -rf tmp-grid-polish-local-audit
           git restore package.json package-lock.json 2>/dev/null || true
           git rm .github/workflows/tmp-result-grid-polish.yml
