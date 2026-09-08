@@ -1,0 +1,58 @@
+name: TEMP audio lifecycle audit
+
+on:
+  push:
+    branches:
+      - audit/audio-presence-r1
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Run lifecycle audit
+        shell: bash
+        run: |
+          cat > /tmp/audio-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+
+          const server = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173'], { stdio: 'inherit' });
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          try {
+            await sleep(1400);
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+            const errors = [];
+            page.on('pageerror', (error) => errors.push(`pageerror:${error.message}`));
+            page.on('console', (msg) => { if (msg.type() === 'error') errors.push(`console:${msg.text()}`); });
+            page.on('requestfailed', (req) => errors.push(`request:${req.url()}:${req.failure()?.errorText ?? ''}`));
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+            await page.mouse.click(640, 360);
+            await sleep(500);
+            const report = await page.evaluate(async () => {
+              const audio = globalThis.__mptAudioAudit;
+              if (!audio) return { supported: false, reason: 'no-audit-hook' };
+              return { supported: true, snapshot: audio() };
+            });
+            console.log(JSON.stringify({ report, errors }, null, 2));
+            if (errors.length) process.exitCode = 1;
+            await browser.close();
+          } finally {
+            server.kill('SIGTERM');
+          }
+          EOF
+          node /tmp/audio-audit.mjs
