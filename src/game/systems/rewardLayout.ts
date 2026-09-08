@@ -9,6 +9,7 @@ export interface RewardTrayPlacementInput {
   safeLeft: number;
   safeRight: number;
   safeTop: number;
+  topOffset: number;
   centerX: number;
   railRight: number;
   resultPanelTop: number;
@@ -37,6 +38,7 @@ export const computeRewardTrayPlacement = ({
   safeLeft,
   safeRight,
   safeTop,
+  topOffset,
   centerX,
   trayWidth,
   trayHeight,
@@ -51,7 +53,7 @@ export const computeRewardTrayPlacement = ({
   // clear separation from the persistent left resource rail across supported widths.
   const centerOffset = clamp(safeWidth * 0.12, 96, 160);
   const x = clamp(centerX + centerOffset, safeLeft + halfWidth, safeRight - halfWidth);
-  const y = safeTop + halfHeight + 18;
+  const y = safeTop + topOffset + halfHeight;
 
   return { x, y, side: 'right' };
 };

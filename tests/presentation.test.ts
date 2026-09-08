@@ -34,7 +34,6 @@ describe('reveal presentation', () => {
     expect(POUCH_PRESENTATION.body.y).toBeGreaterThan(POUCH_PRESENTATION.strip.y);
     expect(POUCH_PRESENTATION.tabTravel).toBeGreaterThan(300);
     expect(POUCH_PRESENTATION.dragThreshold).toBeLessThan(POUCH_PRESENTATION.tabTravel);
-    expect(MOTION_PRESENTATION.tearHintY).toBeGreaterThan(POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY);
   });
 
   it('keeps the pouch visual center near the reward reveal center', () => {
@@ -43,11 +42,12 @@ describe('reveal presentation', () => {
     expect(Math.abs(pouchVisualCenterY - getCollectiblePresentation('flip-phone').revealY)).toBeLessThan(50);
   });
 
-  it('keeps idle vertical rhythm away from both the title and bottom edge', () => {
+  it('keeps the bottom action lane and result panel inside safe visual bounds', () => {
     expect(POUCH_PRESENTATION.groupY).toBeGreaterThanOrEqual(260);
-    expect(MOTION_PRESENTATION.tearHintY - (POUCH_PRESENTATION.groupY + POUCH_PRESENTATION.shadowY)).toBeGreaterThan(60);
-    expect(MOTION_PRESENTATION.tearHintY).toBeLessThanOrEqual(640);
-    expect(RESULT_PRESENTATION.panelY).toBeGreaterThan(560);
+    expect(OPENING_FEEL_PRESENTATION.bottomActionInset).toBeGreaterThanOrEqual(20);
+    expect(OPENING_FEEL_PRESENTATION.bottomActionInset).toBeLessThanOrEqual(32);
+    expect(RESULT_PRESENTATION.panelY).toBeGreaterThanOrEqual(600);
+    expect(RESULT_PRESENTATION.panelY + RESULT_PRESENTATION.panelHeight / 2).toBeLessThanOrEqual(668);
   });
 
   it('keeps reveal emergence on one stable z-order path', () => {

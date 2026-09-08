@@ -197,7 +197,6 @@ export const AMBIENT_PRESENTATION = {
 } as const;
 
 export const MOTION_PRESENTATION = {
-  tearHintY: 632,
   starPulseScale: 1.07,
   starPulseDuration: 520,
   resultReadyGlowMinAlpha: 0.16,
@@ -235,6 +234,7 @@ export const OPENING_FEEL_PRESENTATION = {
   railUnavailableAlpha: 0.84,
   railUnavailableSurfaceAlpha: 0.78,
   railTopOffset: 8,
+  bottomActionInset: 24,
   selectorTopOffset: 164,
   bankLegMinDuration: 320,
   bankLegMaxDuration: 900,
@@ -246,7 +246,7 @@ export const OPENING_FEEL_PRESENTATION = {
 } as const;
 
 export const RESULT_PRESENTATION = {
-  panelY: 586,
+  panelY: 604,
   panelHeight: 112,
   panelMaxWidth: 430,
   panelMinWidth: 330,

@@ -656,8 +656,9 @@ export class OpeningScene extends Phaser.Scene {
     }
     this.startStarPulse();
 
+    const bottomActionY = this.getBottomActionY();
     const tearHint = this.add
-      .text(metrics.centerX, MOTION_PRESENTATION.tearHintY, getMessages(getPlatformRuntime().language).opening.tearHint, {
+      .text(metrics.centerX, bottomActionY, getMessages(getPlatformRuntime().language).opening.tearHint, {
         color: '#efe7f6',
         backgroundColor: '#2a2037',
         padding: { x: 14, y: 8 },
@@ -667,12 +668,13 @@ export class OpeningScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(0, 2, '#120d19', 3, true, true);
     root.add(tearHint);
+    root.setData('tearHint', tearHint);
     this.tearHint = tearHint;
 
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, MOTION_PRESENTATION.tearHintY - 42, message, {
+          .text(metrics.centerX, bottomActionY - 42, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
@@ -1206,18 +1208,23 @@ export class OpeningScene extends Phaser.Scene {
     };
   }
 
+  private getBottomActionY(): number {
+    const safeBottom = this.metrics?.safeBottom ?? LOGICAL_HEIGHT - 28;
+    return safeBottom - OPENING_FEEL_PRESENTATION.bottomActionInset;
+  }
+
   private createCollectionButton(root: Phaser.GameObjects.Container, enabled: boolean): void {
     if (!this.metrics) return;
 
     const button = this.add
-      .text(this.metrics.safeRight, this.metrics.safeBottom - 8, getMessages(getPlatformRuntime().language).opening.collection, {
+      .text(this.metrics.safeRight, this.getBottomActionY(), getMessages(getPlatformRuntime().language).opening.collection, {
         color: '#f5eefc',
         backgroundColor: '#312746',
         padding: { x: 16, y: 10 },
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
       })
-      .setOrigin(1, 1);
+      .setOrigin(1, 0.5);
 
     if (enabled) {
       button.setInteractive({ useHandCursor: true });
@@ -1676,6 +1683,8 @@ export class OpeningScene extends Phaser.Scene {
     const left = -width / 2;
     const contentLeft = left + 13;
     const contentRight = width / 2 - 13;
+    const iconX = contentLeft + 4;
+    const textX = contentLeft + 18;
     const tray = this.add.container(0, 0);
     const background = this.add.graphics();
     tray.add(background);
@@ -1684,7 +1693,7 @@ export class OpeningScene extends Phaser.Scene {
     const rarityColor = secretSelected
       ? '#ff4d6d'
       : `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
-    const header = this.add.text(contentLeft, 9, 'REWARD', {
+    const header = this.add.text(textX, 9, 'REWARD', {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '7px',
@@ -1702,7 +1711,7 @@ export class OpeningScene extends Phaser.Scene {
       const secretStatus = pending.hiddenPocket.isNew
         ? messages.opening.secretDiscovered
         : messages.opening.secretDuplicate;
-      const status = this.add.text(contentLeft, cursorY - 2, secretStatus, {
+      const status = this.add.text(textX, cursorY - 2, secretStatus, {
         color: '#ff7088',
         stroke: '#100b16',
         strokeThickness: 2,
@@ -1714,8 +1723,8 @@ export class OpeningScene extends Phaser.Scene {
       cursorY += 23;
 
       if (pending.chips.secretBonus > 0) {
-        const token = createChipToken(this, contentLeft + 4, cursorY + 4, 0.48);
-        const bonus = this.add.text(contentLeft + 18, cursorY - 3, `+${pending.chips.secretBonus} ${messages.opening.chips}`, {
+        const token = createChipToken(this, iconX, cursorY + 4, 0.48);
+        const bonus = this.add.text(textX, cursorY - 3, `+${pending.chips.secretBonus} ${messages.opening.chips}`, {
           color: '#ffd36a',
           stroke: '#100b16',
           strokeThickness: 2,
@@ -1727,7 +1736,7 @@ export class OpeningScene extends Phaser.Scene {
       }
 
       if (pending.hiddenPocket.isNew) {
-        const collection = this.add.text(contentLeft, cursorY, messages.opening.addedToCollection, {
+        const collection = this.add.text(textX, cursorY, messages.opening.addedToCollection, {
           color: '#ffdca0',
           stroke: '#100b16',
           strokeThickness: 2,
@@ -1745,11 +1754,11 @@ export class OpeningScene extends Phaser.Scene {
       if (pending.chips.recycle > 0) breakdownParts.push(`${messages.opening.recycled} +${pending.chips.recycle}`);
       if (pending.chips.overchargeBonus > 0) breakdownParts.push(`${messages.opening.overcharge} +${pending.chips.overchargeBonus}`);
 
-      const totalIcon = createChipToken(this, contentLeft + 4, cursorY + 4, 0.48);
+      const totalIcon = createChipToken(this, iconX, cursorY + 4, 0.48);
       const animatedTotalStart = animate && pending.chips.overchargeBonus > 0
         ? pending.chips.rawEarned
         : standardTotal;
-      const totalText = this.add.text(contentLeft + 18, cursorY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
+      const totalText = this.add.text(textX, cursorY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
         color: '#f4feff',
         stroke: '#100b16',
         strokeThickness: 2,
@@ -1760,7 +1769,7 @@ export class OpeningScene extends Phaser.Scene {
       cursorY += 21;
 
       if (breakdownParts.length > 1) {
-        const breakdown = this.add.text(contentLeft, cursorY, breakdownParts.join(' · '), {
+        const breakdown = this.add.text(textX, cursorY, breakdownParts.join(' · '), {
           color: '#b9c8d7',
           stroke: '#100b16',
           strokeThickness: 2,
@@ -1790,8 +1799,8 @@ export class OpeningScene extends Phaser.Scene {
         signalColor = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff9ed4' : '#b7a7ff';
       }
       if (signalText) {
-        const icon = createSignalToken(this, contentLeft + 4, cursorY + 4, false);
-        const text = this.add.text(contentLeft + 18, cursorY, signalText, {
+        const icon = createSignalToken(this, iconX, cursorY + 4, false);
+        const text = this.add.text(textX, cursorY, signalText, {
           color: signalColor,
           stroke: '#100b16',
           strokeThickness: 2,
@@ -1825,6 +1834,7 @@ export class OpeningScene extends Phaser.Scene {
       safeLeft: this.metrics!.safeLeft,
       safeRight: this.metrics!.safeRight,
       safeTop: this.metrics!.safeTop,
+      topOffset: OPENING_FEEL_PRESENTATION.railTopOffset,
       centerX: this.metrics!.centerX,
       railRight: this.metrics!.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth,
       resultPanelTop: RESULT_PRESENTATION.panelY - RESULT_PRESENTATION.panelHeight / 2,
@@ -2985,19 +2995,32 @@ export class OpeningScene extends Phaser.Scene {
     title: Phaser.GameObjects.Text,
     rarity: Phaser.GameObjects.Text,
   ): void {
-    const gap = 12;
-    const totalWidth = title.width + gap + rarity.width;
+    const headingGap = 12;
+    const diamondTextOffset = 11;
+    const badgeContentWidth = diamondTextOffset + rarity.width;
+    const totalWidth = title.width + headingGap + badgeContentWidth;
     const startX = -totalWidth / 2;
-    title.setOrigin(0, 0.5).setPosition(startX, -32);
-    rarity.setOrigin(0, 0.5).setPosition(startX + title.width + gap, -32);
+    const headingY = -32;
+    title.setOrigin(0, 0.5).setPosition(startX, headingY);
+
+    const badgeLeft = startX + title.width + headingGap;
+    const diamond = rarity.getData('diamond') as Phaser.GameObjects.Rectangle | undefined;
+    if (diamond) diamond.setPosition(badgeLeft + 3.5, headingY);
+    rarity.setOrigin(0, 0.5).setPosition(badgeLeft + diamondTextOffset, headingY);
+
     const capsule = rarity.getData('capsule') as Phaser.GameObjects.Graphics | undefined;
     if (capsule) {
       const capsuleColor = Number(rarity.getData('capsuleColor') ?? 0xf0ddff);
+      const contentHeight = Math.max(rarity.height, 7);
+      const capsuleLeft = badgeLeft - 7;
+      const capsuleTop = headingY - contentHeight / 2 - 4;
+      const capsuleWidth = badgeContentWidth + 14;
+      const capsuleHeight = contentHeight + 8;
       capsule.clear();
       capsule.fillStyle(capsuleColor, 0.1);
-      capsule.fillRoundedRect(rarity.x - 7, rarity.y - rarity.height / 2 - 4, rarity.width + 14, rarity.height + 8, 9);
+      capsule.fillRoundedRect(capsuleLeft, capsuleTop, capsuleWidth, capsuleHeight, 9);
       capsule.lineStyle(1.5, capsuleColor, 0.5);
-      capsule.strokeRoundedRect(rarity.x - 7, rarity.y - rarity.height / 2 - 4, rarity.width + 14, rarity.height + 8, 9);
+      capsule.strokeRoundedRect(capsuleLeft, capsuleTop, capsuleWidth, capsuleHeight, 9);
     }
   }
 
@@ -3018,8 +3041,11 @@ export class OpeningScene extends Phaser.Scene {
       const hint = panel.getData('hint') as Phaser.GameObjects.Text | undefined;
       if (title && rarity && status && hint) {
         title.setText(copy.title);
-        rarity.setText(`◆ ${copy.rarity.toUpperCase()}`).setColor(copy.rarityColor);
-        rarity.setData('capsuleColor', Number.parseInt(copy.rarityColor.slice(1), 16));
+        rarity.setText(copy.rarity.toUpperCase()).setColor(copy.rarityColor);
+        const updatedRarityColor = Number.parseInt(copy.rarityColor.slice(1), 16);
+        rarity.setData('capsuleColor', updatedRarityColor);
+        const diamond = rarity.getData('diamond') as Phaser.GameObjects.Rectangle | undefined;
+        if (diamond) diamond.setFillStyle(updatedRarityColor, 1).setStrokeStyle(1, 0xffffff, 0.28);
         status.setText(copy.status).setColor(copy.statusColor);
         this.positionResultHeading(title, rarity);
         if (hint.text !== hintText) {
@@ -3085,9 +3111,13 @@ export class OpeningScene extends Phaser.Scene {
       fontStyle: 'bold',
     });
     const rarityCapsule = this.add.graphics();
-    const rarity = this.add.text(0, -32, `◆ ${copy.rarity.toUpperCase()}`, {
+    const rarityDiamond = this.add
+      .rectangle(0, -32, 6, 6, rarityColorNumber, 1)
+      .setRotation(Math.PI / 4)
+      .setStrokeStyle(1, 0xffffff, 0.28);
+    const rarity = this.add.text(0, -32, copy.rarity.toUpperCase(), {
       color: copy.rarityColor,
-      padding: { x: 3, y: 2 },
+      padding: { x: 0, y: 2 },
       stroke: '#160f20',
       strokeThickness: 1,
       fontFamily: DIGITAL_FONT_FAMILY,
@@ -3095,7 +3125,8 @@ export class OpeningScene extends Phaser.Scene {
       fontStyle: 'bold',
     });
     rarity.setData('capsule', rarityCapsule);
-    rarity.setData('capsuleColor', Number.parseInt(copy.rarityColor.slice(1), 16));
+    rarity.setData('capsuleColor', rarityColorNumber);
+    rarity.setData('diamond', rarityDiamond);
     this.positionResultHeading(title, rarity);
     const status = this.add.text(0, 0, copy.status, {
       color: copy.statusColor,
@@ -3104,7 +3135,7 @@ export class OpeningScene extends Phaser.Scene {
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '10px',
     }).setOrigin(0.5);
-    const hint = this.add.text(0, 35, hintText, {
+    const hint = this.add.text(0, 43, hintText, {
       color: this.resultReady ? '#ffffff' : '#bfb3ca',
       fontFamily: 'system-ui, sans-serif',
       fontSize: pending.hiddenPocket ? '13px' : '15px',
@@ -3138,7 +3169,7 @@ export class OpeningScene extends Phaser.Scene {
       // here would let this same pointerdown be reinterpreted as a banking skip.
     });
 
-    panel.add([background, readyGlow, title, rarityCapsule, rarity, status, hint, actionZone]);
+    panel.add([background, readyGlow, title, rarityCapsule, rarityDiamond, rarity, status, hint, actionZone]);
     panel.setData('readyGlow', readyGlow);
     panel.setData('title', title);
     panel.setData('rarity', rarity);
@@ -3147,6 +3178,7 @@ export class OpeningScene extends Phaser.Scene {
     this.root.add(panel);
     this.resultActionPanel = panel;
     rarity.setScale(0.92).setAlpha(0);
+    rarityDiamond.setScale(0.92).setAlpha(0);
     this.tweens.add({
       targets: panel,
       y: RESULT_PRESENTATION.panelY,
@@ -3155,7 +3187,7 @@ export class OpeningScene extends Phaser.Scene {
       ease: 'Sine.Out',
     });
     this.tweens.add({
-      targets: rarity,
+      targets: [rarity, rarityDiamond],
       scale: 1,
       alpha: 1,
       delay: 55,
