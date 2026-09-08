@@ -11,6 +11,7 @@ import {
   getCarouselVisualState,
   getRewardTrayHeight,
   getCollectiblePresentation,
+  getStandardResultPresence,
   MOTION_PRESENTATION,
   OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
@@ -107,6 +108,7 @@ export class OpeningScene extends Phaser.Scene {
   private resultCarouselZone: Phaser.GameObjects.Zone | null = null;
   private ambientParticles: Phaser.GameObjects.Arc[] = [];
   private secretPremiumTargets: Phaser.GameObjects.GameObject[] = [];
+  private standardPresenceTargets: Phaser.GameObjects.GameObject[] = [];
   private resultBreathTarget: Phaser.GameObjects.Container | null = null;
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
@@ -230,6 +232,7 @@ export class OpeningScene extends Phaser.Scene {
     this.stopRewardBreathing();
     this.clearAmbientMotion();
     this.clearSecretPremiumMotion();
+    this.clearStandardPresenceMotion();
     this.clearHudMotion();
     if (this.chargedAura) this.killContainerTreeTweens(this.chargedAura);
     this.root?.destroy(true);
@@ -302,6 +305,97 @@ export class OpeningScene extends Phaser.Scene {
   private trackSecretPremiumTarget<T extends Phaser.GameObjects.GameObject>(target: T): T {
     this.secretPremiumTargets.push(target);
     return target;
+  }
+
+  private clearStandardPresenceMotion(): void {
+    for (const target of this.standardPresenceTargets) this.tweens.killTweensOf(target);
+    this.standardPresenceTargets = [];
+  }
+
+  private trackStandardPresenceTarget<T extends Phaser.GameObjects.GameObject>(target: T): T {
+    this.standardPresenceTargets.push(target);
+    return target;
+  }
+
+  private addPersistentStandardRarityState(
+    parent: Phaser.GameObjects.Container,
+    rarity: StandardRarity,
+    x = 0,
+    y = 0,
+  ): void {
+    const profile = getStandardResultPresence(rarity);
+    if (!profile.enabled) return;
+
+    const color = RARITY_REVEAL_COLORS[rarity];
+    const layer = this.trackStandardPresenceTarget(this.add.container(x, y));
+    layer.setData('standardResultPresence', { rarity, ...profile });
+
+    const glow = this.trackStandardPresenceTarget(
+      this.add
+        .ellipse(0, 6, profile.glowWidth, profile.glowHeight, color, profile.glowAlpha)
+        .setBlendMode(Phaser.BlendModes.ADD),
+    );
+    layer.add(glow);
+    this.tweens.add({
+      targets: glow,
+      scale: profile.pulseScale,
+      alpha: 1.3,
+      duration: profile.pulseDurationMs,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+
+    if (profile.ringAlpha > 0) {
+      const ring = this.trackStandardPresenceTarget(
+        this.add
+          .circle(0, 2, Math.min(profile.glowWidth, profile.glowHeight) * 0.57, 0xffffff, 0)
+          .setStrokeStyle(2, color, profile.ringAlpha)
+          .setBlendMode(Phaser.BlendModes.ADD),
+      );
+      layer.add(ring);
+      this.tweens.add({
+        targets: ring,
+        scale: profile.pulseScale + 0.025,
+        alpha: 0.56,
+        duration: profile.pulseDurationMs + 260,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
+
+    for (let index = 0; index < profile.sparkleCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / Math.max(1, profile.sparkleCount) + 0.42;
+      const radius = 104 + (index % 2) * 24;
+      const sparkle = this.trackStandardPresenceTarget(
+        this.add
+          .circle(
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius * 0.72,
+            index % 2 === 0 ? 2.2 : 1.6,
+            color,
+            0.18 + index * 0.035,
+          )
+          .setBlendMode(Phaser.BlendModes.ADD),
+      );
+      layer.add(sparkle);
+      const baseY = sparkle.y;
+      this.tweens.add({
+        targets: sparkle,
+        y: baseY - 6 - (index % 2) * 3,
+        alpha: Math.min(0.46, 0.3 + index * 0.04),
+        scale: 1.3 + (index % 2) * 0.12,
+        duration: profile.pulseDurationMs + 180 + index * 130,
+        delay: 180 + index * 190,
+        yoyo: true,
+        repeat: -1,
+        repeatDelay: 420 + index * 110,
+        ease: 'Sine.InOut',
+      });
+    }
+
+    parent.add(layer);
   }
 
   private addPersistentSecretPremiumState(page: Phaser.GameObjects.Container): void {
@@ -2859,6 +2953,7 @@ export class OpeningScene extends Phaser.Scene {
 
     const standardPage = this.add.container(0, getCollectiblePresentation(pending.standard.familyId).revealY);
     root.add(standardPage);
+    this.addPersistentStandardRarityState(standardPage, pending.standard.rarity);
     const standardVisual = createCollectibleVisual(
       this,
       standardPage,
@@ -3451,13 +3546,20 @@ export class OpeningScene extends Phaser.Scene {
     if (pending.hiddenPocket) {
       this.renderHiddenPocketCarousel(pending, root, metrics, selectedCarouselIndex);
     } else {
+      const standardPresentation = getCollectiblePresentation(pending.standard.familyId);
+      this.addPersistentStandardRarityState(
+        root,
+        pending.standard.rarity,
+        metrics.centerX,
+        standardPresentation.revealY,
+      );
       const standard = createCollectibleVisual(
         this,
         root,
         pending.standard.familyId,
         pending.standard.rarity,
         metrics.centerX,
-        getCollectiblePresentation(pending.standard.familyId).revealY,
+        standardPresentation.revealY,
         pending.standard.collectibleId,
       );
       standard.group.setScale(standard.presentation.revealScale);

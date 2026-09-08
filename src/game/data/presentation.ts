@@ -61,6 +61,63 @@ export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresen
 export const getCollectiblePresentation = (familyId: string): CollectiblePresentation =>
   COLLECTIBLE_PRESENTATION[familyId] ?? FALLBACK_PRESENTATION;
 
+export interface StandardResultPresenceProfile {
+  enabled: boolean;
+  glowAlpha: number;
+  glowWidth: number;
+  glowHeight: number;
+  ringAlpha: number;
+  pulseScale: number;
+  pulseDurationMs: number;
+  sparkleCount: number;
+}
+
+export const STANDARD_RESULT_PRESENCE: Readonly<Record<StandardRarity, StandardResultPresenceProfile>> = {
+  common: {
+    enabled: false,
+    glowAlpha: 0,
+    glowWidth: 0,
+    glowHeight: 0,
+    ringAlpha: 0,
+    pulseScale: 1,
+    pulseDurationMs: 0,
+    sparkleCount: 0,
+  },
+  rare: {
+    enabled: true,
+    glowAlpha: 0.035,
+    glowWidth: 252,
+    glowHeight: 186,
+    ringAlpha: 0,
+    pulseScale: 1.035,
+    pulseDurationMs: 1900,
+    sparkleCount: 0,
+  },
+  epic: {
+    enabled: true,
+    glowAlpha: 0.05,
+    glowWidth: 278,
+    glowHeight: 204,
+    ringAlpha: 0.1,
+    pulseScale: 1.045,
+    pulseDurationMs: 1750,
+    sparkleCount: 2,
+  },
+  legendary: {
+    enabled: true,
+    glowAlpha: 0.065,
+    glowWidth: 306,
+    glowHeight: 224,
+    ringAlpha: 0.15,
+    pulseScale: 1.055,
+    pulseDurationMs: 1600,
+    sparkleCount: 4,
+  },
+} as const;
+
+export const getStandardResultPresence = (rarity: StandardRarity): StandardResultPresenceProfile =>
+  STANDARD_RESULT_PRESENCE[rarity];
+
 export interface PouchLayerPresentation {
   x: number;
   y: number;
