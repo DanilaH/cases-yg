@@ -1606,87 +1606,111 @@ export class OpeningScene extends Phaser.Scene {
     const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
     const rarityColor = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
     const rarityCode = pending.standard.rarity.toUpperCase();
-    type RewardRow = {
-      kind: 'chips' | 'signal' | 'overcharge' | 'secret' | 'total';
+    const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
+    const left = -width / 2;
+    const contentLeft = left + 13;
+    const contentRight = width / 2 - 13;
+    const breakdownParts = [`${messages.opening.chips} +${pending.chips.base}`];
+    if (cacheLabel && pending.chips.cacheBonus > 0) breakdownParts.push(`${cacheLabel} +${pending.chips.cacheBonus}`);
+    if (pending.chips.recycle > 0) breakdownParts.push(`${messages.opening.recycled} +${pending.chips.recycle}`);
+    if (pending.chips.overchargeBonus > 0) breakdownParts.push(`${messages.opening.overcharge} +${pending.chips.overchargeBonus}`);
+
+    type StatusRow = {
+      kind: 'signal' | 'secret';
       text: string;
       color: string;
-      tag?: string;
-      tagColor?: string;
-      countBonus?: boolean;
     };
-    const rows: RewardRow[] = [
-      { kind: 'chips', text: `+${pending.chips.base} ${messages.opening.chips}`, color: CHIPS_TEXT_COLOR },
-    ];
-    if (cacheLabel && pending.chips.cacheBonus > 0) {
-      rows.push({
-        kind: 'chips',
-        text: `${cacheLabel} +${pending.chips.cacheBonus}`,
-        color: pending.chips.cacheTier === 'mega' ? '#ffe59a' : pending.chips.cacheTier === 'big' ? CHARGED_TEXT_COLOR : '#7ee8c8',
-      });
-    }
-    if (pending.chips.recycle > 0) {
-      rows.push({
-        kind: 'chips',
-        text: `${messages.opening.recycled} +${pending.chips.recycle}`,
-        color: '#c7f8ff',
-        tag: rarityCode,
-        tagColor: rarityColor,
-      });
-    }
-    if (pending.overcharge.beforeHundredths > 100) {
-      rows.push({
-        kind: 'chips',
-        text: `${messages.opening.raw} +${pending.chips.rawEarned}`,
-        color: '#b9c8d7',
-      });
-      rows.push({
-        kind: 'overcharge',
-        text: `${messages.opening.overcharge} ${formatOverchargeMultiplier(pending.overcharge.beforeHundredths)}`,
-        color: '#8df8ff',
-        tag: `+${animate ? 0 : pending.chips.overchargeBonus}`,
-        tagColor: '#8df8ff',
-        countBonus: animate && pending.chips.overchargeBonus > 0,
-      });
-      rows.push({
-        kind: 'total',
-        text: `${messages.opening.total} +${pending.chips.totalEarned}`,
-        color: '#f4feff',
-      });
-    }
+    const statuses: StatusRow[] = [];
     if (pending.signal.gain > 0) {
       const signalResult = pending.signal.lockReached
         ? messages.opening.signalLockReady
         : `${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
-      rows.push({
+      statuses.push({
         kind: 'signal',
         text: `${messages.opening.signal} +${pending.signal.gain} · ${signalResult}`,
         color: '#b7a7ff',
       });
     } else if (pending.signal.lockConsumed) {
-      rows.push({ kind: 'signal', text: messages.opening.signalLockConsumed, color: '#ff9ed4' });
+      statuses.push({ kind: 'signal', text: messages.opening.signalLockConsumed, color: '#ff9ed4' });
     } else if (pending.signal.lockRetained) {
-      rows.push({ kind: 'signal', text: messages.opening.signalLockRetained, color: '#b7a7ff' });
+      const retainedMultiplier = formatOverchargeMultiplier(pending.overcharge.afterHundredths);
+      const maxSuffix = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? ' MAX' : '';
+      statuses.push({
+        kind: 'signal',
+        text: `${messages.opening.signalLockRetained} · ${retainedMultiplier}${maxSuffix}`,
+        color: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff9ed4' : '#b7a7ff',
+      });
     }
     if (pending.hiddenPocket) {
-      rows.push({ kind: 'secret', text: messages.opening.addedToCollection, color: '#8df8ff' });
-    }
-    if (pending.signal.lockRetained) {
-      if (pending.overcharge.appliedGainHundredths > 0) {
-        rows.push({
-          kind: 'overcharge',
-          text: `${messages.opening.overcharge} +${(pending.overcharge.appliedGainHundredths / 100).toFixed(2)}`,
-          color: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff7aa8' : '#8df8ff',
-          tag: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? 'MAX' : '',
-          tagColor: '#ff7aa8',
-        });
-      } else if (pending.overcharge.beforeHundredths >= LITE_V2_BALANCE.overchargeCapHundredths) {
-        rows.push({ kind: 'overcharge', text: messages.opening.overchargeMax, color: '#ff7aa8' });
-      }
+      statuses.push({ kind: 'secret', text: messages.opening.addedToCollection, color: '#8df8ff' });
     }
 
-    const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
-    const rowHeight = 21;
-    const height = 30 + rows.length * rowHeight;
+    const tray = this.add.container(0, 0);
+    const background = this.add.graphics();
+    tray.add(background);
+
+    const header = this.add.text(contentLeft, 9, 'REWARD', {
+      color: '#d9cbef',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '7px',
+    });
+    const rarity = this.add.text(contentRight, 9, rarityCode, {
+      color: rarityColor,
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '6px',
+    }).setOrigin(1, 0);
+    tray.add([header, rarity]);
+
+    const totalY = 31;
+    const totalIcon = createChipToken(this, contentLeft + 4, totalY + 4, 0.48);
+    const animatedTotalStart = animate && pending.chips.overchargeBonus > 0
+      ? pending.chips.rawEarned
+      : pending.chips.totalEarned;
+    const totalText = this.add.text(contentLeft + 18, totalY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
+      color: '#f4feff',
+      stroke: '#100b16',
+      strokeThickness: 2,
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '9px',
+    });
+    tray.add([totalIcon, totalText]);
+
+    let cursorY = 52;
+    if (breakdownParts.length > 1) {
+      const breakdown = this.add.text(contentLeft, cursorY, breakdownParts.join(' · '), {
+        color: '#b9c8d7',
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '4.5px' : '5px',
+        wordWrap: { width: width - 26, useAdvancedWrap: true },
+        lineSpacing: 1,
+      });
+      tray.add(breakdown);
+      cursorY += breakdown.height + 9;
+    } else {
+      cursorY += 3;
+    }
+
+    statuses.forEach((status) => {
+      const iconY = cursorY + 4;
+      const icon = status.kind === 'signal'
+        ? createSignalToken(this, contentLeft + 4, iconY, false)
+        : this.add.circle(contentLeft + 4, iconY, 5.5, SECRET_REVEAL_COLOR, 0.94).setStrokeStyle(1.5, 0xffffff, 0.5);
+      const text = this.add.text(contentLeft + 18, cursorY, status.text, {
+        color: status.color,
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '5px' : '6px',
+        wordWrap: { width: width - 50, useAdvancedWrap: true },
+        lineSpacing: 1,
+      });
+      tray.add([icon, text]);
+      cursorY += Math.max(18, text.height + 5);
+    });
+
+    const height = Math.max(67, cursorY + 7);
     const placement = computeRewardTrayPlacement({
       safeLeft: this.metrics!.safeLeft,
       safeRight: this.metrics!.safeRight,
@@ -1700,63 +1724,31 @@ export class OpeningScene extends Phaser.Scene {
       sideGap: OPENING_FEEL_PRESENTATION.rewardTraySideGap,
       resultGap: OPENING_FEEL_PRESENTATION.rewardTrayResultGap,
     });
-    const tray = this.add.container(placement.x, placement.y - height / 2);
+    tray.setPosition(placement.x, placement.y - height / 2);
     tray.setData('height', height);
     tray.setData('side', placement.side);
-    const background = this.add.graphics();
     background.fillStyle(0x17101f, 0.9);
-    background.fillRoundedRect(-width / 2, 0, width, height, 16);
+    background.fillRoundedRect(left, 0, width, height, 16);
     background.lineStyle(1.5, 0x8df8ff, 0.3);
-    background.strokeRoundedRect(-width / 2, 0, width, height, 16);
-    const header = this.add.text(-width / 2 + 13, 9, 'REWARD', {
-      color: '#d9cbef',
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '7px',
-    });
-    tray.add([background, header]);
-    rows.forEach((row, index) => {
-      const iconY = 30 + index * rowHeight;
-      const icon = row.kind === 'signal'
-        ? createSignalToken(this, -width / 2 + 17, iconY, false)
-        : row.kind === 'secret'
-          ? this.add.circle(-width / 2 + 17, iconY, 5.5, SECRET_REVEAL_COLOR, 0.94).setStrokeStyle(1.5, 0xffffff, 0.5)
-          : createChipToken(this, -width / 2 + 17, iconY, row.kind === 'overcharge' ? 0.36 : 0.42);
-      if (row.kind === 'overcharge') icon.setAlpha(0.88);
-      const text = this.add.text(-width / 2 + 31, 25 + index * rowHeight, row.text, {
-        color: row.color,
-        stroke: '#100b16',
-        strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+    background.strokeRoundedRect(left, 0, width, height, 16);
+
+    if (animate && pending.chips.overchargeBonus > 0) {
+      const counter = { value: pending.chips.rawEarned };
+      this.tweens.add({
+        targets: counter,
+        value: pending.chips.totalEarned,
+        delay: 90,
+        duration: 360,
+        ease: 'Cubic.Out',
+        onUpdate: () => {
+          if (totalText.active) totalText.setText(`+${Math.round(counter.value)} ${messages.opening.chips}`);
+        },
+        onComplete: () => {
+          if (totalText.active) totalText.setText(`+${pending.chips.totalEarned} ${messages.opening.chips}`);
+        },
       });
-      tray.add([icon, text]);
-      if (row.tag) {
-        const tag = this.add.text(width / 2 - 12, 25 + index * rowHeight, row.tag, {
-          color: row.tagColor ?? row.color,
-          stroke: '#100b16',
-          strokeThickness: 2,
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '6px',
-        }).setOrigin(1, 0);
-        tray.add(tag);
-        if (row.countBonus) {
-          const counter = { value: 0 };
-          this.tweens.add({
-            targets: counter,
-            value: pending.chips.overchargeBonus,
-            delay: 90,
-            duration: 360,
-            ease: 'Cubic.Out',
-            onUpdate: () => {
-              if (tag.active) tag.setText(`+${Math.round(counter.value)}`);
-            },
-            onComplete: () => {
-              if (tag.active) tag.setText(`+${pending.chips.overchargeBonus}`);
-            },
-          });
-        }
-      }
-    });
+    }
+
     root.add(tray);
     this.rewardTrayContainer = tray;
     if (animate) {
