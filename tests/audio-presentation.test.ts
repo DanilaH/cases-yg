@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BASE_AMBIENCE_PROFILE,
+  DRAG_TEXTURE_PROFILE,
   getAudioCuePresentationDirective,
+  getDragTextureMix,
   getRarityAmbienceProfile,
 } from '../src/game/data/audioPresentation';
 
@@ -50,6 +52,24 @@ describe('audio presentation', () => {
     expect(discovery.clearPersistent).toBeUndefined();
     expect(discovery.duck?.multiplier).toBeLessThan(duplicate.duck!.multiplier);
     expect(discovery.duck?.multiplier).toBeLessThan(signal.duck!.multiplier);
+  });
+
+  it('keeps continuous drag texture quiet, responsive and bounded', () => {
+    const idle = getDragTextureMix(0, 0);
+    const slowMid = getDragTextureMix(0.5, 0.15);
+    const fastMid = getDragTextureMix(0.5, 0.9);
+    const end = getDragTextureMix(1, 1);
+
+    expect(DRAG_TEXTURE_PROFILE.maxGain).toBeLessThanOrEqual(0.01);
+    expect(DRAG_TEXTURE_PROFILE.idleReleaseMs).toBeLessThanOrEqual(110);
+    expect(DRAG_TEXTURE_PROFILE.releaseMs).toBeLessThanOrEqual(70);
+    expect(DRAG_TEXTURE_PROFILE.progressWeight + DRAG_TEXTURE_PROFILE.velocityWeight).toBeCloseTo(1);
+    expect(idle.gain).toBe(DRAG_TEXTURE_PROFILE.minGain);
+    expect(slowMid.gain).toBeGreaterThan(idle.gain);
+    expect(fastMid.gain).toBeGreaterThan(slowMid.gain);
+    expect(fastMid.bandHz).toBeGreaterThan(slowMid.bandHz);
+    expect(end.gain).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxGain);
+    expect(end.bandHz).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxBandHz);
   });
 
   it('clears stale result ambience before a new physical/reveal cycle', () => {

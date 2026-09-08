@@ -71,6 +71,7 @@ interface DragState {
   pointerId: number;
   startPointerX: number;
   progress: number;
+  lastPointerTime: number;
 }
 
 interface ResultCarouselDrag {
@@ -197,6 +198,7 @@ export class OpeningScene extends Phaser.Scene {
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
     this.presentationSkip.reset();
+    getGameAudio().stopDragTexture(true);
     getGameAudio().clearResultAmbience();
     this.tweens.killAll();
     getPlatformRuntime().activity.setGameplayDesired(false);
@@ -214,6 +216,7 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     if (this.phase === 'dragging') {
+      getGameAudio().stopDragTexture();
       this.drag = null;
       this.phase = 'idle';
     }
@@ -1428,6 +1431,7 @@ export class OpeningScene extends Phaser.Scene {
       pointerId: pointer.id,
       startPointerX: pointer.x,
       progress: 0,
+      lastPointerTime: this.time.now,
     };
     this.setChromeEnabled(false);
     this.tweens.killTweensOf(this.pouch.tab);
@@ -1494,7 +1498,15 @@ export class OpeningScene extends Phaser.Scene {
     const logicalDelta = Math.max(0, (pointer.x - this.drag.startPointerX) / this.metrics.scale);
     const travel = this.pouch.tabEndX - this.pouch.tabStartX;
     const progress = Math.min(1, logicalDelta / DRAG_THRESHOLD);
+    const previousProgress = this.drag.progress;
+    const elapsedSeconds = Math.max(0.008, (this.time.now - this.drag.lastPointerTime) / 1000);
+    const progressDelta = Math.abs(progress - previousProgress);
+    const normalizedVelocity = Phaser.Math.Clamp(progressDelta / elapsedSeconds / 4, 0, 1);
     this.drag.progress = progress;
+    this.drag.lastPointerTime = this.time.now;
+    if (progress > 0.005 && progressDelta > 0.0005) {
+      getGameAudio().setDragTexture(progress, normalizedVelocity);
+    }
     const tabX = this.pouch.tabStartX + travel * progress;
     this.pouch.tab.setX(tabX);
     this.pouch.tab.setScale(1.12 - progress * 0.04);
@@ -1557,6 +1569,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (this.drag.progress >= 1) return;
 
+    getGameAudio().stopDragTexture();
     this.drag = null;
     this.phase = 'idle';
     this.setChromeEnabled(true);
@@ -1590,6 +1603,7 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'dragging' || !this.session) return;
 
     this.stopStarPulse();
+    getGameAudio().stopDragTexture(true);
     this.phase = 'revealing';
     this.drag = null;
     this.presentationSkip.guardUntilTime(this.time.now + OPENING_FEEL_PRESENTATION.postTearSkipGuardMs);

@@ -43,6 +43,62 @@ export interface AudioCuePresentationDirective {
   duck?: AudioDuckProfile;
 }
 
+export interface DragTextureProfile {
+  minGain: number;
+  maxGain: number;
+  minBandHz: number;
+  maxBandHz: number;
+  minQ: number;
+  maxQ: number;
+  progressWeight: number;
+  velocityWeight: number;
+  updateMs: number;
+  idleReleaseMs: number;
+  releaseMs: number;
+}
+
+export interface DragTextureMix {
+  gain: number;
+  bandHz: number;
+  q: number;
+}
+
+export const DRAG_TEXTURE_PROFILE: Readonly<DragTextureProfile> = {
+  minGain: 0.0018,
+  maxGain: 0.0085,
+  minBandHz: 950,
+  maxBandHz: 2800,
+  minQ: 0.55,
+  maxQ: 1.0,
+  progressWeight: 0.62,
+  velocityWeight: 0.38,
+  updateMs: 35,
+  idleReleaseMs: 90,
+  releaseMs: 55,
+} as const;
+
+export const getDragTextureMix = (progress: number, velocity: number): DragTextureMix => {
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+  const clampedVelocity = Math.max(0, Math.min(1, velocity));
+  const intensity = Math.min(
+    1,
+    clampedProgress * DRAG_TEXTURE_PROFILE.progressWeight +
+      clampedVelocity * DRAG_TEXTURE_PROFILE.velocityWeight,
+  );
+  const brightness = Math.min(1, clampedProgress * 0.72 + clampedVelocity * 0.28);
+  return {
+    gain:
+      DRAG_TEXTURE_PROFILE.minGain +
+      (DRAG_TEXTURE_PROFILE.maxGain - DRAG_TEXTURE_PROFILE.minGain) * intensity,
+    bandHz:
+      DRAG_TEXTURE_PROFILE.minBandHz +
+      (DRAG_TEXTURE_PROFILE.maxBandHz - DRAG_TEXTURE_PROFILE.minBandHz) * brightness,
+    q:
+      DRAG_TEXTURE_PROFILE.minQ +
+      (DRAG_TEXTURE_PROFILE.maxQ - DRAG_TEXTURE_PROFILE.minQ) * clampedVelocity,
+  };
+};
+
 export const BASE_AMBIENCE_PROFILE: Readonly<BaseAmbienceProfile> = {
   busGain: 0.3,
   roomNoiseGain: 0.05,
