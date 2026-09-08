@@ -98,8 +98,6 @@ body {
   right: max(12px, env(safe-area-inset-right, 0px));
   bottom: max(12px, env(safe-area-inset-bottom, 0px));
   z-index: 2000;
-  display: grid;
-  gap: 6px;
   width: 210px;
   max-height: min(82vh, 720px);
   padding: 10px;
@@ -114,9 +112,65 @@ body {
   user-select: text;
 }
 
+.mpt-debug-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mpt-debug-panel__meta {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.mpt-debug-panel__meta span {
+  overflow-wrap: anywhere;
+}
+
+.mpt-debug-panel__body {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .mpt-debug-panel button {
   min-height: 32px;
   border: 0;
   border-radius: 7px;
   cursor: pointer;
+}
+
+.mpt-debug-panel__toggle {
+  flex: 0 0 auto;
+  min-height: 26px !important;
+  padding: 4px 8px;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  font: 700 11px/1 system-ui, sans-serif;
+}
+
+.mpt-debug-panel__toggle:hover {
+  background: rgb(255 255 255 / 20%);
+}
+
+.mpt-debug-panel.is-collapsed {
+  width: auto;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+  border-color: rgb(141 248 255 / 38%);
+  background: rgb(15 13 23 / 82%);
+}
+
+.mpt-debug-panel.is-collapsed .mpt-debug-panel__header {
+  display: block;
+}
+
+.mpt-debug-panel.is-collapsed .mpt-debug-panel__toggle {
+  min-height: 34px !important;
+  padding: 7px 10px;
+  color: #8df8ff;
+  letter-spacing: 0.05em;
 }
