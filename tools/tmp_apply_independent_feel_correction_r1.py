@@ -240,7 +240,7 @@ spawn_method = """  private spawnSparkles(
 replace_between(
     opening,
     '  private spawnSparkles(',
-    '  private createRevealBackdrop',
+    '  private trackRevealCompletion(',
     spawn_method,
 )
 
