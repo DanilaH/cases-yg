@@ -8,7 +8,7 @@ Phase 2.6 correction/Overcharge is implemented, exact-audited and repeated-use a
 
 # 1. Post-correction evidence question set
 
-The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for Phase 2.6, its direct regression, and later hosted/content-scale work.
+The repeated hands-on passes justified the bounded corrections, which are now merged and reviewed. Remaining items here are evidence/tuning questions for the current final merged-main regression and later hosted/content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 

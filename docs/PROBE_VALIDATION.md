@@ -15,8 +15,8 @@ Current status:
 - latest exact-audited Phase 2.6 runtime product head: `40db07a3c8069ef8ca01c5c35de0c355337d410e`;
 - comprehensive Phase 2.6 exact browser/state audit: **43/43 PASS** with zero runtime/request/HTTP failures;
 - focused post-fix cash-out audit: **15/15 PASS** in RU 900 + EN 1280; artifact digest `sha256:0d55df870f9b4c90c1d8c566c8c6cb7a4af4b6e6486ab991077670271de6a1cd`;
-- squash-merged `main`: `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020` via PR #48; subsequent differences from the exact audit head are canonical-doc synchronization/merge history, not runtime behavior;
-- post-merge main CI #274: **PASS**;
+- historical Phase 2.6 squash-merged `main`: `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020` via PR #48;
+- historical Phase 2.6 post-merge main CI #274: **PASS**;
 - current suite baseline: **130 unit tests** + typecheck + asset self-test/validation + production build;
 - final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
 - Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
@@ -28,7 +28,7 @@ Current status:
 - final merged-main repeated-use regression after Secret correction: **PENDING — CURRENT INTERNAL GATE**;
 - real Yandex DRAFT: **BLOCKED ON THAT FINAL INTERNAL REGRESSION / NEXT EXTERNAL GATE AFTER PASS**.
 
-Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+Historical feel-correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Phase 2.6 contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Current post-Phase-2.6 Secret contract: `SECRET_REWARD_CORRECTION.md`.
 
 The Lite baseline and Phase 2.6 direct regression are proven. The earlier final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard and the exact fixed tree passed targeted stress plus the full repeated-use loop. The later bounded Secret correction is also implemented and exact-browser-accepted, but it changed save/economy/presentation after that earlier repeated-use approval. Therefore one fresh merged-main repeated-use regression is required before DRAFT. Hosted Yandex behavior remains unproven until the external DRAFT gate.
 

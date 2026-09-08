@@ -19,7 +19,7 @@ The two-family build is a private development base, not the public release.
 
 The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression is now the final internal gate before hosted Yandex DRAFT.
 
-Do not tune legacy economy numbers by intuition. Overcharge gain/cap are allowed only as simulation-driven tuning inside the approved pass. Do not expand content or add unrelated meta systems before hosted DRAFT.
+Do not tune legacy economy numbers by intuition. Current Overcharge gain/cap and the fixed `+40 CHIPS` Secret jackpot are locked for this validation build and may be reopened only from evidence. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
 ---
 
