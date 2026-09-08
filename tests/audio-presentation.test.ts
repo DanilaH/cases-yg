@@ -33,12 +33,12 @@ describe('audio presentation', () => {
     expect(legendary.baseMixMultiplier).toBeGreaterThan(secret.baseMixMultiplier);
   });
 
-  it('maps reveal cues to the intended persistent result ambience', () => {
-    expect(getAudioCuePresentationDirective('common').persistent).toBeUndefined();
-    expect(getAudioCuePresentationDirective('rare').persistent).toBe('rare');
-    expect(getAudioCuePresentationDirective('epic').persistent).toBe('epic');
-    expect(getAudioCuePresentationDirective('legendary').persistent).toBe('legendary');
-    expect(getAudioCuePresentationDirective('secret-reveal').persistent).toBe('secret');
+  it('keeps transient rarity cues transient so stable result state owns ambience', () => {
+    for (const cue of ['common', 'rare', 'epic', 'legendary', 'secret-reveal'] as const) {
+      const directive = getAudioCuePresentationDirective(cue);
+      expect(directive.persistent).toBeUndefined();
+      expect(directive.persistentDelayMs).toBeUndefined();
+    }
   });
 
   it('clears stale result ambience before a new physical/reveal cycle', () => {
