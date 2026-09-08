@@ -1,0 +1,67 @@
+name: TEMP tune rarity settle mass
+
+on:
+  push:
+    branches:
+      - polish/high-rarity-anticipation-r1
+
+permissions:
+  contents: write
+
+jobs:
+  tune-verify-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/high-rarity-anticipation-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Keep Epic on overshoot only and reserve aftershock for Legendary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/game/data/presentation.ts')
+          text = p.read_text(encoding='utf-8')
+          old_epic = """    aftershockScale: 1.012,\n    aftershockDurationMs: 90,\n    shake: 0.0027,\n"""
+          new_epic = """    aftershockScale: 1,\n    aftershockDurationMs: 0,\n    shake: 0.0027,\n"""
+          old_legendary = """    aftershockScale: 1.022,\n    aftershockDurationMs: 130,\n    shake: 0.0038,\n"""
+          new_legendary = """    aftershockScale: 1.016,\n    aftershockDurationMs: 90,\n    shake: 0.0038,\n"""
+          if old_epic not in text or old_legendary not in text:
+              raise SystemExit('rarity settle anchors missing')
+          text = text.replace(old_epic, new_epic, 1).replace(old_legendary, new_legendary, 1)
+          p.write_text(text, encoding='utf-8')
+
+          t = Path('tests/presentation.test.ts')
+          tests = t.read_text(encoding='utf-8')
+          old = """    expect(epic.aftershockScale).toBeGreaterThan(1);\n    expect(legendary.aftershockScale).toBeGreaterThan(epic.aftershockScale);\n    expect(legendary.aftershockDurationMs).toBeGreaterThan(epic.aftershockDurationMs);\n    expect(secret.aftershockScale).toBe(1);\n"""
+          new = """    expect(epic.aftershockScale).toBe(1);\n    expect(epic.aftershockDurationMs).toBe(0);\n    expect(legendary.aftershockScale).toBeGreaterThan(1);\n    expect(legendary.aftershockScale).toBeLessThanOrEqual(1.02);\n    expect(legendary.aftershockDurationMs).toBeGreaterThan(0);\n    expect(legendary.aftershockDurationMs).toBeLessThanOrEqual(100);\n    expect(secret.aftershockScale).toBe(1);\n"""
+          if old not in tests:
+              raise SystemExit('presentation test anchor missing')
+          t.write_text(tests.replace(old, new, 1), encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Review timing contract and clean tree
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/game/data/presentation.ts').read_text(encoding='utf-8')
+          assert "anticipationHoldMs: 90" in p
+          assert "anticipationHoldMs: 150" in p
+          assert "anticipationHoldMs: 180" in p
+          assert "aftershockScale: 1.016" in p
+          assert "aftershockDurationMs: 90" in p
+          PY
+          git diff --check
+          rm -f .github/workflows/tmp-high-rarity-anticipation-final-tune.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Tune rarity settle mass'
+          git push origin HEAD:polish/high-rarity-anticipation-r1
