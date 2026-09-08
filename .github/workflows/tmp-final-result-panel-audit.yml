@@ -18,6 +18,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm run build
       - name: Install Playwright Chromium
         run: |
@@ -35,10 +36,10 @@ jobs:
           exit 1
       - name: Run final result panel audit
         run: node tools/tmp-final-result-panel-audit.mjs
+      - name: Run Charged recovery alpha audit
+        run: node tools/tmp-charged-recovery-alpha-audit.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: final-result-panel-audit
           path: tmp-final-result-panel-audit
-
-# PR synchronization nudge; audit content unchanged.
