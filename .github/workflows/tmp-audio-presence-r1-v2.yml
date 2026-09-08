@@ -27,6 +27,16 @@ jobs:
           sed -i "s/')))).decode())/')).decode())/" tools/tmp_apply_audio_presence.py
           sed -i "s/'))).decode())/')).decode())/" tools/tmp_apply_audio_presence.py
           python tools/tmp_apply_audio_presence.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/systems/audio.ts')
+          text = path.read_text(encoding='utf-8')
+          old = 'channel[tailIndex] = channel[tailIndex] * (1 - mix) + channel[index] * mix;'
+          new = 'channel[tailIndex] = (channel[tailIndex] ?? 0) * (1 - mix) + (channel[index] ?? 0) * mix;'
+          if old not in text:
+              raise SystemExit('noise crossfade anchor missing')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
 
       - name: Install
         run: npm ci
