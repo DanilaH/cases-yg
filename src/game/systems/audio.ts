@@ -273,7 +273,12 @@ class GameAudioController {
   public clearResultAmbience(): void {
     this.desiredResultAmbience = null;
     this.cancelQueuedResultAmbience();
-    if (this.context) this.stopPersistentRarity(this.context, 190, true);
+    if (this.context) {
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 190;
+      this.stopPersistentRarity(this.context, fadeOutMs, true);
+    }
   }
 
   private applyPresentationCue(context: AudioContext, cue: SfxCue): void {
@@ -282,7 +287,10 @@ class GameAudioController {
     if (directive.clearPersistent) {
       this.desiredResultAmbience = null;
       this.cancelQueuedResultAmbience();
-      this.stopPersistentRarity(context, 140, true);
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 140;
+      this.stopPersistentRarity(context, fadeOutMs, true);
     }
     if (directive.duck) this.duckBase(context, directive.duck);
     if (directive.persistent) {
@@ -418,7 +426,10 @@ class GameAudioController {
   ): void {
     this.desiredResultAmbience = rarity;
     this.cancelQueuedResultAmbience();
-    this.stopPersistentRarity(context, 120, false);
+    const fadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 120;
+    this.stopPersistentRarity(context, fadeOutMs, false);
     this.resultAmbienceTimer = window.setTimeout(() => {
       this.resultAmbienceTimer = null;
       if (this.muted || this.blocked || this.desiredResultAmbience !== rarity) return;
@@ -438,7 +449,10 @@ class GameAudioController {
     const profile = getRarityAmbienceProfile(rarity);
     if (!profile.enabled) return;
 
-    this.stopPersistentRarity(context, 140, false);
+    const previousFadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 140;
+    this.stopPersistentRarity(context, previousFadeOutMs, false);
     this.activeResultAmbience = rarity;
     this.desiredResultAmbience = rarity;
     this.setSteadyBaseMultiplier(context, profile.baseMixMultiplier, profile.fadeInMs);
@@ -522,6 +536,13 @@ class GameAudioController {
           // Already-stopped sources are harmless during teardown/re-entry.
         }
       }
+      window.setTimeout(() => {
+        try {
+          bus.disconnect();
+        } catch {
+          // The old local bus may already be disconnected during rapid re-entry.
+        }
+      }, fadeMs + 80);
     }
     if (restoreBase) this.setSteadyBaseMultiplier(context, 1, Math.max(180, fadeMs));
   }
