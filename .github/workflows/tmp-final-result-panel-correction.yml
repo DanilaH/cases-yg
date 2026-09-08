@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - tmp/final-result-panel-correction
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -15,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: tmp/final-result-panel-correction
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
@@ -38,6 +42,4 @@ jobs:
           git diff --cached --check
           git diff --cached --exit-code && { echo "No product changes staged"; exit 1; } || true
           git commit -m "Polish result panel signal state [skip ci]"
-          git push
-
-# Registration nudge: workflow existed before this push.
+          git push origin HEAD:tmp/final-result-panel-correction
