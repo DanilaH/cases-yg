@@ -1,0 +1,41 @@
+name: Temporary Hidden Pocket profile docs sync
+
+on:
+  push:
+    branches:
+      - tmp/sync-hidden-profile-docs
+
+permissions:
+  contents: write
+
+jobs:
+  patch-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Patch stale pouch profile semantics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/GAMEPLAY_SYSTEMS.md')
+          text = p.read_text()
+          replacements = {
+              '- Hidden Pocket `1.5%` from opening #4 while an undiscovered Secret remains;': '- Hidden Pocket `1.5%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;',
+              '- Hidden Pocket `6%` from opening #4 while a Secret remains;': '- Hidden Pocket `6%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Expected stale profile line not found: {old}')
+              text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Verify and commit docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/GAMEPLAY_SYSTEMS.md
+          git diff --cached --check
+          git commit -m "Fix Hidden Pocket profile docs [skip ci]"
+          git push
