@@ -61,7 +61,7 @@ Canonical detail: `OPENING_FEEL_CORRECTION_SCOPE.md`.
 - base CHIPS `6–10`;
 - independent cache roll;
 - rarity C/R/E/L = `72 / 25 / 3 / 0`;
-- Hidden Pocket `1.5%` from opening #4 while an undiscovered Secret remains;
+- Hidden Pocket `1.5%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;
 - first three standard openings use undiscovered protection where eligible;
 - opening #2 prefers a different family when possible.
 
@@ -74,7 +74,7 @@ Basic can never standard-roll Legendary, including through Signal pity.
 - base CHIPS `18–24`;
 - stronger cache profile;
 - rarity `35 / 40 / 20 / 5`;
-- Hidden Pocket `6%` from opening #4 while a Secret remains;
+- Hidden Pocket `6%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;
 - selected directly in Opening; no shop;
 - remains selected while affordable and falls back to Basic when not.
 
