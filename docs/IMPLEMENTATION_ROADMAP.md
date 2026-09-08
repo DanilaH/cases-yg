@@ -12,12 +12,12 @@ The two-family build is a private development base, not the public release.
 6. **Final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED**
 7. **Final direct repeated-use regression — COMPLETE / ACCEPTED AFTER BOUNDED LIFECYCLE FIX**
 8. **Secret reward/reward-tray correction — IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED**
-9. **Final merged-main repeated-use regression after Secret correction — CURRENT INTERNAL GATE**
-10. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE AFTER #9 PASSES**
+9. **Final merged-main repeated-use regression after Secret correction — COMPLETE / ACCEPTED (82/82)**
+10. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
 11. **Content/release expansion — BLOCKED until draft passes**
 12. **Public release hardening**
 
-The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression is now the final internal gate before hosted Yandex DRAFT.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression was required and has now passed 82/82 on the exact merged runtime with manual artifact review. Hosted Yandex DRAFT is now the current gate.
 
 Do not tune legacy economy numbers by intuition. Current Overcharge gain/cap and the fixed `+40 CHIPS` Secret jackpot are locked for this validation build and may be reopened only from evidence. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
@@ -321,7 +321,7 @@ Merged outcome:
 - exact product head `629d5beb666aa9365ce7197082938ea1a50d9d15` passed **34/34** browser assertions with zero runtime/request/HTTP diagnostics and manual artifact review;
 - merged runtime head after PR #57: `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`, post-merge CI PASS.
 
-One fresh merged-main repeated-use regression remains required before Phase 3 because this correction added long-lived Secret presentation tweens and changed the save/economy path after the earlier repeated-use gate.
+The required fresh merged-main repeated-use regression is complete and accepted: 24 normal openings plus forced Secret lifecycle/teardown coverage passed 82/82 with zero runtime/request/HTTP diagnostics.
 
 ---
 
@@ -351,9 +351,9 @@ Player-facing Drop selection remains deferred until Drop #2 exists.
 
 ---
 
-# Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE AFTER CURRENT INTERNAL REGRESSION
+# Phase 3 — real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` only after the merged Phase 2.6 + Secret correction runtime passes the fresh final repeated-use regression.
+The merged Phase 2.6 + Secret correction runtime has passed the fresh final repeated-use regression. Run `docs/YANDEX_SLICE_VALIDATION.md` on the rebuilt exact candidate.
 
 Must cover:
 
