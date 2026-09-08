@@ -145,6 +145,7 @@ describe('Lite V2 save migration', () => {
       recycle: 0,
       rawEarned: 0,
       overchargeBonus: 0,
+      secretBonus: 0,
       totalEarned: 0,
       after: 0,
     });

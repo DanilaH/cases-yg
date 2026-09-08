@@ -4,7 +4,7 @@ import { SLICE_LOOT_POOL_ID, STANDARD_RARITIES, type StandardRarity } from '../d
 import type { PendingReveal } from './drops';
 import { LITE_SIGNAL_THRESHOLD, migrateLegacySignal } from './signal';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';
 export const DEFAULT_CHIPS = 0;
 export const DEFAULT_OVERCHARGE_HUNDREDTHS = 100;
@@ -148,9 +148,17 @@ const isRevealStandard = (value: unknown): value is PendingReveal['standard'] =>
   isStandardRarity(value.rarity) &&
   typeof value.isNew === 'boolean';
 
-const isHiddenPocket = (value: unknown): value is PendingReveal['hiddenPocket'] =>
+const isLegacyHiddenPocket = (value: unknown): value is LegacyPendingReveal['hiddenPocket'] =>
   value === null ||
   (isRecord(value) && typeof value.collectibleId === 'string' && typeof value.familyId === 'string');
+
+const isHiddenPocket = (value: unknown): value is PendingReveal['hiddenPocket'] =>
+  value === null ||
+  (isRecord(value) &&
+    typeof value.collectibleId === 'string' &&
+    typeof value.familyId === 'string' &&
+    typeof value.isNew === 'boolean' &&
+    isNonNegativeInteger(value.bonusChips));
 
 const isLegacyPendingReveal = (value: unknown): value is LegacyPendingReveal => {
   if (!isRecord(value) || !isRecord(value.signal)) return false;
@@ -166,7 +174,7 @@ const isLegacyPendingReveal = (value: unknown): value is LegacyPendingReveal => 
     isNonNegativeFiniteNumber(value.signal.gain) &&
     typeof value.signal.lockConsumed === 'boolean' &&
     typeof value.signal.lockReached === 'boolean' &&
-    isHiddenPocket(value.hiddenPocket) &&
+    isLegacyHiddenPocket(value.hiddenPocket) &&
     isLegacyProgressSnapshot(value.commit) &&
     value.commit.totalOpens === value.openingNumber
   );
@@ -239,12 +247,14 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
     isNonNegativeInteger(chips.recycle) &&
     isNonNegativeInteger(chips.rawEarned) &&
     isNonNegativeInteger(chips.overchargeBonus) &&
+    isNonNegativeInteger(chips.secretBonus) &&
     isNonNegativeInteger(chips.totalEarned) &&
     isNonNegativeInteger(chips.after) &&
     chips.before >= chips.cost &&
     chips.rawEarned === chips.base + chips.cacheBonus + chips.recycle &&
     chips.overchargeBonus === Math.round((chips.rawEarned * (Number(value.overcharge.beforeHundredths) - DEFAULT_OVERCHARGE_HUNDREDTHS)) / 100) &&
-    chips.totalEarned === chips.rawEarned + chips.overchargeBonus &&
+    chips.secretBonus === (value.hiddenPocket ? Number(value.hiddenPocket.bonusChips) : 0) &&
+    chips.totalEarned === chips.rawEarned + chips.overchargeBonus + chips.secretBonus &&
     chips.after === chips.before - chips.cost + chips.totalEarned;
   const signalValid =
     isNonNegativeInteger(signal.before) &&
@@ -310,8 +320,8 @@ const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): bool
   const hiddenAlreadyOwned = pending.hiddenPocket
     ? state.discoveredSecrets.includes(pending.hiddenPocket.collectibleId)
     : false;
-  if (hiddenAlreadyOwned) return false;
-  const expectedSecrets = pending.hiddenPocket
+  if (pending.hiddenPocket && pending.hiddenPocket.isNew === hiddenAlreadyOwned) return false;
+  const expectedSecrets = pending.hiddenPocket?.isNew
     ? [...state.discoveredSecrets, pending.hiddenPocket.collectibleId]
     : [...state.discoveredSecrets];
 
@@ -368,6 +378,7 @@ const migrateLegacyPending = (legacy: LegacyPendingReveal, outer: ProgressSnapsh
       recycle: 0,
       rawEarned: 0,
       overchargeBonus: 0,
+      secretBonus: 0,
       totalEarned: 0,
       after: outer.chips,
     },
@@ -386,7 +397,7 @@ const migrateLegacyPending = (legacy: LegacyPendingReveal, outer: ProgressSnapsh
       appliedGainHundredths: 0,
       bonusChips: 0,
     },
-    hiddenPocket: legacy.hiddenPocket ? { ...legacy.hiddenPocket } : null,
+    hiddenPocket: legacy.hiddenPocket ? { ...legacy.hiddenPocket, isNew: true, bonusChips: 0 } : null,
     commit: {
       ...commit,
       chips: outer.chips,
@@ -445,10 +456,42 @@ const migrateV2Save = (value: Record<string, unknown>): SaveState => {
     };
   }
 
+  return migrateV3Save({
+    ...value,
+    version: 3,
+    overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
+    pendingReveal,
+  });
+};
+
+const migrateV3Save = (value: Record<string, unknown>): SaveState => {
+  if (value.version !== 3) {
+    throw new Error('Invalid V3 save payload');
+  }
+
+  let pendingReveal: unknown = value.pendingReveal;
+  if (pendingReveal !== null) {
+    if (!isRecord(pendingReveal) || !isRecord(pendingReveal.chips)) {
+      throw new Error('Invalid V3 pending reveal');
+    }
+    const hiddenPocket = pendingReveal.hiddenPocket;
+    if (hiddenPocket !== null && !isLegacyHiddenPocket(hiddenPocket)) {
+      throw new Error('Invalid V3 Hidden Pocket');
+    }
+    pendingReveal = {
+      ...pendingReveal,
+      chips: {
+        ...pendingReveal.chips,
+        // Pre-correction staged reveals keep their exact old wallet outcome.
+        secretBonus: 0,
+      },
+      hiddenPocket: hiddenPocket ? { ...hiddenPocket, isNew: true, bonusChips: 0 } : null,
+    };
+  }
+
   return parseCurrentSave({
     ...value,
     version: SAVE_VERSION,
-    overchargeHundredths: DEFAULT_OVERCHARGE_HUNDREDTHS,
     pendingReveal,
   });
 };
@@ -476,6 +519,9 @@ export const parseSaveState = (raw: string): SaveState => {
   }
   if (value.version === 2) {
     return migrateV2Save(value);
+  }
+  if (value.version === 3) {
+    return migrateV3Save(value);
   }
   if (value.version === SAVE_VERSION) {
     return parseCurrentSave(value);

@@ -365,8 +365,10 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const charged = analyzePouchEconomy(LITE_V2_BALANCE, 'charged');
     const mega = LITE_V2_BALANCE.pouchProfiles.charged.cacheTiers.find(({ id }) => id === 'mega')!;
 
-    expect(basic.expectedReturnIfAllDuplicate).toBeCloseTo(14.855, 3);
-    expect(charged.expectedReturnIfAllDuplicate).toBeCloseTo(35.325, 3);
+    expect(basic.expectedSecretBonus).toBeCloseTo(0.6, 3);
+    expect(charged.expectedSecretBonus).toBeCloseTo(2.4, 3);
+    expect(basic.expectedReturnIfAllDuplicate).toBeCloseTo(15.455, 3);
+    expect(charged.expectedReturnIfAllDuplicate).toBeCloseTo(37.725, 3);
     expect(charged.expectedNetIfAllDuplicate).toBeLessThan(0);
     expect(mega.reward.min).toBeGreaterThanOrEqual(charged.cost * 2);
     expect(mega.reward.max).toBeGreaterThanOrEqual(charged.cost * 3);
