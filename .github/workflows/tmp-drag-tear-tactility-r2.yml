@@ -1,0 +1,200 @@
+name: TEMP drag tear tactility R2
+
+on:
+  push:
+    branches:
+      - polish/drag-tear-tactility-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-audit-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/drag-tear-tactility-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Reuse bounded product patch from R1
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess, textwrap
+          text = Path('.github/workflows/tmp-drag-tear-tactility-r1.yml').read_text(encoding='utf-8')
+          match = re.search(
+              r"      - name: Apply bounded continuous drag texture\n        run: \|\n(?P<body>.*?)\n      - run: npm ci",
+              text,
+              re.S,
+          )
+          if not match: raise SystemExit('could not extract R1 product patch')
+          subprocess.run(['bash', '-e', '-c', textwrap.dedent(match.group('body'))], check=True)
+          PY
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Source lifecycle guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          scene = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          audio = Path('src/game/systems/audio.ts').read_text(encoding='utf-8')
+          assert 'getGameAudio().setDragTexture(progress, normalizedVelocity)' in scene
+          assert scene.count('stopDragTexture') >= 4
+          assert 'if (muted) this.stopDragTexture(true);' in audio
+          assert 'if (blocked) this.stopDragTexture(true);' in audio
+          assert 'queueDragTextureIdleDecay' in audio
+          assert 'silenceDragTexture' in audio
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run corrected browser drag lifecycle audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/main.ts')
+          text = path.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text: raise SystemExit('main audit anchor missing')
+          injection = """  game.sound.mute = blocked;\n  if (import.meta.env.DEV) {\n    const auditWindow = window as typeof window & { __mptAuditGame?: Phaser.Game; __mptAuditAudio?: unknown };\n    auditWindow.__mptAuditGame = game;\n    auditWindow.__mptAuditAudio = audio;\n  }\n"""
+          path.write_text(text.replace(anchor, injection, 1), encoding='utf-8')
+          PY
+          cat > tools/tmp-drag-tactility-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+
+          await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+          await page.waitForFunction(() => {
+            const game = window.__mptAuditGame;
+            const scene = game?.scene?.getScene?.('OpeningScene');
+            return Boolean(scene && scene.phase === 'idle' && window.__mptAuditAudio);
+          }, null, { timeout: 15000 });
+          const hide = page.getByRole('button', { name: 'Hide', exact: true });
+          if (await hide.isVisible().catch(() => false)) await hide.click();
+
+          const snap = () => page.evaluate(() => {
+            const audio = window.__mptAuditAudio;
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            return {
+              phase: scene.phase,
+              progress: scene.drag?.progress ?? null,
+              sourceActive: Boolean(audio.dragTextureSource),
+              gain: audio.dragTextureGain?.gain?.value ?? null,
+              bandHz: audio.dragTextureFilter?.frequency?.value ?? null,
+              q: audio.dragTextureFilter?.Q?.value ?? null,
+              muted: audio.muted,
+            };
+          });
+          const begin = () => page.evaluate(() => window.__mptAuditGame.scene.getScene('OpeningScene').beginDrag({ id: 701, x: 400 }));
+          const move = x => page.evaluate(value => window.__mptAuditGame.scene.getScene('OpeningScene').handlePointerMove({ id: 701, x: value }), x);
+          const release = x => page.evaluate(value => window.__mptAuditGame.scene.getScene('OpeningScene').handlePointerUp({ id: 701, x: value }), x);
+
+          await begin();
+          await page.waitForTimeout(25);
+          await move(490);
+          await page.waitForTimeout(55);
+          const midA = await snap();
+          await page.screenshot({ path: 'audit-artifacts/drag-mid.png', fullPage: true });
+          await move(570);
+          await page.waitForTimeout(55);
+          const midB = await snap();
+          await page.waitForTimeout(180);
+          const heldStill = await snap();
+          await move(620);
+          await page.waitForTimeout(55);
+          const resumed = await snap();
+          await release(620);
+          await page.waitForTimeout(85);
+          const released = await snap();
+
+          await begin();
+          await page.waitForTimeout(20);
+          await move(500);
+          await page.waitForTimeout(55);
+          const beforeMute = await snap();
+          await page.evaluate(() => window.__mptAuditAudio.setMuted(true));
+          await page.waitForTimeout(25);
+          const muted = await snap();
+          await page.evaluate(() => window.__mptAuditAudio.setMuted(false));
+          await release(500);
+          await page.waitForTimeout(80);
+
+          await begin();
+          await page.waitForTimeout(20);
+          await move(730);
+          await page.waitForTimeout(35);
+          const completed = await snap();
+
+          const report = { midA, midB, heldStill, resumed, released, beforeMute, muted, completed, errors };
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify(report, null, 2));
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          for (const [name, state] of [['midA', midA], ['midB', midB], ['resumed', resumed], ['beforeMute', beforeMute]]) {
+            assert(state.phase === 'dragging' && state.sourceActive, `${name} should have a live drag source while moving`);
+            assert(state.gain > 0.0001 && state.gain <= 0.01, `${name} gain must stay quiet and bounded`);
+            assert(state.bandHz >= 900 && state.bandHz <= 3000, `${name} filter must stay in tactile band`);
+            assert(state.q >= 0.5 && state.q <= 1.1, `${name} Q must stay restrained`);
+          }
+          assert(midB.progress > midA.progress, 'second drag sample should represent later progress');
+          assert(Math.abs(midB.gain - midA.gain) > 0.00001 || Math.abs(midB.bandHz - midA.bandHz) > 1, 'continuous texture should respond to changed motion state');
+          assert(heldStill.sourceActive && heldStill.gain < 0.0005, 'holding still should keep reusable source but decay it to silence');
+          assert(resumed.gain > heldStill.gain, 'movement after hold should wake tactile texture');
+          assert(released.phase === 'idle' && !released.sourceActive, 'release/cancel must stop drag texture cleanly');
+          assert(beforeMute.sourceActive, 'mute audit requires active texture');
+          assert(muted.muted && !muted.sourceActive, 'mute must tear down drag audio immediately');
+          assert(completed.phase === 'revealing' && !completed.sourceActive, 'complete tear must stop friction before reveal');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+          await browser.close();
+          EOF
+          mkdir -p audit-artifacts
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/?debug=1 >/dev/null; then break; fi
+            sleep 1
+          done
+          node tools/tmp-drag-tactility-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: drag-tear-tactility-audit-r2
+          path: audit-artifacts
+          if-no-files-found: warn
+
+      - name: Commit clean product tree
+        if: success()
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json
+          rm -rf audit-artifacts
+          rm -f tools/tmp-drag-tactility-audit.mjs
+          rm -f .github/workflows/tmp-drag-tear-tactility-r1.yml
+          rm -f .github/workflows/tmp-drag-tear-tactility-r2.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add continuous drag tactility"
+          git push origin HEAD:polish/drag-tear-tactility-r1
