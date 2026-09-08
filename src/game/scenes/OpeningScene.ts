@@ -1499,16 +1499,6 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
-    // The pre-ready result panel explicitly says "Tap to speed up". Keep that
-    // promise true here as well as during reveal/banking, while preventing the
-    // same physical gesture from becoming an immediate collect on pointerup.
-    if (this.phase === 'result' && !this.resultReady) {
-      if (this.requestPresentationFastForward()) {
-        this.ignoreNextResultTap = true;
-        getGameAudio().play('ui-skip');
-      }
-      return;
-    }
 
     if (this.phase !== 'result') return;
     if (!this.resultReady && this.requestPresentationFastForward()) {
