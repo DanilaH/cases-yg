@@ -3551,6 +3551,7 @@ export class OpeningScene extends Phaser.Scene {
     if (pending.hiddenPocket) {
       this.renderHiddenPocketCarousel(pending, root, metrics, selectedCarouselIndex);
     } else {
+      getGameAudio().setResultAmbience(pending.standard.rarity);
       const standardPresentation = getCollectiblePresentation(pending.standard.familyId);
       this.addPersistentStandardRarityState(
         root,
