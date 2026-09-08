@@ -1,0 +1,101 @@
+name: Yandex DRAFT candidate R1
+
+on:
+  push:
+    branches:
+      - release/yandex-draft-candidate-r1
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Assert exact accepted main tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet 9ea6ef70f66a8aa35af9cab202974b602cc8fe15 -- . \
+            ':(exclude).github/workflows/yandex-draft-candidate-r1.yml'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Verify production package shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -d dist/assets
+          if grep -q '/src/main.ts' dist/index.html; then
+            echo 'dist/index.html still references source entrypoint'
+            exit 1
+          fi
+          if ! grep -q './assets/' dist/index.html; then
+            echo 'dist/index.html does not use relative Vite asset URLs'
+            exit 1
+          fi
+          if ! grep -R -q '/sdk.js' dist/assets; then
+            echo 'Production bundle does not contain the expected Yandex /sdk.js runtime path'
+            exit 1
+          fi
+          if find dist -type f -name '*.map' -print -quit | grep -q .; then
+            echo 'Unexpected source maps in DRAFT package'
+            exit 1
+          fi
+
+      - name: Build exact upload archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate='yandex-draft-9ea6ef7.zip'
+          (
+            cd dist
+            zip -qr "../${candidate}" .
+          )
+          first_entry="$(unzip -Z1 "${candidate}" | head -n 1)"
+          if [ "${first_entry}" != 'index.html' ]; then
+            echo "Archive root is wrong; first entry is ${first_entry}"
+            exit 1
+          fi
+          if unzip -Z1 "${candidate}" | grep -q '^dist/'; then
+            echo 'Archive incorrectly nests files under dist/'
+            exit 1
+          fi
+          sha256sum "${candidate}" > yandex-draft-9ea6ef7.sha256
+          {
+            echo 'candidate_source_sha=9ea6ef70f66a8aa35af9cab202974b602cc8fe15'
+            echo "archive=${candidate}"
+            echo "archive_sha256=$(cut -d' ' -f1 yandex-draft-9ea6ef7.sha256)"
+            echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo 'platform_runtime=yandex by default in production; ?platform=mock explicitly opts into mock'
+            echo 'sdk_path=/sdk.js'
+          } > yandex-draft-9ea6ef7.manifest.txt
+          echo '--- archive root ---'
+          unzip -Z1 "${candidate}" | head -40
+          echo '--- manifest ---'
+          cat yandex-draft-9ea6ef7.manifest.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yandex-draft-candidate-9ea6ef7
+          path: |
+            yandex-draft-9ea6ef7.zip
+            yandex-draft-9ea6ef7.sha256
+            yandex-draft-9ea6ef7.manifest.txt
+          retention-days: 7
