@@ -38,6 +38,11 @@ export const ru = {
     hiddenPocket: 'СКРЫТЫЙ КАРМАН!',
     secretDiscovered: 'СЕКРЕТ НАЙДЕН',
     secretDuplicate: 'ДУБЛИКАТ СЕКРЕТА',
+    milestoneStandardsHalf: 'ОСНОВНЫЕ · ПОЛОВИНА',
+    milestoneStandardsComplete: 'ОСНОВНЫЕ СОБРАНЫ',
+    milestoneFirstSecret: 'ПЕРВЫЙ СЕКРЕТ НАЙДЕН',
+    milestoneSecretsComplete: 'ВСЕ СЕКРЕТЫ НАЙДЕНЫ',
+    milestoneCollected: 'СОБРАНО',
   },
   collection: {
     title: 'Коллекция',
