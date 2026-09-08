@@ -33,10 +33,10 @@ jobs:
           done
           cat /tmp/mpt-grid-vite.log
           exit 1
-      - name: Run grid polish audit
-        run: node tools/tmp-grid-polish-audit.mjs
+      - name: Run corrected local-space grid audit
+        run: node tools/tmp-grid-local-audit.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: grid-polish-audit
-          path: tmp-grid-polish-audit
+          name: grid-polish-local-audit
+          path: tmp-grid-polish-local-audit
