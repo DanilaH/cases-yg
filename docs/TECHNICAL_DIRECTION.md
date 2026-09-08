@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, and Phase 2.6 Signal Overcharge are implemented in current `main` after PR #48. The Phase 2.6 runtime passed exact technical/browser validation and post-merge CI #274; the immediate gate is one final direct repeated-use regression, then real Yandex DRAFT if accepted — not broad architecture work.
+Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, and Phase 2.6 Signal Overcharge are implemented in current `main`. The Phase 2.6 runtime passed exact technical/browser validation; the final direct repeated-use regression found one stale Overcharge reward-tag tween lifecycle race, fixed narrowly in PR #50 and accepted by an exact fixed-tree targeted + 24-opening regression. Real Yandex DRAFT is now the immediate gate — not broad architecture work.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -129,7 +129,7 @@ No player Drop selector before Drop #2.
 
 ## 6. Save / atomic reveal contract — CRITICAL BASELINE + PHASE 2.6 EXTENSION
 
-Current save is versioned (`SAVE_VERSION = 2`) behind `StorageAdapter`.
+Current save is versioned (`SAVE_VERSION = 3`) behind `StorageAdapter`.
 
 `pendingReveal` predetermines the complete economic outcome before visual presentation:
 
@@ -336,7 +336,7 @@ Current integrated cues include synthesized `chip-clack` for CHIPS banking and s
 
 ## 15. Current regression coverage
 
-Current suite baseline is 108 tests plus typecheck/assets/build. Focused coverage and the r3 exact-revision audit cover:
+Current suite baseline is 114 tests plus typecheck/assets/build. Focused coverage and the exact-revision audits cover:
 
 - fast-forward cannot prepare/commit twice;
 - fast-forward cannot alter pending reveal data;
@@ -347,13 +347,13 @@ Current suite baseline is 108 tests plus typecheck/assets/build. Focused coverag
 - recovery remains idempotent;
 - Charged selection continuity/fallback remains intact.
 
-The r3 browser/video regression covered the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts; manual artifact review passed.
+The browser/video regressions cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts. The final direct repeated-use gate additionally reproduced and fixed the Overcharge reward-tag teardown race, then passed **86/86** assertions on the exact fixed tree with manual artifact review.
 
 ---
 
 ## 16. Yandex boundary
 
-Real hosted Yandex DRAFT remains required **after Phase 2.6 implementation + exact audit + direct regression approval**.
+Real hosted Yandex DRAFT is now the **current next gate** after Phase 2.6 implementation + exact audit + direct regression approval.
 
 Hosted gate still covers SDK boot/loading, storage, lifecycle/audio, ad behavior, interrupted Basic/Charged recovery and Metrica.
 

@@ -1,6 +1,6 @@
 # Infrastructure status
 
-This file states what is **actually present in current `main`** after the merged Opening Feel Correction and Phase 2.6 Signal Overcharge pass (PR #48).
+This file states what is **actually present in current `main`** after the merged Opening Feel Correction, Phase 2.6 Signal Overcharge pass, and the bounded final repeated-use lifecycle correction (PR #50).
 
 ## Completed / established
 
@@ -178,8 +178,8 @@ No tuning occurred in the feel-correction pass. Keep these provisional values un
 ## Current validation path
 
 1. Phase 2.6 implementation + exact browser/video validation — complete;
-2. run one final direct repeated-use regression;
-3. if accepted, real Yandex DRAFT;
+2. final direct repeated-use regression — complete/accepted after PR #50 lifecycle fix and exact fixed-tree revalidation;
+3. real Yandex DRAFT — current next gate;
 4. fix only hosted-platform defects;
 5. content expansion.
 
@@ -223,6 +223,6 @@ Collectible pipeline remains unchanged:
 
 ## Current critical path
 
-> **Final direct Phase 2.6 regression → real Yandex DRAFT → content expansion.**
+> **Real Yandex DRAFT → hosted-only fixes → content expansion.**
 
-Runtime architecture remains intentionally small; the current gates are the bounded Overcharge/save extension, direct product acceptance and real hosted-platform validation.
+Runtime architecture remains intentionally small. The bounded Overcharge/save extension and direct product acceptance are complete; real hosted-platform validation is the current critical gate.
