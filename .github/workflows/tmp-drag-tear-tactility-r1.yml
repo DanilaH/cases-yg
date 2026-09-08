@@ -1,0 +1,288 @@
+name: TEMP drag tear tactility R1
+
+on:
+  push:
+    branches:
+      - polish/drag-tear-tactility-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-audit-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/drag-tear-tactility-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply bounded continuous drag texture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str, count: int = 1) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if text.count(old) < count:
+                  raise SystemExit(f'anchor missing in {path}: {old[:120]!r}')
+              text = text.replace(old, new, count)
+              file.write_text(text, encoding='utf-8')
+
+          # Audio presentation contract and pure progress/velocity mapping.
+          path = Path('src/game/data/audioPresentation.ts')
+          text = path.read_text(encoding='utf-8')
+          anchor = """export interface AudioCuePresentationDirective {\n  clearPersistent?: boolean;\n  persistent?: PersistentResultAmbience;\n  persistentDelayMs?: number;\n  duck?: AudioDuckProfile;\n}\n\n"""
+          addition = """export interface DragTextureProfile {\n  minGain: number;\n  maxGain: number;\n  minBandHz: number;\n  maxBandHz: number;\n  minQ: number;\n  maxQ: number;\n  progressWeight: number;\n  velocityWeight: number;\n  updateMs: number;\n  idleReleaseMs: number;\n  releaseMs: number;\n}\n\nexport interface DragTextureMix {\n  gain: number;\n  bandHz: number;\n  q: number;\n}\n\nexport const DRAG_TEXTURE_PROFILE: Readonly<DragTextureProfile> = {\n  minGain: 0.0018,\n  maxGain: 0.0085,\n  minBandHz: 950,\n  maxBandHz: 2800,\n  minQ: 0.55,\n  maxQ: 1.0,\n  progressWeight: 0.62,\n  velocityWeight: 0.38,\n  updateMs: 35,\n  idleReleaseMs: 90,\n  releaseMs: 55,\n} as const;\n\nexport const getDragTextureMix = (progress: number, velocity: number): DragTextureMix => {\n  const clampedProgress = Math.max(0, Math.min(1, progress));\n  const clampedVelocity = Math.max(0, Math.min(1, velocity));\n  const intensity = Math.min(\n    1,\n    clampedProgress * DRAG_TEXTURE_PROFILE.progressWeight +\n      clampedVelocity * DRAG_TEXTURE_PROFILE.velocityWeight,\n  );\n  const brightness = Math.min(1, clampedProgress * 0.72 + clampedVelocity * 0.28);\n  return {\n    gain:\n      DRAG_TEXTURE_PROFILE.minGain +\n      (DRAG_TEXTURE_PROFILE.maxGain - DRAG_TEXTURE_PROFILE.minGain) * intensity,\n    bandHz:\n      DRAG_TEXTURE_PROFILE.minBandHz +\n      (DRAG_TEXTURE_PROFILE.maxBandHz - DRAG_TEXTURE_PROFILE.minBandHz) * brightness,\n    q:\n      DRAG_TEXTURE_PROFILE.minQ +\n      (DRAG_TEXTURE_PROFILE.maxQ - DRAG_TEXTURE_PROFILE.minQ) * clampedVelocity,\n  };\n};\n\n"""
+          if anchor not in text: raise SystemExit('audio presentation interface anchor missing')
+          text = text.replace(anchor, anchor + addition, 1)
+          path.write_text(text, encoding='utf-8')
+
+          # Audio controller: one reusable filtered-noise source during a drag.
+          replace(
+              'src/game/systems/audio.ts',
+              """  BASE_AMBIENCE_PROFILE,\n  getAudioCuePresentationDirective,\n  getRarityAmbienceProfile,\n""",
+              """  BASE_AMBIENCE_PROFILE,\n  DRAG_TEXTURE_PROFILE,\n  getAudioCuePresentationDirective,\n  getDragTextureMix,\n  getRarityAmbienceProfile,\n""",
+          )
+          replace(
+              'src/game/systems/audio.ts',
+              """  private steadyBaseMultiplier = 1;\n  private chipClackIndex = 0;\n""",
+              """  private steadyBaseMultiplier = 1;\n  private dragTextureSource: AudioBufferSourceNode | null = null;\n  private dragTextureFilter: BiquadFilterNode | null = null;\n  private dragTextureGain: GainNode | null = null;\n  private dragTextureIdleTimer: number | null = null;\n  private chipClackIndex = 0;\n""",
+          )
+          replace(
+              'src/game/systems/audio.ts',
+              """  public setMuted(muted: boolean): void {\n    this.muted = muted;\n    if (muted && this.context?.state === 'running') {\n""",
+              """  public setMuted(muted: boolean): void {\n    this.muted = muted;\n    if (muted) this.stopDragTexture(true);\n    if (muted && this.context?.state === 'running') {\n""",
+          )
+          replace(
+              'src/game/systems/audio.ts',
+              """  public setBlocked(blocked: boolean): void {\n    this.blocked = blocked;\n    if (blocked && this.context?.state === 'running') {\n""",
+              """  public setBlocked(blocked: boolean): void {\n    this.blocked = blocked;\n    if (blocked) this.stopDragTexture(true);\n    if (blocked && this.context?.state === 'running') {\n""",
+          )
+
+          anchor = """  public setResultAmbience(rarity: ResultAmbienceRarity): void {\n"""
+          methods = """  public setDragTexture(progress: number, velocity: number): void {\n    if (this.muted || this.blocked || typeof AudioContext === 'undefined') {\n      this.stopDragTexture(true);\n      return;\n    }\n\n    const context = this.getContext();\n    if (!context) return;\n    if (context.state === 'suspended') {\n      void context\n        .resume()\n        .then(() => {\n          if (!this.muted && !this.blocked) this.updateDragTexture(context, progress, velocity);\n        })\n        .catch(() => undefined);\n      return;\n    }\n    if (context.state === 'running') this.updateDragTexture(context, progress, velocity);\n  }\n\n  public stopDragTexture(immediate = false): void {\n    this.cancelDragTextureIdleDecay();\n    const source = this.dragTextureSource;\n    const filter = this.dragTextureFilter;\n    const gain = this.dragTextureGain;\n    this.dragTextureSource = null;\n    this.dragTextureFilter = null;\n    this.dragTextureGain = null;\n    if (!source) return;\n\n    const context = this.context;\n    if (immediate || !context || context.state !== 'running' || !gain) {\n      try {\n        source.stop();\n      } catch {\n        // Already-stopped sources are harmless during rapid input teardown.\n      }\n      try { source.disconnect(); } catch { /* no-op */ }\n      try { filter?.disconnect(); } catch { /* no-op */ }\n      try { gain?.disconnect(); } catch { /* no-op */ }\n      return;\n    }\n\n    const now = context.currentTime;\n    const releaseSeconds = DRAG_TEXTURE_PROFILE.releaseMs / 1000;\n    gain.gain.cancelScheduledValues(now);\n    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);\n    gain.gain.exponentialRampToValueAtTime(0.0001, now + releaseSeconds);\n    try {\n      source.stop(now + releaseSeconds + 0.025);\n    } catch {\n      // Already-stopped sources are harmless during rapid input teardown.\n    }\n    window.setTimeout(() => {\n      try { source.disconnect(); } catch { /* no-op */ }\n      try { filter?.disconnect(); } catch { /* no-op */ }\n      try { gain.disconnect(); } catch { /* no-op */ }\n    }, DRAG_TEXTURE_PROFILE.releaseMs + 70);\n  }\n\n  private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {\n    const mix = getDragTextureMix(progress, velocity);\n    const now = context.currentTime;\n    if (!this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain) {\n      const source = context.createBufferSource();\n      source.buffer = this.getAmbienceNoiseBuffer(context);\n      source.loop = true;\n      const filter = context.createBiquadFilter();\n      filter.type = 'bandpass';\n      filter.frequency.setValueAtTime(mix.bandHz, now);\n      filter.Q.setValueAtTime(mix.q, now);\n      const gain = context.createGain();\n      gain.gain.setValueAtTime(0.0001, now);\n      source.connect(filter);\n      filter.connect(gain);\n      gain.connect(context.destination);\n      source.start(now, (now * 0.37) % 3.5);\n      this.dragTextureSource = source;\n      this.dragTextureFilter = filter;\n      this.dragTextureGain = gain;\n    }\n\n    const filter = this.dragTextureFilter;\n    const gain = this.dragTextureGain;\n    if (!filter || !gain) return;\n    const updateSeconds = DRAG_TEXTURE_PROFILE.updateMs / 1000;\n    gain.gain.cancelScheduledValues(now);\n    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);\n    gain.gain.linearRampToValueAtTime(mix.gain, now + updateSeconds);\n    filter.frequency.cancelScheduledValues(now);\n    filter.frequency.setValueAtTime(Math.max(20, filter.frequency.value), now);\n    filter.frequency.linearRampToValueAtTime(mix.bandHz, now + updateSeconds);\n    filter.Q.cancelScheduledValues(now);\n    filter.Q.setValueAtTime(Math.max(0.1, filter.Q.value), now);\n    filter.Q.linearRampToValueAtTime(mix.q, now + updateSeconds);\n    this.queueDragTextureIdleDecay();\n  }\n\n  private queueDragTextureIdleDecay(): void {\n    this.cancelDragTextureIdleDecay();\n    this.dragTextureIdleTimer = window.setTimeout(() => {\n      this.dragTextureIdleTimer = null;\n      this.silenceDragTexture();\n    }, DRAG_TEXTURE_PROFILE.idleReleaseMs);\n  }\n\n  private cancelDragTextureIdleDecay(): void {\n    if (this.dragTextureIdleTimer === null) return;\n    window.clearTimeout(this.dragTextureIdleTimer);\n    this.dragTextureIdleTimer = null;\n  }\n\n  private silenceDragTexture(): void {\n    const context = this.context;\n    const gain = this.dragTextureGain;\n    if (!context || context.state !== 'running' || !gain) return;\n    const now = context.currentTime;\n    gain.gain.cancelScheduledValues(now);\n    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);\n    gain.gain.exponentialRampToValueAtTime(0.0001, now + DRAG_TEXTURE_PROFILE.releaseMs / 1000);\n  }\n\n"""
+          replace('src/game/systems/audio.ts', anchor, methods + anchor)
+
+          # Opening drag lifecycle and normalized movement velocity.
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """interface DragState {\n  pointerId: number;\n  startPointerX: number;\n  progress: number;\n}\n""",
+              """interface DragState {\n  pointerId: number;\n  startPointerX: number;\n  progress: number;\n  lastPointerTime: number;\n}\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.presentationSkip.reset();\n    getGameAudio().clearResultAmbience();\n    this.tweens.killAll();\n""",
+              """    this.presentationSkip.reset();\n    getGameAudio().stopDragTexture(true);\n    getGameAudio().clearResultAmbience();\n    this.tweens.killAll();\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    if (this.phase === 'dragging') {\n      this.drag = null;\n      this.phase = 'idle';\n    }\n""",
+              """    if (this.phase === 'dragging') {\n      getGameAudio().stopDragTexture();\n      this.drag = null;\n      this.phase = 'idle';\n    }\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.drag = {\n      pointerId: pointer.id,\n      startPointerX: pointer.x,\n      progress: 0,\n    };\n""",
+              """    this.drag = {\n      pointerId: pointer.id,\n      startPointerX: pointer.x,\n      progress: 0,\n      lastPointerTime: this.time.now,\n    };\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    const travel = this.pouch.tabEndX - this.pouch.tabStartX;\n    const progress = Math.min(1, logicalDelta / DRAG_THRESHOLD);\n    this.drag.progress = progress;\n    const tabX = this.pouch.tabStartX + travel * progress;\n""",
+              """    const travel = this.pouch.tabEndX - this.pouch.tabStartX;\n    const progress = Math.min(1, logicalDelta / DRAG_THRESHOLD);\n    const previousProgress = this.drag.progress;\n    const elapsedSeconds = Math.max(0.008, (this.time.now - this.drag.lastPointerTime) / 1000);\n    const progressDelta = Math.abs(progress - previousProgress);\n    const normalizedVelocity = Phaser.Math.Clamp(progressDelta / elapsedSeconds / 4, 0, 1);\n    this.drag.progress = progress;\n    this.drag.lastPointerTime = this.time.now;\n    if (progress > 0.005 && progressDelta > 0.0005) {\n      getGameAudio().setDragTexture(progress, normalizedVelocity);\n    }\n    const tabX = this.pouch.tabStartX + travel * progress;\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    if (this.drag.progress >= 1) return;\n\n    this.drag = null;\n""",
+              """    if (this.drag.progress >= 1) return;\n\n    getGameAudio().stopDragTexture();\n    this.drag = null;\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.stopStarPulse();\n    this.phase = 'revealing';\n    this.drag = null;\n""",
+              """    this.stopStarPulse();\n    getGameAudio().stopDragTexture(true);\n    this.phase = 'revealing';\n    this.drag = null;\n""",
+          )
+
+          # Tests: restrained, monotonic continuous texture mapping.
+          replace(
+              'tests/audio-presentation.test.ts',
+              """  BASE_AMBIENCE_PROFILE,\n  getAudioCuePresentationDirective,\n  getRarityAmbienceProfile,\n""",
+              """  BASE_AMBIENCE_PROFILE,\n  DRAG_TEXTURE_PROFILE,\n  getAudioCuePresentationDirective,\n  getDragTextureMix,\n  getRarityAmbienceProfile,\n""",
+          )
+          replace(
+              'tests/audio-presentation.test.ts',
+              """  it('clears stale result ambience before a new physical/reveal cycle', () => {\n""",
+              """  it('keeps continuous drag texture quiet, responsive and bounded', () => {\n    const idle = getDragTextureMix(0, 0);\n    const slowMid = getDragTextureMix(0.5, 0.15);\n    const fastMid = getDragTextureMix(0.5, 0.9);\n    const end = getDragTextureMix(1, 1);\n\n    expect(DRAG_TEXTURE_PROFILE.maxGain).toBeLessThanOrEqual(0.01);\n    expect(DRAG_TEXTURE_PROFILE.idleReleaseMs).toBeLessThanOrEqual(110);\n    expect(DRAG_TEXTURE_PROFILE.releaseMs).toBeLessThanOrEqual(70);\n    expect(DRAG_TEXTURE_PROFILE.progressWeight + DRAG_TEXTURE_PROFILE.velocityWeight).toBeCloseTo(1);\n    expect(idle.gain).toBe(DRAG_TEXTURE_PROFILE.minGain);\n    expect(slowMid.gain).toBeGreaterThan(idle.gain);\n    expect(fastMid.gain).toBeGreaterThan(slowMid.gain);\n    expect(fastMid.bandHz).toBeGreaterThan(slowMid.bandHz);\n    expect(end.gain).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxGain);\n    expect(end.bandHz).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxBandHz);\n  });\n\n  it('clears stale result ambience before a new physical/reveal cycle', () => {\n""",
+          )
+          PY
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Source lifecycle guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          scene = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          audio = Path('src/game/systems/audio.ts').read_text(encoding='utf-8')
+          assert 'getGameAudio().setDragTexture(progress, normalizedVelocity)' in scene
+          assert scene.count('stopDragTexture') >= 4
+          assert 'if (muted) this.stopDragTexture(true);' in audio
+          assert 'if (blocked) this.stopDragTexture(true);' in audio
+          assert 'queueDragTextureIdleDecay' in audio
+          assert 'silenceDragTexture' in audio
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run browser drag lifecycle audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/main.ts')
+          text = path.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text: raise SystemExit('main audit anchor missing')
+          injection = """  game.sound.mute = blocked;\n  if (import.meta.env.DEV) {\n    const auditWindow = window as typeof window & { __mptAuditGame?: Phaser.Game; __mptAuditAudio?: unknown };\n    auditWindow.__mptAuditGame = game;\n    auditWindow.__mptAuditAudio = audio;\n  }\n"""
+          text = text.replace(anchor, injection, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          cat > tools/tmp-drag-tactility-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+
+          await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+          await page.waitForFunction(() => {
+            const game = window.__mptAuditGame;
+            const scene = game?.scene?.getScene?.('OpeningScene');
+            return Boolean(scene && scene.phase === 'idle' && window.__mptAuditAudio);
+          }, null, { timeout: 15000 });
+          const hide = page.getByRole('button', { name: 'Hide', exact: true });
+          if (await hide.isVisible().catch(() => false)) await hide.click();
+
+          const audioSnapshot = () => page.evaluate(() => {
+            const audio = window.__mptAuditAudio;
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            return {
+              phase: scene.phase,
+              progress: scene.drag?.progress ?? null,
+              sourceActive: Boolean(audio.dragTextureSource),
+              gain: audio.dragTextureGain?.gain?.value ?? null,
+              bandHz: audio.dragTextureFilter?.frequency?.value ?? null,
+              q: audio.dragTextureFilter?.Q?.value ?? null,
+              muted: audio.muted,
+            };
+          });
+          const begin = () => page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            scene.beginDrag({ id: 701, x: 400 });
+          });
+          const move = x => page.evaluate(value => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            scene.handlePointerMove({ id: 701, x: value });
+          }, x);
+          const release = x => page.evaluate(value => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            scene.handlePointerUp({ id: 701, x: value });
+          }, x);
+
+          await begin();
+          await page.waitForTimeout(25);
+          await move(490);
+          await page.waitForTimeout(55);
+          const midSlow = await audioSnapshot();
+          await page.screenshot({ path: 'audit-artifacts/drag-mid.png', fullPage: true });
+          await move(570);
+          await page.waitForTimeout(55);
+          const midFast = await audioSnapshot();
+          await page.waitForTimeout(180);
+          const heldStill = await audioSnapshot();
+          await move(620);
+          await page.waitForTimeout(55);
+          const resumed = await audioSnapshot();
+          await release(620);
+          await page.waitForTimeout(85);
+          const released = await audioSnapshot();
+
+          await begin();
+          await page.waitForTimeout(20);
+          await move(500);
+          await page.waitForTimeout(55);
+          const beforeMute = await audioSnapshot();
+          await page.evaluate(() => window.__mptAuditAudio.setMuted(true));
+          await page.waitForTimeout(25);
+          const muted = await audioSnapshot();
+          await page.evaluate(() => window.__mptAuditAudio.setMuted(false));
+          await release(500);
+          await page.waitForTimeout(80);
+
+          await begin();
+          await page.waitForTimeout(20);
+          await move(730);
+          await page.waitForTimeout(35);
+          const completed = await audioSnapshot();
+
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          assert(midSlow.phase === 'dragging' && midSlow.sourceActive, 'drag texture should start only while dragging moves');
+          assert(midSlow.gain > 0.0001 && midSlow.bandHz > 900, 'drag texture should have a quiet audible filtered-noise state');
+          assert(midFast.gain >= midSlow.gain, 'later/faster motion should not reduce tactile gain');
+          assert(midFast.bandHz >= midSlow.bandHz, 'later/faster motion should brighten tactile texture');
+          assert(heldStill.sourceActive, 'held drag should retain the reusable source');
+          assert(heldStill.gain < 0.0005, 'held drag texture should decay to effectively silent');
+          assert(resumed.sourceActive && resumed.gain > heldStill.gain, 'movement after a hold should wake the same tactile layer');
+          assert(released.phase === 'idle' && !released.sourceActive, 'release/cancel must stop drag texture cleanly');
+          assert(beforeMute.sourceActive, 'mute audit requires active drag texture');
+          assert(muted.muted && !muted.sourceActive, 'mute must tear down continuous drag audio immediately');
+          assert(completed.phase === 'revealing' && !completed.sourceActive, 'completed tear must stop continuous texture before reveal');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify({ midSlow, midFast, heldStill, resumed, released, beforeMute, muted, completed, errors }, null, 2));
+          await browser.close();
+          EOF
+          mkdir -p audit-artifacts
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/?debug=1 >/dev/null; then break; fi
+            sleep 1
+          done
+          node tools/tmp-drag-tactility-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drag-tear-tactility-audit
+          path: audit-artifacts
+          if-no-files-found: error
+
+      - name: Commit clean product tree
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json
+          rm -rf audit-artifacts
+          rm -f tools/tmp-drag-tactility-audit.mjs
+          rm -f .github/workflows/tmp-drag-tear-tactility-r1.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add continuous drag tactility"
+          git push origin HEAD:polish/drag-tear-tactility-r1
