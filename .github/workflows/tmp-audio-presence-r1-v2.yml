@@ -1,0 +1,63 @@
+name: TEMP audio presence R1 v2
+
+on:
+  push:
+    branches:
+      - "polish/audio-presence-r1"
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/audio-presence-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply bounded audio presence pass
+        run: python tools/tmp_apply_audio_presence.py
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Asset self-test
+        run: npm run assets:selftest
+
+      - name: Asset validation
+        run: npm run assets:validate
+
+      - name: Build
+        run: npm run build
+
+      - name: Product diff guard
+        run: |
+          git diff --check
+          test -f src/game/data/audioPresentation.ts
+          test -f tests/audio-presentation.test.ts
+          grep -q "setResultAmbience(secretSelected" src/game/scenes/OpeningScene.ts
+          grep -q "ensureBaseAmbience" src/game/systems/audio.ts
+
+      - name: Commit clean product tree
+        run: |
+          rm -f .github/workflows/tmp-audio-presence-r1.yml
+          rm -f .github/workflows/tmp-audio-presence-r1-v2.yml
+          rm -f tools/tmp_apply_audio_presence.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add layered ambient audio states"
+          git push origin HEAD:polish/audio-presence-r1
