@@ -5,7 +5,12 @@ import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { SLICE_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
-import { buildCollectionSnapshot, getShelfFeaturedOwned, type CollectionSnapshot } from '../systems/collection';
+import {
+  buildCollectionSnapshot,
+  getShelfFeaturedOwned,
+  getStandardNearCompletion,
+  type CollectionSnapshot,
+} from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { persistMutedPreference } from '../systems/settings';
@@ -232,6 +237,7 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
+    const nearCompletion = this.saveState ? getStandardNearCompletion(SLICE_REGISTRY, this.saveState) : null;
     const cardWidth = Math.min(300, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 28);
     const gap = 44;
     const totalWidth = cardWidth * families.length + gap * Math.max(0, families.length - 1);
@@ -239,6 +245,7 @@ export class CollectionScene extends Phaser.Scene {
 
     families.forEach((family, index) => {
       const familySnapshot = this.snapshot!.families.find(({ familyId }) => familyId === family.id)!;
+      const familyNearCompletion = nearCompletion?.familyId === family.id;
       const x = startX + index * (cardWidth + gap);
 
       const glass = this.add.graphics();
@@ -318,11 +325,12 @@ export class CollectionScene extends Phaser.Scene {
           .text(
             x,
             542,
-            `${familySnapshot.standardCount}/${familySnapshot.standardTotal}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
+            `${familySnapshot.standardCount}/${familySnapshot.standardTotal}${familyNearCompletion ? ` · ${messages.collection.nearCompletionOneLeft}` : ''}   ·   ✦ ${familySnapshot.secretOwned.length}/${familySnapshot.secretTotal}`,
             {
-              color: '#ded3e8',
+              color: familyNearCompletion ? '#8df8ff' : '#ded3e8',
               fontFamily: 'monospace',
               fontSize: '13px',
+              fontStyle: familyNearCompletion ? 'bold' : 'normal',
             },
           )
           .setOrigin(0.5)
@@ -335,6 +343,7 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
+    const nearCompletion = this.saveState ? getStandardNearCompletion(SLICE_REGISTRY, this.saveState) : null;
     const rowStartY = families.length === 1 ? 330 : 270;
     const rowGap = 245;
 
@@ -376,11 +385,16 @@ export class CollectionScene extends Phaser.Scene {
       entries.forEach((entry, index) => {
         const x = startX + index * (cardWidth + gap);
         const borderColor = entry.secret ? 0x65f6ff : RARITY_REVEAL_COLORS[entry.rarity];
-        root.add(
-          this.add
-            .rectangle(x, y, cardWidth, 154, entry.owned ? 0x382e46 : 0x292231, 0.96)
-            .setStrokeStyle(2, borderColor, entry.owned ? 0.75 : 0.25),
+        const isLastStandard = Boolean(
+          !entry.secret &&
+          !entry.owned &&
+          nearCompletion?.missingCollectibleId === entry.id,
         );
+        const card = this.add
+          .rectangle(x, y, cardWidth, 154, entry.owned ? 0x382e46 : isLastStandard ? 0x302b3a : 0x292231, 0.96)
+          .setStrokeStyle(isLastStandard ? 3 : 2, borderColor, isLastStandard ? 0.9 : entry.owned ? 0.75 : 0.25);
+        card.setData('nearCompletionLastStandard', isLastStandard ? entry.id : null);
+        root.add(card);
         if (entry.owned) {
           const visual = createCollectibleVisual(this, root, family.id, entry.rarity, x, y - 8, entry.id);
           visual.group.setScale(
@@ -397,6 +411,20 @@ export class CollectionScene extends Phaser.Scene {
               })
               .setOrigin(0.5),
           );
+        }
+        if (isLastStandard) {
+          const lastTag = this.add
+            .text(x, y + 35, messages.collection.lastStandard, {
+              color: '#dffcff',
+              backgroundColor: '#203544',
+              padding: { x: 5, y: 3 },
+              fontFamily: 'monospace',
+              fontSize: '7px',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5);
+          lastTag.setData('nearCompletionLastStandard', entry.id);
+          root.add(lastTag);
         }
         root.add(
           this.add
