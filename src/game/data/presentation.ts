@@ -248,6 +248,8 @@ export const OPENING_FEEL_PRESENTATION = {
   hudShimmerRepeatDelayMs: 2100,
 } as const;
 
+// Reward content varies by duplicate/cache/Signal/Secret state; snap only the
+// background growth to the shared 8px surface rhythm without moving the rows.
 export const getRewardTrayHeight = (contentHeight: number): number =>
   Math.max(
     OPENING_FEEL_PRESENTATION.rewardTrayMinHeight,
