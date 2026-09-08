@@ -1,0 +1,447 @@
+name: TEMP final feel combined R1
+
+on:
+  push:
+    branches:
+      - audit/final-feel-combined-r1
+
+permissions:
+  contents: write
+
+jobs:
+  combined-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: audit/final-feel-combined-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Combined source contract guard
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          audio = Path('src/game/systems/audio.ts').read_text(encoding='utf-8')
+          audio_presentation = Path('src/game/data/audioPresentation.ts').read_text(encoding='utf-8')
+          opening = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          collection = Path('src/game/systems/collection.ts').read_text(encoding='utf-8')
+          milestones = Path('src/game/systems/collectionMilestones.ts').read_text(encoding='utf-8')
+          presentation = Path('src/game/data/presentation.ts').read_text(encoding='utf-8')
+          required = {
+            'base ambience': 'ensureBaseAmbience',
+            'persistent rarity': 'setResultAmbience',
+            'drag texture': 'setDragTexture',
+            'reveal anticipation': 'beginRevealAnticipation',
+          }
+          for label, marker in required.items():
+            assert marker in audio, f'missing {label}: {marker}'
+          assert 'BASE_AMBIENCE_PROFILE' in audio_presentation
+          assert 'RARITY_AMBIENCE_PROFILES' in audio_presentation
+          assert 'DRAG_TEXTURE_PROFILE' in audio_presentation
+          assert 'REVEAL_ANTICIPATION_AUDIO' in audio_presentation
+          assert 'animateDiscoveryBeat' in opening and "play('new-discovery')" in opening
+          assert "play('duplicate')" in opening and "rewardMeaning', 'conversion'" in opening
+          assert 'animateCollectionAcceptance' in opening and 'collectDestinationPulseScale' in opening
+          assert 'getStandardNearCompletion(SLICE_REGISTRY, pending.commit)' in opening
+          assert 'resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)' in opening
+          assert "kind: 'standards-half'" in milestones and "kind: 'secrets-complete'" in milestones
+          assert 'getStandardNearCompletion' in collection
+          assert 'anticipationHoldMs: 0' in presentation and 'anticipationHoldMs: 180' in presentation
+          assert 'aftershockScale: 1.016' in presentation
+          # Presentation still does not own durable reveal transactions.
+          reward_section = opening.split('private renderRewardTray', 1)[1].split('private animateDiscoveryBeat', 1)[0]
+          assert 'commitReveal' not in reward_section and 'prepareReveal' not in reward_section
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run combined browser lifecycle audit
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/main.ts')
+          text = p.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text: raise SystemExit('main audit anchor missing')
+          injection = "  if (import.meta.env.DEV) {\n    const auditWindow = window as typeof window & { __mptAuditGame?: Phaser.Game; __mptAuditAudio?: unknown };\n    auditWindow.__mptAuditGame = game;\n    auditWindow.__mptAuditAudio = audio;\n  }\n"
+          p.write_text(text.replace(anchor, anchor + injection, 1), encoding='utf-8')
+          PY
+          cat > tools/tmp-final-feel-combined-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          const badResponses = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+          page.on('response', response => { if (response.status() >= 400) badResponses.push(`${response.status()}:${response.url()}`); });
+          await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+          await page.waitForFunction(() => window.__mptAuditGame?.scene?.getScene?.('OpeningScene')?.phase === 'idle', null, { timeout: 15000 });
+          const hide = page.getByRole('button', { name: 'Hide', exact: true });
+          if (await hide.isVisible().catch(() => false)) await hide.click();
+
+          // Real canvas gesture unlocks Web Audio; then a foreground cue guarantees the controller touches the context.
+          await page.mouse.click(640, 360);
+          await page.evaluate(() => window.__mptAuditAudio.play('ui-click'));
+          await page.waitForTimeout(300);
+
+          const audioBoot = await page.evaluate(() => {
+            const audio = window.__mptAuditAudio;
+            return {
+              contextState: audio.context?.state ?? null,
+              baseAmbience: Boolean(audio.baseAmbienceBus),
+              active: audio.activeResultAmbience,
+              desired: audio.desiredResultAmbience,
+              sourceCount: audio.persistentRaritySources.length,
+              muted: audio.muted,
+              blocked: audio.blocked,
+            };
+          });
+
+          const renderStandard = async ({ rarity, isNew = false, nearComplete = false }) => page.evaluate(async ({ rarity, isNew, nearComplete }) => {
+            const { SLICE_REGISTRY } = await import('/src/game/data/collectibles.ts');
+            const { createInitialSaveState } = await import('/src/game/systems/save.ts');
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const record = SLICE_REGISTRY.standardItems.find(item => item.rarity === rarity);
+            if (!record) throw new Error(`missing rarity record ${rarity}`);
+            const allIds = SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
+            const discovered = nearComplete
+              ? allIds.slice(0, -1)
+              : isNew
+                ? [record.collectible.id]
+                : [record.collectible.id];
+            const recycle = isNew ? 0 : 2;
+            const total = 6 + recycle;
+            const base = createInitialSaveState();
+            const commit = {
+              discoveredStandard: discovered,
+              discoveredSecrets: [],
+              chips: total,
+              signal: 0,
+              overchargeHundredths: 100,
+              activeLootPoolId: record.lootPoolId,
+              totalOpens: 1,
+              stats: { duplicates: isNew ? 0 : 1, hiddenPockets: 0 },
+            };
+            const pending = {
+              id: `combined-${rarity}-${isNew ? 'new' : 'dup'}`,
+              baseTotalOpens: 0,
+              pouchType: 'basic',
+              lootPoolId: record.lootPoolId,
+              openingNumber: 1,
+              standard: {
+                collectibleId: record.collectible.id,
+                familyId: record.familyId,
+                rarity,
+                isNew,
+              },
+              chips: {
+                before: 0,
+                cost: 0,
+                base: 6,
+                cacheTier: 'none',
+                cacheBonus: 0,
+                recycle,
+                rawEarned: total,
+                overchargeBonus: 0,
+                secretBonus: 0,
+                totalEarned: total,
+                after: total,
+              },
+              signal: {
+                before: 0,
+                after: 0,
+                gain: 0,
+                lockArmedBefore: false,
+                lockConsumed: false,
+                lockReached: false,
+                lockRetained: false,
+              },
+              overcharge: {
+                beforeHundredths: 100,
+                afterHundredths: 100,
+                appliedGainHundredths: 0,
+                bonusChips: 0,
+              },
+              hiddenPocket: null,
+              commit,
+            };
+            scene.saveState = { ...base, ...commit, pendingReveal: null };
+            scene.lastReveal = pending;
+            scene.phase = 'result';
+            scene.resultReady = true;
+            scene.renderResolvedResult(pending);
+            window.__mptCombinedPending = pending;
+            return {
+              panelRarity: scene.resultActionPanel.getData('rarity')?.text ?? '',
+              near: scene.rewardTrayContainer.list.find(item => item.getData?.('nearCompletion') === true)?.text ?? '',
+            };
+          }, { rarity, isNew, nearComplete });
+
+          const audioSnapshot = async label => ({ label, ...(await page.evaluate(() => {
+            const audio = window.__mptAuditAudio;
+            return {
+              active: audio.activeResultAmbience,
+              desired: audio.desiredResultAmbience,
+              sourceCount: audio.persistentRaritySources.length,
+              steadyBaseMultiplier: audio.steadyBaseMultiplier,
+              contextState: audio.context?.state ?? null,
+            };
+          })) });
+
+          const commonVisual = await renderStandard({ rarity: 'common', isNew: true });
+          await page.waitForTimeout(220);
+          const commonAudio = await audioSnapshot('common');
+          await page.screenshot({ path: 'audit-artifacts/common-stable.png', fullPage: true });
+
+          const rareVisual = await renderStandard({ rarity: 'rare' });
+          await page.waitForTimeout(260);
+          const rareAudio = await audioSnapshot('rare');
+
+          const epicVisual = await renderStandard({ rarity: 'epic' });
+          await page.waitForTimeout(300);
+          const epicAudio = await audioSnapshot('epic');
+
+          const legendaryVisual = await renderStandard({ rarity: 'legendary' });
+          await page.waitForTimeout(340);
+          const legendaryAudio = await audioSnapshot('legendary');
+          await page.screenshot({ path: 'audit-artifacts/legendary-stable.png', fullPage: true });
+
+          const muteLifecycle = await page.evaluate(async () => {
+            const audio = window.__mptAuditAudio;
+            const before = { active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length };
+            audio.setMuted(true);
+            await new Promise(resolve => setTimeout(resolve, 120));
+            const muted = { state: audio.context?.state ?? null, active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length };
+            audio.setMuted(false);
+            await new Promise(resolve => setTimeout(resolve, 220));
+            const resumed = { state: audio.context?.state ?? null, active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length };
+            return { before, muted, resumed };
+          });
+
+          const anticipation = await page.evaluate(async () => {
+            const audio = window.__mptAuditAudio;
+            audio.beginRevealAnticipation('legendary', 150);
+            await new Promise(resolve => setTimeout(resolve, 35));
+            const during = { active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length };
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return { during, steadyBaseMultiplier: audio.steadyBaseMultiplier };
+          });
+          await renderStandard({ rarity: 'legendary' });
+          await page.waitForTimeout(320);
+
+          const nearVisual = await renderStandard({ rarity: 'common', nearComplete: true });
+          await page.waitForTimeout(120);
+          await page.screenshot({ path: 'audit-artifacts/near-complete-duplicate.png', fullPage: true });
+
+          const hidden = await page.evaluate(async () => {
+            const { SLICE_REGISTRY } = await import('/src/game/data/collectibles.ts');
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const basePending = window.__mptCombinedPending;
+            const secret = SLICE_REGISTRY.secrets[0];
+            const hp = {
+              ...basePending,
+              hiddenPocket: { collectibleId: secret.collectible.id, familyId: secret.familyId, isNew: true, bonusChips: 40 },
+              chips: { ...basePending.chips, secretBonus: 40, totalEarned: basePending.chips.totalEarned + 40, after: basePending.chips.after + 40 },
+              commit: { ...basePending.commit, chips: basePending.commit.chips + 40, discoveredSecrets: [secret.collectible.id] },
+            };
+            scene.saveState = { ...scene.saveState, ...hp.commit, pendingReveal: null };
+            scene.lastReveal = hp;
+            scene.phase = 'result';
+            scene.resultReady = true;
+            scene.renderResolvedResult(hp);
+            window.__mptCombinedHidden = hp;
+            return { index: scene.resultCarouselIndex, panel: scene.resultActionPanel.getData('rarity')?.text ?? '' };
+          });
+          await page.waitForTimeout(320);
+          const hiddenSecretAudio = await audioSnapshot('hidden-secret');
+          await page.screenshot({ path: 'audit-artifacts/hidden-secret.png', fullPage: true });
+
+          const hiddenStandard = await page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const hp = window.__mptCombinedHidden;
+            scene.resultCarouselIndex = 0;
+            scene.positionResultCarousel(0, false);
+            scene.renderRewardTray(hp, scene.root, false);
+            scene.renderResultActionPanel(hp);
+            return {
+              panel: scene.resultActionPanel.getData('rarity')?.text ?? '',
+              near: scene.rewardTrayContainer.list.find(item => item.getData?.('nearCompletion') === true)?.text ?? '',
+            };
+          });
+          await page.waitForTimeout(320);
+          const hiddenStandardAudio = await audioSnapshot('hidden-standard');
+          await page.screenshot({ path: 'audit-artifacts/hidden-standard.png', fullPage: true });
+
+          const hiddenSecretAgain = await page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const hp = window.__mptCombinedHidden;
+            scene.resultCarouselIndex = 1;
+            scene.positionResultCarousel(0, false);
+            scene.renderRewardTray(hp, scene.root, false);
+            scene.renderResultActionPanel(hp);
+            return {
+              panel: scene.resultActionPanel.getData('rarity')?.text ?? '',
+              near: scene.rewardTrayContainer.list.find(item => item.getData?.('nearCompletion') === true)?.text ?? '',
+            };
+          });
+          await page.waitForTimeout(320);
+          const hiddenSecretAgainAudio = await audioSnapshot('hidden-secret-again');
+
+          const dragLifecycle = await page.evaluate(async () => {
+            const audio = window.__mptAuditAudio;
+            audio.setDragTexture(0.58, 0.72);
+            await new Promise(resolve => setTimeout(resolve, 55));
+            const active = {
+              hasSource: Boolean(audio.dragTextureSource),
+              gain: audio.dragTextureGain?.gain?.value ?? null,
+              filterHz: audio.dragTextureFilter?.frequency?.value ?? null,
+            };
+            audio.stopDragTexture();
+            const afterStop = { hasSource: Boolean(audio.dragTextureSource), hasGain: Boolean(audio.dragTextureGain) };
+            return { active, afterStop };
+          });
+
+          const repeated = await page.evaluate(async () => {
+            const audio = window.__mptAuditAudio;
+            const sequence = ['rare', 'epic', 'legendary', 'secret', 'rare', 'epic', 'legendary', 'secret'];
+            const snapshots = [];
+            for (const rarity of sequence) {
+              audio.setResultAmbience(rarity);
+              await new Promise(resolve => setTimeout(resolve, 420));
+              snapshots.push({ rarity, active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length });
+            }
+            return snapshots;
+          });
+
+          const collectLifecycle = await page.evaluate(async () => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const audio = window.__mptAuditAudio;
+            scene.resultReady = true;
+            scene.continueFromResult();
+            await new Promise(resolve => setTimeout(resolve, 55));
+            const accepted = { phase: scene.phase, active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length };
+            await new Promise(resolve => setTimeout(resolve, 2600));
+            const settled = { phase: scene.phase, active: audio.activeResultAmbience, desired: audio.desiredResultAmbience, sources: audio.persistentRaritySources.length, steadyBaseMultiplier: audio.steadyBaseMultiplier };
+            return { accepted, settled };
+          });
+
+          const milestone = await page.evaluate(async () => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            scene.showCollectionMilestone({ kind: 'standards-half', current: 4, total: 8 });
+            await new Promise(resolve => setTimeout(resolve, 230));
+            const visible = scene.collectionMilestoneTarget ? {
+              kind: scene.collectionMilestoneTarget.getData('milestoneKind'),
+              alpha: scene.collectionMilestoneTarget.alpha,
+            } : null;
+            await new Promise(resolve => setTimeout(resolve, 1250));
+            return { visible, remains: Boolean(scene.collectionMilestoneTarget) };
+          });
+          await page.screenshot({ path: 'audit-artifacts/final-idle.png', fullPage: true });
+
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          assert(audioBoot.contextState === 'running', `audio context not running after real gesture: ${audioBoot.contextState}`);
+          assert(audioBoot.baseAmbience, 'base ambience bus missing after audio unlock');
+          assert(commonAudio.active === null && commonAudio.desired === null && commonAudio.sourceCount === 0, 'Common must remain dry of persistent rarity ambience');
+          for (const snap of [rareAudio, epicAudio, legendaryAudio]) {
+            assert(snap.active === snap.label && snap.desired === snap.label && snap.sourceCount > 0, `${snap.label} stable ambience mismatch`);
+          }
+          assert(muteLifecycle.before.active === 'legendary', 'mute audit must begin on Legendary');
+          assert(muteLifecycle.resumed.state === 'running' && muteLifecycle.resumed.active === 'legendary' && muteLifecycle.resumed.desired === 'legendary', 'unmute must resume the desired stable result ambience');
+          assert(muteLifecycle.resumed.sources === muteLifecycle.before.sources, 'mute/unmute must not duplicate rarity ambience sources');
+          assert(anticipation.during.active === null && anticipation.during.desired === null && anticipation.during.sources === 0, 'high-rarity anticipation must clear stale persistent result ambience');
+          assert(nearVisual.near === 'STANDARD SET 7/8 · 1 LEFT', `near completion cue missing: ${nearVisual.near}`);
+          assert(hidden.index === 1 && hidden.panel === 'SECRET', 'Hidden Pocket must settle on Secret page');
+          assert(hiddenSecretAudio.active === 'secret', 'Secret page must own Secret ambience');
+          assert(hiddenStandard.panel === 'COMMON' && hiddenStandard.near === 'STANDARD SET 7/8 · 1 LEFT', 'Hidden standard page semantics incorrect');
+          assert(hiddenStandardAudio.active === 'common' || hiddenStandardAudio.active === null, 'Common Hidden standard page must suppress persistent rarity ambience');
+          assert(hiddenSecretAgain.panel === 'SECRET' && hiddenSecretAgain.near === '' && hiddenSecretAgainAudio.active === 'secret', 'returning to Secret must restore Secret visual/audio ownership');
+          assert(dragLifecycle.active.hasSource && dragLifecycle.active.gain !== null && dragLifecycle.active.filterHz !== null, 'drag texture did not activate');
+          assert(!dragLifecycle.afterStop.hasSource && !dragLifecycle.afterStop.hasGain, 'drag texture references must clear immediately on stop');
+          const firstCounts = new Map();
+          for (const snap of repeated) {
+            assert(snap.active === snap.rarity && snap.desired === snap.rarity && snap.sources > 0, `repeated ambience mismatch for ${snap.rarity}`);
+            if (!firstCounts.has(snap.rarity)) firstCounts.set(snap.rarity, snap.sources);
+            else assert(firstCounts.get(snap.rarity) === snap.sources, `persistent source count grew for ${snap.rarity}`);
+          }
+          assert(collectLifecycle.accepted.phase === 'banking' && collectLifecycle.accepted.active === null && collectLifecycle.accepted.desired === null && collectLifecycle.accepted.sources === 0, 'collect acceptance must clear persistent result ambience before banking');
+          assert(collectLifecycle.settled.phase === 'idle' && collectLifecycle.settled.active === null && collectLifecycle.settled.desired === null, 'banking must return to clean idle audio state');
+          assert(Math.abs(collectLifecycle.settled.steadyBaseMultiplier - 1) < 0.0001, 'base ambience mix must restore after result exit');
+          assert(milestone.visible?.kind === 'standards-half' && milestone.visible.alpha > 0.95 && milestone.remains === false, 'milestone must be one-shot and non-blocking');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+          assert(badResponses.length === 0, `failed requests: ${badResponses.join('; ')}`);
+
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify({
+            audioBoot,
+            commonVisual, commonAudio,
+            rareVisual, rareAudio,
+            epicVisual, epicAudio,
+            legendaryVisual, legendaryAudio,
+            muteLifecycle,
+            anticipation,
+            nearVisual,
+            hidden,
+            hiddenSecretAudio,
+            hiddenStandard,
+            hiddenStandardAudio,
+            hiddenSecretAgain,
+            hiddenSecretAgainAudio,
+            dragLifecycle,
+            repeated,
+            collectLifecycle,
+            milestone,
+            errors,
+            badResponses,
+          }, null, 2));
+          await browser.close();
+          EOF
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -fsS 'http://127.0.0.1:5173/?debug=1' >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/mpt-vite.log; exit 1; fi
+          node tools/tmp-final-feel-combined-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-feel-combined-audit-r1
+          path: audit-artifacts
+          if-no-files-found: error
+
+      - name: Remove temporary audit files
+        if: success()
+        run: |
+          set -euo pipefail
+          git checkout -- src/main.ts package.json package-lock.json
+          rm -f tools/tmp-final-feel-combined-audit.mjs
+          rm -rf audit-artifacts
+          rm -f .github/workflows/tmp-final-feel-combined-r1.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Remove temporary combined feel audit workflow'
+          git push origin HEAD:audit/final-feel-combined-r1
