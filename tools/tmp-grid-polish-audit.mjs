@@ -8,10 +8,6 @@ const browser = await chromium.launch({ headless: true });
 const report = { hardFailures: [], observations: [], states: [] };
 
 const round = (value) => (typeof value === 'number' && Number.isFinite(value) ? Math.round(value * 10) / 10 : value);
-const rect = (bounds) => bounds ? ({
-  left: round(bounds.left), top: round(bounds.top), right: round(bounds.right), bottom: round(bounds.bottom),
-  width: round(bounds.width), height: round(bounds.height), centerX: round(bounds.centerX), centerY: round(bounds.centerY),
-}) : null;
 const union = (...rects) => {
   const valid = rects.filter(Boolean);
   if (!valid.length) return null;
@@ -21,10 +17,7 @@ const union = (...rects) => {
   const bottom = Math.max(...valid.map((r) => r.bottom));
   return { left, top, right, bottom, width: right - left, height: bottom - top, centerX: (left + right) / 2, centerY: (top + bottom) / 2 };
 };
-
-const hard = (name, pass, detail) => {
-  if (!pass) report.hardFailures.push({ name, detail });
-};
+const hard = (name, pass, detail) => { if (!pass) report.hardFailures.push({ name, detail }); };
 const observe = (name, detail) => report.observations.push({ name, detail });
 
 async function createAuditPage(locale, viewport) {
@@ -106,9 +99,9 @@ async function makeDenseReward(page) {
       overcharge: { ...pending.overcharge, afterHundredths: 150, appliedGainHundredths: 50 },
       hiddenPocket: null,
     };
+    scene.lastReveal = dense;
     scene.renderRewardTray(dense, scene.root, false);
     scene.renderResultActionPanel(dense);
-    scene.lastReveal = dense;
   });
   await page.waitForTimeout(100);
 }
@@ -128,7 +121,13 @@ async function captureState(page, meta) {
     const statusAccent = panel?.getData('statusAccent');
     const hint = panel?.getData('hint');
     const reward = scene.rewardTrayContainer;
-    const rewardChildren = reward?.list?.map((child, index) => ({ index, type: child?.type ?? child?.constructor?.name ?? 'unknown', bounds: bounds(child), visible: child?.visible !== false, alpha: child?.alpha ?? 1 })) ?? [];
+    const rewardChildren = reward?.list?.map((child, index) => ({
+      index,
+      type: child?.type ?? child?.constructor?.name ?? 'unknown',
+      bounds: bounds(child),
+      visible: child?.visible !== false,
+      alpha: child?.alpha ?? 1,
+    })) ?? [];
     const activeItem = scene.resultCarouselItems?.[scene.resultCarouselIndex] ?? scene.resultBreathTarget ?? null;
     return {
       language: document.documentElement.lang,
@@ -145,13 +144,30 @@ async function captureState(page, meta) {
         offsetX: scene.metrics.offsetX,
       } : null,
       panel: panel ? {
-        x: panel.x, y: panel.y, width: Number(panel.getData('panelWidth') ?? 0), height: 112,
+        x: panel.x,
+        y: panel.y,
+        width: Number(panel.getData('panelWidth') ?? 0),
+        height: 112,
         bounds: bounds(panel),
-        title: bounds(title), rarity: bounds(rarity), diamond: bounds(diamond), status: bounds(status), statusAccent: bounds(statusAccent), hint: bounds(hint),
-        titleText: title?.text ?? '', rarityText: rarity?.text ?? '', statusText: status?.text ?? '', accentText: statusAccent?.text ?? '', hintText: hint?.text ?? '',
+        title: bounds(title),
+        rarity: bounds(rarity),
+        diamond: bounds(diamond),
+        status: bounds(status),
+        statusAccent: bounds(statusAccent),
+        hint: bounds(hint),
+        titleText: title?.text ?? '',
+        rarityText: rarity?.text ?? '',
+        statusText: status?.text ?? '',
+        accentText: statusAccent?.text ?? '',
+        hintText: hint?.text ?? '',
       } : null,
       reward: reward ? {
-        x: reward.x, y: reward.y, storedHeight: Number(reward.getData('height') ?? 0), side: reward.getData('side'), bounds: bounds(reward), children: rewardChildren,
+        x: reward.x,
+        y: reward.y,
+        storedHeight: Number(reward.getData('height') ?? 0),
+        side: reward.getData('side'),
+        bounds: bounds(reward),
+        children: rewardChildren,
       } : null,
       chipsHud: bounds(scene.chipsHudContainer),
       signalHud: bounds(scene.signalHudContainer),
@@ -170,7 +186,9 @@ async function captureState(page, meta) {
     const statusGroup = union(p.status, p.statusAccent?.width > 0 ? p.statusAccent : null);
     const panelRect = { left: p.x - p.width / 2, right: p.x + p.width / 2, top: p.y - p.height / 2, bottom: p.y + p.height / 2 };
     data.panel.computed = {
-      titleGroup, statusGroup, panelRect,
+      titleGroup,
+      statusGroup,
+      panelRect,
       titleCenterError: round(titleGroup ? titleGroup.centerX - p.x : null),
       statusCenterError: round(statusGroup ? statusGroup.centerX - p.x : null),
       hintCenterError: round(p.hint ? p.hint.centerX - p.x : null),
@@ -179,9 +197,10 @@ async function captureState(page, meta) {
       firstGap: round(titleGroup && statusGroup ? statusGroup.centerY - titleGroup.centerY : null),
       secondGap: round(statusGroup && p.hint ? p.hint.centerY - statusGroup.centerY : null),
     };
-    hard(`${meta.key}: panel centered`, Math.abs(data.panel.computed.titleCenterError ?? 99) <= 3 && Math.abs(data.panel.computed.statusCenterError ?? 99) <= 3 && Math.abs(data.panel.computed.hintCenterError ?? 99) <= 2, data.panel.computed);
+    const c = data.panel.computed;
+    hard(`${meta.key}: panel centered`, Math.abs(c.titleCenterError ?? 99) <= 3 && Math.abs(c.statusCenterError ?? 99) <= 3 && Math.abs(c.hintCenterError ?? 99) <= 2, c);
     hard(`${meta.key}: panel text inside`, (titleGroup?.left ?? -Infinity) >= panelRect.left + 10 && (titleGroup?.right ?? Infinity) <= panelRect.right - 10 && (statusGroup?.left ?? -Infinity) >= panelRect.left + 10 && (statusGroup?.right ?? Infinity) <= panelRect.right - 10 && (p.hint?.left ?? -Infinity) >= panelRect.left + 10 && (p.hint?.right ?? Infinity) <= panelRect.right - 10, { panelRect, titleGroup, statusGroup, hint: p.hint });
-    hard(`${meta.key}: vertical rhythm`, Math.abs((data.panel.computed.firstGap ?? 99) - (data.panel.computed.secondGap ?? 0)) <= 5 && (data.panel.computed.topInset ?? 0) >= 10 && (data.panel.computed.bottomInset ?? 0) >= 10, data.panel.computed);
+    hard(`${meta.key}: vertical rhythm`, Math.abs((c.firstGap ?? 99) - (c.secondGap ?? 0)) <= 5 && (c.topInset ?? 0) >= 10 && (c.bottomInset ?? 0) >= 10, c);
   }
 
   if (data.chipsHud && data.signalHud) {
@@ -198,13 +217,15 @@ async function captureState(page, meta) {
     const visibleChildren = data.reward.children.filter((child) => child.index > 0 && child.visible && child.alpha > 0.01 && child.bounds && child.bounds.width > 0 && child.bounds.height > 0);
     const overflow = visibleChildren.filter((child) => child.bounds.left < trayRect.left - 1 || child.bounds.right > trayRect.right + 1 || child.bounds.top < trayRect.top - 1 || child.bounds.bottom > trayRect.bottom + 1);
     hard(`${meta.key}: reward children inside`, overflow.length === 0, { trayRect, overflow });
+    const childTops = visibleChildren.map((child) => child.bounds.top);
+    const childBottoms = visibleChildren.map((child) => child.bounds.bottom);
     data.reward.computed = {
       trayRect,
       leftFromCenter: round(rb.left - data.metrics.centerX),
       centerOffset: round(rb.centerX - data.metrics.centerX),
       rightFromCenter: round(rb.right - data.metrics.centerX),
-      topInset: round(Math.min(...visibleChildren.map((child) => child.bounds.top)) - trayRect.top),
-      bottomInset: round(trayRect.bottom - Math.max(...visibleChildren.map((child) => child.bounds.bottom)),
+      topInset: round(Math.min(...childTops) - trayRect.top),
+      bottomInset: round(trayRect.bottom - Math.max(...childBottoms)),
     };
   }
 
