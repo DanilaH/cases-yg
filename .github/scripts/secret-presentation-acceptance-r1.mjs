@@ -52,7 +52,15 @@ const hideDebugPanel = page => page.evaluate(() => {
 });
 
 const forceDeterministicHiddenPocket = page => page.evaluate(() => {
+  window.__mptAuditOriginalRandom = Math.random;
   Math.random = () => 0;
+});
+
+const restoreRandom = page => page.evaluate(() => {
+  if (typeof window.__mptAuditOriginalRandom === 'function') {
+    Math.random = window.__mptAuditOriginalRandom;
+    delete window.__mptAuditOriginalRandom;
+  }
 });
 
 const waitGame = async page => {
@@ -165,6 +173,7 @@ const runScenario = async ({ name, width, locale, state, mode }) => {
   if (!attempt) throw new Error(`${name}: could not acquire/tear pouch`);
 
   const staged = await waitPending(page, before.totalOpens);
+  await restoreRandom(page);
   const pending = staged?.pendingReveal;
   if (!pending) throw new Error(`${name}: pending reveal missing after tear`);
 
