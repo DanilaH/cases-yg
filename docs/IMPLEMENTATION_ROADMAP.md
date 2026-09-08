@@ -11,13 +11,15 @@ The two-family build is a private development base, not the public release.
 5. **Final direct hands-on — COMPLETE WITH NEW BOUNDED FINDINGS**
 6. **Final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED**
 7. **Final direct repeated-use regression — COMPLETE / ACCEPTED AFTER BOUNDED LIFECYCLE FIX**
-8. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
-9. **Content/release expansion — BLOCKED until draft passes**
-10. **Public release hardening**
+8. **Secret reward/reward-tray correction — IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED**
+9. **Final merged-main repeated-use regression after Secret correction — CURRENT INTERNAL GATE**
+10. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE AFTER #9 PASSES**
+11. **Content/release expansion — BLOCKED until draft passes**
+12. **Public release hardening**
 
-The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. Hosted Yandex DRAFT is now the current gate.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression is now the final internal gate before hosted Yandex DRAFT.
 
-Do not tune legacy economy numbers by intuition. Overcharge gain/cap are allowed only as simulation-driven tuning inside the approved pass. Do not expand content or add unrelated meta systems before hosted DRAFT.
+Do not tune legacy economy numbers by intuition. Current Overcharge gain/cap and the fixed `+40 CHIPS` Secret jackpot are locked for this validation build and may be reopened only from evidence. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
 ---
 
@@ -262,7 +264,7 @@ The follow-up fixes were implemented in small patches and independently re-audit
 
 Latest reward/result polish merged via PR #45. Audited product head `afeb2ac50cba02cec68dcabd60a18e16ced97094`; audited product tree `8a8375b27c2f4001ab4160922d447d7b56d5f36f`; R3 normal-flow browser/video audit passed; squash merge `2837872d6ff9ffb3f6e492725fb034bfc82f5f4a` has the identical tree; post-merge CI #248 passed.
 
-The full current baseline remains 108 unit tests + typecheck + asset self-test/validation + production build.
+At this historical phase the baseline was 108 unit tests; the current post-Secret baseline is **130 unit tests** + typecheck + asset self-test/validation + production build.
 
 ---
 
@@ -304,6 +306,25 @@ The future several-hundred-CHIPS high-tier/Secret-oriented pouch is a later hypo
 
 ---
 
+# Phase 2.7 — Secret reward + reward-tray correction — IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED
+
+Canonical contract: `docs/SECRET_REWARD_CORRECTION.md`.
+
+Merged outcome:
+
+- wider/readable right-preferred reward tray + self-contained debug scenarios (PR #55);
+- Save V4 with persisted Secret new/duplicate outcome and fixed `+40 CHIPS` jackpot excluded from Overcharge (PR #56);
+- Hidden Pocket guarantees missing Secrets first, then remains alive as duplicate jackpots after 2/2;
+- ruby/coral + warm-gold Secret identity, stronger arrival and persistent premium state until collect;
+- one reward tray follows standard/Secret carousel selection;
+- recovery and aggressive fast-forward preserve exact transaction/result state;
+- exact product head `629d5beb666aa9365ce7197082938ea1a50d9d15` passed **34/34** browser assertions with zero runtime/request/HTTP diagnostics and manual artifact review;
+- merged runtime head after PR #57: `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`, post-merge CI PASS.
+
+One fresh merged-main repeated-use regression remains required before Phase 3 because this correction added long-lived Secret presentation tweens and changed the save/economy path after the earlier repeated-use gate.
+
+---
+
 # Deferred information pass — NOT PART OF 2.1
 
 Hands-on also raised a valid information need:
@@ -330,9 +351,9 @@ Player-facing Drop selection remains deferred until Drop #2 exists.
 
 ---
 
-# Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE
+# Phase 3 — real Yandex DRAFT validation — NEXT EXTERNAL GATE AFTER CURRENT INTERNAL REGRESSION
 
-Run `docs/YANDEX_SLICE_VALIDATION.md` only after Phase 2.6 implementation, exact audit and direct regression are accepted.
+Run `docs/YANDEX_SLICE_VALIDATION.md` only after the merged Phase 2.6 + Secret correction runtime passes the fresh final repeated-use regression.
 
 Must cover:
 
