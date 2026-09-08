@@ -5,6 +5,7 @@ import {
   COLLECTIBLE_PRESENTATION,
   getCarouselVisualState,
   getCollectiblePresentation,
+  getRewardTrayHeight,
   MOTION_PRESENTATION,
   OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
@@ -48,6 +49,20 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.bottomActionInset).toBeLessThanOrEqual(32);
     expect(RESULT_PRESENTATION.panelY).toBeGreaterThanOrEqual(600);
     expect(RESULT_PRESENTATION.panelY + RESULT_PRESENTATION.panelHeight / 2).toBeLessThanOrEqual(668);
+  });
+
+  it('keeps result and reward surfaces on the shared 8px grid', () => {
+    expect(RESULT_PRESENTATION.panelMaxWidth).toBe(OPENING_FEEL_PRESENTATION.railCardWidth * 2);
+    expect(OPENING_FEEL_PRESENTATION.rewardTrayWidth % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.rewardTrayContentInset % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.rewardTrayMinHeight % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.rewardTrayHeightStep).toBe(8);
+    expect(getRewardTrayHeight(72)).toBe(72);
+    expect(getRewardTrayHeight(85)).toBe(88);
+    expect(getRewardTrayHeight(93)).toBe(96);
+    expect(getRewardTrayHeight(103)).toBe(104);
+    expect(getRewardTrayHeight(108)).toBe(112);
+    expect(getRewardTrayHeight(116)).toBe(120);
   });
 
   it('keeps reveal emergence on one stable z-order path', () => {
