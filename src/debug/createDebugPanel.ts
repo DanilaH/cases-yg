@@ -93,10 +93,10 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Reset save', () => mutateAndReload(() => resetDebugSave(repository)));
 
   addLabel('Yandex ads');
-  addButton(`Rewarded +${DEBUG_CHIPS_REWARD} DEV CHIPS`, () => {
+  addButton(`Rewarded +${DEBUG_CHIPS_REWARD} DEV CHIPS`, async () => {
     rewardSequence += 1;
     const rewardId = `debug-chips-${Date.now()}-${rewardSequence}`;
-    return platform.ads.showRewarded({
+    const result = await platform.ads.showRewarded({
       rewardId,
       onReward: async () => {
         const current = await repository.load();
@@ -109,6 +109,14 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
         });
       },
     });
+
+    // OpeningSession intentionally caches its transactional base state. The debug
+    // rewarded probe writes through a separate repository, so reload after a durable
+    // grant before any next pouch can stage from stale in-memory CHIPS and overwrite it.
+    if (result.rewardEarned) {
+      window.setTimeout(() => window.location.reload(), 80);
+    }
+    return result;
   });
   addButton('Interstitial', () => platform.ads.showInterstitial());
   addButton('Sticky: show', () => platform.ads.setStickyBannerVisible(true));
