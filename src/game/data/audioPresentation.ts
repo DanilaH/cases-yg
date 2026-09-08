@@ -180,6 +180,10 @@ export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentat
         clearPersistent: true,
         duck: { multiplier: 0.28, attackMs: 10, holdMs: 280, releaseMs: 450 },
       };
+    case 'new-discovery':
+      return {
+        duck: { multiplier: 0.62, attackMs: 8, holdMs: 90, releaseMs: 220 },
+      };
     case 'duplicate':
       return {
         duck: { multiplier: 0.78, attackMs: 10, holdMs: 50, releaseMs: 150 },

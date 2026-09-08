@@ -2001,6 +2001,98 @@ export class OpeningScene extends Phaser.Scene {
     return tray;
   }
 
+  private async animateDiscoveryBeat(
+    pending: PendingReveal,
+    standardVisual: Phaser.GameObjects.Container,
+  ): Promise<void> {
+    if (!this.root || !this.metrics || !pending.standard.isNew || pending.hiddenPocket) return;
+
+    const messages = getMessages(getPlatformRuntime().language);
+    const presentation = getCollectiblePresentation(pending.standard.familyId);
+    const heroX = this.metrics.centerX;
+    const heroY = presentation.revealY;
+    const rarityColor = RARITY_REVEAL_COLORS[pending.standard.rarity];
+    const frameWidth = OPENING_FEEL_PRESENTATION.discoveryFrameWidth;
+    const frameHeight = OPENING_FEEL_PRESENTATION.discoveryFrameHeight;
+    const beat = this.add.container(heroX, heroY).setAlpha(0).setScale(0.96);
+    beat.setData('rewardMeaning', 'discovery');
+
+    const frame = this.add.graphics();
+    frame.lineStyle(2.2, 0x8df8ff, 0.76);
+    frame.strokeRoundedRect(-frameWidth / 2, -frameHeight / 2, frameWidth, frameHeight, 22);
+    frame.lineStyle(1.2, rarityColor, 0.54);
+    frame.strokeRoundedRect(
+      -frameWidth / 2 + 8,
+      -frameHeight / 2 + 8,
+      frameWidth - 16,
+      frameHeight - 16,
+      18,
+    );
+    const marker = this.add
+      .rectangle(-frameWidth / 2 + 16, -frameHeight / 2 + 16, 7, 7, 0xffd36a, 0.94)
+      .setRotation(Math.PI / 4)
+      .setStrokeStyle(1, 0xffffff, 0.38);
+    const label = this.add
+      .text(0, OPENING_FEEL_PRESENTATION.discoveryLabelOffsetY, messages.opening.addedToCollection, {
+        color: '#dffcff',
+        backgroundColor: '#182130',
+        padding: { x: 9, y: 5 },
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '8px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    beat.add([frame, marker, label]);
+    this.root.add(beat);
+
+    getGameAudio().play('new-discovery');
+    await Promise.all([
+      this.runSkippableTween({
+        targets: beat,
+        alpha: 1,
+        scale: 1,
+        duration: OPENING_FEEL_PRESENTATION.discoveryIntroMs,
+        ease: 'Back.Out',
+      }),
+      this.runSkippableTween({
+        targets: standardVisual,
+        scale: presentation.revealScale * OPENING_FEEL_PRESENTATION.discoveryPopScale,
+        duration: OPENING_FEEL_PRESENTATION.discoveryIntroMs,
+        ease: 'Back.Out',
+      }),
+    ]);
+    if (this.isSceneShutdown()) {
+      if (beat.active) beat.destroy(true);
+      return;
+    }
+
+    await this.waitPresentation(OPENING_FEEL_PRESENTATION.discoveryHoldMs);
+    if (this.isSceneShutdown()) {
+      if (beat.active) beat.destroy(true);
+      return;
+    }
+
+    await Promise.all([
+      this.runSkippableTween({
+        targets: beat,
+        y: heroY - 5,
+        alpha: 0,
+        scale: 1.025,
+        duration: OPENING_FEEL_PRESENTATION.discoverySettleMs,
+        ease: 'Sine.Out',
+      }),
+      this.runSkippableTween({
+        targets: standardVisual,
+        scale: presentation.revealScale,
+        duration: OPENING_FEEL_PRESENTATION.discoverySettleMs,
+        ease: 'Sine.Out',
+      }),
+    ]);
+    if (beat.active) beat.destroy(true);
+  }
+
   private async animateRewardStaging(
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
@@ -2011,6 +2103,47 @@ export class OpeningScene extends Phaser.Scene {
     const heroY = getCollectiblePresentation(pending.standard.familyId).revealY;
 
     if (!pending.standard.isNew && pending.chips.recycle > 0) {
+      const messages = getMessages(getPlatformRuntime().language);
+      getGameAudio().play('duplicate');
+      const conversionLabel = this.add
+        .text(
+          this.metrics.centerX,
+          heroY + 106,
+          `${messages.opening.recycled} +${pending.chips.recycle}`,
+          {
+            color: '#c8fbff',
+            backgroundColor: '#182431',
+            padding: { x: 8, y: 4 },
+            stroke: '#100b16',
+            strokeThickness: 2,
+            fontFamily: DIGITAL_FONT_FAMILY,
+            fontSize: '8px',
+            fontStyle: 'bold',
+          },
+        )
+        .setOrigin(0.5)
+        .setAlpha(0);
+      conversionLabel.setData('rewardMeaning', 'conversion');
+      this.root.add(conversionLabel);
+      this.tweens.add({
+        targets: conversionLabel,
+        y: heroY + 100,
+        alpha: 1,
+        duration: 90,
+        ease: 'Sine.Out',
+        onComplete: () => {
+          if (!conversionLabel.active) return;
+          this.tweens.add({
+            targets: conversionLabel,
+            y: heroY + 94,
+            alpha: 0,
+            duration: OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs - 90,
+            ease: 'Sine.In',
+            onComplete: () => conversionLabel.destroy(),
+          });
+        },
+      });
+
       const scan = this.add
         .rectangle(this.metrics.centerX - 82, heroY, 12, 170, 0x8df8ff, 0.12)
         .setRotation(0.16)
@@ -2436,6 +2569,8 @@ export class OpeningScene extends Phaser.Scene {
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
   ): Promise<void> {
+    await this.animateDiscoveryBeat(pending, standardVisual);
+    if (this.isSceneShutdown()) return;
     await this.animateRewardStaging(pending, standardVisual);
     if (this.isSceneShutdown()) return;
     await this.bankSignalGain(pending);
@@ -2644,9 +2779,6 @@ export class OpeningScene extends Phaser.Scene {
     if (fx.shake > 0) this.cameras.main.shake(100, fx.shake);
 
     getGameAudio().play(pending.standard.rarity);
-    if (!pending.standard.isNew) {
-      this.time.delayedCall(90, () => getGameAudio().play('duplicate'));
-    }
     return visual.group;
   }
 

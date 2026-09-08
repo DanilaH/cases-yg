@@ -41,6 +41,17 @@ describe('audio presentation', () => {
     }
   });
 
+  it('gives NEW discovery a separate foreground beat without creating persistent ambience', () => {
+    const discovery = getAudioCuePresentationDirective('new-discovery');
+    const duplicate = getAudioCuePresentationDirective('duplicate');
+    const signal = getAudioCuePresentationDirective('signal-gain');
+
+    expect(discovery.persistent).toBeUndefined();
+    expect(discovery.clearPersistent).toBeUndefined();
+    expect(discovery.duck?.multiplier).toBeLessThan(duplicate.duck!.multiplier);
+    expect(discovery.duck?.multiplier).toBeLessThan(signal.duck!.multiplier);
+  });
+
   it('clears stale result ambience before a new physical/reveal cycle', () => {
     expect(getAudioCuePresentationDirective('pouch-grab').clearPersistent).toBe(true);
     expect(getAudioCuePresentationDirective('tear').clearPersistent).toBe(true);
