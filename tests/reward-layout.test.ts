@@ -14,7 +14,7 @@ const rectFromCenter = (x: number, y: number, width: number, height: number): Lo
 describe('reward tray layout', () => {
   for (const width of [900, 1024, 1280]) {
     for (const rows of [1, 2, 3, 4]) {
-      it(`keeps ${rows} reward rows inside safe geometry at ${width}px`, () => {
+      it(`keeps ${rows} reward rows in the upper center-right result lane at ${width}px`, () => {
         const metrics = createLayoutMetrics(width, 720);
         const trayHeight = 30 + rows * 22;
         const placement = computeRewardTrayPlacement({
@@ -51,16 +51,19 @@ describe('reward tray layout', () => {
         const hero: LogicalRect = {
           left: metrics.centerX - OPENING_FEEL_PRESENTATION.rewardTrayHeroHalfWidth,
           right: metrics.centerX + OPENING_FEEL_PRESENTATION.rewardTrayHeroHalfWidth,
-          top: 210,
-          bottom: 500,
+          top: 220,
+          bottom: 520,
         };
 
         expect(tray.left).toBeGreaterThanOrEqual(metrics.safeLeft);
         expect(tray.right).toBeLessThanOrEqual(metrics.safeRight);
         expect(tray.top).toBeGreaterThanOrEqual(metrics.safeTop);
+        expect(tray.bottom).toBeLessThan(190);
         expect(rectsOverlap(tray, rail)).toBe(false);
         expect(rectsOverlap(tray, result)).toBe(false);
         expect(rectsOverlap(tray, hero)).toBe(false);
+        expect(placement.x).toBeGreaterThan(metrics.centerX);
+        expect(placement.x - metrics.centerX).toBeLessThanOrEqual(160);
         expect(placement.side).toBe('right');
       });
     }

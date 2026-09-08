@@ -25,7 +25,7 @@ const FALLBACK_PRESENTATION: CollectiblePresentation = {
   shelfSecretScale: 0.82,
   libraryScale: 0.27,
   librarySecretScale: 0.29,
-  revealY: 310,
+  revealY: 328,
 };
 
 export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresentation>> = {
@@ -39,7 +39,7 @@ export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresen
     shelfSecretScale: 0.82,
     libraryScale: 0.27,
     librarySecretScale: 0.29,
-    revealY: 318,
+    revealY: 336,
   },
   'flip-phone': {
     assetWidth: 300,
@@ -54,7 +54,7 @@ export const COLLECTIBLE_PRESENTATION: Readonly<Record<string, CollectiblePresen
     shelfSecretScale: 0.73,
     libraryScale: 0.36,
     librarySecretScale: 0.38,
-    revealY: 310,
+    revealY: 328,
   },
 };
 
@@ -246,11 +246,11 @@ export const OPENING_FEEL_PRESENTATION = {
 } as const;
 
 export const RESULT_PRESENTATION = {
-  panelY: 568,
+  panelY: 586,
   panelHeight: 112,
   panelMaxWidth: 430,
   panelMinWidth: 330,
-  carouselDotY: 486,
+  carouselDotY: 504,
   carouselSpacingMin: 260,
   carouselSpacingMax: 330,
   carouselSpacingRatio: 0.29,
