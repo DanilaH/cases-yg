@@ -4,6 +4,23 @@ import type { PlatformRuntime } from '../platform/yandex';
 import { resetDebugSave, seedDebugCollection, stageDebugReveal, type DebugRevealScenario } from './debugScenarios';
 
 const DEBUG_CHIPS_REWARD = LITE_V2_BALANCE.pouchProfiles.charged.chipsCost;
+const DEBUG_PANEL_COLLAPSED_KEY = 'mystery-pocket-tech.debug-panel-collapsed';
+
+const readCollapsedPreference = (): boolean => {
+  try {
+    return window.sessionStorage.getItem(DEBUG_PANEL_COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const writeCollapsedPreference = (collapsed: boolean): void => {
+  try {
+    window.sessionStorage.setItem(DEBUG_PANEL_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch {
+    // Debug convenience only; storage restrictions must never affect the game.
+  }
+};
 
 const addDebugChips = (state: SaveState, amount: number): SaveState => {
   const pendingReveal = state.pendingReveal
@@ -34,15 +51,52 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   const repository = new SaveRepository(platform.storage);
   const panel = document.createElement('aside');
   panel.className = 'mpt-debug-panel';
-  panel.innerHTML = `<strong>Platform: ${platform.kind}</strong><span data-status>ready</span>`;
-  const status = panel.querySelector<HTMLElement>('[data-status]');
+
+  const header = document.createElement('div');
+  header.className = 'mpt-debug-panel__header';
+
+  const meta = document.createElement('div');
+  meta.className = 'mpt-debug-panel__meta';
+  const platformLabel = document.createElement('strong');
+  platformLabel.textContent = `Platform: ${platform.kind}`;
+  const status = document.createElement('span');
+  status.dataset.status = '';
+  status.textContent = 'ready';
+  meta.append(platformLabel, status);
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'mpt-debug-panel__toggle';
+  toggle.setAttribute('aria-controls', 'mpt-debug-panel-body');
+
+  header.append(meta, toggle);
+  panel.append(header);
+
+  const body = document.createElement('div');
+  body.id = 'mpt-debug-panel-body';
+  body.className = 'mpt-debug-panel__body';
+  panel.append(body);
+
+  const setCollapsed = (collapsed: boolean): void => {
+    panel.classList.toggle('is-collapsed', collapsed);
+    body.hidden = collapsed;
+    meta.hidden = collapsed;
+    toggle.textContent = collapsed ? 'DEBUG' : 'Hide';
+    toggle.title = collapsed ? 'Show debug panel' : 'Hide debug panel';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    writeCollapsedPreference(collapsed);
+  };
+
+  toggle.addEventListener('click', () => {
+    setCollapsed(!panel.classList.contains('is-collapsed'));
+  });
 
   const addLabel = (text: string): void => {
     const label = document.createElement('span');
     label.textContent = text;
     label.style.fontWeight = '700';
     label.style.marginTop = '4px';
-    panel.append(label);
+    body.append(label);
   };
 
   const addButton = (label: string, action: () => Promise<unknown>): void => {
@@ -50,16 +104,16 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     button.type = 'button';
     button.textContent = label;
     button.addEventListener('click', () => {
-      if (status) status.textContent = `${label}…`;
+      status.textContent = `${label}…`;
       void action()
         .then((result) => {
-          if (status) status.textContent = JSON.stringify(result);
+          status.textContent = JSON.stringify(result);
         })
         .catch((error: unknown) => {
-          if (status) status.textContent = error instanceof Error ? error.message : String(error);
+          status.textContent = error instanceof Error ? error.message : String(error);
         });
     });
-    panel.append(button);
+    body.append(button);
   };
 
   const stageAndReload = async (scenario: DebugRevealScenario): Promise<{ scenario: DebugRevealScenario }> => {
@@ -122,6 +176,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Sticky: show', () => platform.ads.setStickyBannerVisible(true));
   addButton('Sticky: hide', () => platform.ads.setStickyBannerVisible(false));
 
+  setCollapsed(readCollapsedPreference());
   document.body.append(panel);
   return () => panel.remove();
 };
