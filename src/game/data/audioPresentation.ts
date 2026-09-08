@@ -43,6 +43,24 @@ export interface AudioCuePresentationDirective {
   duck?: AudioDuckProfile;
 }
 
+export interface RevealAnticipationAudioProfile {
+  enabled: boolean;
+  multiplier: number;
+  attackMs: number;
+  releaseMs: number;
+}
+
+export const REVEAL_ANTICIPATION_AUDIO: Readonly<Record<ResultAmbienceRarity, RevealAnticipationAudioProfile>> = {
+  common: { enabled: false, multiplier: 1, attackMs: 0, releaseMs: 0 },
+  rare: { enabled: false, multiplier: 1, attackMs: 0, releaseMs: 0 },
+  epic: { enabled: true, multiplier: 0.56, attackMs: 35, releaseMs: 260 },
+  legendary: { enabled: true, multiplier: 0.18, attackMs: 32, releaseMs: 340 },
+  secret: { enabled: true, multiplier: 0.08, attackMs: 28, releaseMs: 380 },
+} as const;
+
+export const getRevealAnticipationAudioProfile = (rarity: ResultAmbienceRarity): RevealAnticipationAudioProfile =>
+  REVEAL_ANTICIPATION_AUDIO[rarity];
+
 export interface DragTextureProfile {
   minGain: number;
   maxGain: number;

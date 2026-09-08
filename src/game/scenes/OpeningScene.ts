@@ -2724,12 +2724,19 @@ export class OpeningScene extends Phaser.Scene {
     const color = RARITY_REVEAL_COLORS[pending.standard.rarity];
     const presentation = getCollectiblePresentation(pending.standard.familyId);
     const fx = REVEAL_FX_PRESETS[pending.standard.rarity];
-    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
     const heroX = this.metrics!.centerX;
     const heroY = presentation.revealY;
     const finalScale = presentation.revealScale;
+    const audio = getGameAudio();
 
-    getGameAudio().play('reveal-pop');
+    audio.beginRevealAnticipation(pending.standard.rarity, fx.anticipationHoldMs);
+    if (fx.anticipationHoldMs > 0) {
+      await this.waitPresentation(fx.anticipationHoldMs);
+      if (this.isSceneShutdown()) return pouch.group;
+    }
+
+    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
+    audio.play('reveal-pop');
 
     const halo = this.add.circle(heroX, heroY, 144, color, fx.glowAlpha).setScale(0.36);
     const flash = this.add.circle(heroX, heroY, 108, color, fx.flashAlpha).setScale(0.24);
@@ -2833,7 +2840,7 @@ export class OpeningScene extends Phaser.Scene {
       alpha: 1,
       angle: 0,
       duration: fx.introDuration,
-      ease: 'Back.Out',
+      ease: fx.introEase,
     });
     if (this.isSceneShutdown()) return visual.group;
 
@@ -2842,12 +2849,22 @@ export class OpeningScene extends Phaser.Scene {
       targets: visual.group,
       scale: finalScale,
       duration: fx.settleDuration,
-      ease: 'Sine.Out',
+      ease: fx.settleEase,
     });
 
     if (fx.shake > 0) this.cameras.main.shake(100, fx.shake);
+    if (fx.aftershockScale > 1 && fx.aftershockDurationMs > 0) {
+      await this.runSkippableTween({
+        targets: visual.group,
+        scale: finalScale * fx.aftershockScale,
+        duration: fx.aftershockDurationMs,
+        yoyo: true,
+        ease: 'Sine.InOut',
+      });
+      visual.group.setScale(finalScale);
+    }
 
-    getGameAudio().play(pending.standard.rarity);
+    audio.play(pending.standard.rarity);
     return visual.group;
   }
 
@@ -3002,6 +3019,9 @@ export class OpeningScene extends Phaser.Scene {
 
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
+    getGameAudio().beginRevealAnticipation('secret', fx.anticipationHoldMs);
+    await this.waitPresentation(fx.anticipationHoldMs);
+    if (this.isSceneShutdown()) return;
     this.createRevealBackdrop(Math.min(0.58, fx.backdropAlpha * 1.28), fx.particleDuration + 120);
     const auraCloud = this.add.container(heroX, heroY).setAlpha(0);
     const cloudA = this.add.ellipse(-28, 8, 300, 188, SECRET_REVEAL_COLOR, 0.19).setBlendMode(Phaser.BlendModes.ADD);
@@ -3112,13 +3132,13 @@ export class OpeningScene extends Phaser.Scene {
       scale: secretPresentation.revealScale * fx.overshootScale,
       alpha: 1,
       duration: fx.introDuration,
-      ease: 'Back.Out',
+      ease: fx.introEase,
     });
     await this.runSkippableTween({
       targets: secret.group,
       scale: secretPresentation.revealScale,
       duration: fx.settleDuration,
-      ease: 'Sine.Out',
+      ease: fx.settleEase,
     });
     this.cameras.main.shake(145, Math.min(0.0062, fx.shake * 1.35));
     await this.runSkippableTween({

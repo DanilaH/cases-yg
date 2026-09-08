@@ -5,6 +5,7 @@ import {
   getAudioCuePresentationDirective,
   getDragTextureMix,
   getRarityAmbienceProfile,
+  getRevealAnticipationAudioProfile,
   type PersistentResultAmbience,
   type ResultAmbienceRarity,
 } from '../data/audioPresentation';
@@ -380,6 +381,38 @@ class GameAudioController {
     gain.gain.cancelScheduledValues(now);
     gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + DRAG_TEXTURE_PROFILE.releaseMs / 1000);
+  }
+
+  public beginRevealAnticipation(rarity: ResultAmbienceRarity, holdMs: number): void {
+    const profile = getRevealAnticipationAudioProfile(rarity);
+    if (!profile.enabled || holdMs <= 0 || this.muted || this.blocked || typeof AudioContext === 'undefined') return;
+
+    const context = this.getContext();
+    if (!context) return;
+    const apply = (): void => {
+      if (this.muted || this.blocked || context.state !== 'running') return;
+      this.ensureBaseAmbience(context);
+      this.desiredResultAmbience = null;
+      this.cancelQueuedResultAmbience();
+      const fadeOutMs = this.activeResultAmbience
+        ? Math.min(120, getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs)
+        : 70;
+      this.stopPersistentRarity(context, fadeOutMs, false);
+      this.duckBase(context, {
+        multiplier: profile.multiplier,
+        attackMs: profile.attackMs,
+        holdMs,
+        releaseMs: profile.releaseMs,
+      });
+    };
+
+    if (context.state === 'running') {
+      apply();
+      return;
+    }
+    if (context.state === 'suspended') {
+      void context.resume().then(apply).catch(() => undefined);
+    }
   }
 
   public setResultAmbience(rarity: ResultAmbienceRarity): void {
