@@ -1,0 +1,105 @@
+name: Build Yandex DRAFT candidate R1
+
+on:
+  push:
+    branches:
+      - draft/yandex-phase26-candidate-r1
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Assert exact accepted main product tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet 9ea6ef70f66a8aa35af9cab202974b602cc8fe15 -- . \
+            ':(exclude).github/workflows/yandex-draft-candidate-r1.yml'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Validate Yandex archive structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          root = Path('dist')
+          index = root / 'index.html'
+          if not index.is_file():
+              raise SystemExit('dist/index.html missing')
+
+          entries = [p for p in root.rglob('*') if p.is_file()]
+          total = sum(p.stat().st_size for p in entries)
+          limit = 100 * 1024 * 1024
+          if total > limit:
+              raise SystemExit(f'uncompressed dist too large: {total} > {limit}')
+
+          invalid = []
+          cyr = re.compile(r'[\u0400-\u04FF]')
+          for p in root.rglob('*'):
+              rel = p.relative_to(root).as_posix()
+              if any(part.strip() != part or ' ' in part or cyr.search(part) for part in p.relative_to(root).parts):
+                  invalid.append(rel)
+          if invalid:
+              raise SystemExit('invalid archive names: ' + json.dumps(invalid, ensure_ascii=False))
+
+          extra_index = [p.relative_to(root).as_posix() for p in root.rglob('index.html') if p != index]
+          if extra_index:
+              raise SystemExit('extra index.html files: ' + json.dumps(extra_index))
+
+          text = index.read_text('utf8')
+          if 'platform=mock' in text:
+              raise SystemExit('mock platform marker baked into production index')
+
+          bundle_text = '\n'.join(p.read_text('utf8', errors='ignore') for p in entries if p.suffix in {'.js', '.html'})
+          if '/sdk.js' not in bundle_text:
+              raise SystemExit('production bundle does not reference /sdk.js')
+          if 'YaGames.init' not in bundle_text:
+              raise SystemExit('production bundle does not contain YaGames.init')
+
+          manifest = {
+              'sourceMainSha': '9ea6ef70f66a8aa35af9cab202974b602cc8fe15',
+              'uncompressedBytes': total,
+              'fileCount': len(entries),
+              'indexAtRoot': True,
+              'invalidNames': [],
+              'sdkRelativePathPresent': True,
+          }
+          Path('/tmp/draft-candidate-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          print(json.dumps(manifest, indent=2))
+          PY
+      - name: Package archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/mystery-pocket-tech-yandex-draft-r1.zip
+          (cd dist && zip -q -r "$archive" .)
+          test "$(unzip -Z1 "$archive" | grep -c '^index.html$')" -eq 1
+          sha256sum "$archive" | tee /tmp/draft-candidate-sha256.txt
+          unzip -l "$archive" | head -40
+          ls -lh "$archive"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yandex-draft-candidate-r1
+          path: |
+            /tmp/mystery-pocket-tech-yandex-draft-r1.zip
+            /tmp/draft-candidate-manifest.json
+            /tmp/draft-candidate-sha256.txt
+          retention-days: 7
