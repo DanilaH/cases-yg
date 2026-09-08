@@ -6,6 +6,7 @@ import {
   getCarouselVisualState,
   getCollectiblePresentation,
   getRewardTrayHeight,
+  getStandardResultPresence,
   MOTION_PRESENTATION,
   OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
@@ -63,6 +64,26 @@ describe('reveal presentation', () => {
     expect(getRewardTrayHeight(103)).toBe(104);
     expect(getRewardTrayHeight(108)).toBe(112);
     expect(getRewardTrayHeight(116)).toBe(120);
+  });
+
+  it('keeps persistent standard rarity presence restrained and tiered', () => {
+    const common = getStandardResultPresence('common');
+    const rare = getStandardResultPresence('rare');
+    const epic = getStandardResultPresence('epic');
+    const legendary = getStandardResultPresence('legendary');
+
+    expect(common.enabled).toBe(false);
+    expect(rare.enabled).toBe(true);
+    expect(rare.glowAlpha).toBeLessThan(epic.glowAlpha);
+    expect(epic.glowAlpha).toBeLessThan(legendary.glowAlpha);
+    expect(rare.ringAlpha).toBeLessThan(epic.ringAlpha);
+    expect(epic.ringAlpha).toBeLessThan(legendary.ringAlpha);
+    expect(rare.sparkleCount).toBe(0);
+    expect(epic.sparkleCount).toBeLessThan(legendary.sparkleCount);
+    expect(legendary.sparkleCount).toBeLessThanOrEqual(4);
+    expect(legendary.glowAlpha).toBeLessThanOrEqual(0.07);
+    expect(legendary.glowAlpha).toBeLessThan(REVEAL_FX_PRESETS.legendary.glowAlpha * 0.15);
+    expect(legendary.sparkleCount).toBeLessThan(REVEAL_FX_PRESETS.legendary.particleCount);
   });
 
   it('keeps reveal emergence on one stable z-order path', () => {
