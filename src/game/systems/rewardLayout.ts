@@ -56,10 +56,12 @@ export const computeRewardTrayPlacement = ({
   const rightClearance = rightX - halfWidth - heroRight;
 
   let side: RewardTrayPlacement['side'];
-  if (leftClearance >= 0) {
-    side = 'left';
-  } else if (rightClearance >= 0) {
+  // The persistent pouch/gameplay rail owns the left side. Prefer the free right
+  // reward slot whenever it fits; only fall back left when right is genuinely blocked.
+  if (rightClearance >= 0) {
     side = 'right';
+  } else if (leftClearance >= 0) {
+    side = 'left';
   } else {
     side = rightClearance > leftClearance ? 'right' : 'left';
   }
