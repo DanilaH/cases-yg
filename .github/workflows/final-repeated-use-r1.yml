@@ -47,6 +47,19 @@ jobs:
           done
           cat /tmp/vite.log
           exit 1
+      - name: Normalize first-run empty storage for audit harness
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/scripts/final-repeated-use-r1.mjs')
+          s = p.read_text()
+          old = "    const before = await readSave(page);\n    if (!before || before.pendingReveal) throw new Error(`Opening ${index}: invalid idle save`);"
+          new = "    const before = (await readSave(page)) ?? { chips: 0, totalOpens: 0, pendingReveal: null };\n    if (before.pendingReveal) throw new Error(`Opening ${index}: invalid idle save`);"
+          if old not in s:
+              raise SystemExit('audit harness patch target not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
       - name: Run repeated-use normal-loop review
         run: node .github/scripts/final-repeated-use-r1.mjs
       - uses: actions/upload-artifact@v4
