@@ -9,6 +9,7 @@ import {
   AMBIENT_PRESENTATION,
   getCarouselSpacing,
   getCarouselVisualState,
+  getRewardTrayHeight,
   getCollectiblePresentation,
   MOTION_PRESENTATION,
   OPENING_FEEL_PRESENTATION,
@@ -1711,8 +1712,8 @@ export class OpeningScene extends Phaser.Scene {
     const secretSelected = Boolean(pending.hiddenPocket && this.resultCarouselIndex === 1);
     const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
     const left = -width / 2;
-    const contentLeft = left + 13;
-    const contentRight = width / 2 - 13;
+    const contentLeft = left + OPENING_FEEL_PRESENTATION.rewardTrayContentInset;
+    const contentRight = width / 2 - OPENING_FEEL_PRESENTATION.rewardTrayContentInset;
     const iconX = contentLeft + 4;
     const textX = contentLeft + 18;
     const tray = this.add.container(0, 0);
@@ -1866,7 +1867,7 @@ export class OpeningScene extends Phaser.Scene {
       }
     }
 
-    const height = Math.max(72, cursorY + 8);
+    const height = getRewardTrayHeight(cursorY + 8);
     const placement = computeRewardTrayPlacement({
       safeLeft: this.metrics!.safeLeft,
       safeRight: this.metrics!.safeRight,

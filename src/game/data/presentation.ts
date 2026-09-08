@@ -220,7 +220,10 @@ export const REVEAL_MOTION_PRESENTATION = {
 export const OPENING_FEEL_PRESENTATION = {
   postTearSkipGuardMs: 120,
   resultReadHoldMs: 980,
-  rewardTrayWidth: 244,
+  rewardTrayWidth: 248,
+  rewardTrayContentInset: 16,
+  rewardTrayMinHeight: 72,
+  rewardTrayHeightStep: 8,
   rewardTraySideGap: 18,
   rewardTrayResultGap: 18,
   rewardTrayHeroHalfWidth: 144,
@@ -245,6 +248,12 @@ export const OPENING_FEEL_PRESENTATION = {
   hudShimmerRepeatDelayMs: 2100,
 } as const;
 
+export const getRewardTrayHeight = (contentHeight: number): number =>
+  Math.max(
+    OPENING_FEEL_PRESENTATION.rewardTrayMinHeight,
+    Math.ceil(contentHeight / OPENING_FEEL_PRESENTATION.rewardTrayHeightStep) * OPENING_FEEL_PRESENTATION.rewardTrayHeightStep,
+  );
+
 export const RESULT_PRESENTATION = {
   // Keep the lower result card visually grounded near the bottom action line.
   panelY: 612,
@@ -253,7 +262,7 @@ export const RESULT_PRESENTATION = {
   headingY: -31,
   statusY: 1,
   hintY: 35,
-  panelMaxWidth: 430,
+  panelMaxWidth: 432,
   panelMinWidth: 330,
   carouselDotY: 504,
   carouselSpacingMin: 260,
