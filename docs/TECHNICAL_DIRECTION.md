@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, Phase 2.6 Signal Overcharge, and the bounded Secret reward/reward-tray correction are implemented in current `main`. The earlier final repeated-use gate caught and fixed the stale Overcharge reward-tag tween race; the later Secret correction then changed save/economy/presentation again and was merged through PRs #55–#57. Its exact product tree passed a 34/34 browser acceptance with manual screenshot/video review. One fresh merged-main repeated-use regression is therefore the current internal gate; real Yandex DRAFT follows only if that regression stays clean.
+Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, Phase 2.6 Signal Overcharge, and the bounded Secret reward/reward-tray correction are implemented in current `main`. The earlier final repeated-use gate caught and fixed the stale Overcharge reward-tag tween race; the later Secret correction then changed save/economy/presentation again and was merged through PRs #55–#57. Its exact product tree passed a 34/34 browser acceptance with manual screenshot/video review. The fresh merged-main repeated-use regression is now complete and accepted: exact runtime `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba` passed 82/82 assertions across 24 normal openings plus a forced Hidden Pocket lifecycle/teardown path, with zero runtime/request/HTTP diagnostics and manual artifact review. Real Yandex DRAFT is now the current next external gate.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -351,13 +351,13 @@ Current suite baseline is **130 tests** plus typecheck/assets/build. Focused cov
 - recovery remains idempotent;
 - Charged selection continuity/fallback remains intact.
 
-The browser/video regressions cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts. The earlier final direct repeated-use gate reproduced and fixed the Overcharge reward-tag teardown race, then passed **86/86** assertions on the exact fixed tree. The later Secret correction exact tree additionally passed **34/34** assertions across NEW/duplicate Secret, EN 1280, RU 900, carousel reward switching, ~4-second persistent premium state, recovery and aggressive fast-forward with zero runtime/request/HTTP diagnostics and manual artifact review. A fresh merged-main repeated-use regression remains required because this later correction changed runtime behavior.
+The browser/video regressions cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts. The earlier final direct repeated-use gate reproduced and fixed the Overcharge reward-tag teardown race, then passed **86/86** assertions on the exact fixed tree. The later Secret correction exact tree additionally passed **34/34** assertions across NEW/duplicate Secret, EN 1280, RU 900, carousel reward switching, ~4-second persistent premium state, recovery and aggressive fast-forward with zero runtime/request/HTTP diagnostics and manual artifact review. That fresh merged-main repeated-use regression is complete and accepted; no additional local runtime gate remains before hosted DRAFT.
 
 ---
 
 ## 16. Yandex boundary
 
-Real hosted Yandex DRAFT is the **next external gate**, but it remains blocked on one fresh merged-main repeated-use regression after the Secret correction.
+Real hosted Yandex DRAFT is now the **current next external gate** after the accepted post-Secret merged-main repeated-use regression.
 
 Hosted gate still covers SDK boot/loading, storage, lifecycle/audio, ad behavior, interrupted Basic/Charged recovery and Metrica.
 
