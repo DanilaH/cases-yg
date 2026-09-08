@@ -1,0 +1,107 @@
+name: Temporary result grid polish
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/result-grid-r2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply bounded grid polish
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          presentation = Path('src/game/data/presentation.ts')
+          text = presentation.read_text()
+          replacements = {
+              '  rewardTrayWidth: 244,\n': '  rewardTrayWidth: 248,\n  rewardTrayContentInset: 16,\n  rewardTrayMinHeight: 72,\n  rewardTrayHeightStep: 8,\n',
+              '  panelMaxWidth: 430,\n': '  panelMaxWidth: 432,\n',
+          }
+          for old, new in replacements.items():
+              assert old in text, old
+              text = text.replace(old, new, 1)
+          marker = "export const RESULT_PRESENTATION = {\n"
+          helper = "export const getRewardTrayHeight = (contentHeight: number): number =>\n  Math.max(\n    OPENING_FEEL_PRESENTATION.rewardTrayMinHeight,\n    Math.ceil(contentHeight / OPENING_FEEL_PRESENTATION.rewardTrayHeightStep) * OPENING_FEEL_PRESENTATION.rewardTrayHeightStep,\n  );\n\n"
+          assert marker in text
+          text = text.replace(marker, helper + marker, 1)
+          presentation.write_text(text)
+
+          opening = Path('src/game/scenes/OpeningScene.ts')
+          text = opening.read_text()
+          old = "  getCarouselSpacing,\n  getCarouselVisualState,\n"
+          new = "  getCarouselSpacing,\n  getCarouselVisualState,\n  getRewardTrayHeight,\n"
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = "    const contentLeft = left + 13;\n    const contentRight = width / 2 - 13;\n"
+          new = "    const contentLeft = left + OPENING_FEEL_PRESENTATION.rewardTrayContentInset;\n    const contentRight = width / 2 - OPENING_FEEL_PRESENTATION.rewardTrayContentInset;\n"
+          assert old in text
+          text = text.replace(old, new, 1)
+          old = "    const height = Math.max(72, cursorY + 8);\n"
+          new = "    const height = getRewardTrayHeight(cursorY + 8);\n"
+          assert old in text
+          text = text.replace(old, new, 1)
+          opening.write_text(text)
+
+          tests = Path('tests/presentation.test.ts')
+          text = tests.read_text()
+          old = "  getCarouselVisualState,\n  getCollectiblePresentation,\n"
+          new = "  getCarouselVisualState,\n  getCollectiblePresentation,\n  getRewardTrayHeight,\n"
+          assert old in text
+          text = text.replace(old, new, 1)
+          marker = "  it('keeps reveal emergence on one stable z-order path', () => {\n"
+          block = "  it('keeps result and reward surfaces on the shared 8px grid', () => {\n    expect(RESULT_PRESENTATION.panelMaxWidth).toBe(OPENING_FEEL_PRESENTATION.railCardWidth * 2);\n    expect(OPENING_FEEL_PRESENTATION.rewardTrayWidth % 8).toBe(0);\n    expect(OPENING_FEEL_PRESENTATION.rewardTrayContentInset % 8).toBe(0);\n    expect(OPENING_FEEL_PRESENTATION.rewardTrayMinHeight % 8).toBe(0);\n    expect(OPENING_FEEL_PRESENTATION.rewardTrayHeightStep).toBe(8);\n    expect(getRewardTrayHeight(72)).toBe(72);\n    expect(getRewardTrayHeight(85)).toBe(88);\n    expect(getRewardTrayHeight(93)).toBe(96);\n    expect(getRewardTrayHeight(103)).toBe(104);\n    expect(getRewardTrayHeight(108)).toBe(112);\n    expect(getRewardTrayHeight(116)).toBe(120);\n  });\n\n"
+          assert marker in text
+          text = text.replace(marker, block + marker, 1)
+          tests.write_text(text)
+          PY
+          git diff --check
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Reuse corrected grid audit harness
+        run: |
+          git fetch origin audit/grid-polish-r1 --depth=1
+          git show FETCH_HEAD:tools/tmp-grid-polish-local-audit.mjs > tools/.tmp-grid-polish-local-audit.mjs
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-grid-vite.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 0.5
+          done
+          node tools/.tmp-grid-polish-local-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-grid-polish-audit
+          path: tmp-grid-polish-local-audit
+          if-no-files-found: ignore
+      - name: Commit only product changes and remove temporary harness
+        if: success()
+        run: |
+          rm -f tools/.tmp-grid-polish-local-audit.mjs
+          rm -rf tmp-grid-polish-local-audit
+          git restore package.json package-lock.json 2>/dev/null || true
+          git rm .github/workflows/tmp-result-grid-polish.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts tests/presentation.test.ts
+          git diff --cached --check
+          git commit -m "Polish result grid geometry"
+          git push origin HEAD:polish/result-grid-r2
