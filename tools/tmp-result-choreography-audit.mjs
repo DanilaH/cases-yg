@@ -31,74 +31,114 @@ async function collapseDebug() {
   if (await hide.count()) await hide.click();
 }
 
-async function stage(name) {
+async function stage(name, delay = 1900) {
   await expandDebug();
   const button = page.getByRole('button', { name, exact: true });
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }),
     button.click(),
   ]);
-  await waitReady();
+  await waitReady(delay);
 }
 
-async function collectResult() {
-  await page.mouse.click(640, 604);
-  await page.waitForTimeout(1500);
+async function reloadIdle(delay = 800) {
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitReady(delay);
 }
 
-async function tearBasic() {
+async function tearPouch() {
   await page.mouse.move(482, 177);
   await page.mouse.down();
   await page.mouse.move(825, 177, { steps: 12 });
   await page.mouse.up();
 }
 
+async function selectCarousel(index) {
+  await page.evaluate((nextIndex) => {
+    const game = window.__mptAuditGame;
+    const scene = game?.scene.getScene('OpeningScene');
+    if (!scene?.lastReveal || !scene.root) throw new Error('Opening result scene not available');
+    scene.resultCarouselIndex = nextIndex;
+    scene.positionResultCarousel(0, false);
+    scene.syncCarouselRewardBreathing();
+    scene.renderRewardTray(scene.lastReveal, scene.root, false);
+    scene.renderResultActionPanel(scene.lastReveal);
+  }, index);
+  await page.waitForTimeout(220);
+}
+
 await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 await waitReady(900);
 
-// Hidden Pocket active page vs standard page chrome and heading visibility.
+// Hidden Pocket heading lives above the info panel and carousel chrome follows the active page.
 await stage('Force Hidden Pocket Duplicate');
 await collapseDebug();
 await page.screenshot({ path: `${outDir}/01-secret-active.png`, fullPage: true });
-await page.mouse.move(640, 326);
-await page.mouse.down();
-await page.mouse.move(850, 326, { steps: 10 });
-await page.mouse.up();
-await page.waitForTimeout(350);
+await selectCarousel(0);
 await page.screenshot({ path: `${outDir}/02-standard-active.png`, fullPage: true });
+await selectCarousel(1);
+await page.screenshot({ path: `${outDir}/03-secret-restored.png`, fullPage: true });
 
-// Build a real 4/4 state, collect it, then perform a real opening. The Signal
-// lock must fly into the still-closed pouch before the collectible reveal.
+// Force a deliberately dense standard reward to prove tray text remains bounded.
+await selectCarousel(0);
+await page.evaluate(() => {
+  const game = window.__mptAuditGame;
+  const scene = game?.scene.getScene('OpeningScene');
+  if (!scene?.lastReveal || !scene.root) throw new Error('Opening result scene not available');
+  const pending = scene.lastReveal;
+  const dense = {
+    ...pending,
+    chips: {
+      ...pending.chips,
+      base: 20,
+      cacheTier: 'mega',
+      cacheBonus: 180,
+      recycle: 15,
+      rawEarned: 215,
+      overchargeBonus: 108,
+      secretBonus: pending.chips.secretBonus,
+      totalEarned: 323 + pending.chips.secretBonus,
+    },
+    signal: { ...pending.signal, gain: 0, lockRetained: true, lockConsumed: false, lockReached: false },
+    overcharge: { ...pending.overcharge, afterHundredths: 150, appliedGainHundredths: 50 },
+  };
+  scene.renderRewardTray(dense, scene.root, false);
+});
+await page.waitForTimeout(150);
+await page.screenshot({ path: `${outDir}/04-dense-reward-bounded.png`, fullPage: true });
+
+// Reach a real 4/4 committed state, reload to idle without accepting the visual result,
+// then open a real pouch. Lock discharge must land in the still-closed pouch first.
 await stage('Reach SIGNAL LOCK');
-await collectResult();
+await reloadIdle();
 await collapseDebug();
-await tearBasic();
-await page.waitForTimeout(360);
-await page.screenshot({ path: `${outDir}/03-signal-prelude-start.png`, fullPage: true });
-await page.waitForTimeout(160);
-await page.screenshot({ path: `${outDir}/04-signal-prelude-trail.png`, fullPage: true });
-await page.waitForTimeout(430);
-await page.screenshot({ path: `${outDir}/05-post-signal-reveal.png`, fullPage: true });
+await tearPouch();
+await page.waitForTimeout(250);
+await page.screenshot({ path: `${outDir}/05-signal-prelude-start.png`, fullPage: true });
+await page.waitForTimeout(170);
+await page.screenshot({ path: `${outDir}/06-signal-prelude-trail.png`, fullPage: true });
+await page.waitForTimeout(260);
+await page.screenshot({ path: `${outDir}/07-post-signal-reveal.png`, fullPage: true });
 
-// Ensure a Charged pouch is affordable, select it, and verify pouch/aura exit
-// frames do not leave a stationary glow behind.
+// Charged aura exit: clean state, grant cost, select Charged, then capture exit frames.
+await stage('Reset save', 700);
 await expandDebug();
 const rewarded = page.getByRole('button', { name: /Rewarded \+60 DEV CHIPS/ });
 await Promise.all([
   page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }),
   rewarded.click(),
 ]);
-await waitReady(800);
+await waitReady(700);
 await collapseDebug();
 await page.mouse.click(140, 280);
 await page.waitForTimeout(180);
-await tearBasic();
-await page.waitForTimeout(350);
-await page.screenshot({ path: `${outDir}/06-charged-exit-start.png`, fullPage: true });
-await page.waitForTimeout(220);
-await page.screenshot({ path: `${outDir}/07-charged-exit-mid.png`, fullPage: true });
-await page.waitForTimeout(300);
-await page.screenshot({ path: `${outDir}/08-charged-post-exit.png`, fullPage: true });
+await tearPouch();
+await page.waitForTimeout(340);
+await page.screenshot({ path: `${outDir}/08-charged-exit-start.png`, fullPage: true });
+await page.waitForTimeout(150);
+await page.screenshot({ path: `${outDir}/09-charged-exit-mid.png`, fullPage: true });
+await page.waitForTimeout(260);
+await page.screenshot({ path: `${outDir}/10-charged-post-exit.png`, fullPage: true });
 
 await fs.writeFile(`${outDir}/report.json`, JSON.stringify({ errors }, null, 2));
 await browser.close();
