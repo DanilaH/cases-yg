@@ -22,12 +22,12 @@ async function waitReady(delay = 1900) {
 }
 
 async function expandDebug() {
-  const debug = page.getByRole('button', { name: 'DEBUG' });
+  const debug = page.getByRole('button', { name: 'DEBUG', exact: true });
   if (await debug.count()) await debug.click();
 }
 
 async function collapseDebug() {
-  const hide = page.getByRole('button', { name: 'Hide' });
+  const hide = page.getByRole('button', { name: 'Hide', exact: true });
   if (await hide.count()) await hide.click();
 }
 
