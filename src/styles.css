@@ -168,6 +168,11 @@ body {
   display: block;
 }
 
+.mpt-debug-panel.is-collapsed .mpt-debug-panel__meta,
+.mpt-debug-panel.is-collapsed .mpt-debug-panel__body {
+  display: none;
+}
+
 .mpt-debug-panel.is-collapsed .mpt-debug-panel__toggle {
   min-height: 34px !important;
   padding: 7px 10px;
