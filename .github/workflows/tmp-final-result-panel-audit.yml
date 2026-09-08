@@ -40,3 +40,5 @@ jobs:
         with:
           name: final-result-panel-audit
           path: tmp-final-result-panel-audit
+
+# PR synchronization nudge; audit content unchanged.
