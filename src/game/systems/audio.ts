@@ -1,4 +1,11 @@
 import type { RuntimeSfxAsset, SfxCue } from '../data/audioAssets';
+import {
+  BASE_AMBIENCE_PROFILE,
+  getAudioCuePresentationDirective,
+  getRarityAmbienceProfile,
+  type PersistentResultAmbience,
+  type ResultAmbienceRarity,
+} from '../data/audioPresentation';
 
 export type { SfxCue } from '../data/audioAssets';
 
@@ -83,6 +90,14 @@ class GameAudioController {
   private context: AudioContext | null = null;
   private readonly samples = new Map<SfxCue, AudioBuffer>();
   private chipNoiseBuffer: AudioBuffer | null = null;
+  private ambienceNoiseBuffer: AudioBuffer | null = null;
+  private baseAmbienceBus: GainNode | null = null;
+  private persistentRarityBus: GainNode | null = null;
+  private persistentRaritySources: AudioScheduledSourceNode[] = [];
+  private activeResultAmbience: PersistentResultAmbience | null = null;
+  private desiredResultAmbience: PersistentResultAmbience | null = null;
+  private resultAmbienceTimer: number | null = null;
+  private steadyBaseMultiplier = 1;
   private chipClackIndex = 0;
   private muted = false;
   private blocked = false;
@@ -95,6 +110,17 @@ class GameAudioController {
     this.muted = muted;
     if (muted && this.context?.state === 'running') {
       void this.context.suspend();
+      return;
+    }
+    if (!muted && !this.blocked && this.context?.state === 'suspended') {
+      void this.context
+        .resume()
+        .then(() => {
+          if (!this.context || this.muted || this.blocked) return;
+          this.ensureBaseAmbience(this.context);
+          if (this.desiredResultAmbience) this.startPersistentRarity(this.context, this.desiredResultAmbience);
+        })
+        .catch(() => undefined);
     }
   }
 
@@ -107,6 +133,17 @@ class GameAudioController {
     this.blocked = blocked;
     if (blocked && this.context?.state === 'running') {
       void this.context.suspend();
+      return;
+    }
+    if (!blocked && !this.muted && this.context?.state === 'suspended') {
+      void this.context
+        .resume()
+        .then(() => {
+          if (!this.context || this.muted || this.blocked) return;
+          this.ensureBaseAmbience(this.context);
+          if (this.desiredResultAmbience) this.startPersistentRarity(this.context, this.desiredResultAmbience);
+        })
+        .catch(() => undefined);
     }
   }
 
@@ -158,6 +195,8 @@ class GameAudioController {
   private schedule(context: AudioContext, cue: SfxCue): void {
     if (this.muted || this.blocked || context.state !== 'running') return;
 
+    this.applyPresentationCue(context, cue);
+
     const sample = this.samples.get(cue);
     if (sample) {
       const source = context.createBufferSource();
@@ -203,6 +242,333 @@ class GameAudioController {
       oscillator.start(start);
       oscillator.stop(end + 0.02);
     }
+  }
+
+  public setResultAmbience(rarity: ResultAmbienceRarity): void {
+    if (rarity === 'common') {
+      this.clearResultAmbience();
+      return;
+    }
+    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    const context = this.getContext();
+    if (!context || this.muted || this.blocked) return;
+    this.ensureBaseAmbience(context);
+    if (context.state === 'running') {
+      this.startPersistentRarity(context, rarity);
+      return;
+    }
+    if (context.state === 'suspended') {
+      void context
+        .resume()
+        .then(() => {
+          if (!this.muted && !this.blocked && this.desiredResultAmbience === rarity) {
+            this.startPersistentRarity(context, rarity);
+          }
+        })
+        .catch(() => undefined);
+    }
+  }
+
+  public clearResultAmbience(): void {
+    this.desiredResultAmbience = null;
+    this.cancelQueuedResultAmbience();
+    if (this.context) {
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 190;
+      this.stopPersistentRarity(this.context, fadeOutMs, true);
+    }
+  }
+
+  private applyPresentationCue(context: AudioContext, cue: SfxCue): void {
+    this.ensureBaseAmbience(context);
+    const directive = getAudioCuePresentationDirective(cue);
+    if (directive.clearPersistent) {
+      this.desiredResultAmbience = null;
+      this.cancelQueuedResultAmbience();
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 140;
+      this.stopPersistentRarity(context, fadeOutMs, true);
+    }
+    if (directive.duck) this.duckBase(context, directive.duck);
+    if (directive.persistent) {
+      this.queuePersistentRarity(context, directive.persistent, directive.persistentDelayMs ?? 0);
+    }
+  }
+
+  private ensureBaseAmbience(context: AudioContext): void {
+    if (this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const bus = context.createGain();
+    bus.gain.setValueAtTime(0.0001, now);
+    bus.gain.linearRampToValueAtTime(
+      BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier,
+      now + BASE_AMBIENCE_PROFILE.fadeInMs / 1000,
+    );
+    bus.connect(context.destination);
+    this.baseAmbienceBus = bus;
+
+    const room = context.createBufferSource();
+    room.buffer = this.getAmbienceNoiseBuffer(context);
+    room.loop = true;
+    const roomLow = context.createBiquadFilter();
+    roomLow.type = 'lowpass';
+    roomLow.frequency.setValueAtTime(1450, now);
+    roomLow.Q.setValueAtTime(0.55, now);
+    const roomHigh = context.createBiquadFilter();
+    roomHigh.type = 'highpass';
+    roomHigh.frequency.setValueAtTime(38, now);
+    const roomGain = context.createGain();
+    roomGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.roomNoiseGain, now);
+    room.connect(roomLow);
+    roomLow.connect(roomHigh);
+    roomHigh.connect(roomGain);
+    roomGain.connect(bus);
+    room.start(now);
+
+    const humFilter = context.createBiquadFilter();
+    humFilter.type = 'lowpass';
+    humFilter.frequency.setValueAtTime(230, now);
+    humFilter.Q.setValueAtTime(0.7, now);
+    humFilter.connect(bus);
+    const humFrequencies = [55, 110] as const;
+    humFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 0 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.humGain / humFrequencies.length, now);
+      oscillator.connect(gain);
+      gain.connect(humFilter);
+      oscillator.start(now);
+    });
+
+    const padFilter = context.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(620, now);
+    padFilter.Q.setValueAtTime(0.42, now);
+    padFilter.connect(bus);
+    BASE_AMBIENCE_PROFILE.padFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 1 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(index === 0 ? -4 : index === 1 ? 3 : 0, now);
+      gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.padGain / BASE_AMBIENCE_PROFILE.padFrequencies.length, now);
+      oscillator.connect(gain);
+      gain.connect(padFilter);
+      oscillator.start(now);
+    });
+    const padLfo = context.createOscillator();
+    const padLfoDepth = context.createGain();
+    padLfo.type = 'sine';
+    padLfo.frequency.setValueAtTime(0.028, now);
+    padLfoDepth.gain.setValueAtTime(95, now);
+    padLfo.connect(padLfoDepth);
+    padLfoDepth.connect(padFilter.frequency);
+    padLfo.start(now);
+
+    const shimmer = context.createBufferSource();
+    shimmer.buffer = this.getAmbienceNoiseBuffer(context);
+    shimmer.loop = true;
+    const shimmerHigh = context.createBiquadFilter();
+    shimmerHigh.type = 'highpass';
+    shimmerHigh.frequency.setValueAtTime(3000, now);
+    const shimmerLow = context.createBiquadFilter();
+    shimmerLow.type = 'lowpass';
+    shimmerLow.frequency.setValueAtTime(6800, now);
+    const shimmerGain = context.createGain();
+    shimmerGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.shimmerGain, now);
+    shimmer.connect(shimmerHigh);
+    shimmerHigh.connect(shimmerLow);
+    shimmerLow.connect(shimmerGain);
+    shimmerGain.connect(bus);
+    shimmer.start(now + 0.37);
+  }
+
+  private duckBase(
+    context: AudioContext,
+    duck: { multiplier: number; attackMs: number; holdMs: number; releaseMs: number },
+  ): void {
+    this.ensureBaseAmbience(context);
+    if (!this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const gain = this.baseAmbienceBus.gain;
+    const steady = BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier;
+    const ducked = Math.max(0.0001, steady * duck.multiplier);
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(Math.max(0.0001, gain.value), now);
+    gain.linearRampToValueAtTime(ducked, now + duck.attackMs / 1000);
+    gain.setValueAtTime(ducked, now + (duck.attackMs + duck.holdMs) / 1000);
+    gain.linearRampToValueAtTime(steady, now + (duck.attackMs + duck.holdMs + duck.releaseMs) / 1000);
+  }
+
+  private setSteadyBaseMultiplier(context: AudioContext, multiplier: number, rampMs = 220): void {
+    this.steadyBaseMultiplier = multiplier;
+    this.ensureBaseAmbience(context);
+    if (!this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const gain = this.baseAmbienceBus.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(Math.max(0.0001, gain.value), now);
+    gain.linearRampToValueAtTime(
+      BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier,
+      now + rampMs / 1000,
+    );
+  }
+
+  private queuePersistentRarity(
+    context: AudioContext,
+    rarity: PersistentResultAmbience,
+    delayMs: number,
+  ): void {
+    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    const fadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 120;
+    this.stopPersistentRarity(context, fadeOutMs, false);
+    this.resultAmbienceTimer = window.setTimeout(() => {
+      this.resultAmbienceTimer = null;
+      if (this.muted || this.blocked || this.desiredResultAmbience !== rarity) return;
+      if (context.state === 'running') this.startPersistentRarity(context, rarity);
+    }, delayMs);
+  }
+
+  private cancelQueuedResultAmbience(): void {
+    if (this.resultAmbienceTimer === null) return;
+    window.clearTimeout(this.resultAmbienceTimer);
+    this.resultAmbienceTimer = null;
+  }
+
+  private startPersistentRarity(context: AudioContext, rarity: PersistentResultAmbience): void {
+    if (this.muted || this.blocked || context.state !== 'running') return;
+    if (this.activeResultAmbience === rarity && this.persistentRarityBus) return;
+    const profile = getRarityAmbienceProfile(rarity);
+    if (!profile.enabled) return;
+
+    const previousFadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 140;
+    this.stopPersistentRarity(context, previousFadeOutMs, false);
+    this.activeResultAmbience = rarity;
+    this.desiredResultAmbience = rarity;
+    this.setSteadyBaseMultiplier(context, profile.baseMixMultiplier, profile.fadeInMs);
+
+    const now = context.currentTime;
+    const bus = context.createGain();
+    bus.gain.setValueAtTime(0.0001, now);
+    bus.gain.linearRampToValueAtTime(profile.busGain, now + profile.fadeInMs / 1000);
+    bus.connect(context.destination);
+    this.persistentRarityBus = bus;
+
+    const toneFilter = context.createBiquadFilter();
+    toneFilter.type = 'lowpass';
+    toneFilter.frequency.setValueAtTime(profile.toneLowpassHz, now);
+    toneFilter.Q.setValueAtTime(0.65, now);
+    const toneGain = context.createGain();
+    toneGain.gain.setValueAtTime(profile.toneGain / Math.max(1, profile.toneFrequencies.length), now);
+    toneGain.connect(toneFilter);
+    toneFilter.connect(bus);
+
+    profile.toneFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const panner = context.createStereoPanner();
+      oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime((index - (profile.toneFrequencies.length - 1) / 2) * 2.5, now);
+      const side = index % 2 === 0 ? -1 : 1;
+      panner.pan.setValueAtTime(side * profile.stereoSpread * Math.min(1, 0.45 + index * 0.12), now);
+      oscillator.connect(panner);
+      panner.connect(toneGain);
+      oscillator.start(now);
+      this.persistentRaritySources.push(oscillator);
+    });
+
+    const pulse = context.createOscillator();
+    const pulseDepth = context.createGain();
+    pulse.type = 'sine';
+    pulse.frequency.setValueAtTime(profile.pulseRateHz, now);
+    pulseDepth.gain.setValueAtTime(
+      (profile.toneGain / Math.max(1, profile.toneFrequencies.length)) * profile.pulseDepth,
+      now,
+    );
+    pulse.connect(pulseDepth);
+    pulseDepth.connect(toneGain.gain);
+    pulse.start(now);
+    this.persistentRaritySources.push(pulse);
+
+    if (profile.shimmerGain > 0) {
+      const shimmer = context.createBufferSource();
+      shimmer.buffer = this.getAmbienceNoiseBuffer(context);
+      shimmer.loop = true;
+      const shimmerBand = context.createBiquadFilter();
+      shimmerBand.type = 'bandpass';
+      shimmerBand.frequency.setValueAtTime(profile.shimmerBandHz, now);
+      shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.9 : 1.25, now);
+      const shimmerGain = context.createGain();
+      shimmerGain.gain.setValueAtTime(profile.shimmerGain, now);
+      shimmer.connect(shimmerBand);
+      shimmerBand.connect(shimmerGain);
+      shimmerGain.connect(bus);
+      shimmer.start(now + 0.11);
+      this.persistentRaritySources.push(shimmer);
+    }
+  }
+
+  private stopPersistentRarity(context: AudioContext, fadeMs: number, restoreBase: boolean): void {
+    const bus = this.persistentRarityBus;
+    const sources = this.persistentRaritySources;
+    this.persistentRarityBus = null;
+    this.persistentRaritySources = [];
+    this.activeResultAmbience = null;
+    if (bus) {
+      const now = context.currentTime;
+      bus.gain.cancelScheduledValues(now);
+      bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value), now);
+      bus.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.03, fadeMs / 1000));
+      for (const source of sources) {
+        try {
+          source.stop(now + Math.max(0.05, fadeMs / 1000 + 0.03));
+        } catch {
+          // Already-stopped sources are harmless during teardown/re-entry.
+        }
+      }
+      window.setTimeout(() => {
+        try {
+          bus.disconnect();
+        } catch {
+          // The old local bus may already be disconnected during rapid re-entry.
+        }
+      }, fadeMs + 80);
+    }
+    if (restoreBase) this.setSteadyBaseMultiplier(context, 1, Math.max(180, fadeMs));
+  }
+
+  private getAmbienceNoiseBuffer(context: AudioContext): AudioBuffer {
+    if (this.ambienceNoiseBuffer && this.ambienceNoiseBuffer.sampleRate === context.sampleRate) {
+      return this.ambienceNoiseBuffer;
+    }
+
+    const seconds = 4;
+    const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+    const buffer = context.createBuffer(1, length, context.sampleRate);
+    const channel = buffer.getChannelData(0);
+    let seed = 0x0a11d10f;
+    for (let index = 0; index < channel.length; index += 1) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      channel[index] = (seed / 0xffffffff) * 2 - 1;
+    }
+    const fadeLength = Math.min(Math.floor(context.sampleRate * 0.12), Math.floor(channel.length / 8));
+    for (let index = 0; index < fadeLength; index += 1) {
+      const mix = index / Math.max(1, fadeLength - 1);
+      const tailIndex = channel.length - fadeLength + index;
+      channel[tailIndex] = (channel[tailIndex] ?? 0) * (1 - mix) + (channel[index] ?? 0) * mix;
+    }
+    this.ambienceNoiseBuffer = buffer;
+    return buffer;
   }
 
   private schedulePouchGrab(context: AudioContext): void {

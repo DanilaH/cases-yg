@@ -197,6 +197,7 @@ export class OpeningScene extends Phaser.Scene {
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
     this.presentationSkip.reset();
+    getGameAudio().clearResultAmbience();
     this.tweens.killAll();
     getPlatformRuntime().activity.setGameplayDesired(false);
   }
@@ -3061,6 +3062,9 @@ export class OpeningScene extends Phaser.Scene {
     });
 
     const secretSelected = Boolean(this.lastReveal?.hiddenPocket && this.resultCarouselIndex === 1);
+    if (this.lastReveal) {
+      getGameAudio().setResultAmbience(secretSelected ? 'secret' : this.lastReveal.standard.rarity);
+    }
     if (this.resultCarouselHeading?.active) {
       const heading = this.resultCarouselHeading;
       this.tweens.killTweensOf(heading);
@@ -3508,6 +3512,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private continueFromResult(): void {
     if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;
+    getGameAudio().clearResultAmbience();
     getGameAudio().play('ui-click');
     this.resultCarouselDrag = null;
     const pending = this.lastReveal;
