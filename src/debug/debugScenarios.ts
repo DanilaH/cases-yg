@@ -16,7 +16,8 @@ export type DebugRevealScenario =
   | 'signal-lock-reached'
   | 'signal-lock-consumed'
   | 'signal-lock-waiting'
-  | 'hidden-pocket';
+  | 'hidden-pocket'
+  | 'hidden-pocket-duplicate';
 
 class SequenceRandomSource implements RandomSource {
   private index = 0;
@@ -59,6 +60,9 @@ const allBasicEligibleIds = (): string[] =>
   SLICE_REGISTRY.standardItems
     .filter(({ rarity }) => LITE_V2_BALANCE.pouchProfiles.basic.rarityWeights[rarity] > 0)
     .map(({ collectible }) => collectible.id);
+
+const allSecretIds = (): string[] =>
+  SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id);
 
 const prepareScenario = (
   state: SaveState,
@@ -154,6 +158,18 @@ const prepareScenario = (
         discoveredStandard: unique([...base.discoveredStandard, ...allBasicEligibleIds()]),
       },
       random: new SequenceRandomSource([0.1, basicRaritySample.common, 0, 0, 0.99]),
+      pouchType: 'basic',
+    };
+  }
+
+  if (scenario === 'hidden-pocket-duplicate') {
+    return {
+      state: {
+        ...base,
+        discoveredSecrets: allSecretIds(),
+      },
+      // Normal standard + successful Hidden Pocket after Secret completion.
+      random: new SequenceRandomSource([0.1, basicRaritySample.common, 0, 0, 0, 0.1]),
       pouchType: 'basic',
     };
   }

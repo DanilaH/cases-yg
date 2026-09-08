@@ -41,6 +41,7 @@ import {
   createPouchVisual,
   createRevealRing,
   RARITY_REVEAL_COLORS,
+  SECRET_PREMIUM_GOLD,
   SECRET_REVEAL_COLOR,
   type PouchVisual,
 } from '../ui/openingVisuals';
@@ -104,6 +105,7 @@ export class OpeningScene extends Phaser.Scene {
   private resultCarouselDrag: ResultCarouselDrag | null = null;
   private resultCarouselZone: Phaser.GameObjects.Zone | null = null;
   private ambientParticles: Phaser.GameObjects.Arc[] = [];
+  private secretPremiumTargets: Phaser.GameObjects.GameObject[] = [];
   private resultBreathTarget: Phaser.GameObjects.Container | null = null;
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
@@ -226,6 +228,7 @@ export class OpeningScene extends Phaser.Scene {
     this.stopResultPanelPulse();
     this.stopRewardBreathing();
     this.clearAmbientMotion();
+    this.clearSecretPremiumMotion();
     this.clearHudMotion();
     if (this.chargedAura) this.tweens.killTweensOf(this.chargedAura);
     this.root?.destroy(true);
@@ -297,6 +300,72 @@ export class OpeningScene extends Phaser.Scene {
       this.tweens.killTweensOf(particle);
     }
     this.ambientParticles = [];
+  }
+
+  private clearSecretPremiumMotion(): void {
+    for (const target of this.secretPremiumTargets) {
+      this.tweens.killTweensOf(target);
+    }
+    this.secretPremiumTargets = [];
+  }
+
+  private trackSecretPremiumTarget<T extends Phaser.GameObjects.GameObject>(target: T): T {
+    this.secretPremiumTargets.push(target);
+    return target;
+  }
+
+  private addPersistentSecretPremiumState(page: Phaser.GameObjects.Container): void {
+    const layer = this.trackSecretPremiumTarget(this.add.container(0, 0));
+    const backdrop = this.trackSecretPremiumTarget(
+      this.add.ellipse(0, 10, 410, 320, 0x2a102a, 0.14).setBlendMode(Phaser.BlendModes.MULTIPLY),
+    );
+    const halo = this.trackSecretPremiumTarget(
+      this.add.circle(0, 0, 158, SECRET_REVEAL_COLOR, 0.13).setBlendMode(Phaser.BlendModes.ADD),
+    );
+    const cloudA = this.trackSecretPremiumTarget(
+      this.add.ellipse(-30, 12, 292, 182, SECRET_REVEAL_COLOR, 0.095).setBlendMode(Phaser.BlendModes.ADD),
+    );
+    const cloudB = this.trackSecretPremiumTarget(
+      this.add.ellipse(44, -18, 238, 150, 0xa45cff, 0.075).setBlendMode(Phaser.BlendModes.ADD),
+    );
+    layer.add([backdrop, halo, cloudA, cloudB]);
+
+    this.tweens.add({ targets: halo, scale: 1.06, alpha: 0.18, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    this.tweens.add({ targets: cloudA, x: 22, y: -4, angle: 3, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    this.tweens.add({ targets: cloudB, x: -18, y: 12, angle: -4, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+
+    for (let index = 0; index < 10; index += 1) {
+      const angle = (Math.PI * 2 * index) / 10 + 0.31;
+      const radius = 92 + (index % 3) * 34;
+      const sparkle = this.trackSecretPremiumTarget(
+        this.add.circle(
+          Math.cos(angle) * radius,
+          Math.sin(angle) * radius * 0.72,
+          index % 3 === 0 ? 3.2 : 2.1,
+          index % 3 === 0 ? SECRET_PREMIUM_GOLD : SECRET_REVEAL_COLOR,
+          0.28 + (index % 4) * 0.08,
+        ).setBlendMode(Phaser.BlendModes.ADD),
+      );
+      layer.add(sparkle);
+      const baseX = sparkle.x;
+      const baseY = sparkle.y;
+      this.tweens.add({
+        targets: sparkle,
+        x: baseX + (index % 2 === 0 ? 9 : -9),
+        y: baseY - 14 - (index % 3) * 4,
+        alpha: index % 3 === 0 ? 0.88 : 0.58,
+        scale: index % 3 === 0 ? 1.55 : 1.25,
+        duration: 1100 + index * 90,
+        delay: index * 95,
+        yoyo: true,
+        repeat: -1,
+        repeatDelay: 260 + (index % 4) * 170,
+        ease: 'Sine.InOut',
+      });
+    }
+
+    page.add(layer);
+    page.sendToBack(layer);
   }
 
   private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
@@ -1332,7 +1401,10 @@ export class OpeningScene extends Phaser.Scene {
         );
         this.positionResultCarousel(0, true);
         this.syncCarouselRewardBreathing();
-        if (this.lastReveal) this.renderResultActionPanel(this.lastReveal);
+        if (this.lastReveal && this.root) {
+          this.renderRewardTray(this.lastReveal, this.root, false);
+          this.renderResultActionPanel(this.lastReveal);
+        }
         if (
           gesture.readyAtStart &&
           this.resultReady &&
@@ -1603,52 +1675,19 @@ export class OpeningScene extends Phaser.Scene {
   ): Phaser.GameObjects.Container {
     this.rewardTrayContainer?.destroy(true);
     const messages = getMessages(getPlatformRuntime().language);
-    const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
-    const rarityColor = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
-    const rarityCode = pending.standard.rarity.toUpperCase();
+    const secretSelected = Boolean(pending.hiddenPocket && this.resultCarouselIndex === 1);
     const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
     const left = -width / 2;
     const contentLeft = left + 13;
     const contentRight = width / 2 - 13;
-    const breakdownParts = [`${messages.opening.chips} +${pending.chips.base}`];
-    if (cacheLabel && pending.chips.cacheBonus > 0) breakdownParts.push(`${cacheLabel} +${pending.chips.cacheBonus}`);
-    if (pending.chips.recycle > 0) breakdownParts.push(`${messages.opening.recycled} +${pending.chips.recycle}`);
-    if (pending.chips.overchargeBonus > 0) breakdownParts.push(`${messages.opening.overcharge} +${pending.chips.overchargeBonus}`);
-
-    type StatusRow = {
-      kind: 'signal' | 'secret';
-      text: string;
-      color: string;
-    };
-    const statuses: StatusRow[] = [];
-    if (pending.signal.gain > 0) {
-      const signalResult = pending.signal.lockReached
-        ? messages.opening.signalLockReady
-        : `${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
-      statuses.push({
-        kind: 'signal',
-        text: `${messages.opening.signal} +${pending.signal.gain} · ${signalResult}`,
-        color: '#b7a7ff',
-      });
-    } else if (pending.signal.lockConsumed) {
-      statuses.push({ kind: 'signal', text: messages.opening.signalLockConsumed, color: '#ff9ed4' });
-    } else if (pending.signal.lockRetained) {
-      const retainedMultiplier = formatOverchargeMultiplier(pending.overcharge.afterHundredths);
-      const maxSuffix = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? ' MAX' : '';
-      statuses.push({
-        kind: 'signal',
-        text: `${messages.opening.signalLockRetained} · ${retainedMultiplier}${maxSuffix}`,
-        color: pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff9ed4' : '#b7a7ff',
-      });
-    }
-    if (pending.hiddenPocket) {
-      statuses.push({ kind: 'secret', text: messages.opening.addedToCollection, color: '#8df8ff' });
-    }
-
     const tray = this.add.container(0, 0);
     const background = this.add.graphics();
     tray.add(background);
 
+    const rarityCode = secretSelected ? 'SECRET' : pending.standard.rarity.toUpperCase();
+    const rarityColor = secretSelected
+      ? '#ff4d6d'
+      : `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
     const header = this.add.text(contentLeft, 9, 'REWARD', {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
@@ -1658,59 +1697,134 @@ export class OpeningScene extends Phaser.Scene {
       color: rarityColor,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '6px',
+      fontStyle: 'bold',
     }).setOrigin(1, 0);
     tray.add([header, rarity]);
 
-    const totalY = 31;
-    const totalIcon = createChipToken(this, contentLeft + 4, totalY + 4, 0.48);
-    const animatedTotalStart = animate && pending.chips.overchargeBonus > 0
-      ? pending.chips.rawEarned
-      : pending.chips.totalEarned;
-    const totalText = this.add.text(contentLeft + 18, totalY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
-      color: '#f4feff',
-      stroke: '#100b16',
-      strokeThickness: 2,
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '9px',
-    });
-    tray.add([totalIcon, totalText]);
-
-    let cursorY = 52;
-    if (breakdownParts.length > 1) {
-      const breakdown = this.add.text(contentLeft, cursorY, breakdownParts.join(' · '), {
-        color: '#b9c8d7',
+    let cursorY = 31;
+    if (secretSelected && pending.hiddenPocket) {
+      const secretStatus = pending.hiddenPocket.isNew
+        ? messages.opening.secretDiscovered
+        : messages.opening.secretDuplicate;
+      const status = this.add.text(contentLeft, cursorY - 2, secretStatus, {
+        color: '#ff7088',
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '6px',
-        wordWrap: { width: width - 26, useAdvancedWrap: true },
-        lineSpacing: 1,
+        fontSize: '8px',
+        fontStyle: 'bold',
       });
-      tray.add(breakdown);
-      cursorY += breakdown.height + 9;
+      tray.add(status);
+      cursorY += 23;
+
+      if (pending.chips.secretBonus > 0) {
+        const token = createChipToken(this, contentLeft + 4, cursorY + 4, 0.48);
+        const bonus = this.add.text(contentLeft + 18, cursorY - 3, `+${pending.chips.secretBonus} ${messages.opening.chips}`, {
+          color: '#ffd36a',
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '9px',
+        });
+        tray.add([token, bonus]);
+        cursorY += 23;
+      }
+
+      if (pending.hiddenPocket.isNew) {
+        const collection = this.add.text(contentLeft, cursorY, messages.opening.addedToCollection, {
+          color: '#ffdca0',
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+        });
+        tray.add(collection);
+        cursorY += 18;
+      }
     } else {
-      cursorY += 3;
+      const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
+      const standardTotal = pending.chips.totalEarned - pending.chips.secretBonus;
+      const breakdownParts = [`${messages.opening.chips} +${pending.chips.base}`];
+      if (cacheLabel && pending.chips.cacheBonus > 0) breakdownParts.push(`${cacheLabel} +${pending.chips.cacheBonus}`);
+      if (pending.chips.recycle > 0) breakdownParts.push(`${messages.opening.recycled} +${pending.chips.recycle}`);
+      if (pending.chips.overchargeBonus > 0) breakdownParts.push(`${messages.opening.overcharge} +${pending.chips.overchargeBonus}`);
+
+      const totalIcon = createChipToken(this, contentLeft + 4, cursorY + 4, 0.48);
+      const animatedTotalStart = animate && pending.chips.overchargeBonus > 0
+        ? pending.chips.rawEarned
+        : standardTotal;
+      const totalText = this.add.text(contentLeft + 18, cursorY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
+        color: '#f4feff',
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '9px',
+      });
+      tray.add([totalIcon, totalText]);
+      cursorY += 21;
+
+      if (breakdownParts.length > 1) {
+        const breakdown = this.add.text(contentLeft, cursorY, breakdownParts.join(' · '), {
+          color: '#b9c8d7',
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+        });
+        tray.add(breakdown);
+        cursorY += 19;
+      } else {
+        cursorY += 4;
+      }
+
+      let signalText: string | null = null;
+      let signalColor = '#b7a7ff';
+      if (pending.signal.gain > 0) {
+        const signalResult = pending.signal.lockReached
+          ? messages.opening.signalLockReady
+          : `${pending.signal.after}/${LITE_V2_BALANCE.signalThreshold}`;
+        signalText = `${messages.opening.signal} +${pending.signal.gain} · ${signalResult}`;
+      } else if (pending.signal.lockConsumed) {
+        signalText = messages.opening.signalLockConsumed;
+        signalColor = '#ff9ed4';
+      } else if (pending.signal.lockRetained) {
+        const retainedMultiplier = formatOverchargeMultiplier(pending.overcharge.afterHundredths);
+        const maxSuffix = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? ' MAX' : '';
+        signalText = `${messages.opening.signalLockRetained} · ${retainedMultiplier}${maxSuffix}`;
+        signalColor = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff9ed4' : '#b7a7ff';
+      }
+      if (signalText) {
+        const icon = createSignalToken(this, contentLeft + 4, cursorY + 4, false);
+        const text = this.add.text(contentLeft + 18, cursorY, signalText, {
+          color: signalColor,
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+        });
+        tray.add([icon, text]);
+        cursorY += 18;
+      }
+
+      if (animate && pending.chips.overchargeBonus > 0) {
+        const counter = { value: pending.chips.rawEarned };
+        this.tweens.add({
+          targets: counter,
+          value: standardTotal,
+          delay: 90,
+          duration: 360,
+          ease: 'Cubic.Out',
+          onUpdate: () => {
+            if (totalText.active) totalText.setText(`+${Math.round(counter.value)} ${messages.opening.chips}`);
+          },
+          onComplete: () => {
+            if (totalText.active) totalText.setText(`+${standardTotal} ${messages.opening.chips}`);
+          },
+        });
+      }
     }
 
-    statuses.forEach((status) => {
-      const iconY = cursorY + 4;
-      const icon = status.kind === 'signal'
-        ? createSignalToken(this, contentLeft + 4, iconY, false)
-        : this.add.circle(contentLeft + 4, iconY, 5.5, SECRET_REVEAL_COLOR, 0.94).setStrokeStyle(1.5, 0xffffff, 0.5);
-      const text = this.add.text(contentLeft + 18, cursorY, status.text, {
-        color: status.color,
-        stroke: '#100b16',
-        strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '5px' : '6px',
-        wordWrap: { width: width - 50, useAdvancedWrap: true },
-        lineSpacing: 1,
-      });
-      tray.add([icon, text]);
-      cursorY += Math.max(18, text.height + 5);
-    });
-
-    const height = Math.max(67, cursorY + 7);
+    const height = Math.max(72, cursorY + 8);
     const placement = computeRewardTrayPlacement({
       safeLeft: this.metrics!.safeLeft,
       safeRight: this.metrics!.safeRight,
@@ -1727,27 +1841,10 @@ export class OpeningScene extends Phaser.Scene {
     tray.setPosition(placement.x, placement.y - height / 2);
     tray.setData('height', height);
     tray.setData('side', placement.side);
-    background.fillStyle(0x17101f, 0.9);
+    background.fillStyle(0x17101f, 0.91);
     background.fillRoundedRect(left, 0, width, height, 16);
-    background.lineStyle(1.5, 0x8df8ff, 0.3);
+    background.lineStyle(1.5, secretSelected ? SECRET_REVEAL_COLOR : 0x8df8ff, secretSelected ? 0.5 : 0.3);
     background.strokeRoundedRect(left, 0, width, height, 16);
-
-    if (animate && pending.chips.overchargeBonus > 0) {
-      const counter = { value: pending.chips.rawEarned };
-      this.tweens.add({
-        targets: counter,
-        value: pending.chips.totalEarned,
-        delay: 90,
-        duration: 360,
-        ease: 'Cubic.Out',
-        onUpdate: () => {
-          if (totalText.active) totalText.setText(`+${Math.round(counter.value)} ${messages.opening.chips}`);
-        },
-        onComplete: () => {
-          if (totalText.active) totalText.setText(`+${pending.chips.totalEarned} ${messages.opening.chips}`);
-        },
-      });
-    }
 
     root.add(tray);
     this.rewardTrayContainer = tray;
@@ -2091,6 +2188,8 @@ export class OpeningScene extends Phaser.Scene {
     await bankLeg(pending.chips.recycle);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await bankLeg(pending.chips.overchargeBonus);
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+    await bankLeg(pending.chips.secretBonus);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
     await this.bankSignalGain(pending);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
@@ -2436,7 +2535,7 @@ export class OpeningScene extends Phaser.Scene {
       126,
       getMessages(getPlatformRuntime().language).opening.hiddenPocket,
       {
-        color: '#8df8ff',
+        color: '#ff7088',
         stroke: '#160f20',
         strokeThickness: 3,
         fontFamily: DIGITAL_FONT_FAMILY,
@@ -2464,10 +2563,10 @@ export class OpeningScene extends Phaser.Scene {
 
     const heroX = metrics.centerX;
     const heroY = secretPresentation.revealY;
-    this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
+    this.createRevealBackdrop(Math.min(0.58, fx.backdropAlpha * 1.28), fx.particleDuration + 120);
     const auraCloud = this.add.container(heroX, heroY).setAlpha(0);
-    const cloudA = this.add.ellipse(-28, 8, 280, 176, SECRET_REVEAL_COLOR, 0.13).setBlendMode(Phaser.BlendModes.ADD);
-    const cloudB = this.add.ellipse(42, -20, 220, 142, 0xff8ed1, 0.09).setBlendMode(Phaser.BlendModes.ADD);
+    const cloudA = this.add.ellipse(-28, 8, 300, 188, SECRET_REVEAL_COLOR, 0.19).setBlendMode(Phaser.BlendModes.ADD);
+    const cloudB = this.add.ellipse(42, -20, 238, 154, 0xa45cff, 0.13).setBlendMode(Phaser.BlendModes.ADD);
     auraCloud.add([cloudA, cloudB]);
     root.add(auraCloud);
     this.tweens.add({
@@ -2492,10 +2591,10 @@ export class OpeningScene extends Phaser.Scene {
     const ring = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
       .setScale(0.42)
       .setAlpha(0.54);
-    const secondary = createRevealRing(this, root, heroX, heroY, SECRET_REVEAL_COLOR)
+    const secondary = createRevealRing(this, root, heroX, heroY, SECRET_PREMIUM_GOLD)
       .setScale(0.25)
-      .setAlpha(0.46)
-      .setStrokeStyle(4, SECRET_REVEAL_COLOR, 0.68);
+      .setAlpha(0.56)
+      .setStrokeStyle(4, SECRET_PREMIUM_GOLD, 0.76);
 
     getGameAudio().play('secret-reveal');
     const secret = createCollectibleVisual(
@@ -2516,6 +2615,15 @@ export class OpeningScene extends Phaser.Scene {
       fx.particleDistance,
       fx.particleDuration,
       fx.sparkleScale,
+    );
+    this.spawnSparkles(
+      heroX,
+      heroY,
+      SECRET_PREMIUM_GOLD,
+      Math.max(10, Math.floor(fx.particleCount / 3)),
+      fx.particleDistance * 0.82,
+      fx.particleDuration + 120,
+      fx.sparkleScale * 0.72,
     );
 
     this.tweens.add({
@@ -2573,7 +2681,7 @@ export class OpeningScene extends Phaser.Scene {
       duration: fx.settleDuration,
       ease: 'Sine.Out',
     });
-    this.cameras.main.shake(120, Math.min(0.0054, fx.shake * 1.18));
+    this.cameras.main.shake(145, Math.min(0.0062, fx.shake * 1.35));
     await this.runSkippableTween({
       targets: secret.group,
       x: heroX + 5,
@@ -2596,7 +2704,7 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
 
     const heading = this.add.text(metrics.centerX, 126, messages.opening.hiddenPocket, {
-      color: '#8df8ff',
+      color: '#ff7088',
       stroke: '#160f20',
       strokeThickness: 3,
       fontFamily: 'monospace',
@@ -2624,6 +2732,7 @@ export class OpeningScene extends Phaser.Scene {
 
     const secretPage = this.add.container(0, getCollectiblePresentation(pending.hiddenPocket.familyId).revealY);
     root.add(secretPage);
+    this.addPersistentSecretPremiumState(secretPage);
     const secretVisual = createCollectibleVisual(
       this,
       secretPage,
@@ -2703,9 +2812,12 @@ export class OpeningScene extends Phaser.Scene {
         item.setX(targetX).setScale(state.scaleMultiplier).setAlpha(state.alpha);
       }
     });
+    const activeDotColor = this.lastReveal?.hiddenPocket && this.resultCarouselIndex === 1
+      ? SECRET_REVEAL_COLOR
+      : 0x8df8ff;
     this.resultCarouselDots.forEach((dot, index) => {
       dot.setFillStyle(
-        index === this.resultCarouselIndex ? 0x8df8ff : 0xece4f6,
+        index === this.resultCarouselIndex ? activeDotColor : 0xece4f6,
         index === this.resultCarouselIndex ? 0.95 : 0.35,
       );
     });
@@ -2803,11 +2915,16 @@ export class OpeningScene extends Phaser.Scene {
       });
     }
     if (pending.hiddenPocket) {
-      analytics.track('hidden_pocket_triggered', { openingNumber: pending.openingNumber });
-      analytics.track('secret_discovered', {
+      analytics.track('hidden_pocket_triggered', {
+        openingNumber: pending.openingNumber,
+        isNew: pending.hiddenPocket.isNew,
+        bonusChips: pending.hiddenPocket.bonusChips,
+      });
+      analytics.track(pending.hiddenPocket.isNew ? 'secret_discovered' : 'secret_duplicate', {
         openingNumber: pending.openingNumber,
         familyId: pending.hiddenPocket.familyId,
         collectibleId: pending.hiddenPocket.collectibleId,
+        bonusChips: pending.hiddenPocket.bonusChips,
       });
     }
     if (isStandardCollectionComplete(SLICE_REGISTRY, committed.discoveredStandard)) {
@@ -2838,9 +2955,9 @@ export class OpeningScene extends Phaser.Scene {
       return {
         title: family?.name[language] ?? pending.hiddenPocket.familyId,
         rarity: messages.rarity.secret,
-        rarityColor: '#8df8ff',
-        status: messages.opening.secretDiscovered,
-        statusColor: '#f5f0ff',
+        rarityColor: '#ff4d6d',
+        status: pending.hiddenPocket.isNew ? messages.opening.secretDiscovered : messages.opening.secretDuplicate,
+        statusColor: pending.hiddenPocket.isNew ? '#ffdca0' : '#ffb0be',
       };
     }
 
