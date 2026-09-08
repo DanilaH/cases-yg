@@ -23,7 +23,9 @@ jobs:
           cache: npm
 
       - name: Apply bounded audio presence pass
-        run: python tools/tmp_apply_audio_presence.py
+        run: |
+          sed -i "s/')))).decode())/'))).decode())/" tools/tmp_apply_audio_presence.py
+          python tools/tmp_apply_audio_presence.py
 
       - name: Install
         run: npm ci
