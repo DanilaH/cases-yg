@@ -1,4 +1,4 @@
-import { LITE_V2_BALANCE, type PouchType } from '../game/data/balance';
+import { LITE_V2_BALANCE, OVERCHARGE_BASE_HUNDREDTHS, type PouchType } from '../game/data/balance';
 import {
   SLICE_LOOT_POOL_ID,
   SLICE_REGISTRY,
@@ -49,6 +49,10 @@ const baseDebugState = (state: SaveState): SaveState => ({
   activeLootPoolId: SLICE_LOOT_POOL_ID,
   totalOpens: Math.max(3, state.totalOpens),
   pendingReveal: null,
+  // Debug scenarios must never inherit an incompatible armed Overcharge state.
+  // Individual lock scenarios explicitly opt back into a valid armed pair below.
+  signal: 0,
+  overchargeHundredths: OVERCHARGE_BASE_HUNDREDTHS,
 });
 
 const allBasicEligibleIds = (): string[] =>
@@ -130,6 +134,7 @@ const prepareScenario = (
       state: {
         ...base,
         signal: LITE_V2_BALANCE.signalThreshold,
+        overchargeHundredths: LITE_V2_BALANCE.overchargeCapHundredths,
         discoveredStandard: unique([
           ...without(base.discoveredStandard, [keepMissing]),
           ...allBasicEligibleIds().filter((collectibleId) => collectibleId !== keepMissing),
@@ -145,6 +150,7 @@ const prepareScenario = (
       state: {
         ...base,
         signal: LITE_V2_BALANCE.signalThreshold,
+        overchargeHundredths: LITE_V2_BALANCE.overchargeCapHundredths,
         discoveredStandard: unique([...base.discoveredStandard, ...allBasicEligibleIds()]),
       },
       random: new SequenceRandomSource([0.1, basicRaritySample.common, 0, 0, 0.99]),

@@ -221,7 +221,7 @@ export const REVEAL_MOTION_PRESENTATION = {
 export const OPENING_FEEL_PRESENTATION = {
   postTearSkipGuardMs: 120,
   resultReadHoldMs: 980,
-  rewardTrayWidth: 210,
+  rewardTrayWidth: 244,
   rewardTraySideGap: 18,
   rewardTrayResultGap: 18,
   rewardTrayHeroHalfWidth: 144,

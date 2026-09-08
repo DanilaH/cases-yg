@@ -1682,7 +1682,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '4.5px' : '5px',
+        fontSize: '6px',
         wordWrap: { width: width - 26, useAdvancedWrap: true },
         lineSpacing: 1,
       });

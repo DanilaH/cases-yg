@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { seedDebugCollection, stageDebugReveal } from '../src/debug/debugScenarios';
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
-import { SaveRepository } from '../src/game/systems/save';
+import { SaveRepository, createInitialSaveState } from '../src/game/systems/save';
 import { MemoryStorageAdapter } from './helpers';
 
 const createRepository = (): SaveRepository => new SaveRepository(new MemoryStorageAdapter());
@@ -85,6 +85,32 @@ describe('debug reveal scenarios', () => {
     expect(pending.openingNumber).toBeGreaterThanOrEqual(LITE_V2_BALANCE.hiddenPocketStartOpening);
     expect(pending.hiddenPocket).not.toBeNull();
     expect(pending.hiddenPocket?.collectibleId).toBe('camera-secret-cosmic');
+  });
+
+  it.each([
+    'common',
+    'rare',
+    'epic',
+    'epic-phone',
+    'legendary',
+    'duplicate',
+    'signal-lock-reached',
+    'signal-lock-consumed',
+    'signal-lock-waiting',
+    'hidden-pocket',
+  ] as const)('stages %s from an active MAX Overcharge save without invalid payloads', async (scenario) => {
+    const repository = createRepository();
+    await repository.write({
+      ...createInitialSaveState(),
+      chips: 500,
+      signal: LITE_V2_BALANCE.signalThreshold,
+      overchargeHundredths: LITE_V2_BALANCE.overchargeCapHundredths,
+    });
+
+    const pending = await stageDebugReveal(repository, scenario);
+
+    expect(pending).toBeTruthy();
+    expect(await repository.load()).toMatchObject({ pendingReveal: { id: pending.id } });
   });
 
   it('seeds a collection that is immediately reachable from Opening', async () => {
