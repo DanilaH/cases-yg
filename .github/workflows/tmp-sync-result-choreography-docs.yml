@@ -15,28 +15,27 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Normalize exact current Hidden Pocket block
-        run: python tools/tmp-sync-result-choreography-docs-pre.py
-      - name: Apply bounded documentation sync
-        run: python tools/tmp-sync-result-choreography-docs.py
-      - name: Preserve explicit Charged odds wording
+      - name: Patch stale Hidden Pocket profile wording
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('docs/GAMEPLAY_SYSTEMS.md')
           text = p.read_text()
-          old = '- Hidden Pocket `6%` from opening #4;'
-          new = '- Charged from #4: `6%`;'
-          if old not in text:
-              raise SystemExit('Expected post-patch Charged odds line not found')
-          p.write_text(text.replace(old, new, 1))
+          replacements = {
+              '- Hidden Pocket `1.5%` from opening #4 while an undiscovered Secret remains;': '- Hidden Pocket `1.5%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;',
+              '- Hidden Pocket `6%` from opening #4 while a Secret remains;': '- Hidden Pocket `6%` from opening #4; missing Secrets are selected first, then Secret duplicate jackpots remain possible after collection completion;',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Expected stale profile line not found: {old}')
+              text = text.replace(old, new, 1)
+          p.write_text(text)
           PY
       - name: Verify and commit docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/GAMEPLAY_SYSTEMS.md docs/DECISIONS.md docs/IMPLEMENTATION_ROADMAP.md docs/YANDEX_SLICE_VALIDATION.md
+          git add docs/GAMEPLAY_SYSTEMS.md
           git diff --cached --check
-          git diff --cached --exit-code && exit 1 || true
-          git commit -m "Sync result choreography docs [skip ci]"
+          git commit -m "Fix Hidden Pocket profile docs [skip ci]"
           git push
