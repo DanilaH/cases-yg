@@ -1537,12 +1537,14 @@ export class OpeningScene extends Phaser.Scene {
     this.deferredResize = false;
     this.renderResolvedResult(pending);
     // Signal is part of resolving the duplicate reward, not a late CHIPS-banking leg.
-    // Start the cosmetic transfer during the readable result phase; durable state is
-    // already committed above, so this remains presentation-only.
-    const signalTransfer = this.bankSignalGain(pending);
-
-    await this.waitPresentation(RESULT_HOLD_MS);
-    await signalTransfer;
+    // Resolve its short cosmetic transfer first, then spend only the remaining read
+    // budget. This preserves the established total hold while keeping the single-beat
+    // fast-forward controller sequential and deterministic.
+    const signalStartedAt = this.time.now;
+    await this.bankSignalGain(pending);
+    if (this.phase !== 'result' || this.isSceneShutdown()) return;
+    const remainingResultHold = Math.max(0, RESULT_HOLD_MS - (this.time.now - signalStartedAt));
+    await this.waitPresentation(remainingResultHold);
     if (this.phase !== 'result') return;
     this.resultReady = true;
     this.renderResultActionPanel(pending);
