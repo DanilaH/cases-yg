@@ -1,10 +1,20 @@
 # Secret reward + reward-tray correction
 
-Status: **LOCKED NEXT — bounded pre-DRAFT correction**.
+Status: **IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED — final merged-main repeated-use regression pending**.
 
 This document records the direct-hands-on decisions made after the accepted Phase 2.6 regression and PR #53 reward-tray compaction. It is the canonical contract for this correction pass and supersedes the older Secret assumptions in `FINAL_HANDS_ON_OVERCHARGE_PLAN.md` / `DECISIONS.md` where they conflict.
 
 The pass is deliberately bounded. It fixes presentation/readability, debug scenario validity, and completes the existing Hidden Pocket/Secret reward contract. It does not add new pouch types, currencies, shops, crafting, auto-open, families, Drops, or other meta systems.
+
+Implementation/evidence now merged:
+
+- PR #55: reward-tray readability/right-preferred placement + self-contained debug seeds;
+- PR #56: Save V4, persisted `+40 CHIPS` Secret jackpot, missing-first then duplicate Secret policy, exact V3 staged-reveal compatibility;
+- PR #57: ruby/gold Secret identity, stronger arrival, persistent premium ambience, page-aware reward tray, duplicate presentation and separate Secret banking;
+- exact Secret presentation product head `629d5beb666aa9365ce7197082938ea1a50d9d15`: **34/34 PASS**, zero runtime/request/HTTP diagnostics, with manual screenshot/video review;
+- current merged runtime after PR #57: `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`; post-merge CI passed.
+
+Because the correction changed runtime after the earlier repeated-use acceptance, one fresh merged-main repeated-use regression remains the final internal gate before hosted Yandex DRAFT.
 
 ---
 
@@ -244,4 +254,4 @@ Browser/manual artifact review:
 - reload/recovery while Hidden Pocket is pending reconstructs correct premium/result state;
 - zero runtime errors, failed requests or invalid save payloads.
 
-After exact browser/video evidence is reviewed, run one short direct local hands-on pass. If accepted, rebuild the exact Yandex DRAFT candidate and continue hosted validation. Do not add unrelated polish while this gate is open.
+The exact correction browser/video evidence has been reviewed and accepted. The remaining gate is one fresh repeated-use regression on the merged runtime, including Secret effect teardown/collect/navigation safety. If that passes, rebuild the exact Yandex DRAFT candidate and continue hosted validation. Do not add unrelated polish while this gate is open.
