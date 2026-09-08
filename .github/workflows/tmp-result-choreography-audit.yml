@@ -1,0 +1,42 @@
+name: Temporary result choreography browser audit
+
+on:
+  push:
+    branches:
+      - audit/result-choreography-correction
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Vite dev server
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat /tmp/mpt-vite.log
+          exit 1
+      - name: Run choreography audit
+        run: node tools/tmp-result-choreography-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-choreography-audit
+          path: tmp-result-choreography-audit
