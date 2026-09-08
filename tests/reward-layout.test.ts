@@ -21,6 +21,7 @@ describe('reward tray layout', () => {
           safeLeft: metrics.safeLeft,
           safeRight: metrics.safeRight,
           safeTop: metrics.safeTop,
+          topOffset: OPENING_FEEL_PRESENTATION.railTopOffset,
           centerX: metrics.centerX,
           railRight: metrics.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth,
           resultPanelTop: RESULT_PRESENTATION.panelY - RESULT_PRESENTATION.panelHeight / 2,
@@ -57,7 +58,7 @@ describe('reward tray layout', () => {
 
         expect(tray.left).toBeGreaterThanOrEqual(metrics.safeLeft);
         expect(tray.right).toBeLessThanOrEqual(metrics.safeRight);
-        expect(tray.top).toBeGreaterThanOrEqual(metrics.safeTop);
+        expect(tray.top).toBeCloseTo(metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset);
         expect(tray.bottom).toBeLessThan(190);
         expect(rectsOverlap(tray, rail)).toBe(false);
         expect(rectsOverlap(tray, result)).toBe(false);
