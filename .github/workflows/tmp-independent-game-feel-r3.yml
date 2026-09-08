@@ -1,0 +1,58 @@
+name: TEMP independent game feel audit R3
+on:
+  push:
+    branches: [audit/independent-game-feel-r1]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with: {ref: audit/independent-game-feel-r1, fetch-depth: 0}
+      - uses: actions/setup-node@v6
+        with: {node-version: 22}
+      - run: npm ci
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Prepare audit runtime
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/main.ts');t=p.read_text();a="  game.sound.mute = blocked;\n";x="  if (import.meta.env.DEV) {\n    const w = window as typeof window & { __auditGame?: Phaser.Game; __auditAudio?: unknown };\n    w.__auditGame = game; w.__auditAudio = audio;\n  }\n";assert a in t;p.write_text(t.replace(a,a+x,1))
+          PY
+          cat > tools/tmp-r3.mjs <<'EOF'
+          import {chromium} from 'playwright';import fs from 'node:fs';fs.mkdirSync('audit-r3',{recursive:true});
+          const b=await chromium.launch({headless:true}),p=await b.newPage({viewport:{width:1280,height:720}});const errors=[],bad=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});p.on('response',r=>{if(r.status()>=400)bad.push(`${r.status()}:${r.url()}`)});
+          await p.goto('http://127.0.0.1:5173/?debug=1&platform=mock');await p.waitForFunction(()=>window.__auditGame?.scene?.getScene?.('OpeningScene')?.phase==='idle',null,{timeout:15000});const h=p.getByRole('button',{name:'Hide',exact:true});if(await h.isVisible().catch(()=>false))await h.click();await p.mouse.click(640,360);await p.evaluate(()=>window.__auditAudio.play('ui-click'));await p.waitForTimeout(100);
+          await p.evaluate(()=>{const s=window.__auditGame.scene.getScene('OpeningScene'),a=window.__auditAudio;window.__feel=[];const m=(type,name)=>window.__feel.push({t:performance.now(),type,name});for(const n of ['animateChipsPrelude','animateSignalLockConsumptionPrelude','animateStandardReveal','animatePostStandardEconomy','animateHiddenPocket','animateRewardStaging','animateDiscoveryBeat','animateCollectionAcceptance','animateRewardBanking']){if(typeof s[n]!=='function')continue;const o=s[n].bind(s);s[n]=async(...x)=>{m('start',n);try{return await o(...x)}finally{m('end',n)}}}const rr=s.renderResolvedResult.bind(s);s.renderResolvedResult=(...x)=>{m('instant','renderResolvedResult');return rr(...x)};const op=a.play.bind(a);a.play=c=>{m('audio',c);return op(c)}});
+          const prep=sc=>p.evaluate(async sc=>{const {getPlatformRuntime}=await import('/src/app/runtime.ts'),{SaveRepository}=await import('/src/game/systems/save.ts'),{resetDebugSave,stageDebugReveal}=await import('/src/debug/debugScenarios.ts');const s=window.__auditGame.scene.getScene('OpeningScene'),r=new SaveRepository(getPlatformRuntime().storage);await resetDebugSave(r);await stageDebugReveal(r,sc);const st=await s.session.load();s.saveState=st;s.selectedPouchType=st.pendingReveal?.pouchType??'basic';s.lastReveal=st.pendingReveal;s.resultReady=false;s.renderIdle();s.pouch.tab.setX(s.pouch.tabEndX);s.ignoreNextResultTap=false;window.__feel=[]},sc);
+          const snap=()=>p.evaluate(()=>{const s=window.__auditGame.scene.getScene('OpeningScene'),a=window.__auditAudio;return{phase:s.phase,ready:s.resultReady,std:s.standardPresenceTargets?.length??0,secret:s.secretPremiumTargets?.length??0,audio:{active:a.activeResultAmbience,desired:a.desiredResultAmbience,sources:a.persistentRaritySources?.length??0,drag:Boolean(a.dragTextureSource)}}});
+          const runs=[];for(const sc of ['common','rare','epic','legendary','duplicate','hidden-pocket','signal-lock-consumed']){await prep(sc);const start=await p.evaluate(()=>performance.now());await p.evaluate(()=>{const s=window.__auditGame.scene.getScene('OpeningScene');return s.playReveal(s.session.getPendingReveal(),false)});await p.waitForFunction(()=>{const s=window.__auditGame.scene.getScene('OpeningScene');return s.phase==='result'&&s.resultReady},null,{timeout:10000});const end=await p.evaluate(()=>performance.now()),ev=await p.evaluate(()=>window.__feel),base=ev[0]?.t??start;runs.push({scenario:sc,duration:Math.round(end-start),events:ev.map(e=>({...e,dt:Math.round(e.t-base)})),stable:await snap()})}
+          await prep('legendary');await p.evaluate(()=>{const s=window.__auditGame.scene.getScene('OpeningScene');return s.playReveal(s.session.getPendingReveal(),false)});await p.waitForFunction(()=>window.__auditGame.scene.getScene('OpeningScene').resultReady);const cs=await p.evaluate(()=>performance.now());await p.evaluate(()=>{window.__feel=[];window.__auditGame.scene.getScene('OpeningScene').continueFromResult()});await p.waitForFunction(()=>window.__auditGame.scene.getScene('OpeningScene').phase==='idle',null,{timeout:10000});const collect={duration:Math.round((await p.evaluate(()=>performance.now()))-cs,events:await p.evaluate(()=>window.__feel),final:await snap()};
+          const stress=await p.evaluate(async()=>{const {getPlatformRuntime}=await import('/src/app/runtime.ts'),{SaveRepository}=await import('/src/game/systems/save.ts'),{resetDebugSave,stageDebugReveal}=await import('/src/debug/debugScenarios.ts');const s=window.__auditGame.scene.getScene('OpeningScene'),r=new SaveRepository(getPlatformRuntime().storage),a=window.__auditAudio,seq=['common','rare','epic','legendary','duplicate','hidden-pocket'],samples=[];for(let i=0;i<18;i++){const sc=seq[i%6];await resetDebugSave(r);await stageDebugReveal(r,sc);const st=await s.session.load();s.saveState=st;s.selectedPouchType=st.pendingReveal?.pouchType??'basic';s.lastReveal=st.pendingReveal;s.resultReady=false;s.renderIdle();s.pouch.tab.setX(s.pouch.tabEndX);const w=s.playReveal(s.session.getPendingReveal(),false);setTimeout(()=>s.requestPresentationFastForward(),70+(i%4)*30);await w;samples.push({i,sc,phase:s.phase,ready:s.resultReady,sources:a.persistentRaritySources?.length??0,std:s.standardPresenceTargets?.length??0,secret:s.secretPremiumTargets?.length??0});s.continueFromResult();const dl=performance.now()+5000;while(s.phase!=='idle'&&performance.now()<dl)await new Promise(q=>setTimeout(q,20));if(s.phase!=='idle')throw new Error(`stuck ${i}`)}return{samples,final:{phase:s.phase,sources:a.persistentRaritySources?.length??0,drag:Boolean(a.dragTextureSource)}}});
+          await prep('legendary');const rw=p.evaluate(()=>{const s=window.__auditGame.scene.getScene('OpeningScene');return s.playReveal(s.session.getPendingReveal(),false)});await p.waitForTimeout(180);await p.setViewportSize({width:900,height:720});await p.waitForTimeout(80);await p.evaluate(()=>window.__auditGame.scene.getScene('OpeningScene').requestPresentationFastForward());await rw;await p.waitForFunction(()=>window.__auditGame.scene.getScene('OpeningScene').resultReady,null,{timeout:10000});const compact=await snap();await p.screenshot({path:'audit-r3/compact.png'});
+          fs.writeFileSync('audit-r3/report.json',JSON.stringify({source:'55ebe099e83b01d0efcc51818aadcb23158ca19a',runs,collect,stress,compact,errors,bad},null,2));await b.close();if(errors.length||bad.length)process.exitCode=1;
+          EOF
+      - name: Run audit
+        shell: bash
+        run: |
+          npm run dev -- --host 127.0.0.1 >/tmp/vite 2>&1 & PID=$!; trap 'kill $PID || true' EXIT
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:5173/ >/dev/null && break || sleep 1; done
+          node tools/tmp-r3.mjs
+      - name: Print report
+        if: always()
+        run: |
+          node -e "const r=require('./audit-r3/report.json'); console.log(JSON.stringify(r,null,2))"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: independent-game-feel-r3, path: audit-r3, retention-days: 14}
+      - name: Clean
+        if: always()
+        shell: bash
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json || true; rm -f tools/tmp-r3.mjs .github/workflows/tmp-independent-game-feel-r3.yml; rm -rf audit-r3
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git add -A;if ! git diff --cached --quiet;then git commit -m 'Remove temporary independent feel audit R3';git push origin HEAD:audit/independent-game-feel-r1;fi
