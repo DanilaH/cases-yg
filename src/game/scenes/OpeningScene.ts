@@ -230,7 +230,7 @@ export class OpeningScene extends Phaser.Scene {
     this.clearAmbientMotion();
     this.clearSecretPremiumMotion();
     this.clearHudMotion();
-    if (this.chargedAura) this.tweens.killTweensOf(this.chargedAura);
+    if (this.chargedAura) this.killContainerTreeTweens(this.chargedAura);
     this.root?.destroy(true);
     this.pouch = null;
     this.collectionButton = null;
@@ -1184,6 +1184,14 @@ export class OpeningScene extends Phaser.Scene {
     if (pinkRing) this.tweens.add({ targets: pinkRing, alpha: { from: 0.42, to: 0.82 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   }
 
+  private killContainerTreeTweens(container: Phaser.GameObjects.Container): void {
+    this.tweens.killTweensOf(container);
+    for (const child of container.list) {
+      this.tweens.killTweensOf(child);
+      if (child instanceof Phaser.GameObjects.Container) this.killContainerTreeTweens(child);
+    }
+  }
+
   private startChargedAuraExit(delay: number, duration: number): void {
     const aura = this.chargedAura;
     if (!aura?.active) return;
@@ -1198,7 +1206,10 @@ export class OpeningScene extends Phaser.Scene {
       duration,
       ease: 'Cubic.InOut',
       onComplete: () => {
-        if (aura.active) aura.destroy(true);
+        if (aura.active) {
+          this.killContainerTreeTweens(aura);
+          aura.destroy(true);
+        }
         if (this.chargedAura === aura) this.chargedAura = null;
       },
     });
