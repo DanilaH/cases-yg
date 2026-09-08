@@ -41,7 +41,26 @@ const boot = async (): Promise<void> => {
   document.documentElement.lang = platform.language;
   document.title = messages.appTitle;
 
-  const game = new Phaser.Game({
+  let blocked = false;
+  let game: Phaser.Game | null = null;
+  const applyBlockedState = (nextBlocked: boolean): void => {
+    blocked = nextBlocked;
+    audio.setBlocked(nextBlocked);
+    if (!game) return;
+    game.sound.mute = nextBlocked;
+    if (nextBlocked) {
+      game.loop.sleep();
+    } else {
+      game.loop.wake();
+    }
+  };
+
+  // Subscribe before Phaser construction. onBlockedChange replays the current
+  // aggregate state, so a Yandex startup pause that happened during async boot is
+  // buffered and applied before the game gets a chance to run normally.
+  const removeBlockedListener = platform.activity.onBlockedChange(applyBlockedState);
+
+  game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#171421',
@@ -51,18 +70,8 @@ const boot = async (): Promise<void> => {
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
   });
-
-  let blocked = false;
-  const removeBlockedListener = platform.activity.onBlockedChange((nextBlocked) => {
-    blocked = nextBlocked;
-    game.sound.mute = nextBlocked;
-    audio.setBlocked(nextBlocked);
-    if (nextBlocked) {
-      game.loop.sleep();
-    } else {
-      game.loop.wake();
-    }
-  });
+  game.sound.mute = blocked;
+  if (blocked) game.loop.sleep();
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
   if (gate) gate.textContent = messages.rotateDevice;
@@ -80,13 +89,13 @@ const boot = async (): Promise<void> => {
   window.addEventListener(
     'beforeunload',
     () => {
-      if (blocked) game.loop.wake();
+      if (blocked) game?.loop.wake();
       window.removeEventListener('resize', updateOrientationGate);
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();
       removeDebugPanel();
       platform.destroy();
-      game.destroy(true);
+      game?.destroy(true);
     },
     { once: true },
   );

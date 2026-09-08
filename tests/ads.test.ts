@@ -63,7 +63,7 @@ describe('YandexAdsAdapter', () => {
 
     expect(onReward).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'closed', rewardEarned: true });
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
   });
 
   it('ignores a late reward callback after the ad already closed', async () => {
@@ -81,7 +81,7 @@ describe('YandexAdsAdapter', () => {
 
     expect(onReward).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'closed', rewardEarned: false });
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
   });
 
   it('returns an error and unblocks gameplay when reward persistence fails', async () => {
@@ -102,7 +102,7 @@ describe('YandexAdsAdapter', () => {
     });
 
     expect(result).toEqual({ status: 'error', rewardEarned: false, error: 'storage failed' });
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
   });
 
   it('releases gameplay/audio as soon as the ad closes while reward persistence finishes safely', async () => {
@@ -124,7 +124,7 @@ describe('YandexAdsAdapter', () => {
       onReward: () => rewardGate,
     });
 
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
     resolveReward?.();
     const result = await resultPromise;
 
@@ -139,7 +139,7 @@ describe('YandexAdsAdapter', () => {
     const result = await adapter.showRewarded({ rewardId: 'no-callback', onReward: vi.fn() });
 
     expect(result).toEqual({ status: 'error', rewardEarned: false, error: AD_CALLBACK_TIMEOUT });
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
   });
 
   it('unblocks an interstitial after an SDK error', async () => {
@@ -152,6 +152,6 @@ describe('YandexAdsAdapter', () => {
     const result = await adapter.showInterstitial();
 
     expect(result).toEqual({ status: 'error', wasShown: false, error: 'ad failed' });
-    expect(blocked).toEqual([true, false]);
+    expect(blocked).toEqual([false, true, false]);
   });
 });

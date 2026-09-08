@@ -39,6 +39,10 @@ export class GameplayActivityCoordinator {
 
   public onBlockedChange(listener: BlockedListener): () => void {
     this.blockedListeners.add(listener);
+    // A subscriber can attach after the platform already entered a blocked state
+    // (for example while YaGames storage is still initializing). Replay the current
+    // aggregate state so Phaser/WebAudio cannot miss that pause edge.
+    listener(this.externallyBlocked);
     return () => this.blockedListeners.delete(listener);
   }
 

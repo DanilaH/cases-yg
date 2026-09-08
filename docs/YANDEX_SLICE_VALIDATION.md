@@ -1,6 +1,6 @@
 # Yandex DRAFT validation
 
-This checklist is the hosted-platform gate that runs **after Phase 2.6 final-hands-on correction + Signal Overcharge exact/direct acceptance**.
+This checklist is the hosted-platform gate that runs **after Phase 2.6 Signal Overcharge + Phase 2.7 Secret reward correction + final merged-main repeated-use acceptance**.
 
 Unit tests, CI and local browser automation prove code behavior; they do not prove the actual Yandex-hosted SDK/storage/ad lifecycle.
 
@@ -11,6 +11,7 @@ Unit tests, CI and local browser automation prove code behavior; they do not pro
 - With a valid Metrica tag ID, runtime sends semantic events through `reachGoal`.
 - Without a Metrica ID, analytics can remain console-only in debug mode; this is not a release error.
 - Add `debug=1` to expose internal test controls without forcing the mock platform.
+- Save schema is V4. V1/V2/V3 migration remains supported and must preserve already-staged transactions without retroactively adding the V4 Secret jackpot.
 
 ## Automated precondition
 
@@ -22,9 +23,9 @@ Before upload, the exact candidate revision must pass:
 - `npm run assets:selftest`;
 - `npm run assets:validate`;
 - `npm run build`;
-- exact-revision browser visual/interaction audit for the Lite loop.
+- exact-revision browser visual/interaction audit for the current loop.
 
-Lite-specific automated coverage must include:
+Automated coverage must include:
 
 - Basic/Charged profile selection;
 - Basic normal roll cannot produce Legendary;
@@ -37,19 +38,35 @@ Lite-specific automated coverage must include:
 - exact legacy Signal mapping `min(4, floor(oldSignal / 25))`;
 - Drop-scoped NEW guarantee preserving selected pouch rarity profile;
 - strict Signal gate: Basic retains `4/4` when only Legendary remains, then Charged guarantees/consumes it;
-- save migration from pre-Lite state;
-- pending reveal recovery/idempotency with wallet/cache/Signal-retention fields;
-- save migration into inactive Overcharge state plus pending-reveal recovery/idempotency for multiplier-before, bonus CHIPS, actual gain/reset and multiplier-after;
-- rewarded dev CHIPS exactly-once path.
+- pending reveal recovery/idempotency with wallet/cache/Signal/Overcharge fields;
+- V1/V2/V3 → V4 migration, including an already-staged pre-V4 Hidden Pocket that keeps its old exact wallet outcome;
+- Secret `+40 CHIPS` stored inside the exact pending transaction;
+- Secret bonus excluded from Overcharge multiplication;
+- missing Secrets chosen before Secret duplicates, then duplicates remain possible after `2/2`;
+- Secret NEW/duplicate collection semantics;
+- late activity subscribers immediately receive the current aggregate blocked state;
+- rewarded adapter exactly-once/error/timeout behavior;
+- debug rewarded CHIPS probe reloads after a durable grant before another pouch can use stale in-memory session state.
 
 ## DRAFT — boot / LoadingAPI
 
-1. Upload exact Lite V2 production build as a Yandex Games draft.
+1. Upload the exact accepted production build as a Yandex Games draft.
 2. Open through Yandex debug environment; append `debug=1` if needed.
 3. Confirm platform debug says `Platform: yandex`, not `mock`.
 4. Confirm loader disappears only after storage + initial scene are ready.
 5. Reload repeatedly and confirm no double-ready or visible late-init jump.
-6. Confirm existing pre-Lite save migrates without losing discovered collectibles/Secrets.
+6. Confirm existing V1/V2/V3 saves migrate into V4 without losing discovered collectibles/Secrets or changing already-staged pre-V4 rewards.
+
+### Startup pause race — explicit check
+
+The runtime subscribes to `game_api_pause` / `game_api_resume` immediately after `YaGames.init()`, before awaiting storage. The activity coordinator also replays its current aggregate blocked state to late subscribers.
+
+Verify in the hosted environment:
+
+- if Yandex pauses the game during startup/storage initialization, Phaser and WebAudio are already blocked when the game runtime attaches;
+- a startup ad/overlay cannot briefly run gameplay or SFX behind it;
+- resume wakes the game once and does not leave a stale blocker;
+- repeated pause/resume around startup does not produce duplicate start/stop behavior.
 
 ## DRAFT — pause / resume and audio
 
@@ -58,6 +75,7 @@ Lite-specific automated coverage must include:
 3. Confirm gameplay/input/tweens are blocked appropriately.
 4. Confirm Phaser/Web Audio SFX stay silent through blocked interval.
 5. Confirm return does not leave stuck input, duplicate tweens or stale reward HUD state.
+6. Repeat while a Secret premium state is visible; persistent Secret tweens must resume cleanly and still teardown on collect/navigation.
 
 ## DRAFT — interstitial
 
@@ -71,20 +89,23 @@ Expected:
 - another fullscreen request while one is active is rejected safely;
 - analytics records request/result events.
 
-Never request interstitial during active tear/reveal.
+Never request interstitial during active tear/reveal in the public product.
 
 ## DRAFT — rewarded
 
-After Lite V2 Signal migration, technical rewarded probe must use a **clearly dev-only CHIPS grant**, not `+25 Signal`.
+Technical rewarded probe uses a **clearly dev-only CHIPS grant**, not Signal.
 
 Expected:
 
 - reward grants only from rewarded completion callback, never close alone;
 - one ad call can persist CHIPS grant at most once even if callbacks repeat;
-- reload preserves grant;
 - persistence failure returns an error instead of claiming success;
 - close/error releases gameplay/audio safely;
-- no Signal pity mutation occurs as a side effect of technical ad probe.
+- no Signal pity mutation occurs as a side effect of technical ad probe;
+- after a successful durable grant, the debug probe reloads before another pouch can stage from the old in-memory `OpeningSession` state;
+- after reload, CHIPS include the grant and the next Basic/Charged transaction uses that updated wallet;
+- a successful grant cannot disappear after the next opening;
+- if a pending reveal already exists, the debug grant preserves the pending transaction invariant and recovery still commits exactly once.
 
 The dev CHIPS amount is not final public rewarded economy.
 
@@ -105,16 +126,14 @@ Expected:
 2. Reload/close during reveal before result returns to idle.
 3. Reopen draft.
 4. Confirm staged `pendingReveal` is recovered rather than rerolled.
-5. Confirm collectible/base CHIPS/cache bonus/recycle/Signal/Hidden Pocket outcome commits exactly once.
+5. Confirm collectible/base CHIPS/cache bonus/recycle/Signal/Overcharge/Hidden Pocket outcome commits exactly once.
 6. Confirm opening count increments once.
 
 Repeat with a forced large cache outcome, duplicate/recycle and Hidden Pocket paths through debug tooling. Also repeat a Basic opening while Signal is armed and only Legendary remains; after recovery the same Basic result must be preserved and Signal must still be `4/4`.
 
-After Phase 2.6, also interrupt retained-lock Overcharge openings before/after visible bonus/gain staging. Reload must preserve the same multiplier-before, bonus CHIPS and multiplier-after without double gain.
+For retained-lock Overcharge openings, interrupt before/after visible bonus/gain staging. Reload must preserve the same multiplier-before, bonus CHIPS and multiplier-after without double gain.
 
 ## DRAFT — interrupted Charged reveal recovery — CRITICAL
-
-This is a Lite V2 release blocker.
 
 1. Ensure wallet can afford Charged.
 2. Record CHIPS before opening.
@@ -132,10 +151,29 @@ Expected:
 - same cache tier/amount is preserved rather than rerolled;
 - same collectible/Hidden Pocket outcome is preserved;
 - final wallet equals transaction's deterministic committed value;
-- active Drop/profile remains the one stored in transaction.
-- if the opening cashes out Overcharge through a consuming lock, the same bonus CHIPS and reset-to-`x1.00` outcome are recovered exactly once.
+- active Drop/profile remains the one stored in transaction;
+- if the opening cashes out Overcharge through a consuming lock, the same bonus CHIPS and reset-to-`x1.00` outcome are recovered exactly once;
+- if a Hidden Pocket is part of the transaction, its persisted Secret bonus is neither dropped nor duplicated.
 
 This must be tested in actual Yandex storage environment, not only localStorage.
+
+## DRAFT — Secret V4 jackpot / persistent presentation
+
+Test both forced NEW Secret and forced Secret duplicate.
+
+Expected:
+
+- NEW Secret awards exactly `+40 CHIPS` as a separate persisted Secret bonus and adds the Secret to Collection once;
+- Secret duplicate awards exactly `+40 CHIPS` without adding another collection ID;
+- before all Secrets are owned, Hidden Pocket selects from missing Secrets; after `2/2`, Hidden Pocket can still resolve to a duplicate;
+- Secret bonus is not included in `base + cache + recycle` and is not multiplied by Overcharge;
+- standard reward page and Secret page switch the same reward tray rather than rendering competing trays;
+- Secret page uses the Secret-specific rarity identity and `SECRET DISCOVERED` / `SECRET DUPLICATE` semantics;
+- entrance burst is followed by persistent premium ambience (halo/cloud/sparkles/breathing) for several seconds until collect;
+- swiping away suppresses the Secret atmosphere; returning restores it;
+- collect/navigation destroys persistent Secret tweens and no stale callbacks affect the next opening;
+- reload during a staged Hidden Pocket recovers the exact same Secret ID, NEW/duplicate flag and `bonusChips` value;
+- migrated pre-V4 staged Hidden Pockets keep `bonusChips: 0` and are never retroactively credited `+40`.
 
 ## DRAFT — Signal migration / lock
 
@@ -152,7 +190,7 @@ With migrated legacy saves and/or debug seeds:
 - that waiting state is clearly communicated in UI, e.g. `SIGNAL LOCK · CHARGED`;
 - a following eligible Charged opening guarantees a missing Legendary, preserves Charged weighting if multiple candidates exist, and consumes the lock;
 - repeated duplicates while the lock waits do not increase Signal beyond `4/4`;
-- complete active Drop does not consume/waste armed lock.
+- complete active Drop does not consume/waste armed lock;
 - with an armed retained lock, Overcharge applies the persisted multiplier to `base + cache + recycle`, then persists only the actual clamped pouch gain for the next opening;
 - at cap, the multiplier still applies while no fake gain is persisted;
 - an eligible consuming lock cashes out the current multiplier and persists reset to `x1.00`;
@@ -170,31 +208,41 @@ Confirm at representative hosted sizes:
 - crossing affordability through a cache jump also triggers it once;
 - `SIGNAL LOCK · CHARGED` or equivalent does not collide with CHIPS/Charged controls at compact width;
 - Charged cannot be opened when balance is insufficient;
-- no modal/store is required for Basic/Charged choice.
-- when Overcharge is active, hosted reward UI shows raw earned CHIPS, multiplier contribution and final total without overflow; inactive `x1.00` remains visually dormant and MAX remains clearly saturated rather than error-like.
+- no modal/store is required for Basic/Charged choice;
+- active Overcharge reward UI shows the compact source breakdown, Overcharge contribution and final total without overflow; player-facing `RAW` is intentionally not shown;
+- inactive `x1.00` remains visually dormant and MAX remains clearly saturated rather than error-like;
+- reward tray prefers the right-side slot and does not overlap the left gameplay/pouch rail, hero or result panel at representative 900/1024/1280 widths.
+
+## DRAFT — browser/device compatibility
+
+The current production build target is ES2022. Do not infer full device compatibility from desktop Chromium alone.
+
+For every platform/device class actually selected in Yandex Console:
+
+- launch the exact hosted DRAFT on representative supported browsers/devices;
+- confirm no syntax/startup failure before Phaser boot;
+- verify landscape resize/orientation behavior;
+- verify audio unlock, pointer/touch tear gesture and Collection navigation;
+- if an older selected platform cannot execute the build, adjust the supported-platform claim or build target from evidence rather than lowering the target blindly.
 
 ## DRAFT — Metrica
 
-If a tag is configured, validate relevant semantic goals such as:
+If a tag is configured, validate relevant semantic goals actually emitted by the current build, including:
 
 ```text
 platform_ready
 first_package_interaction
-pouch_open_started
 reveal_complete
-chips_earned
 chips_cache_hit
-duplicate_recycled
 signal_lock_reached
-signal_lock_waiting_for_eligible_pouch
 signal_lock_consumed
-overcharge_bonus_applied
-overcharge_gain
-overcharge_max
-overcharge_discharged
-charged_ready
-charged_opened
+signal_lock_retained
+overcharge_gained
+overcharge_cashed_out
 hidden_pocket_triggered
+secret_discovered
+secret_duplicate
+standard_collection_complete
 collection_open
 ad_* events
 ```
@@ -205,6 +253,6 @@ Confirm `reachGoal` traffic in Yandex tooling and confirm `debug=1` does not for
 
 Do not mark Yandex DRAFT validation complete from CI or local visual audits.
 
-The pass is complete only when exact hosted Lite V2 build proves:
+The pass is complete only when the exact hosted V4 build proves:
 
-> **SDK boot + lifecycle + storage migration + Basic/Charged atomic recovery + cache/Signal/Overcharge persistence + ads + audio + analytics are all safe in the real Yandex environment.**
+> **SDK boot + startup pause/lifecycle + storage migration + Basic/Charged atomic recovery + cache/Signal/Overcharge/Secret persistence + ads + audio + analytics are all safe in the real Yandex environment.**

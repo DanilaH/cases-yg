@@ -65,7 +65,6 @@ const loadYandexSdk = async (): Promise<void> => {
 const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   await loadYandexSdk();
   const sdk: SDK = await YaGames.init();
-  const storage = await sdk.getStorage();
   const analytics = createYandexAnalyticsAdapter();
   const activity = new GameplayActivityCoordinator(
     () => sdk.features.GameplayAPI?.start(),
@@ -73,35 +72,50 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   );
 
   const removeVisibilityBridge = installVisibilityBridge(activity);
-  const offPause = sdk.on('game_api_pause', () => {
+  const handlePause = (): void => {
     analytics.track('platform_pause', { platform: 'yandex' });
     activity.setBlocked('platform', true);
-  });
-  const offResume = sdk.on('game_api_resume', () => {
+  };
+  const handleResume = (): void => {
     analytics.track('platform_resume', { platform: 'yandex' });
     activity.setBlocked('platform', false);
-  });
-  let readySent = false;
-
-  return {
-    kind: 'yandex',
-    language: normalizeLanguage(sdk.environment.i18n.lang),
-    storage: new WebStorageAdapter(storage),
-    analytics,
-    ads: new YandexAdsAdapter(sdk, activity, { analytics }),
-    activity,
-    markReady: () => {
-      if (readySent) return;
-      readySent = true;
-      sdk.features.LoadingAPI?.ready();
-      analytics.track('platform_ready', { platform: 'yandex' });
-    },
-    destroy: () => {
-      removeVisibilityBridge();
-      offPause();
-      offResume();
-    },
   };
+
+  // Subscribe immediately after YaGames.init(). A startup ad/pause can happen
+  // while getStorage() is still pending; the coordinator replays that state when
+  // the Phaser runtime later subscribes to blocked changes.
+  sdk.on('game_api_pause', handlePause);
+  sdk.on('game_api_resume', handleResume);
+
+  try {
+    const storage = await sdk.getStorage();
+    let readySent = false;
+
+    return {
+      kind: 'yandex',
+      language: normalizeLanguage(sdk.environment.i18n.lang),
+      storage: new WebStorageAdapter(storage),
+      analytics,
+      ads: new YandexAdsAdapter(sdk, activity, { analytics }),
+      activity,
+      markReady: () => {
+        if (readySent) return;
+        readySent = true;
+        sdk.features.LoadingAPI?.ready();
+        analytics.track('platform_ready', { platform: 'yandex' });
+      },
+      destroy: () => {
+        removeVisibilityBridge();
+        sdk.off('game_api_pause', handlePause);
+        sdk.off('game_api_resume', handleResume);
+      },
+    };
+  } catch (error: unknown) {
+    removeVisibilityBridge();
+    sdk.off('game_api_pause', handlePause);
+    sdk.off('game_api_resume', handleResume);
+    throw error;
+  }
 };
 
 export const bootstrapPlatform = async (): Promise<PlatformRuntime> => {

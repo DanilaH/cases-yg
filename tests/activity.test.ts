@@ -36,7 +36,21 @@ describe('GameplayActivityCoordinator', () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it('emits blocked changes only when aggregate blocked state changes', () => {
+  it('replays the current blocked state to a late subscriber', () => {
+    const activity = new GameplayActivityCoordinator(() => undefined, () => undefined);
+    activity.setBlocked('platform', true);
+
+    const listener = vi.fn();
+    activity.onBlockedChange(listener);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenLastCalledWith(true);
+
+    activity.setBlocked('platform', false);
+    expect(listener.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('emits blocked changes only when aggregate blocked state changes after the initial replay', () => {
     const activity = new GameplayActivityCoordinator(() => undefined, () => undefined);
     const listener = vi.fn();
     activity.onBlockedChange(listener);
@@ -46,6 +60,6 @@ describe('GameplayActivityCoordinator', () => {
     activity.setBlocked('ad', false);
     activity.setBlocked('platform', false);
 
-    expect(listener.mock.calls).toEqual([[true], [false]]);
+    expect(listener.mock.calls).toEqual([[false], [true], [false]]);
   });
 });
