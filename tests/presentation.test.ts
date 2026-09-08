@@ -66,7 +66,7 @@ describe('reveal presentation', () => {
     expect(getRewardTrayHeight(116)).toBe(120);
   });
 
-  it('keeps persistent rarity presence restrained and clearly below Secret treatment', () => {
+  it('keeps persistent standard rarity presence restrained and tiered', () => {
     const common = getStandardResultPresence('common');
     const rare = getStandardResultPresence('rare');
     const epic = getStandardResultPresence('epic');
@@ -82,6 +82,8 @@ describe('reveal presentation', () => {
     expect(epic.sparkleCount).toBeLessThan(legendary.sparkleCount);
     expect(legendary.sparkleCount).toBeLessThanOrEqual(4);
     expect(legendary.glowAlpha).toBeLessThanOrEqual(0.07);
+    expect(legendary.glowAlpha).toBeLessThan(REVEAL_FX_PRESETS.legendary.glowAlpha * 0.15);
+    expect(legendary.sparkleCount).toBeLessThan(REVEAL_FX_PRESETS.legendary.particleCount);
   });
 
   it('keeps reveal emergence on one stable z-order path', () => {
