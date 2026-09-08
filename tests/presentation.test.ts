@@ -86,6 +86,30 @@ describe('reveal presentation', () => {
     expect(legendary.sparkleCount).toBeLessThan(REVEAL_FX_PRESETS.legendary.particleCount);
   });
 
+  it('gives rarity a bounded anticipation and perceived-mass ladder', () => {
+    const common = REVEAL_FX_PRESETS.common;
+    const rare = REVEAL_FX_PRESETS.rare;
+    const epic = REVEAL_FX_PRESETS.epic;
+    const legendary = REVEAL_FX_PRESETS.legendary;
+    const secret = REVEAL_FX_PRESETS.secret;
+
+    expect(common.anticipationHoldMs).toBe(0);
+    expect(rare.anticipationHoldMs).toBe(0);
+    expect(epic.anticipationHoldMs).toBeGreaterThan(0);
+    expect(epic.anticipationHoldMs).toBeLessThan(legendary.anticipationHoldMs);
+    expect(legendary.anticipationHoldMs).toBeLessThan(secret.anticipationHoldMs);
+    expect(secret.anticipationHoldMs).toBeLessThanOrEqual(200);
+    expect(common.introDuration).toBeLessThan(rare.introDuration);
+    expect(rare.introDuration).toBeLessThanOrEqual(epic.introDuration);
+    expect(epic.aftershockScale).toBe(1);
+    expect(epic.aftershockDurationMs).toBe(0);
+    expect(legendary.aftershockScale).toBeGreaterThan(1);
+    expect(legendary.aftershockScale).toBeLessThanOrEqual(1.02);
+    expect(legendary.aftershockDurationMs).toBeGreaterThan(0);
+    expect(legendary.aftershockDurationMs).toBeLessThanOrEqual(100);
+    expect(secret.aftershockScale).toBe(1);
+  });
+
   it('keeps reveal emergence on one stable z-order path', () => {
     expect(REVEAL_MOTION_PRESENTATION.emergeOffsetY).toBeGreaterThan(100);
     expect(REVEAL_MOTION_PRESENTATION.pouchExitOffsetY).toBeGreaterThan(80);

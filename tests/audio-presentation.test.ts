@@ -6,6 +6,7 @@ import {
   getAudioCuePresentationDirective,
   getDragTextureMix,
   getRarityAmbienceProfile,
+  getRevealAnticipationAudioProfile,
 } from '../src/game/data/audioPresentation';
 
 describe('audio presentation', () => {
@@ -76,6 +77,22 @@ describe('audio presentation', () => {
     expect(getAudioCuePresentationDirective('pouch-grab').clearPersistent).toBe(true);
     expect(getAudioCuePresentationDirective('tear').clearPersistent).toBe(true);
     expect(getAudioCuePresentationDirective('reveal-pop').clearPersistent).toBe(true);
+  });
+
+  it('reserves deliberate pre-reveal silence for Epic and above', () => {
+    const common = getRevealAnticipationAudioProfile('common');
+    const rare = getRevealAnticipationAudioProfile('rare');
+    const epic = getRevealAnticipationAudioProfile('epic');
+    const legendary = getRevealAnticipationAudioProfile('legendary');
+    const secret = getRevealAnticipationAudioProfile('secret');
+
+    expect(common.enabled).toBe(false);
+    expect(rare.enabled).toBe(false);
+    expect(epic.enabled).toBe(true);
+    expect(epic.multiplier).toBeGreaterThan(legendary.multiplier);
+    expect(legendary.multiplier).toBeGreaterThan(secret.multiplier);
+    expect(secret.multiplier).toBeLessThanOrEqual(0.1);
+    expect(epic.releaseMs).toBeLessThanOrEqual(secret.releaseMs);
   });
 
   it('uses silence/duck hierarchy instead of simply stacking louder transients', () => {
