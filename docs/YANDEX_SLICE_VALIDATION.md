@@ -1,6 +1,6 @@
 # Yandex DRAFT validation
 
-This checklist is the hosted-platform gate that runs **after Phase 2.6 Signal Overcharge + Phase 2.7 Secret reward correction + final merged-main repeated-use acceptance + Phase 2.8 result/reveal choreography correction (PR #65)**.
+This checklist is the hosted-platform gate that runs **after Phase 2.6 Signal Overcharge + Phase 2.7 Secret reward correction + final merged-main repeated-use acceptance + Phase 2.8 result/reveal choreography correction + Phase 2.9 Audio + Reward Feel bounded polish (PRs #75–#82)**.
 
 Unit tests, CI and local browser automation prove code behavior; they do not prove the actual Yandex-hosted SDK/storage/ad lifecycle.
 
@@ -46,7 +46,15 @@ Automated coverage must include:
 - Secret NEW/duplicate collection semantics;
 - late activity subscribers immediately receive the current aggregate blocked state;
 - rewarded adapter exactly-once/error/timeout behavior;
-- debug rewarded CHIPS probe reloads after a durable grant before another pouch can use stale in-memory session state.
+- debug rewarded CHIPS probe reloads after a durable grant before another pouch can use stale in-memory session state;
+- base gameplay ambience unlock/mute/platform-block lifecycle and deterministic teardown;
+- stable result-owned Rare/Epic/Legendary/Secret ambience with no persistent-source stacking across repeated openings;
+- Hidden Pocket active-page ambience ownership and Secret↔standard cross-state cleanup;
+- NEW discovery and DUPLICATE conversion remain presentation-only and do not mutate collection/economy outside the committed result;
+- drag/tear continuous texture releases on hold/release/cancel/complete/mute/block/scene teardown;
+- high-rarity anticipation/settle does not alter deterministic result timing or replay on recovery;
+- collection milestone presentation is one-shot per committed opening;
+- 7/8 near-completion presentation is read-only and does not alter rarity/drop/targeting probabilities.
 
 ## DRAFT — boot / LoadingAPI
 
@@ -76,6 +84,45 @@ Verify in the hosted environment:
 4. Confirm Phaser/Web Audio SFX stay silent through blocked interval.
 5. Confirm return does not leave stuck input, duplicate tweens or stale reward HUD state.
 6. Repeat while a Secret premium state is visible; persistent Secret tweens must resume cleanly and still teardown on collect/navigation.
+
+## DRAFT — Phase 2.9 Audio + Reward Feel lifecycle
+
+The Phase 2.9 polish deliberately uses stateful WebAudio presentation, so hosted validation must prove it behaves under the real Yandex lifecycle rather than only in local Chromium.
+
+### Base ambience / mute / platform block
+
+- after the first valid user gesture, the quiet room/device ambience + slow pad enters once and remains restrained under foreground SFX;
+- mute immediately silences persistent ambience and drag texture; unmute restores only the currently desired stable state, without stacking a second bed/rarity layer;
+- Yandex pause/ad/activity block suspends audio coherently and resume restores it once;
+- returning from Collection/root recreation does not leave an orphan rarity loop or progressively increase loudness;
+- hold Common result open for at least 30 seconds: only base ambience remains, with no unintended rarity hum;
+- hold Rare/Epic/Legendary/Secret results open long enough to judge that each persistent state is continuous, click/pop-free and ordered by presence without masking tear/reveal/Signal/CHIPS foreground cues.
+
+### Stable result ownership / Hidden Pocket
+
+- persistent rarity ambience begins from the stable result state, not prematurely during reward staging/Signal/Overcharge choreography;
+- recovered pending Rare/Epic/Legendary results enter the correct single persistent ambience state without replaying transient discovery/conversion meaning;
+- Hidden Pocket Secret page owns Secret ambience; swiping to the standard page suppresses Secret ambience and activates only the matching standard rarity state; swiping back restores Secret without overlap;
+- collect/navigation fades persistent rarity ambience and returns to the ordinary idle bed without a hard cut or stale source.
+
+### NEW vs DUPLICATE / collect / drag / anticipation
+
+- a first-time standard keeps its normal rarity reveal, then receives one short collection-registration acknowledgement; recovery must not replay it as if another acquisition happened;
+- a duplicate keeps the same rarity reveal quality but omits the discovery acknowledgement and emphasizes recycle/conversion meaning instead;
+- accepting either result produces one coherent collect→banking handoff and reaches the exact committed wallet/Signal state; presentation never owns durable reward mutation;
+- drag the tear tab slowly, quickly, stop mid-drag, release/cancel, mute during drag and complete a tear: the continuous material texture follows movement and always releases cleanly with no orphan source;
+- Common/Rare remain fast; Epic/Legendary/Secret use the bounded anticipation/settle hierarchy, and aggressive fast-forward/recovery cannot create duplicate suspense or alter the already-staged result.
+
+### Milestones / near-completion
+
+- validate one-shot 4/8 standards, 8/8 standards, first Secret and 2/2 Secrets milestones after durable commit; resize/re-render/recovery must not retrigger the same opening's milestone;
+- at exactly 7/8 standards, Collection highlights only the actual missing standard slot and Opening may show low-priority near-completion copy;
+- the 7/8 cue remains present across duplicates while the committed set is still 7/8, disappears at 8/8, and never changes resolver eligibility, pity, rarity weights or pouch profile behavior;
+- on Hidden Pocket, near-completion copy follows the active standard page and remains suppressed on the Secret page.
+
+### Subjective hosted mix check
+
+Automation cannot approve mix fatigue. On the hosted DRAFT, play several consecutive openings with headphones and at least one ordinary speaker/device class. Reject/tune only from direct evidence if ambience is tiring, rarity hum is too loud, duplicate/discovery cues mask rarity, or repeated use feels busier rather than better.
 
 ## DRAFT — interstitial
 
