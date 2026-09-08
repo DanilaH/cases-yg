@@ -28,7 +28,7 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Phase 2.6 final-hands-on correction + Signal Overcharge is **implemented and exact-audited**. One final direct repeated-use regression remains; real Yandex DRAFT follows only if that subjective gate is accepted |
+| Current stage | LOCKED | Phase 2.6 final-hands-on correction + Signal Overcharge is **implemented, exact-audited and accepted by the final direct repeated-use regression** after the bounded PR #50 lifecycle fix. Real Yandex DRAFT is the current next gate |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
 | Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
@@ -192,8 +192,9 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Second repeated hands-on | COMPLETE WITH FINDINGS | repeated-use feedback exposed narrow UI/feel issues; no economy/content expansion was justified |
 | Post-hands-on follow-up polish | COMPLETE | transition/input/resize/error-state fixes plus reward continuity, `pouch-grab`, stronger rarity hierarchy and semantic reward colors were independently audited and merged through PR #45 |
 | Final hands-on acceptance | COMPLETE WITH FINDINGS | direct play exposed rarity-badge styling, reward overflow, Charged denial drift, Signal/Secret clarity and completed-collection Signal-value issues |
-| Final hands-on correction + Signal Overcharge | COMPLETE | implemented and exact-audited; current suite is 114 tests plus typecheck/assets/build; final direct repeated-use regression still pending |
-| Real Yandex DRAFT | OPEN | next external gate immediately after final direct repeated-use regression accepts the exact Phase 2.6 candidate |
+| Final hands-on correction + Signal Overcharge | COMPLETE | implemented and exact-audited; current suite is 114 tests plus typecheck/assets/build |
+| Final direct repeated-use regression | COMPLETE | accepted after PR #50 fixed the stale Overcharge reward-tag tween lifecycle race; exact fixed-tree regression passed 86/86 browser assertions with zero runtime/request/HTTP failures and manual artifact review |
+| Real Yandex DRAFT | OPEN | current next external gate; local/direct prerequisites are accepted, but actual Yandex SDK/storage/ad lifecycle remains unproven until hosted validation |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 

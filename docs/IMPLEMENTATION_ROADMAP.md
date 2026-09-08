@@ -10,12 +10,12 @@ The two-family build is a private development base, not the public release.
 4. **Bounded post-hands-on UI/feel polish — COMPLETE / AUDITED / MERGED**
 5. **Final direct hands-on — COMPLETE WITH NEW BOUNDED FINDINGS**
 6. **Final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED**
-7. **Final direct repeated-use regression — REQUIRED INTERNAL GATE**
-8. **Real Yandex DRAFT validation — NEXT EXTERNAL GATE IF DIRECT REGRESSION PASSES**
+7. **Final direct repeated-use regression — COMPLETE / ACCEPTED AFTER BOUNDED LIFECYCLE FIX**
+8. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
 9. **Content/release expansion — BLOCKED until draft passes**
 10. **Public release hardening**
 
-The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response is still bounded: fix those findings and add only the explicitly specified Signal Overcharge extension.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. Hosted Yandex DRAFT is now the current gate.
 
 Do not tune legacy economy numbers by intuition. Overcharge gain/cap are allowed only as simulation-driven tuning inside the approved pass. Do not expand content or add unrelated meta systems before hosted DRAFT.
 

@@ -6,7 +6,7 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2, the feel-correction passes, and Phase 2.6 Signal Overcharge are implemented and exact-audited. The remaining internal gate is one final direct hands-on regression; real Yandex DRAFT follows only if that subjective pass is accepted.**
+**Gameplay Loop Lite V2, the feel-correction passes, and Phase 2.6 Signal Overcharge are implemented, exact-audited, and accepted by the final direct repeated-use regression. Real Yandex DRAFT is now the next gate.**
 
 Current approved scope: [`docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md`](docs/FINAL_HANDS_ON_OVERCHARGE_PLAN.md). Historical feel-correction contract: [`docs/OPENING_FEEL_CORRECTION_SCOPE.md`](docs/OPENING_FEEL_CORRECTION_SCOPE.md).
 
@@ -99,15 +99,17 @@ Completed:
 - Phase 2.6 comprehensive exact browser/state audit — **43/43 PASS**;
 - focused post-fix cash-out audit on exact product head `40db07a3c8069ef8ca01c5c35de0c355337d410e` — **15/15 PASS**, with reviewed RU 900 + EN 1280 result/discharge frames;
 - Phase 2.6 squash-merged through PR #48 as `main` `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020`;
-- post-merge CI #274 — **PASS**.
+- post-merge CI #274 — **PASS**;
+- final direct repeated-use regression exposed one stale Overcharge reward-tag tween lifecycle crash after fast-forward/result teardown;
+- bounded lifecycle fix merged through PR #50 as `main` `2d57c3430ede6e2cd328e47362632b992a03037c`;
+- exact fixed-tree lifecycle regression — **86/86 PASS**, including 10 retained-lock Overcharge stress openings and a fresh 24-opening normal loop with Charged/Signal/Collection round-trips; runtime/request/HTTP failures **0/0/0**; artifacts manually reviewed.
 
 Current order:
 
-1. run the final direct repeated-use hands-on regression on the exact Phase 2.6 candidate;
-2. if accepted, run real hosted Yandex DRAFT validation;
-3. fix only hosted-platform defects that the draft actually exposes;
-4. decide deferred Drop/odds/progress work from evidence;
-5. content expansion only after hosted validation.
+1. run real hosted Yandex DRAFT validation;
+2. fix only hosted-platform defects that the draft actually exposes;
+3. decide deferred Drop/odds/progress work from evidence;
+4. content expansion only after hosted validation.
 
 Do not add unrelated meta systems/content or tune legacy economy values by intuition. Overcharge-specific gain/cap tuning is the explicit bounded exception and must be simulation-driven.
 

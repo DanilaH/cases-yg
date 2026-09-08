@@ -1,8 +1,8 @@
 # Final hands-on correction + Signal Overcharge
 
-Status: **IMPLEMENTED / EXACT-AUDITED / FINAL DIRECT HANDS-ON PENDING**.
+Status: **IMPLEMENTED / EXACT-AUDITED / FINAL DIRECT REGRESSION ACCEPTED**.
 
-This document is the canonical contract for the implemented Phase 2.6 correction and Signal Overcharge extension. The legacy Lite V2 pouch/cache/rarity/recycle values remain unchanged; the new Overcharge state/economy/presentation has passed exact technical/browser validation and now awaits final direct repeated-use hands-on before hosted Yandex DRAFT.
+This document is the canonical contract for the implemented Phase 2.6 correction and Signal Overcharge extension. The legacy Lite V2 pouch/cache/rarity/recycle values remain unchanged; the new Overcharge state/economy/presentation passed exact technical/browser validation and the final direct repeated-use regression. Hosted Yandex DRAFT is now the next gate.
 
 The pass must remain bounded: fix the observed UI/input issues, make Signal and Secret self-explanatory, add one small Signal-to-economy extension, simulate its tuning, and stop. It is not permission to add a shop, multiple currencies, crafting, auto-open, new families or a large meta layer.
 
@@ -431,3 +431,5 @@ Browser/visual:
 - recovery/reload during each new durable state transition.
 
 Generated artifacts do not self-approve; manual review and direct hands-on remain required.
+
+Final direct regression outcome (2026-09-08): **ACCEPTED** after one bounded lifecycle correction. The repeated-use pass exposed a stale Overcharge bonus-counter tween calling `setText()` after its reward tag had been destroyed during accelerated result teardown. PR #50 guarded those callbacks without changing economy/save semantics. The exact fixed tree then passed **86/86** browser assertions: 10 targeted retained-lock Overcharge stress openings through `x1.50/MAX`, plus a fresh 24-opening normal loop with 6 Charged openings, duplicates, Signal retain/consume behavior and Collection round-trips; runtime/request/HTTP failures were zero and screenshots/video were manually reviewed.

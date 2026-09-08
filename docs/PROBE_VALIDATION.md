@@ -20,12 +20,13 @@ Current status:
 - current suite baseline: **114 unit tests** + typecheck + asset self-test/validation + production build;
 - final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
 - Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
-- final direct repeated-use Phase 2.6 regression: **PENDING**;
-- real Yandex DRAFT: **BLOCKED only on that final direct acceptance**.
+- final direct repeated-use Phase 2.6 regression: **COMPLETE / ACCEPTED**;
+- post-fix exact lifecycle regression: **86/86 PASS** with 10 targeted retained-lock Overcharge openings + a fresh 24-opening normal loop, zero runtime/request/HTTP failures and manual artifact review;
+- real Yandex DRAFT: **UNBLOCKED / NEXT EXTERNAL GATE**.
 
 Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
 
-The Lite baseline is proven. Current validation must preserve it while proving the bounded Phase 2.6 fixes and Signal Overcharge extension are understandable, deterministic/recoverable and pleasant in repetition.
+The Lite baseline and Phase 2.6 direct regression are proven. The final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard without changing economy or transaction semantics, and the exact fixed tree then passed targeted stress plus the full repeated-use loop. Hosted Yandex behavior remains unproven until the DRAFT gate.
 
 ---
 
