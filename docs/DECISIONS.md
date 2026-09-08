@@ -28,7 +28,7 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Phase 2.6 final-hands-on correction + Signal Overcharge is **implemented, exact-audited and accepted by the final direct repeated-use regression** after the bounded PR #50 lifecycle fix. Real Yandex DRAFT is the current next gate |
+| Current stage | LOCKED | Phase 2.6 + Secret V4 correction + final result-choreography correction are implemented and locally accepted. PR #65 is the latest bounded presentation merge. Real Yandex DRAFT is the current next external gate |
 | Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
 | Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
@@ -53,7 +53,7 @@ The Lite V2 baseline remains accepted. Phase 2.6 contains one explicit bounded e
 | Duplicate behavior | CURRENT RUNTIME | automatic `DUPLICATE → RECYCLED → CHIPS + SIGNAL` |
 | Signal | CURRENT RUNTIME | non-spendable duplicate pity, separate from CHIPS |
 | Signal rule | CURRENT RUNTIME | duplicate `+1`; `4/4` arms lock; next selected-pouch-eligible NEW is guaranteed; consume → `0/4` |
-| Signal clarity extension | CURRENT RUNTIME | make gain → `4/4 LOCK READY` → retain/consume cause→effect explicit in reward tray + Signal HUD; no tutorial modal required |
+| Signal clarity extension | CURRENT RUNTIME | ordinary `SIGNAL +1` resolves in the reward/result phase; a consumed armed lock visibly leaves the HUD and impacts the still-closed pouch before reveal, with the HUD already showing post-consume state; no tutorial modal required |
 | Signal Overcharge | CURRENT RUNTIME | if Signal was already `4/4` and the selected pouch cannot consume the lock, current Overcharge multiplies `base + cache + recycle`, then that pouch increases the multiplier for the next opening; consuming the lock cashes out the current multiplier then resets to `x1.00`; cap is finite and remains useful at MAX |
 | Overcharge tuning | CURRENT RUNTIME | Phase 2.6 validation candidate uses Basic `+0.10`, Charged `+0.50`, cap `x1.50`; reopen only from final hands-on, hosted, or content-scale evidence |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
@@ -91,15 +91,15 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Reward arrival | CURRENT RUNTIME | preserve established emerge/overshoot/settle; reward tray enters once and remains visually continuous while the result panel arrives on a later beat |
 | Result rarity hierarchy | CURRENT RUNTIME | rarity remains secondary to item name but must read clearly |
 | Rarity badge follow-up | CURRENT RUNTIME | remove the opaque black backing from the current rarity badge; retain prominence with a lighter integrated tinted/outlined treatment |
-| Reward tray density | CURRENT RUNTIME | prevent long recycle/rarity rows from overflowing at compact widths while preserving semantic colors and readability |
+| Reward tray density | CURRENT RUNTIME | long source combinations wrap into bounded multi-line rows with dynamic tray height; reward content must stay inside the tray at 1280 and compact widths and must not collide with Hidden Pocket/result content |
 | CHIPS staging | CURRENT RUNTIME | earned base/cache/recycle first read beside result in a persistent tray; visual banking occurs on result acceptance |
 | Charged cost presentation | CURRENT RUNTIME | cost remains communicated at opening time; only earned CHIPS are visually staged for later banking |
 | CHIPS bank order | CURRENT RUNTIME | base → optional cache → optional recycle; Signal has its own destination transfer |
 | CHIPS HUD | CURRENT RUNTIME | larger resource card, clearer token, larger digital number, animated count-up and bounded local punch/shake |
 | CHIPS sound | CURRENT RUNTIME | synthesized percussive `chip-clack` follows CHIPS banking with bounded audio density; no sound per cache tier |
 | Charged-ready feedback | CURRENT RUNTIME | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
-| Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into rarity-aware recycle feedback + CHIPS + one Signal transfer after collectible reveal |
-| Signal presentation | CURRENT RUNTIME | stronger electronic/digital segmented HUD with destination pulse/brief lock glitch |
+| Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into rarity-aware recycle feedback; ordinary Signal transfers once during reward/result staging before acceptance, while recycle CHIPS bank later; collect never replays Signal/Overcharge |
+| Signal presentation | CURRENT RUNTIME | stronger segmented HUD; ordinary gain flies from reward staging to HUD, while a consumed lock flies pink/cyan from HUD into the unrevealed pouch with visible trail and resolves HUD state before collectible reveal |
 | Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
 | Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
 | Charged denial re-entry | CURRENT RUNTIME | rapid repeated denial input must kill/reset the previous denial tween to canonical transform; no cumulative x/y drift |
@@ -123,8 +123,8 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Neon implementation | CURRENT RUNTIME | Phaser Text/Graphics, duplicate glow layers, tint, blend, moving highlights, rings/sparks/tweens first |
 | Custom shader | LOCKED OUT FOR THIS PASS | no custom WebGL shader until a reviewed no-shader result proves one specific effect cannot be sold cheaply |
 | Rarity shimmer | CURRENT RUNTIME | restrained Common → stronger Rare/Epic/Legendary electronic/iridescent hierarchy; Secret remains strongest/distinct |
-| Secret reward meaning | CURRENT RUNTIME | current undiscovered-only Secret roll is a collection discovery, not recycle income; reward/result UI must explicitly communicate `SECRET DISCOVERED` / added-to-collection meaning |
-| Secret celebration | CURRENT RUNTIME | add bounded moving aura/cloud, particles, stronger burst and short object shake/overshoot, then settle; no permanent fireworks loop |
+| Secret reward meaning | CURRENT RUNTIME | Hidden Pocket guarantees missing Secrets first, then can roll Secret duplicates after `2/2`; both NEW and duplicate Secret award a separate fixed `+40 CHIPS`, never multiplied by Overcharge; UI communicates `SECRET DISCOVERED` / `SECRET DUPLICATE` |
+| Secret celebration | CURRENT RUNTIME | bounded ruby/gold arrival settles into persistent premium ambience until collect; carousel standard page suppresses Secret heading/chrome/ambience and returning to Secret restores them |
 | Fullscreen CRT/VHS | LOCKED OUT FOR THIS PASS | no global scanlines/noise/chromatic-aberration treatment |
 
 ---
@@ -161,7 +161,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Decision | Status | Current answer |
 |---|---|---|
 | Save | CURRENT RUNTIME | versioned local-first state behind injected `StorageAdapter` |
-| Save version | CURRENT RUNTIME | V3 fields include CHIPS, segmented Signal, Overcharge, active loot pool and pending Lite reveal |
+| Save version | CURRENT RUNTIME | V4 persists CHIPS, segmented Signal, Overcharge, active loot pool, pending reveal, and exact Hidden Pocket NEW/duplicate + Secret bonus fields; V1/V2/V3 migrations remain supported |
 | Anti-reroll | CURRENT RUNTIME | full `pendingReveal` persisted before presentation and committed once |
 | Presentation ownership | LOCKED | tween completion, fast-forward and cosmetic banking never own durable economy state |
 | Recovery | CURRENT RUNTIME | original pouch/result/cache/Signal/Hidden outcome preserved; no duplicate reward |
@@ -194,7 +194,9 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Final hands-on acceptance | COMPLETE WITH FINDINGS | direct play exposed rarity-badge styling, reward overflow, Charged denial drift, Signal/Secret clarity and completed-collection Signal-value issues |
 | Final hands-on correction + Signal Overcharge | COMPLETE | implemented and exact-audited; current suite is 114 tests plus typecheck/assets/build |
 | Final direct repeated-use regression | COMPLETE | accepted after PR #50 fixed the stale Overcharge reward-tag tween lifecycle race; exact fixed-tree regression passed 86/86 browser assertions with zero runtime/request/HTTP failures and manual artifact review |
-| Real Yandex DRAFT | OPEN | current next external gate; local/direct prerequisites are accepted, but actual Yandex SDK/storage/ad lifecycle remains unproven until hosted validation |
+| Secret correction + merged-main regression | COMPLETE | Save V4 / fixed `+40` Secret jackpot / persistent Secret presentation merged through PR #57; fresh merged-main repeated-use regression passed 82/82 with manual artifact review |
+| Result choreography correction | COMPLETE | PR #65 merged after targeted Chromium evidence + manual review of Secret↔standard carousel chrome, dense reward bounds, real pre-reveal Signal-lock consumption, and Charged aura exit/teardown; runtime/economy unchanged |
+| Real Yandex DRAFT | OPEN | current next external gate; local/direct prerequisites are accepted, but actual Yandex SDK/storage/ad/device lifecycle remains unproven until hosted validation |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 
@@ -230,4 +232,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: run the final direct repeated-use regression on the implemented/exact-audited Phase 2.6 candidate. If accepted, proceed to real Yandex DRAFT. Do not add the future expensive pouch or unrelated meta/content before hosted evidence.**
+> **GO: proceed to real Yandex DRAFT validation on the next explicitly built candidate. Local/direct prerequisites, Secret V4, and PR #65 result choreography are accepted. Do not add new pouch/content/meta scope before hosted evidence.**

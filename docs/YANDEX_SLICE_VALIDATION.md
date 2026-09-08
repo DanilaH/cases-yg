@@ -1,6 +1,6 @@
 # Yandex DRAFT validation
 
-This checklist is the hosted-platform gate that runs **after Phase 2.6 Signal Overcharge + Phase 2.7 Secret reward correction + final merged-main repeated-use acceptance**.
+This checklist is the hosted-platform gate that runs **after Phase 2.6 Signal Overcharge + Phase 2.7 Secret reward correction + final merged-main repeated-use acceptance + Phase 2.8 result/reveal choreography correction (PR #65)**.
 
 Unit tests, CI and local browser automation prove code behavior; they do not prove the actual Yandex-hosted SDK/storage/ad lifecycle.
 
@@ -168,12 +168,29 @@ Expected:
 - before all Secrets are owned, Hidden Pocket selects from missing Secrets; after `2/2`, Hidden Pocket can still resolve to a duplicate;
 - Secret bonus is not included in `base + cache + recycle` and is not multiplied by Overcharge;
 - standard reward page and Secret page switch the same reward tray rather than rendering competing trays;
+- standard carousel page hides `HIDDEN POCKET!`, restores standard rarity/panel border/reward content and suppresses Secret ambience; returning to Secret restores all Secret chrome;
 - Secret page uses the Secret-specific rarity identity and `SECRET DISCOVERED` / `SECRET DUPLICATE` semantics;
 - entrance burst is followed by persistent premium ambience (halo/cloud/sparkles/breathing) for several seconds until collect;
 - swiping away suppresses the Secret atmosphere; returning restores it;
 - collect/navigation destroys persistent Secret tweens and no stale callbacks affect the next opening;
 - reload during a staged Hidden Pocket recovers the exact same Secret ID, NEW/duplicate flag and `bonusChips` value;
 - migrated pre-V4 staged Hidden Pockets keep `bonusChips: 0` and are never retroactively credited `+40`.
+
+## DRAFT — result/reveal choreography regression
+
+Repeat the locally accepted PR #65 presentation contract in the hosted build at representative widths.
+
+Expected:
+
+- on Hidden Pocket Secret page, `HIDDEN POCKET!` sits directly above the lower result panel and does not collide with the upper reward tray;
+- swiping to the standard carousel page hides the Hidden Pocket heading, restores standard rarity/panel border/reward content and suppresses Secret ambience; swiping back restores the Secret state;
+- dense reward combinations such as cache + recycle + Overcharge + lock state remain fully inside the dynamic tray at 1280 and a compact viewport;
+- with Signal already `4/4` and an eligible missing standard available, the consumed-lock projectile visibly leaves the Signal HUD with a pink/cyan trail while the pouch is still closed;
+- the projectile impacts the pouch and the HUD already shows the predetermined post-consume state before any collectible reveal begins;
+- ordinary duplicate `SIGNAL +1` transfers once during reward/result staging before collect; accepting the result does not launch a second Signal/Overcharge transfer;
+- Charged pouch aura starts fading/moving/scaling out with the pouch, leaves no stale glow behind the revealed item and produces no one-frame flash;
+- interrupted/recovered Charged presentation also removes pouch + aura smoothly without stale nested tweens;
+- aggressive fast-forward may shorten beats but never reverses the consume-before-reveal semantic order.
 
 ## DRAFT — Signal migration / lock
 
@@ -210,8 +227,9 @@ Confirm at representative hosted sizes:
 - Charged cannot be opened when balance is insufficient;
 - no modal/store is required for Basic/Charged choice;
 - active Overcharge reward UI shows the compact source breakdown, Overcharge contribution and final total without overflow; player-facing `RAW` is intentionally not shown;
+- long cache + recycle + Overcharge combinations wrap cleanly within dynamic tray height at 1280 and compact widths;
 - inactive `x1.00` remains visually dormant and MAX remains clearly saturated rather than error-like;
-- reward tray prefers the right-side slot and does not overlap the left gameplay/pouch rail, hero or result panel at representative 900/1024/1280 widths.
+- reward tray prefers the upper reading lane and does not overlap the left gameplay/pouch rail, hero, Hidden Pocket heading or lower result panel at representative 900/1024/1280 widths.
 
 ## DRAFT — browser/device compatibility
 
