@@ -70,6 +70,9 @@ const boot = async (): Promise<void> => {
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
   });
+  if (import.meta.env.DEV) {
+    (window as Window & { __mptGridAuditGame?: Phaser.Game }).__mptGridAuditGame = game;
+  }
   game.sound.mute = blocked;
   if (blocked) game.loop.sleep();
 
