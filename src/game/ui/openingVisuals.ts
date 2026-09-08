@@ -17,7 +17,8 @@ export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
   legendary: 0xffd56a,
 };
 
-export const SECRET_REVEAL_COLOR = 0x65f6ff;
+export const SECRET_REVEAL_COLOR = 0xff4d6d;
+export const SECRET_PREMIUM_GOLD = 0xffd36a;
 
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;

@@ -98,6 +98,7 @@ describe('debug reveal scenarios', () => {
     'signal-lock-consumed',
     'signal-lock-waiting',
     'hidden-pocket',
+    'hidden-pocket-duplicate',
   ] as const)('stages %s from an active MAX Overcharge save without invalid payloads', async (scenario) => {
     const repository = createRepository();
     await repository.write({
