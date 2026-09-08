@@ -1,10 +1,10 @@
 # Audio + Reward Feel Polish Plan
 
-Status: **APPROVED BACKLOG / DO NOT LOSE**
+Status: **IMPLEMENTED / COMBINED-AUDITED / FINAL HEADPHONE HANDS-ON PENDING**
 
 This document captures the full bounded polish direction discussed after the current result-grid and rarity-presence work. It is intentionally about **feel, tactility, reward readability and audio presence**. It is not permission to expand the game into new meta systems.
 
-The current external gate remains hosted Yandex DRAFT unless explicitly reprioritized. This plan is the next bounded polish backlog and may be pulled forward deliberately, but it must not silently invalidate the existing gate order.
+The bounded implementation in this plan was deliberately pulled forward and is now merged. The current external gate still remains hosted Yandex DRAFT unless explicitly reprioritized. Automated and browser acceptance are green, but the subjective final headphone check required by this document has not been replaced by automation.
 
 ## Product principle
 
@@ -352,6 +352,22 @@ The target remains a better existing 20–30 second loop, not a larger game.
 7. **Near-completion presentation**
 
 Do not implement all seven blindly in one giant patch. Each pass should remain bounded and independently reviewable, while final approval must judge the combined loop because feel depends on choreography across states.
+
+## Implementation status — 2026-09-08
+
+All seven bounded passes are implemented and merged without expanding the economy/content scope:
+
+- **#75–#76 — audio presence/state ownership:** base gameplay ambience, persistent Rare/Epic/Legendary/Secret result ambience, explicit duck/mix policy, Hidden Pocket active-page ownership, mute/block/teardown handling, and stable-result ownership correction;
+- **#77 — NEW vs DUPLICATE:** catalogue-registration discovery beat for NEW and a separate recycle/conversion beat for duplicates;
+- **#78 — collect/banking handoff:** short collection acknowledgement, item contraction/nudge, controlled result exit and existing destination-based banking;
+- **#79 — drag/tear tactility:** quiet reusable filtered-noise texture driven by drag progress/velocity with deterministic release/cancel/mute/teardown cleanup;
+- **#80 — high-rarity anticipation/settle:** Common/Rare remain fast, Epic/Legendary/Secret receive bounded anticipation collapse and rarity-specific settle mass, with the secondary micro-aftershock reserved for Legendary;
+- **#81 — collection milestones:** one-shot `4/8`, `8/8`, first Secret and `2/2` Secret milestones, resolved only after durable commit and presented non-blockingly;
+- **#82 — near-completion tension:** typed `7/8` read state, subtle Collection reinforcement, actual final missing-slot emphasis and low-priority result-tray copy, with Hidden Pocket page semantics preserved.
+
+Final combined automated/browser acceptance was run from exact merged `main` `60432c8d7da1049bff9ec9230527a67b4e5b3cb0` in workflow run `34266189951`. Typecheck, full tests, asset self-test/validation, production build, source-contract guard and the combined browser lifecycle all passed. The combined artifact `final-feel-combined-audit-r1` has digest `sha256:52b15131f568eed1319ce962b00b6f4d8a694096f28c64612f91896938617ca4`; it covered base ambience unlock, Common/Rare/Epic/Legendary/Secret result ownership, mute/unmute, high-rarity anticipation cleanup, Hidden Pocket standard↔Secret audio/visual state, repeated-loop source counts, drag texture teardown, collect/banking return to idle, near-completion presentation and one-shot milestones with zero runtime or failed-request diagnostics. Key screenshots were manually reviewed after the run.
+
+This closes the implementation backlog and automated combined regression. It does **not** waive the acceptance principle below: final subjective repeated-use listening in headphones (and, ideally, ordinary speakers) is still required to judge annoyance, loudness, timbre and whether the scene became meaningfully better rather than merely busier.
 
 ---
 

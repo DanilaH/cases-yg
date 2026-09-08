@@ -14,11 +14,12 @@ The two-family build is a private development base, not the public release.
 8. **Secret reward/reward-tray correction — IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED**
 9. **Final merged-main repeated-use regression after Secret correction — COMPLETE / ACCEPTED (82/82)**
 10. **Result/reveal choreography correction after local visual review — COMPLETE / TARGETED-BROWSER-AUDITED / MERGED (#63–#65)**
-11. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
-12. **Content/release expansion — BLOCKED until draft passes**
-13. **Public release hardening**
+11. **Audio + reward feel bounded polish — IMPLEMENTED / COMBINED-AUDITED / MERGED (#75–#82)**
+12. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
+13. **Content/release expansion — BLOCKED until draft passes**
+14. **Public release hardening**
 
-The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression was required and passed 82/82 on the exact merged runtime with manual artifact review. Subsequent local visual review produced only bounded presentation findings: PR #63 tightened result layout and ordinary Signal timing, PR #64 aligned the reward/result grid, and PR #65 completed Hidden Pocket carousel chrome, dense reward wrapping, real pre-reveal Signal-lock consumption and Charged aura teardown. Those changes were targeted-browser-audited and merged without changing economy/save/drop/platform semantics. Hosted Yandex DRAFT is now the current gate.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression was required and passed 82/82 on the exact merged runtime with manual artifact review. Subsequent local visual review produced only bounded presentation findings: PR #63 tightened result layout and ordinary Signal timing, PR #64 aligned the reward/result grid, and PR #65 completed Hidden Pocket carousel chrome, dense reward wrapping, real pre-reveal Signal-lock consumption and Charged aura teardown. Those changes were targeted-browser-audited and merged without changing economy/save/drop/platform semantics. The separate bounded Audio + Reward Feel plan was then deliberately pulled forward and completed across PRs #75–#82: gameplay ambience, stable rarity ambience, NEW/duplicate differentiation, collect/banking handoff, drag tactility, high-rarity anticipation/settle, collection milestones and 7/8 near-completion presentation. Exact merged `main` `60432c8d7da1049bff9ec9230527a67b4e5b3cb0` then passed the combined feel lifecycle audit in run `34266189951` with artifact digest `sha256:52b15131f568eed1319ce962b00b6f4d8a694096f28c64612f91896938617ca4`, zero runtime/failed-request diagnostics and manual screenshot review. Subjective repeated-use headphone acceptance still remains a hands-on check rather than an automated claim. Hosted Yandex DRAFT remains the current external gate.
 
 Do not tune legacy economy numbers by intuition. Current Overcharge gain/cap and the fixed `+40 CHIPS` Secret jackpot are locked for this validation build and may be reopened only from evidence. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
@@ -338,7 +339,29 @@ A later local visual pass found presentation-order/layout defects rather than ne
 - an actually consumed armed Signal Lock now leaves the HUD with a visible pink/cyan trail, impacts the still-closed pouch, resolves post-consume HUD state, and only then permits collectible reveal;
 - Charged pouch aura fades/moves/scales out with the pouch and recursively kills nested aura tweens on teardown/recovery.
 
-PR #65 changed presentation only: no economy, Save V4, drop, transaction or Yandex platform semantics changed. Targeted Chromium audit reported zero page/console/request errors and the intended visual states were manually reviewed before the clean merge. The next gate remains hosted Yandex DRAFT.
+PR #65 changed presentation only: no economy, Save V4, drop, transaction or Yandex platform semantics changed. Targeted Chromium audit reported zero page/console/request errors and the intended visual states were manually reviewed before the clean merge.
+
+---
+
+# Phase 2.9 — Audio + Reward Feel bounded polish — IMPLEMENTED / COMBINED-AUDITED / MERGED
+
+Canonical contract: `docs/AUDIO_AND_REWARD_FEEL_POLISH_PLAN.md`.
+
+The seven independently reviewable feel passes were implemented through PRs #75–#82 without adding currencies, meta systems, Drop content, pity/targeting rules or a new animation architecture:
+
+1. base ambience + persistent rarity ambience + explicit mix/state rules (#75, lifecycle correction #76);
+2. NEW discovery vs DUPLICATE conversion feel (#77);
+3. collect/banking exit choreography (#78);
+4. continuous drag/tear tactility (#79);
+5. high-rarity anticipation, deliberate ambience collapse and rarity-specific settle (#80);
+6. bounded collection milestone moments (#81);
+7. 7/8 near-completion presentation in Opening + Collection (#82).
+
+After the final merge, exact `main` `60432c8d7da1049bff9ec9230527a67b4e5b3cb0` passed the combined automated/browser lifecycle audit in run `34266189951`. The artifact `final-feel-combined-audit-r1` digest is `sha256:52b15131f568eed1319ce962b00b6f4d8a694096f28c64612f91896938617ca4`. Static gates and the combined browser lifecycle were green; no runtime/page or failed-request diagnostics were observed; repeated rarity switching did not grow persistent source counts; Hidden Pocket page ownership, mute/unmute, drag teardown, collect→idle cleanup, near-completion and milestone one-shot semantics all passed. Audit screenshots were manually reviewed.
+
+Per the canonical plan, this is **technical/combined-browser acceptance**, not a substitute for the final subjective repeated-use headphone check. That final listening pass should judge mix fatigue, relative loudness, timbre and whether the new ambience improves the loop over several consecutive openings. No further feature expansion is implied by that check.
+
+The next external gate remains hosted Yandex DRAFT.
 
 ---
 
