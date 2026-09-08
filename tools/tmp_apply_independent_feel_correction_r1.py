@@ -20,6 +20,18 @@ def sub_once(path: str, pattern: str, replacement: str) -> None:
     p.write_text(new_text, encoding='utf-8')
 
 
+def replace_between(path: str, start_marker: str, end_marker: str, replacement: str) -> None:
+    p = Path(path)
+    text = p.read_text(encoding='utf-8')
+    start = text.find(start_marker)
+    if start < 0:
+        raise SystemExit(f'{path}: start marker missing: {start_marker!r}')
+    end = text.find(end_marker, start + len(start_marker))
+    if end < 0:
+        raise SystemExit(f'{path}: end marker missing: {end_marker!r}')
+    p.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+
+
 presentation = 'src/game/data/presentation.ts'
 for old, new in [
     ('sparkleCount: 0,\n  },\n  epic:', 'sparkleCount: 1,\n  },\n  epic:'),
@@ -224,10 +236,11 @@ spawn_method = """  private spawnSparkles(
     }
   }
 
-  private createRevealBackdrop"""
-sub_once(
+"""
+replace_between(
     opening,
-    r"  private spawnSparkles\(\n.*?\n  \}\n\n  private createRevealBackdrop",
+    '  private spawnSparkles(',
+    '  private createRevealBackdrop',
     spawn_method,
 )
 
