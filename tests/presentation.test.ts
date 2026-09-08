@@ -78,9 +78,9 @@ describe('reveal presentation', () => {
     expect(epic.glowAlpha).toBeLessThan(legendary.glowAlpha);
     expect(rare.ringAlpha).toBeLessThan(epic.ringAlpha);
     expect(epic.ringAlpha).toBeLessThan(legendary.ringAlpha);
-    expect(rare.sparkleCount).toBe(0);
+    expect(rare.sparkleCount).toBeGreaterThanOrEqual(1);
     expect(epic.sparkleCount).toBeLessThan(legendary.sparkleCount);
-    expect(legendary.sparkleCount).toBeLessThanOrEqual(4);
+    expect(legendary.sparkleCount).toBeLessThanOrEqual(7);
     expect(legendary.glowAlpha).toBeLessThanOrEqual(0.07);
     expect(legendary.glowAlpha).toBeLessThan(REVEAL_FX_PRESETS.legendary.glowAlpha * 0.15);
     expect(legendary.sparkleCount).toBeLessThan(REVEAL_FX_PRESETS.legendary.particleCount);
@@ -157,6 +157,8 @@ describe('reveal presentation', () => {
     expect(REVEAL_FX_PRESETS.epic.backdropAlpha).toBeGreaterThanOrEqual(0.28);
     expect(REVEAL_FX_PRESETS.legendary.flashAlpha).toBeGreaterThanOrEqual(0.7);
     expect(REVEAL_FX_PRESETS.secret.particleDuration).toBeGreaterThanOrEqual(800);
+    expect(REVEAL_FX_PRESETS.legendary.particleCount).toBeLessThanOrEqual(36);
+    expect(REVEAL_FX_PRESETS.secret.particleCount).toBeLessThanOrEqual(48);
   });
 
   it('keeps the feel-pass interaction timings and rail hierarchy bounded', () => {
@@ -203,7 +205,11 @@ describe('reveal presentation', () => {
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {
-    expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(20);
+    expect(AMBIENT_PRESENTATION.count).toBeGreaterThanOrEqual(22);
+    expect(AMBIENT_PRESENTATION.count).toBeLessThanOrEqual(28);
+    expect(AMBIENT_PRESENTATION.glowCount).toBeGreaterThanOrEqual(2);
+    expect(AMBIENT_PRESENTATION.glowCount).toBeLessThanOrEqual(4);
+    expect(AMBIENT_PRESENTATION.maxGlowAlpha).toBeLessThanOrEqual(0.03);
     expect(AMBIENT_PRESENTATION.maxAlpha).toBeLessThanOrEqual(0.2);
     expect(MOTION_PRESENTATION.starPulseScale).toBeGreaterThanOrEqual(1.06);
     expect(MOTION_PRESENTATION.starPulseScale).toBeLessThanOrEqual(1.08);
