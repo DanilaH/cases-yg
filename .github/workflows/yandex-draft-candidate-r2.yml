@@ -1,0 +1,113 @@
+name: Yandex DRAFT candidate R2
+
+on:
+  push:
+    branches:
+      - release/yandex-draft-candidate-r2
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Assert exact accepted main tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=9337438cc46e23237be4cfb6de017d60b130f0bc
+          git diff --quiet "$SOURCE_SHA" -- . \
+            ':(exclude).github/workflows/yandex-draft-candidate-r2.yml'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Verify production package shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -d dist/assets
+          if grep -q '/src/main.ts' dist/index.html; then
+            echo 'dist/index.html still references source entrypoint'
+            exit 1
+          fi
+          if ! grep -q './assets/' dist/index.html; then
+            echo 'dist/index.html does not use relative Vite asset URLs'
+            exit 1
+          fi
+          if ! grep -R -q '/sdk.js' dist/assets; then
+            echo 'Production bundle does not contain the expected Yandex /sdk.js runtime path'
+            exit 1
+          fi
+          if find dist -type f -name '*.map' -print -quit | grep -q .; then
+            echo 'Unexpected source maps in DRAFT package'
+            exit 1
+          fi
+
+      - name: Build exact upload archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          short='9337438'
+          candidate="yandex-draft-${short}.zip"
+          (
+            cd dist
+            zip -qr "../${candidate}" .
+          )
+          first_entry="$(unzip -Z1 "${candidate}" | head -n 1)"
+          if [ "${first_entry}" != 'index.html' ]; then
+            echo "Archive root is wrong; first entry is ${first_entry}"
+            exit 1
+          fi
+          if unzip -Z1 "${candidate}" | grep -q '^dist/'; then
+            echo 'Archive incorrectly nests files under dist/'
+            exit 1
+          fi
+          if unzip -Z1 "${candidate}" | grep -Eq '(^|/)[^/]*[[:space:]А-Яа-яЁё][^/]*$'; then
+            echo 'Archive contains a path with whitespace or Cyrillic characters'
+            unzip -Z1 "${candidate}" | grep -E '(^|/)[^/]*[[:space:]А-Яа-яЁё][^/]*$' || true
+            exit 1
+          fi
+          sha256sum "${candidate}" > "yandex-draft-${short}.sha256"
+          {
+            echo 'candidate_source_sha=9337438cc46e23237be4cfb6de017d60b130f0bc'
+            echo 'accepted_runtime_sha=341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba'
+            echo 'final_post_secret_audit_run=34205515234'
+            echo 'final_post_secret_audit=82/82 PASS; zero runtime/request/HTTP diagnostics; manual artifact review accepted'
+            echo "archive=${candidate}"
+            echo "archive_sha256=$(cut -d' ' -f1 yandex-draft-${short}.sha256)"
+            echo "file_count=$(unzip -Z1 "${candidate}" | grep -v '/$' | wc -l | tr -d ' ')"
+            echo "uncompressed_bytes=$(unzip -Zt "${candidate}" | tail -1 | awk '{print $3}')"
+            echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo 'platform_runtime=yandex by default in production; ?platform=mock explicitly opts into mock'
+            echo 'sdk_path=/sdk.js'
+          } > "yandex-draft-${short}.manifest.txt"
+          echo '--- archive root ---'
+          unzip -Z1 "${candidate}" | head -40
+          echo '--- manifest ---'
+          cat "yandex-draft-${short}.manifest.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yandex-draft-candidate-9337438
+          path: |
+            yandex-draft-9337438.zip
+            yandex-draft-9337438.sha256
+            yandex-draft-9337438.manifest.txt
+          retention-days: 7
