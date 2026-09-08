@@ -1,0 +1,41 @@
+name: Compact reward tray
+
+on:
+  push:
+    branches:
+      - ui/reward-tray-compromise
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Apply compact reward tray
+        run: node .github/scripts/compact-reward-tray.mjs
+      - name: Verify product change
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src/game/scenes/OpeningScene.ts; then
+            echo "Source change already present."
+            exit 0
+          fi
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts
+          git commit -m "Compact reward tray hierarchy"
+          git push
