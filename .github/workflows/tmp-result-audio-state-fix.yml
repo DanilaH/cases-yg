@@ -1,0 +1,39 @@
+name: TEMP result audio state fix
+
+on:
+  push:
+    branches:
+      - "fix/result-audio-state-lifecycle"
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/result-audio-state-lifecycle
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply result-state ownership patch
+        run: echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnBhdGggPSBQYXRoKCJzcmMvZ2FtZS9zY2VuZXMvT3BlbmluZ1NjZW5lLnRzIikKdGV4dCA9IHBhdGgucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCm9sZCA9ICIiIiAgICBpZiAocGVuZGluZy5oaWRkZW5Qb2NrZXQpIHsKICAgICAgdGhpcy5yZW5kZXJIaWRkZW5Qb2NrZXRDYXJvdXNlbChwZW5kaW5nLCByb290LCBtZXRyaWNzLCBzZWxlY3RlZENhcm91c2VsSW5kZXgpOwogICAgfSBlbHNlIHsKICAgICAgY29uc3Qgc3RhbmRhcmRQcmVzZW50YXRpb24gPSBnZXRDb2xsZWN0aWJsZVByZXNlbnRhdGlvbihwZW5kaW5nLnN0YW5kYXJkLmZhbWlseUlkKTsKIiIiCm5ldyA9ICIiIiAgICBpZiAocGVuZGluZy5oaWRkZW5Qb2NrZXQpIHsKICAgICAgdGhpcy5yZW5kZXJIaWRkZW5Qb2NrZXRDYXJvdXNlbChwZW5kaW5nLCByb290LCBtZXRyaWNzLCBzZWxlY3RlZENhcm91c2VsSW5kZXgpOwogICAgfSBlbHNlIHsKICAgICAgZ2V0R2FtZUF1ZGlvKCkuc2V0UmVzdWx0QW1iaWVuY2UocGVuZGluZy5zdGFuZGFyZC5yYXJpdHkpOwogICAgICBjb25zdCBzdGFuZGFyZFByZXNlbnRhdGlvbiA9IGdldENvbGxlY3RpYmxlUHJlc2VudGF0aW9uKHBlbmRpbmcuc3RhbmRhcmQuZmFtaWx5SWQpOwoiIiIKaWYgb2xkIG5vdCBpbiB0ZXh0OgogICAgcmFpc2UgU3lzdGVtRXhpdCgicmVuZGVyUmVzb2x2ZWRSZXN1bHQgYW5jaG9yIG1pc3NpbmciKQpwYXRoLndyaXRlX3RleHQodGV4dC5yZXBsYWNlKG9sZCwgbmV3LCAxKSwgZW5jb2Rpbmc9InV0Zi04IikK' | base64 -d | python
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit clean correction
+        run: |
+          rm .github/workflows/tmp-result-audio-state-fix.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix result ambience ownership"
+          git push origin HEAD:fix/result-audio-state-lifecycle
