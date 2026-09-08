@@ -1,0 +1,47 @@
+name: Temporary result layout and Signal presentation pass
+
+on:
+  push:
+    branches:
+      - tmp/result-layout-signal-pass
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Apply bounded presentation patch
+        run: python3 tools/tmp-result-layout-signal-pass.py
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Commit verified product changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/scenes/OpeningScene.ts src/game/data/presentation.ts src/game/systems/rewardLayout.ts tests/reward-layout.test.ts docs/GAMEPLAY_SYSTEMS.md
+          if git diff --cached --quiet; then
+            echo 'No product changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Refine result layout and resolve Signal earlier [skip ci]'
+          git push origin HEAD:tmp/result-layout-signal-pass
