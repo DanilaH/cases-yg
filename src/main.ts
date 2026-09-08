@@ -16,6 +16,50 @@ import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
 
+type RecoveryAuditSample = {
+  readonly t: number;
+  readonly pouchAlpha: number | null;
+  readonly auraAlpha: number | null;
+  readonly auraActive: boolean;
+};
+
+type AuditWindow = Window & {
+  __mptAuditGame?: Phaser.Game;
+  __mptRecoveryAudit?: RecoveryAuditSample[];
+};
+
+const installRecoveryAuditProbe = (): void => {
+  if (!import.meta.env.DEV) return;
+  const prototype = OpeningScene.prototype as unknown as {
+    animateRecoveredReveal: (pending: unknown) => Promise<void>;
+  };
+  const original = prototype.animateRecoveredReveal;
+  prototype.animateRecoveredReveal = async function (this: OpeningScene, pending: unknown): Promise<void> {
+    const scene = this as unknown as {
+      pouch: { group: Phaser.GameObjects.Container } | null;
+      chargedAura: Phaser.GameObjects.Container | null;
+    };
+    const samples: RecoveryAuditSample[] = [];
+    (window as AuditWindow).__mptRecoveryAudit = samples;
+    const sample = (): void => {
+      samples.push({
+        t: Math.round(performance.now()),
+        pouchAlpha: scene.pouch?.group.active ? scene.pouch.group.alpha : null,
+        auraAlpha: scene.chargedAura?.active ? scene.chargedAura.alpha : null,
+        auraActive: Boolean(scene.chargedAura?.active),
+      });
+    };
+    sample();
+    const timer = window.setInterval(sample, 20);
+    try {
+      await original.call(this, pending);
+    } finally {
+      window.clearInterval(timer);
+      sample();
+    }
+  };
+};
+
 const preloadAccentFont = async (): Promise<void> => {
   if (!('fonts' in document)) return;
   try {
@@ -60,6 +104,7 @@ const boot = async (): Promise<void> => {
   // buffered and applied before the game gets a chance to run normally.
   const removeBlockedListener = platform.activity.onBlockedChange(applyBlockedState);
 
+  installRecoveryAuditProbe();
   game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
@@ -71,7 +116,7 @@ const boot = async (): Promise<void> => {
     },
   });
   if (import.meta.env.DEV) {
-    (window as Window & { __mptAuditGame?: Phaser.Game }).__mptAuditGame = game;
+    (window as AuditWindow).__mptAuditGame = game;
   }
   game.sound.mute = blocked;
   if (blocked) game.loop.sleep();
