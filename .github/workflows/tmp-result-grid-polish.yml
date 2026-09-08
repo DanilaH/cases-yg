@@ -82,8 +82,9 @@ jobs:
           git show FETCH_HEAD:tools/tmp-grid-local-audit.mjs > tools/.tmp-grid-local-audit.mjs
           python - <<'PY'
           from pathlib import Path
-          path = Path('tools/.tmp-grid-local-audit.mjs')
-          text = path.read_text()
+
+          audit = Path('tools/.tmp-grid-local-audit.mjs')
+          text = audit.read_text()
           old = "const rewardMetrics = data.reward ? { width: 244, left: data.reward.x - 122, right: data.reward.x + 122, top: data.reward.y, bottom: data.reward.y + data.reward.height } : null;"
           new = "const rewardMetrics = data.reward ? { width: 248, left: data.reward.x - 124, right: data.reward.x + 124, top: data.reward.y, bottom: data.reward.y + data.reward.height } : null;"
           assert old in text
@@ -92,7 +93,15 @@ jobs:
           new = "rect.left < -124 - 0.1 || rect.right > 124 + 0.1"
           assert old in text
           text = text.replace(old, new, 1)
-          path.write_text(text)
+          audit.write_text(text)
+
+          main = Path('src/main.ts')
+          text = main.read_text()
+          marker = "  game.sound.mute = blocked;\n"
+          exposure = "  if (import.meta.env.DEV) {\n    (window as Window & { __mptGridAuditGame?: Phaser.Game }).__mptGridAuditGame = game;\n  }\n"
+          assert marker in text
+          text = text.replace(marker, exposure + marker, 1)
+          main.write_text(text)
           PY
           npm run dev -- --host 127.0.0.1 > /tmp/mpt-grid-vite.log 2>&1 &
           for i in {1..40}; do
@@ -111,7 +120,7 @@ jobs:
         run: |
           rm -f tools/.tmp-grid-local-audit.mjs
           rm -rf tmp-grid-polish-local-audit
-          git restore package.json package-lock.json 2>/dev/null || true
+          git restore src/main.ts package.json package-lock.json 2>/dev/null || true
           git rm .github/workflows/tmp-result-grid-polish.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
