@@ -154,6 +154,18 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.uiFadeOutMs).toBeGreaterThanOrEqual(150);
     expect(OPENING_FEEL_PRESENTATION.uiFadeOutMs).toBeLessThanOrEqual(240);
     expect(OPENING_FEEL_PRESENTATION.uiPressMs).toBeLessThanOrEqual(90);
+    const discoveryDuration =
+      OPENING_FEEL_PRESENTATION.discoveryIntroMs +
+      OPENING_FEEL_PRESENTATION.discoveryHoldMs +
+      OPENING_FEEL_PRESENTATION.discoverySettleMs;
+    expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeGreaterThanOrEqual(1.02);
+    expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeLessThanOrEqual(1.04);
+    expect(discoveryDuration).toBeGreaterThanOrEqual(350);
+    expect(discoveryDuration).toBeLessThanOrEqual(600);
+    expect(OPENING_FEEL_PRESENTATION.discoveryFrameWidth % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.discoveryFrameHeight % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeGreaterThanOrEqual(200);
+    expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeLessThanOrEqual(320);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {

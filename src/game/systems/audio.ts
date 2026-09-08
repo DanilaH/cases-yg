@@ -39,7 +39,15 @@ const CUES: Readonly<Record<SfxCue, readonly ToneSpec[]>> = {
     { frequency: 880, duration: 0.18, type: 'sine', gain: 0.035, delay: 0.08 },
     { frequency: 1180, duration: 0.22, type: 'sine', gain: 0.03, delay: 0.16 },
   ],
-  duplicate: [{ frequency: 230, endFrequency: 180, duration: 0.11, type: 'triangle', gain: 0.026 }],
+  duplicate: [
+    { frequency: 260, endFrequency: 170, duration: 0.075, type: 'square', gain: 0.022 },
+    { frequency: 1180, endFrequency: 640, duration: 0.055, type: 'triangle', gain: 0.014, delay: 0.018 },
+  ],
+  'new-discovery': [
+    { frequency: 740, endFrequency: 980, duration: 0.1, type: 'triangle', gain: 0.028 },
+    { frequency: 1110, duration: 0.13, type: 'sine', gain: 0.025, delay: 0.065 },
+    { frequency: 1480, duration: 0.16, type: 'sine', gain: 0.018, delay: 0.125 },
+  ],
   'ui-click': [
     { frequency: 880, endFrequency: 690, duration: 0.038, type: 'square', gain: 0.022 },
     { frequency: 1280, duration: 0.026, type: 'triangle', gain: 0.012, delay: 0.012 },
