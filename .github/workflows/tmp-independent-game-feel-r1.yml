@@ -1,0 +1,431 @@
+name: TEMP independent game and feel audit R1
+
+on:
+  push:
+    branches:
+      - audit/independent-game-feel-r1
+
+permissions:
+  contents: write
+
+jobs:
+  independent-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: audit/independent-game-feel-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Assert exact product source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=55ebe099e83b01d0efcc51818aadcb23158ca19a
+          git diff --quiet "$SOURCE_SHA" -- . ':(exclude).github/workflows/tmp-independent-game-feel-r1.yml'
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Expose runtime for audit only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/main.ts')
+          text = p.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text:
+              raise SystemExit('audit anchor missing in src/main.ts')
+          injection = "  if (import.meta.env.DEV) {\n    const auditWindow = window as typeof window & { __mptAuditGame?: Phaser.Game; __mptAuditAudio?: unknown };\n    auditWindow.__mptAuditGame = game;\n    auditWindow.__mptAuditAudio = audio;\n  }\n"
+          p.write_text(text.replace(anchor, anchor + injection, 1), encoding='utf-8')
+          PY
+
+      - name: Create independent audit script
+        shell: bash
+        run: |
+          cat > tools/tmp-independent-game-feel-r1.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const OUT = 'audit-artifacts';
+          fs.mkdirSync(OUT, { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({
+            viewport: { width: 1280, height: 720 },
+            recordVideo: { dir: `${OUT}/video`, size: { width: 1280, height: 720 } },
+          });
+          const page = await context.newPage();
+          const errors = [];
+          const badResponses = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+          page.on('response', response => { if (response.status() >= 400) badResponses.push(`${response.status()}:${response.url()}`); });
+
+          await page.goto('http://127.0.0.1:5173/?debug=1&platform=mock', { waitUntil: 'load' });
+          await page.waitForFunction(() => window.__mptAuditGame?.scene?.getScene?.('OpeningScene')?.phase === 'idle', null, { timeout: 15000 });
+          const hide = page.getByRole('button', { name: 'Hide', exact: true });
+          if (await hide.isVisible().catch(() => false)) await hide.click();
+          await page.mouse.click(640, 360);
+          await page.evaluate(() => window.__mptAuditAudio.play('ui-click'));
+          await page.waitForTimeout(250);
+
+          const hookState = await page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const audio = window.__mptAuditAudio;
+            window.__mptFeelEvents = [];
+            const now = () => performance.now();
+            const wrapAsync = (name) => {
+              const original = scene[name].bind(scene);
+              scene[name] = async (...args) => {
+                window.__mptFeelEvents.push({ t: now(), type: 'start', name });
+                try { return await original(...args); }
+                finally { window.__mptFeelEvents.push({ t: now(), type: 'end', name }); }
+              };
+            };
+            for (const name of [
+              'animateTearDetach',
+              'animateChipsPrelude',
+              'animateSignalLockConsumptionPrelude',
+              'animateStandardReveal',
+              'animatePostStandardEconomy',
+              'animateHiddenPocket',
+              'animateRewardStaging',
+              'animateDiscoveryBeat',
+              'animateCollectionAcceptance',
+              'animateRewardBanking',
+            ]) {
+              if (typeof scene[name] === 'function') wrapAsync(name);
+            }
+            const originalRender = scene.renderResolvedResult.bind(scene);
+            scene.renderResolvedResult = (...args) => {
+              window.__mptFeelEvents.push({ t: now(), type: 'instant', name: 'renderResolvedResult' });
+              return originalRender(...args);
+            };
+            const originalPlay = audio.play.bind(audio);
+            audio.play = (cue) => {
+              window.__mptFeelEvents.push({ t: now(), type: 'audio', name: cue });
+              return originalPlay(cue);
+            };
+            return { phase: scene.phase, audioState: audio.context?.state ?? null };
+          });
+
+          const snapshot = async (label) => ({
+            label,
+            ...(await page.evaluate(() => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              const audio = window.__mptAuditAudio;
+              const tweens = scene.tweens?.getAllTweens?.() ?? [];
+              return {
+                phase: scene.phase,
+                resultReady: scene.resultReady,
+                rootChildren: scene.root?.list?.length ?? 0,
+                tweenCount: tweens.length,
+                ambientCount: scene.ambientParticles?.length ?? 0,
+                standardPresenceTargets: scene.standardPresenceTargets?.length ?? 0,
+                secretPremiumTargets: scene.secretPremiumTargets?.length ?? 0,
+                resultRarity: scene.resultActionPanel?.getData?.('rarity')?.text ?? null,
+                resultAlpha: scene.resultActionPanel?.alpha ?? null,
+                rewardAlpha: scene.rewardTrayContainer?.alpha ?? null,
+                audio: {
+                  active: audio.activeResultAmbience,
+                  desired: audio.desiredResultAmbience,
+                  sources: audio.persistentRaritySources?.length ?? 0,
+                  baseMultiplier: audio.steadyBaseMultiplier,
+                  dragActive: Boolean(audio.dragTextureSource),
+                },
+              };
+            }))
+          });
+
+          const getAmbient = async () => page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            return (scene.ambientParticles ?? []).map((p, i) => ({ i, x: p.x, y: p.y, alpha: p.alpha, radius: p.radius ?? p.displayWidth / 2 }));
+          });
+
+          const idleAmbient0 = await getAmbient();
+          await page.screenshot({ path: `${OUT}/idle-0s.png` });
+          await page.waitForTimeout(2500);
+          const idleAmbient25 = await getAmbient();
+          await page.screenshot({ path: `${OUT}/idle-2_5s.png` });
+          await page.waitForTimeout(3500);
+          const idleAmbient6 = await getAmbient();
+          await page.screenshot({ path: `${OUT}/idle-6s.png` });
+
+          const prepareScenario = async (scenario) => page.evaluate(async (scenario) => {
+            const { getPlatformRuntime } = await import('/src/app/runtime.ts');
+            const { SaveRepository } = await import('/src/game/systems/save.ts');
+            const { resetDebugSave, stageDebugReveal } = await import('/src/debug/debugScenarios.ts');
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const repo = new SaveRepository(getPlatformRuntime().storage);
+            await resetDebugSave(repo);
+            await stageDebugReveal(repo, scenario);
+            const state = await scene.session.load();
+            scene.saveState = state;
+            scene.selectedPouchType = state.pendingReveal?.pouchType ?? 'basic';
+            scene.lastReveal = state.pendingReveal;
+            scene.resultReady = false;
+            scene.renderIdle();
+            const pending = scene.session.getPendingReveal();
+            if (!pending) throw new Error(`No pending reveal for ${scenario}`);
+            scene.pouch.tab.setX(scene.pouch.tabEndX);
+            window.__mptFeelEvents = [];
+            return { pending };
+          }, scenario);
+
+          const runScenario = async (scenario, captureFrames = false, fastForwardAt = null) => {
+            await prepareScenario(scenario);
+            const before = await snapshot(`${scenario}:before`);
+            const start = await page.evaluate(() => performance.now());
+            const promise = page.evaluate(() => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              const pending = scene.session.getPendingReveal();
+              return scene.playReveal(pending, false);
+            });
+            const frameTimes = captureFrames ? [80, 160, 280, 440, 650, 900, 1250, 1650] : [];
+            let elapsed = 0;
+            for (const frameTime of frameTimes) {
+              await page.waitForTimeout(Math.max(0, frameTime - elapsed));
+              elapsed = frameTime;
+              await page.screenshot({ path: `${OUT}/${scenario}-${String(frameTime).padStart(4, '0')}ms.png` });
+            }
+            if (fastForwardAt !== null) {
+              if (elapsed < fastForwardAt) await page.waitForTimeout(fastForwardAt - elapsed);
+              await page.mouse.click(640, 360);
+            }
+            await promise;
+            await page.waitForFunction(() => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              return scene.phase === 'result' && scene.resultReady === true;
+            }, null, { timeout: 10000 });
+            const end = await page.evaluate(() => performance.now());
+            const stable = await snapshot(`${scenario}:stable`);
+            await page.screenshot({ path: `${OUT}/${scenario}-stable.png` });
+            const events = await page.evaluate(() => window.__mptFeelEvents ?? []);
+            return { scenario, durationMs: end - start, before, stable, events };
+          };
+
+          const scenarios = [];
+          scenarios.push(await runScenario('common', true));
+          scenarios.push(await runScenario('rare'));
+          scenarios.push(await runScenario('epic', true));
+          scenarios.push(await runScenario('legendary', true));
+          scenarios.push(await runScenario('duplicate', true));
+          scenarios.push(await runScenario('hidden-pocket', true));
+          scenarios.push(await runScenario('signal-lock-consumed', true));
+
+          const collect = async (name) => {
+            const before = await snapshot(`${name}:collect-before`);
+            const start = await page.evaluate(() => performance.now());
+            await page.mouse.click(640, 648);
+            await page.waitForTimeout(80);
+            await page.screenshot({ path: `${OUT}/${name}-collect-0080ms.png` });
+            await page.waitForTimeout(140);
+            await page.screenshot({ path: `${OUT}/${name}-collect-0220ms.png` });
+            await page.waitForFunction(() => window.__mptAuditGame.scene.getScene('OpeningScene').phase === 'idle', null, { timeout: 10000 });
+            const end = await page.evaluate(() => performance.now());
+            const after = await snapshot(`${name}:collect-after`);
+            await page.screenshot({ path: `${OUT}/${name}-collect-idle.png` });
+            return { durationMs: end - start, before, after };
+          };
+          const collectSignal = await collect('signal-lock-consumed');
+
+          const stress = await page.evaluate(async () => {
+            const { getPlatformRuntime } = await import('/src/app/runtime.ts');
+            const { SaveRepository } = await import('/src/game/systems/save.ts');
+            const { resetDebugSave, stageDebugReveal } = await import('/src/debug/debugScenarios.ts');
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const repo = new SaveRepository(getPlatformRuntime().storage);
+            const audio = window.__mptAuditAudio;
+            const scenarios = ['common', 'rare', 'epic', 'legendary', 'duplicate', 'hidden-pocket'];
+            const samples = [];
+            for (let i = 0; i < 12; i += 1) {
+              const scenario = scenarios[i % scenarios.length];
+              await resetDebugSave(repo);
+              await stageDebugReveal(repo, scenario);
+              const state = await scene.session.load();
+              scene.saveState = state;
+              scene.selectedPouchType = state.pendingReveal?.pouchType ?? 'basic';
+              scene.lastReveal = state.pendingReveal;
+              scene.resultReady = false;
+              scene.renderIdle();
+              const pending = scene.session.getPendingReveal();
+              scene.pouch.tab.setX(scene.pouch.tabEndX);
+              const work = scene.playReveal(pending, false);
+              setTimeout(() => scene.requestPresentationFastForward(), 80 + (i % 3) * 45);
+              await work;
+              await new Promise(resolve => setTimeout(resolve, 10));
+              samples.push({
+                i,
+                scenario,
+                phase: scene.phase,
+                ready: scene.resultReady,
+                sources: audio.persistentRaritySources?.length ?? 0,
+                tweens: scene.tweens.getAllTweens().length,
+                standardPresence: scene.standardPresenceTargets?.length ?? 0,
+                secretPresence: scene.secretPremiumTargets?.length ?? 0,
+              });
+              scene.requestPresentationFastForward();
+              scene.acceptResult();
+              const deadline = performance.now() + 5000;
+              while (scene.phase !== 'idle' && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));
+              if (scene.phase !== 'idle') throw new Error(`stress loop ${i} did not return idle`);
+            }
+            return {
+              samples,
+              final: {
+                phase: scene.phase,
+                sources: audio.persistentRaritySources?.length ?? 0,
+                dragActive: Boolean(audio.dragTextureSource),
+                tweens: scene.tweens.getAllTweens().length,
+              },
+            };
+          });
+
+          await prepareScenario('legendary');
+          const resizePromise = page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const pending = scene.session.getPendingReveal();
+            return scene.playReveal(pending, false);
+          });
+          await page.waitForTimeout(180);
+          await page.setViewportSize({ width: 900, height: 720 });
+          await page.waitForTimeout(90);
+          await page.mouse.click(450, 360);
+          await resizePromise;
+          await page.waitForFunction(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            return scene.phase === 'result' && scene.resultReady;
+          }, null, { timeout: 10000 });
+          const compactResult = await snapshot('compact-legendary-result');
+          await page.screenshot({ path: `${OUT}/compact-legendary-result.png` });
+          await page.setViewportSize({ width: 1280, height: 720 });
+          await page.waitForTimeout(150);
+
+          const sourceEvidence = await page.evaluate(async () => {
+            const presentation = await (await fetch('/src/game/data/presentation.ts')).text();
+            const opening = await (await fetch('/src/game/scenes/OpeningScene.ts')).text();
+            return {
+              ambientUsesIndexModulo: opening.includes('((index * 173) % usableWidth)') && opening.includes('((index * 97) % 470)'),
+              revealUsesIndexPattern: opening.includes('(Math.PI * 2 * index) / count') && opening.includes('(index % 4) * 0.09'),
+              persistentUsesFixedRing: opening.includes('(Math.PI * 2 * index) / Math.max(1, profile.sparkleCount) + 0.42'),
+              ambientCount: /count:\s*(\d+)/.exec(presentation)?.[1] ?? null,
+            };
+          });
+
+          const report = {
+            sourceSha: '55ebe099e83b01d0efcc51818aadcb23158ca19a',
+            hookState,
+            idle: {
+              start: await snapshot('idle-final'),
+              ambient0: idleAmbient0,
+              ambient25: idleAmbient25,
+              ambient6: idleAmbient6,
+            },
+            sourceEvidence,
+            scenarios,
+            collectSignal,
+            stress,
+            compactResult,
+            errors,
+            badResponses,
+          };
+          fs.writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2));
+          await context.close();
+          await browser.close();
+          if (errors.length || badResponses.length) process.exitCode = 1;
+          EOF
+
+      - name: Run independent browser audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill $VITE_PID || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tools/tmp-independent-game-feel-r1.mjs
+
+      - name: Static independent feel review report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('audit-artifacts/report.json')
+          if not p.exists():
+              raise SystemExit('browser report missing')
+          r = json.loads(p.read_text())
+          lines = []
+          lines.append('# Independent game / feel audit R1')
+          lines.append('')
+          lines.append(f"Source: `{r['sourceSha']}`")
+          lines.append('')
+          lines.append('## Runtime integrity')
+          lines.append(f"- page/console errors: {len(r['errors'])}")
+          lines.append(f"- failed HTTP responses: {len(r['badResponses'])}")
+          lines.append(f"- stress final: {r['stress']['final']}")
+          lines.append('')
+          lines.append('## Presentation timing')
+          for s in r['scenarios']:
+              lines.append(f"- {s['scenario']}: {round(s['durationMs'])} ms to stable result")
+          lines.append(f"- collect/bank signal-lock-consumed: {round(r['collectSignal']['durationMs'])} ms to idle")
+          lines.append('')
+          lines.append('## Pattern / ambience evidence')
+          lines.append(f"- ambient index-grid pattern: {r['sourceEvidence']['ambientUsesIndexModulo']}")
+          lines.append(f"- reveal particle index pattern: {r['sourceEvidence']['revealUsesIndexPattern']}")
+          lines.append(f"- persistent rarity fixed-ring pattern: {r['sourceEvidence']['persistentUsesFixedRing']}")
+          lines.append('')
+          lines.append('## Scenario stable snapshots')
+          for s in r['scenarios']:
+              st = s['stable']
+              lines.append(f"- {s['scenario']}: rarity={st['resultRarity']} tweens={st['tweenCount']} presence={st['standardPresenceTargets']}/{st['secretPremiumTargets']} audio={st['audio']}")
+          Path('audit-artifacts/summary.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          print('\n'.join(lines))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: independent-game-feel-r1
+          path: audit-artifacts
+          retention-days: 14
+
+      - name: Clean temporary audit workflow from branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- src/main.ts package.json package-lock.json || true
+          rm -f tools/tmp-independent-game-feel-r1.mjs
+          rm -f .github/workflows/tmp-independent-game-feel-r1.yml
+          rm -rf audit-artifacts
+          git status --short
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove temporary independent game feel audit workflow'
+            git push origin HEAD:audit/independent-game-feel-r1
+          fi
