@@ -25,12 +25,12 @@ Current status:
 - Secret reward/reward-tray correction: **IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED** via PRs #55–#57;
 - Secret exact product acceptance: **34/34 PASS** on `629d5beb666aa9365ce7197082938ea1a50d9d15`, zero runtime/request/HTTP diagnostics, manual screenshot/video review complete;
 - current merged runtime after PR #57: `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`; post-merge CI **PASS**;
-- final merged-main repeated-use regression after Secret correction: **PENDING — CURRENT INTERNAL GATE**;
-- real Yandex DRAFT: **BLOCKED ON THAT FINAL INTERNAL REGRESSION / NEXT EXTERNAL GATE AFTER PASS**.
+- final merged-main repeated-use regression after Secret correction: **COMPLETE / ACCEPTED — 82/82 PASS** on exact runtime `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`, 24 normal openings + forced Secret lifecycle teardown path, zero runtime/request/HTTP diagnostics, manual artifact review complete;
+- real Yandex DRAFT: **UNBLOCKED / CURRENT NEXT EXTERNAL GATE**.
 
 Historical feel-correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Phase 2.6 contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Current post-Phase-2.6 Secret contract: `SECRET_REWARD_CORRECTION.md`.
 
-The Lite baseline and Phase 2.6 direct regression are proven. The earlier final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard and the exact fixed tree passed targeted stress plus the full repeated-use loop. The later bounded Secret correction is also implemented and exact-browser-accepted, but it changed save/economy/presentation after that earlier repeated-use approval. Therefore one fresh merged-main repeated-use regression is required before DRAFT. Hosted Yandex behavior remains unproven until the external DRAFT gate.
+The Lite baseline and Phase 2.6 direct regression are proven. The earlier final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard and the exact fixed tree passed targeted stress plus the full repeated-use loop. The later bounded Secret correction is also implemented and exact-browser-accepted, but it changed save/economy/presentation after that earlier repeated-use approval. That fresh merged-main repeated-use regression has now passed and been manually reviewed, so no local internal gate remains before DRAFT. Hosted Yandex behavior remains unproven until the external DRAFT gate itself.
 
 ---
 

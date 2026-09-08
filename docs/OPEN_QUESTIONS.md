@@ -2,13 +2,13 @@
 
 This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction are implemented; do not treat merged behavior as TODO design debate.
 
-Phase 2.6 correction/Overcharge is implemented, exact-audited and repeated-use accepted under `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The later Secret reward/reward-tray correction is also implemented and merged under `SECRET_REWARD_CORRECTION.md`; its exact browser acceptance passed 34/34. Because that correction changed runtime after the earlier repeated-use gate, one fresh merged-main repeated-use regression is the only remaining internal gate before Yandex DRAFT. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical feel-correction contract.
+Phase 2.6 correction/Overcharge is implemented, exact-audited and repeated-use accepted under `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The later Secret reward/reward-tray correction is also implemented and merged under `SECRET_REWARD_CORRECTION.md`; its exact browser acceptance passed 34/34. The required fresh merged-main repeated-use regression has passed 82/82 on the exact merged runtime with manual artifact review. Yandex DRAFT is now the current next external gate. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical feel-correction contract.
 
 ---
 
 # 1. Post-correction evidence question set
 
-The repeated hands-on passes justified the bounded corrections, which are now merged and reviewed. Remaining items here are evidence/tuning questions for the current final merged-main regression and later hosted/content-scale work.
+The repeated hands-on passes justified the bounded corrections, which are now merged and reviewed. Remaining items here are evidence/tuning questions for hosted DRAFT and later content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
@@ -107,7 +107,7 @@ Charged retained-lock gain: +0.50
 Overcharge cap:             x1.50
 ```
 
-The mechanic and these values are implemented, transaction-tested and exact-browser-audited. Legacy Lite V2 pouch/cache/rarity/recycle values were not changed. Re-open Overcharge tuning only if the fresh merged-main regression, hosted DRAFT, or later content-scale economy evidence shows a concrete problem.
+The mechanic and these values are implemented, transaction-tested and exact-browser-audited. Legacy Lite V2 pouch/cache/rarity/recycle values were not changed. Re-open Overcharge tuning only if hosted DRAFT or later content-scale economy evidence shows a concrete problem.
 
 ## 2.2 Secret jackpot tuning — RESOLVED FOR CURRENT VALIDATION BUILD
 
