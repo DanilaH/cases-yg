@@ -2592,17 +2592,28 @@ export class OpeningScene extends Phaser.Scene {
     await this.waitPresentation(90);
   }
 
-  private getStandardResultStatus(pending: PendingReveal): string {
+  private getStandardResultStatusParts(pending: PendingReveal): {
+    base: string;
+    mechanic: string | null;
+    mechanicColor: string;
+  } {
     const messages = getMessages(getPlatformRuntime().language);
-    let status = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
+    const base = pending.standard.isNew ? messages.opening.newItem : messages.opening.duplicate;
     if (pending.signal.lockConsumed) {
-      status += ` · ${messages.opening.signalLockConsumed}`;
-    } else if (pending.signal.lockRetained) {
-      status += ` · ${messages.opening.signalLockRetained}`;
-    } else if (pending.signal.lockReached) {
-      status += ` · ${messages.opening.signalLockReady}`;
+      return { base, mechanic: messages.opening.signalLockConsumed, mechanicColor: '#ff9ed4' };
     }
-    return status;
+    if (pending.signal.lockRetained) {
+      return { base, mechanic: messages.opening.signalLockRetained, mechanicColor: '#b7a7ff' };
+    }
+    if (pending.signal.lockReached) {
+      return { base, mechanic: messages.opening.signalLockReady, mechanicColor: '#8df8ff' };
+    }
+    return { base, mechanic: null, mechanicColor: '#b7a7ff' };
+  }
+
+  private getStandardResultStatus(pending: PendingReveal): string {
+    const { base, mechanic } = this.getStandardResultStatusParts(pending);
+    return mechanic ? `${base} · ${mechanic}` : base;
   }
 
   private addStandardResultLabels(pending: PendingReveal, x: number, y: number): void {
@@ -3098,6 +3109,8 @@ export class OpeningScene extends Phaser.Scene {
     rarityColor: string;
     status: string;
     statusColor: string;
+    statusAccent: string | null;
+    statusAccentColor: string;
   } {
     const language = getPlatformRuntime().language;
     const messages = getMessages(language);
@@ -3109,16 +3122,21 @@ export class OpeningScene extends Phaser.Scene {
         rarityColor: '#ff4d6d',
         status: pending.hiddenPocket.isNew ? messages.opening.secretDiscovered : messages.opening.secretDuplicate,
         statusColor: pending.hiddenPocket.isNew ? '#ffdca0' : '#ffb0be',
+        statusAccent: null,
+        statusAccentColor: '#ff9ed4',
       };
     }
 
     const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    const statusParts = this.getStandardResultStatusParts(pending);
     return {
       title: `${pending.pouchType === 'charged' ? '⚡ ' : ''}${family?.name[language] ?? pending.standard.familyId}`,
       rarity: messages.rarity[pending.standard.rarity],
       rarityColor: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
-      status: this.getStandardResultStatus(pending),
+      status: statusParts.base,
       statusColor: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
+      statusAccent: statusParts.mechanic,
+      statusAccentColor: statusParts.mechanicColor,
     };
   }
 
@@ -3131,7 +3149,7 @@ export class OpeningScene extends Phaser.Scene {
     const badgeContentWidth = diamondTextOffset + rarity.width;
     const totalWidth = title.width + headingGap + badgeContentWidth;
     const startX = -totalWidth / 2;
-    const headingY = -32;
+    const headingY = RESULT_PRESENTATION.headingY;
     title.setOrigin(0, 0.5).setPosition(startX, headingY);
 
     const badgeLeft = startX + title.width + headingGap;
@@ -3155,6 +3173,28 @@ export class OpeningScene extends Phaser.Scene {
     }
   }
 
+  private positionResultStatus(
+    status: Phaser.GameObjects.Text,
+    statusAccent: Phaser.GameObjects.Text,
+  ): void {
+    const statusY = RESULT_PRESENTATION.statusY;
+    status.setY(statusY);
+    statusAccent.setY(statusY);
+    if (!statusAccent.text) {
+      status.setOrigin(0.5, 0.5).setX(0);
+      statusAccent.setVisible(false);
+      return;
+    }
+
+    statusAccent.setVisible(true);
+    status.setOrigin(0, 0.5);
+    statusAccent.setOrigin(0, 0.5);
+    const totalWidth = status.width + statusAccent.width;
+    const startX = -totalWidth / 2;
+    status.setX(startX);
+    statusAccent.setX(startX + status.width);
+  }
+
   private renderResultActionPanel(pending: PendingReveal): void {
     if (!this.root || !this.metrics || this.phase !== 'result') return;
     const messages = getMessages(getPlatformRuntime().language);
@@ -3169,10 +3209,11 @@ export class OpeningScene extends Phaser.Scene {
       const title = panel.getData('title') as Phaser.GameObjects.Text | undefined;
       const rarity = panel.getData('rarity') as Phaser.GameObjects.Text | undefined;
       const status = panel.getData('status') as Phaser.GameObjects.Text | undefined;
+      const statusAccent = panel.getData('statusAccent') as Phaser.GameObjects.Text | undefined;
       const hint = panel.getData('hint') as Phaser.GameObjects.Text | undefined;
       const background = panel.getData('background') as Phaser.GameObjects.Graphics | undefined;
       const panelWidth = Number(panel.getData('panelWidth') ?? 0);
-      if (title && rarity && status && hint) {
+      if (title && rarity && status && statusAccent && hint) {
         title.setText(copy.title);
         rarity.setText(copy.rarity.toUpperCase()).setColor(copy.rarityColor);
         const updatedRarityColor = Number.parseInt(copy.rarityColor.slice(1), 16);
@@ -3199,7 +3240,11 @@ export class OpeningScene extends Phaser.Scene {
         const diamond = rarity.getData('diamond') as Phaser.GameObjects.Rectangle | undefined;
         if (diamond) diamond.setFillStyle(updatedRarityColor, 1).setStrokeStyle(1, 0xffffff, 0.28);
         status.setText(copy.status).setColor(copy.statusColor);
+        statusAccent
+          .setText(copy.statusAccent ? ` · ${copy.statusAccent}` : '')
+          .setColor(copy.statusAccentColor);
         this.positionResultHeading(title, rarity);
+        this.positionResultStatus(status, statusAccent);
         if (hint.text !== hintText) {
           this.tweens.killTweensOf(hint);
           this.tweens.add({
@@ -3254,7 +3299,7 @@ export class OpeningScene extends Phaser.Scene {
       RESULT_PRESENTATION.panelHeight - 4,
       20,
     );
-    const title = this.add.text(0, -32, copy.title, {
+    const title = this.add.text(0, RESULT_PRESENTATION.headingY, copy.title, {
       color: '#f7f2ff',
       stroke: '#160f20',
       strokeThickness: 3,
@@ -3264,10 +3309,10 @@ export class OpeningScene extends Phaser.Scene {
     });
     const rarityCapsule = this.add.graphics();
     const rarityDiamond = this.add
-      .rectangle(0, -32, 6, 6, rarityColorNumber, 1)
+      .rectangle(0, RESULT_PRESENTATION.headingY, 6, 6, rarityColorNumber, 1)
       .setRotation(Math.PI / 4)
       .setStrokeStyle(1, 0xffffff, 0.28);
-    const rarity = this.add.text(0, -32, copy.rarity.toUpperCase(), {
+    const rarity = this.add.text(0, RESULT_PRESENTATION.headingY, copy.rarity.toUpperCase(), {
       color: copy.rarityColor,
       padding: { x: 0, y: 2 },
       stroke: '#160f20',
@@ -3280,14 +3325,27 @@ export class OpeningScene extends Phaser.Scene {
     rarity.setData('capsuleColor', rarityColorNumber);
     rarity.setData('diamond', rarityDiamond);
     this.positionResultHeading(title, rarity);
-    const status = this.add.text(0, 0, copy.status, {
+    const status = this.add.text(0, RESULT_PRESENTATION.statusY, copy.status, {
       color: copy.statusColor,
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: '10px',
     }).setOrigin(0.5);
-    const hint = this.add.text(0, 43, hintText, {
+    const statusAccent = this.add.text(
+      0,
+      RESULT_PRESENTATION.statusY,
+      copy.statusAccent ? ` · ${copy.statusAccent}` : '',
+      {
+        color: copy.statusAccentColor,
+        stroke: '#160f20',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '10px',
+      },
+    ).setOrigin(0, 0.5);
+    this.positionResultStatus(status, statusAccent);
+    const hint = this.add.text(0, RESULT_PRESENTATION.hintY, hintText, {
       color: this.resultReady ? '#ffffff' : '#bfb3ca',
       fontFamily: 'system-ui, sans-serif',
       fontSize: pending.hiddenPocket ? '13px' : '15px',
@@ -3321,13 +3379,14 @@ export class OpeningScene extends Phaser.Scene {
       // here would let this same pointerdown be reinterpreted as a banking skip.
     });
 
-    panel.add([background, readyGlow, title, rarityCapsule, rarityDiamond, rarity, status, hint, actionZone]);
+    panel.add([background, readyGlow, title, rarityCapsule, rarityDiamond, rarity, status, statusAccent, hint, actionZone]);
     panel.setData('readyGlow', readyGlow);
     panel.setData('background', background);
     panel.setData('panelWidth', panelWidth);
     panel.setData('title', title);
     panel.setData('rarity', rarity);
     panel.setData('status', status);
+    panel.setData('statusAccent', statusAccent);
     panel.setData('hint', hint);
     this.root.add(panel);
     this.resultActionPanel = panel;
