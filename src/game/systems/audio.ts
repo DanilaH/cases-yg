@@ -1,7 +1,9 @@
 import type { RuntimeSfxAsset, SfxCue } from '../data/audioAssets';
 import {
   BASE_AMBIENCE_PROFILE,
+  DRAG_TEXTURE_PROFILE,
   getAudioCuePresentationDirective,
+  getDragTextureMix,
   getRarityAmbienceProfile,
   type PersistentResultAmbience,
   type ResultAmbienceRarity,
@@ -106,6 +108,10 @@ class GameAudioController {
   private desiredResultAmbience: PersistentResultAmbience | null = null;
   private resultAmbienceTimer: number | null = null;
   private steadyBaseMultiplier = 1;
+  private dragTextureSource: AudioBufferSourceNode | null = null;
+  private dragTextureFilter: BiquadFilterNode | null = null;
+  private dragTextureGain: GainNode | null = null;
+  private dragTextureIdleTimer: number | null = null;
   private chipClackIndex = 0;
   private muted = false;
   private blocked = false;
@@ -116,6 +122,7 @@ class GameAudioController {
 
   public setMuted(muted: boolean): void {
     this.muted = muted;
+    if (muted) this.stopDragTexture(true);
     if (muted && this.context?.state === 'running') {
       void this.context.suspend();
       return;
@@ -139,6 +146,7 @@ class GameAudioController {
 
   public setBlocked(blocked: boolean): void {
     this.blocked = blocked;
+    if (blocked) this.stopDragTexture(true);
     if (blocked && this.context?.state === 'running') {
       void this.context.suspend();
       return;
@@ -250,6 +258,128 @@ class GameAudioController {
       oscillator.start(start);
       oscillator.stop(end + 0.02);
     }
+  }
+
+  public setDragTexture(progress: number, velocity: number): void {
+    if (this.muted || this.blocked || typeof AudioContext === 'undefined') {
+      this.stopDragTexture(true);
+      return;
+    }
+
+    const context = this.getContext();
+    if (!context) return;
+    if (context.state === 'suspended') {
+      void context
+        .resume()
+        .then(() => {
+          if (!this.muted && !this.blocked) this.updateDragTexture(context, progress, velocity);
+        })
+        .catch(() => undefined);
+      return;
+    }
+    if (context.state === 'running') this.updateDragTexture(context, progress, velocity);
+  }
+
+  public stopDragTexture(immediate = false): void {
+    this.cancelDragTextureIdleDecay();
+    const source = this.dragTextureSource;
+    const filter = this.dragTextureFilter;
+    const gain = this.dragTextureGain;
+    this.dragTextureSource = null;
+    this.dragTextureFilter = null;
+    this.dragTextureGain = null;
+    if (!source) return;
+
+    const context = this.context;
+    if (immediate || !context || context.state !== 'running' || !gain) {
+      try {
+        source.stop();
+      } catch {
+        // Already-stopped sources are harmless during rapid input teardown.
+      }
+      try { source.disconnect(); } catch { /* no-op */ }
+      try { filter?.disconnect(); } catch { /* no-op */ }
+      try { gain?.disconnect(); } catch { /* no-op */ }
+      return;
+    }
+
+    const now = context.currentTime;
+    const releaseSeconds = DRAG_TEXTURE_PROFILE.releaseMs / 1000;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + releaseSeconds);
+    try {
+      source.stop(now + releaseSeconds + 0.025);
+    } catch {
+      // Already-stopped sources are harmless during rapid input teardown.
+    }
+    window.setTimeout(() => {
+      try { source.disconnect(); } catch { /* no-op */ }
+      try { filter?.disconnect(); } catch { /* no-op */ }
+      try { gain.disconnect(); } catch { /* no-op */ }
+    }, DRAG_TEXTURE_PROFILE.releaseMs + 70);
+  }
+
+  private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
+    const mix = getDragTextureMix(progress, velocity);
+    const now = context.currentTime;
+    if (!this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain) {
+      const source = context.createBufferSource();
+      source.buffer = this.getAmbienceNoiseBuffer(context);
+      source.loop = true;
+      const filter = context.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(mix.bandHz, now);
+      filter.Q.setValueAtTime(mix.q, now);
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(context.destination);
+      source.start(now, (now * 0.37) % 3.5);
+      this.dragTextureSource = source;
+      this.dragTextureFilter = filter;
+      this.dragTextureGain = gain;
+    }
+
+    const filter = this.dragTextureFilter;
+    const gain = this.dragTextureGain;
+    if (!filter || !gain) return;
+    const updateSeconds = DRAG_TEXTURE_PROFILE.updateMs / 1000;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.linearRampToValueAtTime(mix.gain, now + updateSeconds);
+    filter.frequency.cancelScheduledValues(now);
+    filter.frequency.setValueAtTime(Math.max(20, filter.frequency.value), now);
+    filter.frequency.linearRampToValueAtTime(mix.bandHz, now + updateSeconds);
+    filter.Q.cancelScheduledValues(now);
+    filter.Q.setValueAtTime(Math.max(0.1, filter.Q.value), now);
+    filter.Q.linearRampToValueAtTime(mix.q, now + updateSeconds);
+    this.queueDragTextureIdleDecay();
+  }
+
+  private queueDragTextureIdleDecay(): void {
+    this.cancelDragTextureIdleDecay();
+    this.dragTextureIdleTimer = window.setTimeout(() => {
+      this.dragTextureIdleTimer = null;
+      this.silenceDragTexture();
+    }, DRAG_TEXTURE_PROFILE.idleReleaseMs);
+  }
+
+  private cancelDragTextureIdleDecay(): void {
+    if (this.dragTextureIdleTimer === null) return;
+    window.clearTimeout(this.dragTextureIdleTimer);
+    this.dragTextureIdleTimer = null;
+  }
+
+  private silenceDragTexture(): void {
+    const context = this.context;
+    const gain = this.dragTextureGain;
+    if (!context || context.state !== 'running' || !gain) return;
+    const now = context.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + DRAG_TEXTURE_PROFILE.releaseMs / 1000);
   }
 
   public setResultAmbience(rarity: ResultAmbienceRarity): void {
