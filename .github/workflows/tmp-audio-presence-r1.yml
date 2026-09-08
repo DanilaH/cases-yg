@@ -1,0 +1,710 @@
+name: TEMP audio presence R1
+
+on:
+  push:
+    branches:
+      - polish/audio-presence-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/audio-presence-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply bounded audio presence pass
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          presentation = r'''import type { SfxCue } from './audioAssets';
+
+export type ResultAmbienceRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'secret';
+export type PersistentResultAmbience = Exclude<ResultAmbienceRarity, 'common'>;
+
+export interface BaseAmbienceProfile {
+  busGain: number;
+  roomNoiseGain: number;
+  humGain: number;
+  padGain: number;
+  shimmerGain: number;
+  fadeInMs: number;
+  padFrequencies: readonly number[];
+}
+
+export interface RarityAmbienceProfile {
+  enabled: boolean;
+  busGain: number;
+  toneGain: number;
+  shimmerGain: number;
+  toneFrequencies: readonly number[];
+  pulseRateHz: number;
+  pulseDepth: number;
+  stereoSpread: number;
+  toneLowpassHz: number;
+  shimmerBandHz: number;
+  baseMixMultiplier: number;
+  fadeInMs: number;
+  fadeOutMs: number;
+}
+
+export interface AudioDuckProfile {
+  multiplier: number;
+  attackMs: number;
+  holdMs: number;
+  releaseMs: number;
+}
+
+export interface AudioCuePresentationDirective {
+  clearPersistent?: boolean;
+  persistent?: PersistentResultAmbience;
+  persistentDelayMs?: number;
+  duck?: AudioDuckProfile;
+}
+
+export const BASE_AMBIENCE_PROFILE: Readonly<BaseAmbienceProfile> = {
+  busGain: 0.3,
+  roomNoiseGain: 0.05,
+  humGain: 0.016,
+  padGain: 0.022,
+  shimmerGain: 0.005,
+  fadeInMs: 650,
+  padFrequencies: [110, 164.81, 220],
+} as const;
+
+export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, RarityAmbienceProfile>> = {
+  common: {
+    enabled: false,
+    busGain: 0,
+    toneGain: 0,
+    shimmerGain: 0,
+    toneFrequencies: [],
+    pulseRateHz: 0,
+    pulseDepth: 0,
+    stereoSpread: 0,
+    toneLowpassHz: 0,
+    shimmerBandHz: 0,
+    baseMixMultiplier: 0.96,
+    fadeInMs: 0,
+    fadeOutMs: 180,
+  },
+  rare: {
+    enabled: true,
+    busGain: 0.24,
+    toneGain: 0.026,
+    shimmerGain: 0.004,
+    toneFrequencies: [164.81, 329.63],
+    pulseRateHz: 0.13,
+    pulseDepth: 0.08,
+    stereoSpread: 0.18,
+    toneLowpassHz: 760,
+    shimmerBandHz: 2500,
+    baseMixMultiplier: 0.88,
+    fadeInMs: 320,
+    fadeOutMs: 180,
+  },
+  epic: {
+    enabled: true,
+    busGain: 0.28,
+    toneGain: 0.03,
+    shimmerGain: 0.006,
+    toneFrequencies: [146.83, 293.66, 587.33],
+    pulseRateHz: 0.16,
+    pulseDepth: 0.11,
+    stereoSpread: 0.28,
+    toneLowpassHz: 980,
+    shimmerBandHz: 3100,
+    baseMixMultiplier: 0.76,
+    fadeInMs: 300,
+    fadeOutMs: 190,
+  },
+  legendary: {
+    enabled: true,
+    busGain: 0.34,
+    toneGain: 0.034,
+    shimmerGain: 0.008,
+    toneFrequencies: [130.81, 261.63, 523.25],
+    pulseRateHz: 0.14,
+    pulseDepth: 0.15,
+    stereoSpread: 0.38,
+    toneLowpassHz: 1150,
+    shimmerBandHz: 3600,
+    baseMixMultiplier: 0.64,
+    fadeInMs: 280,
+    fadeOutMs: 210,
+  },
+  secret: {
+    enabled: true,
+    busGain: 0.38,
+    toneGain: 0.038,
+    shimmerGain: 0.011,
+    toneFrequencies: [82.41, 164.81, 247.0, 494.0],
+    pulseRateHz: 0.1,
+    pulseDepth: 0.18,
+    stereoSpread: 0.5,
+    toneLowpassHz: 1280,
+    shimmerBandHz: 4200,
+    baseMixMultiplier: 0.48,
+    fadeInMs: 340,
+    fadeOutMs: 240,
+  },
+} as const;
+
+export const getRarityAmbienceProfile = (rarity: ResultAmbienceRarity): RarityAmbienceProfile =>
+  RARITY_AMBIENCE_PROFILES[rarity];
+
+export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentationDirective => {
+  switch (cue) {
+    case 'pouch-grab':
+      return {
+        clearPersistent: true,
+        duck: { multiplier: 0.8, attackMs: 18, holdMs: 70, releaseMs: 180 },
+      };
+    case 'tear':
+      return {
+        clearPersistent: true,
+        duck: { multiplier: 0.62, attackMs: 18, holdMs: 120, releaseMs: 300 },
+      };
+    case 'reveal-pop':
+      return {
+        clearPersistent: true,
+        duck: { multiplier: 0.35, attackMs: 10, holdMs: 210, releaseMs: 420 },
+      };
+    case 'common':
+      return {
+        clearPersistent: true,
+        duck: { multiplier: 0.82, attackMs: 10, holdMs: 55, releaseMs: 170 },
+      };
+    case 'rare':
+      return {
+        clearPersistent: true,
+        persistent: 'rare',
+        persistentDelayMs: 170,
+        duck: { multiplier: 0.74, attackMs: 10, holdMs: 70, releaseMs: 190 },
+      };
+    case 'epic':
+      return {
+        clearPersistent: true,
+        persistent: 'epic',
+        persistentDelayMs: 210,
+        duck: { multiplier: 0.66, attackMs: 10, holdMs: 95, releaseMs: 230 },
+      };
+    case 'legendary':
+      return {
+        clearPersistent: true,
+        persistent: 'legendary',
+        persistentDelayMs: 260,
+        duck: { multiplier: 0.56, attackMs: 10, holdMs: 125, releaseMs: 270 },
+      };
+    case 'hidden-pocket':
+      return {
+        duck: { multiplier: 0.52, attackMs: 10, holdMs: 150, releaseMs: 280 },
+      };
+    case 'secret-reveal':
+      return {
+        clearPersistent: true,
+        persistent: 'secret',
+        persistentDelayMs: 320,
+        duck: { multiplier: 0.28, attackMs: 10, holdMs: 280, releaseMs: 450 },
+      };
+    case 'duplicate':
+      return {
+        duck: { multiplier: 0.78, attackMs: 10, holdMs: 50, releaseMs: 150 },
+      };
+    case 'signal-gain':
+      return {
+        duck: { multiplier: 0.84, attackMs: 8, holdMs: 40, releaseMs: 120 },
+      };
+    case 'signal-lock':
+      return {
+        duck: { multiplier: 0.68, attackMs: 8, holdMs: 90, releaseMs: 220 },
+      };
+    case 'collection-complete':
+      return {
+        duck: { multiplier: 0.55, attackMs: 12, holdMs: 180, releaseMs: 300 },
+      };
+    default:
+      return {};
+  }
+};
+'''
+          Path('src/game/data/audioPresentation.ts').write_text(presentation, encoding='utf-8')
+
+          tests = r'''import { describe, expect, it } from 'vitest';
+
+import {
+  BASE_AMBIENCE_PROFILE,
+  getAudioCuePresentationDirective,
+  getRarityAmbienceProfile,
+} from '../src/game/data/audioPresentation';
+
+describe('audio presentation', () => {
+  it('keeps the base bed restrained and non-melodic by construction', () => {
+    expect(BASE_AMBIENCE_PROFILE.busGain).toBeLessThanOrEqual(0.3);
+    expect(BASE_AMBIENCE_PROFILE.roomNoiseGain).toBeGreaterThan(BASE_AMBIENCE_PROFILE.shimmerGain);
+    expect(BASE_AMBIENCE_PROFILE.padFrequencies).toHaveLength(3);
+    expect(BASE_AMBIENCE_PROFILE.fadeInMs).toBeGreaterThanOrEqual(500);
+  });
+
+  it('keeps Common clean and tiers persistent rarity presence through density and mix', () => {
+    const common = getRarityAmbienceProfile('common');
+    const rare = getRarityAmbienceProfile('rare');
+    const epic = getRarityAmbienceProfile('epic');
+    const legendary = getRarityAmbienceProfile('legendary');
+    const secret = getRarityAmbienceProfile('secret');
+
+    expect(common.enabled).toBe(false);
+    expect(rare.enabled).toBe(true);
+    expect(rare.busGain).toBeLessThan(epic.busGain);
+    expect(epic.busGain).toBeLessThan(legendary.busGain);
+    expect(legendary.busGain).toBeLessThan(secret.busGain);
+    expect(rare.toneFrequencies.length).toBeLessThanOrEqual(epic.toneFrequencies.length);
+    expect(legendary.toneFrequencies.length).toBeLessThan(secret.toneFrequencies.length);
+    expect(rare.baseMixMultiplier).toBeGreaterThan(epic.baseMixMultiplier);
+    expect(epic.baseMixMultiplier).toBeGreaterThan(legendary.baseMixMultiplier);
+    expect(legendary.baseMixMultiplier).toBeGreaterThan(secret.baseMixMultiplier);
+  });
+
+  it('maps reveal cues to the intended persistent result ambience', () => {
+    expect(getAudioCuePresentationDirective('common').persistent).toBeUndefined();
+    expect(getAudioCuePresentationDirective('rare').persistent).toBe('rare');
+    expect(getAudioCuePresentationDirective('epic').persistent).toBe('epic');
+    expect(getAudioCuePresentationDirective('legendary').persistent).toBe('legendary');
+    expect(getAudioCuePresentationDirective('secret-reveal').persistent).toBe('secret');
+  });
+
+  it('clears stale result ambience before a new physical/reveal cycle', () => {
+    expect(getAudioCuePresentationDirective('pouch-grab').clearPersistent).toBe(true);
+    expect(getAudioCuePresentationDirective('tear').clearPersistent).toBe(true);
+    expect(getAudioCuePresentationDirective('reveal-pop').clearPersistent).toBe(true);
+  });
+
+  it('uses silence/duck hierarchy instead of simply stacking louder transients', () => {
+    const grab = getAudioCuePresentationDirective('pouch-grab').duck!;
+    const reveal = getAudioCuePresentationDirective('reveal-pop').duck!;
+    const secret = getAudioCuePresentationDirective('secret-reveal').duck!;
+
+    expect(reveal.multiplier).toBeLessThan(grab.multiplier);
+    expect(secret.multiplier).toBeLessThan(reveal.multiplier);
+    expect(secret.holdMs).toBeGreaterThan(reveal.holdMs);
+  });
+});
+'''
+          Path('tests/audio-presentation.test.ts').write_text(tests, encoding='utf-8')
+
+          audio_path = Path('src/game/systems/audio.ts')
+          audio = audio_path.read_text(encoding='utf-8')
+
+          old_import = "import type { RuntimeSfxAsset, SfxCue } from '../data/audioAssets';\n"
+          new_import = old_import + "import {\n  BASE_AMBIENCE_PROFILE,\n  getAudioCuePresentationDirective,\n  getRarityAmbienceProfile,\n  type PersistentResultAmbience,\n  type ResultAmbienceRarity,\n} from '../data/audioPresentation';\n"
+          if old_import not in audio:
+              raise SystemExit('audio import anchor missing')
+          audio = audio.replace(old_import, new_import, 1)
+
+          old_fields = "  private chipNoiseBuffer: AudioBuffer | null = null;\n  private chipClackIndex = 0;\n  private muted = false;\n  private blocked = false;\n"
+          new_fields = "  private chipNoiseBuffer: AudioBuffer | null = null;\n  private ambienceNoiseBuffer: AudioBuffer | null = null;\n  private baseAmbienceBus: GainNode | null = null;\n  private baseAmbienceSources: AudioScheduledSourceNode[] = [];\n  private persistentRarityBus: GainNode | null = null;\n  private persistentRaritySources: AudioScheduledSourceNode[] = [];\n  private activeResultAmbience: PersistentResultAmbience | null = null;\n  private desiredResultAmbience: PersistentResultAmbience | null = null;\n  private resultAmbienceTimer: number | null = null;\n  private steadyBaseMultiplier = 1;\n  private chipClackIndex = 0;\n  private muted = false;\n  private blocked = false;\n"
+          if old_fields not in audio:
+              raise SystemExit('audio field anchor missing')
+          audio = audio.replace(old_fields, new_fields, 1)
+
+          old_mute = "  public setMuted(muted: boolean): void {\n    this.muted = muted;\n    if (muted && this.context?.state === 'running') {\n      void this.context.suspend();\n    }\n  }\n"
+          new_mute = "  public setMuted(muted: boolean): void {\n    this.muted = muted;\n    if (muted && this.context?.state === 'running') {\n      void this.context.suspend();\n      return;\n    }\n    if (!muted && !this.blocked && this.context?.state === 'suspended') {\n      void this.context\n        .resume()\n        .then(() => {\n          if (!this.context || this.muted || this.blocked) return;\n          this.ensureBaseAmbience(this.context);\n          if (this.desiredResultAmbience) this.startPersistentRarity(this.context, this.desiredResultAmbience);\n        })\n        .catch(() => undefined);\n    }\n  }\n"
+          if old_mute not in audio:
+              raise SystemExit('setMuted anchor missing')
+          audio = audio.replace(old_mute, new_mute, 1)
+
+          old_blocked = "  public setBlocked(blocked: boolean): void {\n    this.blocked = blocked;\n    if (blocked && this.context?.state === 'running') {\n      void this.context.suspend();\n    }\n  }\n"
+          new_blocked = "  public setBlocked(blocked: boolean): void {\n    this.blocked = blocked;\n    if (blocked && this.context?.state === 'running') {\n      void this.context.suspend();\n      return;\n    }\n    if (!blocked && !this.muted && this.context?.state === 'suspended') {\n      void this.context\n        .resume()\n        .then(() => {\n          if (!this.context || this.muted || this.blocked) return;\n          this.ensureBaseAmbience(this.context);\n          if (this.desiredResultAmbience) this.startPersistentRarity(this.context, this.desiredResultAmbience);\n        })\n        .catch(() => undefined);\n    }\n  }\n"
+          if old_blocked not in audio:
+              raise SystemExit('setBlocked anchor missing')
+          audio = audio.replace(old_blocked, new_blocked, 1)
+
+          schedule_anchor = "  private schedule(context: AudioContext, cue: SfxCue): void {\n    if (this.muted || this.blocked || context.state !== 'running') return;\n\n"
+          schedule_replacement = schedule_anchor + "    this.applyPresentationCue(context, cue);\n\n"
+          if schedule_anchor not in audio:
+              raise SystemExit('schedule anchor missing')
+          audio = audio.replace(schedule_anchor, schedule_replacement, 1)
+
+          insertion_anchor = "  private schedulePouchGrab(context: AudioContext): void {\n"
+          methods = r'''  public setResultAmbience(rarity: ResultAmbienceRarity): void {
+    if (rarity === 'common') {
+      this.clearResultAmbience();
+      return;
+    }
+    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    const context = this.getContext();
+    if (!context || this.muted || this.blocked) return;
+    this.ensureBaseAmbience(context);
+    if (context.state === 'running') {
+      this.startPersistentRarity(context, rarity);
+      return;
+    }
+    if (context.state === 'suspended') {
+      void context
+        .resume()
+        .then(() => {
+          if (!this.muted && !this.blocked && this.desiredResultAmbience === rarity) {
+            this.startPersistentRarity(context, rarity);
+          }
+        })
+        .catch(() => undefined);
+    }
+  }
+
+  public clearResultAmbience(): void {
+    this.desiredResultAmbience = null;
+    this.cancelQueuedResultAmbience();
+    if (this.context) this.stopPersistentRarity(this.context, 190, true);
+  }
+
+  private applyPresentationCue(context: AudioContext, cue: SfxCue): void {
+    this.ensureBaseAmbience(context);
+    const directive = getAudioCuePresentationDirective(cue);
+    if (directive.clearPersistent) {
+      this.desiredResultAmbience = null;
+      this.cancelQueuedResultAmbience();
+      this.stopPersistentRarity(context, 140, true);
+    }
+    if (directive.duck) this.duckBase(context, directive.duck);
+    if (directive.persistent) {
+      this.queuePersistentRarity(context, directive.persistent, directive.persistentDelayMs ?? 0);
+    }
+  }
+
+  private ensureBaseAmbience(context: AudioContext): void {
+    if (this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const bus = context.createGain();
+    bus.gain.setValueAtTime(0.0001, now);
+    bus.gain.linearRampToValueAtTime(
+      BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier,
+      now + BASE_AMBIENCE_PROFILE.fadeInMs / 1000,
+    );
+    bus.connect(context.destination);
+    this.baseAmbienceBus = bus;
+
+    const room = context.createBufferSource();
+    room.buffer = this.getAmbienceNoiseBuffer(context);
+    room.loop = true;
+    const roomLow = context.createBiquadFilter();
+    roomLow.type = 'lowpass';
+    roomLow.frequency.setValueAtTime(1450, now);
+    roomLow.Q.setValueAtTime(0.55, now);
+    const roomHigh = context.createBiquadFilter();
+    roomHigh.type = 'highpass';
+    roomHigh.frequency.setValueAtTime(38, now);
+    const roomGain = context.createGain();
+    roomGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.roomNoiseGain, now);
+    room.connect(roomLow);
+    roomLow.connect(roomHigh);
+    roomHigh.connect(roomGain);
+    roomGain.connect(bus);
+    room.start(now);
+    this.baseAmbienceSources.push(room);
+
+    const humFilter = context.createBiquadFilter();
+    humFilter.type = 'lowpass';
+    humFilter.frequency.setValueAtTime(230, now);
+    humFilter.Q.setValueAtTime(0.7, now);
+    humFilter.connect(bus);
+    const humFrequencies = [55, 110] as const;
+    humFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 0 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.humGain / humFrequencies.length, now);
+      oscillator.connect(gain);
+      gain.connect(humFilter);
+      oscillator.start(now);
+      this.baseAmbienceSources.push(oscillator);
+    });
+
+    const padFilter = context.createBiquadFilter();
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(620, now);
+    padFilter.Q.setValueAtTime(0.42, now);
+    padFilter.connect(bus);
+    BASE_AMBIENCE_PROFILE.padFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = index === 1 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(index === 0 ? -4 : index === 1 ? 3 : 0, now);
+      gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.padGain / BASE_AMBIENCE_PROFILE.padFrequencies.length, now);
+      oscillator.connect(gain);
+      gain.connect(padFilter);
+      oscillator.start(now);
+      this.baseAmbienceSources.push(oscillator);
+    });
+    const padLfo = context.createOscillator();
+    const padLfoDepth = context.createGain();
+    padLfo.type = 'sine';
+    padLfo.frequency.setValueAtTime(0.028, now);
+    padLfoDepth.gain.setValueAtTime(95, now);
+    padLfo.connect(padLfoDepth);
+    padLfoDepth.connect(padFilter.frequency);
+    padLfo.start(now);
+    this.baseAmbienceSources.push(padLfo);
+
+    const shimmer = context.createBufferSource();
+    shimmer.buffer = this.getAmbienceNoiseBuffer(context);
+    shimmer.loop = true;
+    const shimmerHigh = context.createBiquadFilter();
+    shimmerHigh.type = 'highpass';
+    shimmerHigh.frequency.setValueAtTime(3000, now);
+    const shimmerLow = context.createBiquadFilter();
+    shimmerLow.type = 'lowpass';
+    shimmerLow.frequency.setValueAtTime(6800, now);
+    const shimmerGain = context.createGain();
+    shimmerGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.shimmerGain, now);
+    shimmer.connect(shimmerHigh);
+    shimmerHigh.connect(shimmerLow);
+    shimmerLow.connect(shimmerGain);
+    shimmerGain.connect(bus);
+    shimmer.start(now + 0.37);
+    this.baseAmbienceSources.push(shimmer);
+  }
+
+  private duckBase(context: AudioContext, duck: { multiplier: number; attackMs: number; holdMs: number; releaseMs: number }): void {
+    this.ensureBaseAmbience(context);
+    if (!this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const gain = this.baseAmbienceBus.gain;
+    const steady = BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier;
+    const ducked = Math.max(0.0001, steady * duck.multiplier);
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(Math.max(0.0001, gain.value), now);
+    gain.linearRampToValueAtTime(ducked, now + duck.attackMs / 1000);
+    gain.setValueAtTime(ducked, now + (duck.attackMs + duck.holdMs) / 1000);
+    gain.linearRampToValueAtTime(steady, now + (duck.attackMs + duck.holdMs + duck.releaseMs) / 1000);
+  }
+
+  private setSteadyBaseMultiplier(context: AudioContext, multiplier: number, rampMs = 220): void {
+    this.steadyBaseMultiplier = multiplier;
+    this.ensureBaseAmbience(context);
+    if (!this.baseAmbienceBus) return;
+    const now = context.currentTime;
+    const gain = this.baseAmbienceBus.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(Math.max(0.0001, gain.value), now);
+    gain.linearRampToValueAtTime(
+      BASE_AMBIENCE_PROFILE.busGain * this.steadyBaseMultiplier,
+      now + rampMs / 1000,
+    );
+  }
+
+  private queuePersistentRarity(
+    context: AudioContext,
+    rarity: PersistentResultAmbience,
+    delayMs: number,
+  ): void {
+    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    this.stopPersistentRarity(context, 120, false);
+    this.resultAmbienceTimer = window.setTimeout(() => {
+      this.resultAmbienceTimer = null;
+      if (this.muted || this.blocked || this.desiredResultAmbience !== rarity) return;
+      if (context.state === 'running') this.startPersistentRarity(context, rarity);
+    }, delayMs);
+  }
+
+  private cancelQueuedResultAmbience(): void {
+    if (this.resultAmbienceTimer === null) return;
+    window.clearTimeout(this.resultAmbienceTimer);
+    this.resultAmbienceTimer = null;
+  }
+
+  private startPersistentRarity(context: AudioContext, rarity: PersistentResultAmbience): void {
+    if (this.muted || this.blocked || context.state !== 'running') return;
+    if (this.activeResultAmbience === rarity && this.persistentRarityBus) return;
+    const profile = getRarityAmbienceProfile(rarity);
+    if (!profile.enabled) return;
+
+    this.stopPersistentRarity(context, 140, false);
+    this.activeResultAmbience = rarity;
+    this.desiredResultAmbience = rarity;
+    this.setSteadyBaseMultiplier(context, profile.baseMixMultiplier, profile.fadeInMs);
+
+    const now = context.currentTime;
+    const bus = context.createGain();
+    bus.gain.setValueAtTime(0.0001, now);
+    bus.gain.linearRampToValueAtTime(profile.busGain, now + profile.fadeInMs / 1000);
+    bus.connect(context.destination);
+    this.persistentRarityBus = bus;
+
+    const toneFilter = context.createBiquadFilter();
+    toneFilter.type = 'lowpass';
+    toneFilter.frequency.setValueAtTime(profile.toneLowpassHz, now);
+    toneFilter.Q.setValueAtTime(0.65, now);
+    const toneGain = context.createGain();
+    toneGain.gain.setValueAtTime(profile.toneGain, now);
+    toneGain.connect(toneFilter);
+    toneFilter.connect(bus);
+
+    profile.toneFrequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const panner = context.createStereoPanner();
+      oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime((index - (profile.toneFrequencies.length - 1) / 2) * 2.5, now);
+      const side = index % 2 === 0 ? -1 : 1;
+      panner.pan.setValueAtTime(side * profile.stereoSpread * (0.45 + index * 0.12), now);
+      oscillator.connect(panner);
+      panner.connect(toneGain);
+      oscillator.start(now);
+      this.persistentRaritySources.push(oscillator);
+    });
+
+    const pulse = context.createOscillator();
+    const pulseDepth = context.createGain();
+    pulse.type = 'sine';
+    pulse.frequency.setValueAtTime(profile.pulseRateHz, now);
+    pulseDepth.gain.setValueAtTime(profile.toneGain * profile.pulseDepth, now);
+    pulse.connect(pulseDepth);
+    pulseDepth.connect(toneGain.gain);
+    pulse.start(now);
+    this.persistentRaritySources.push(pulse);
+
+    if (profile.shimmerGain > 0) {
+      const shimmer = context.createBufferSource();
+      shimmer.buffer = this.getAmbienceNoiseBuffer(context);
+      shimmer.loop = true;
+      const shimmerBand = context.createBiquadFilter();
+      shimmerBand.type = 'bandpass';
+      shimmerBand.frequency.setValueAtTime(profile.shimmerBandHz, now);
+      shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.9 : 1.25, now);
+      const shimmerGain = context.createGain();
+      shimmerGain.gain.setValueAtTime(profile.shimmerGain, now);
+      shimmer.connect(shimmerBand);
+      shimmerBand.connect(shimmerGain);
+      shimmerGain.connect(bus);
+      shimmer.start(now + 0.11);
+      this.persistentRaritySources.push(shimmer);
+    }
+  }
+
+  private stopPersistentRarity(context: AudioContext, fadeMs: number, restoreBase: boolean): void {
+    const bus = this.persistentRarityBus;
+    const sources = this.persistentRaritySources;
+    this.persistentRarityBus = null;
+    this.persistentRaritySources = [];
+    this.activeResultAmbience = null;
+    if (bus) {
+      const now = context.currentTime;
+      bus.gain.cancelScheduledValues(now);
+      bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value), now);
+      bus.gain.exponentialRampToValueAtTime(0.0001, now + Math.max(0.03, fadeMs / 1000));
+      for (const source of sources) {
+        try {
+          source.stop(now + Math.max(0.05, fadeMs / 1000 + 0.03));
+        } catch {
+          // Already stopped sources are harmless during teardown/re-entry.
+        }
+      }
+    }
+    if (restoreBase) this.setSteadyBaseMultiplier(context, 1, Math.max(180, fadeMs));
+  }
+
+  private getAmbienceNoiseBuffer(context: AudioContext): AudioBuffer {
+    if (this.ambienceNoiseBuffer && this.ambienceNoiseBuffer.sampleRate === context.sampleRate) {
+      return this.ambienceNoiseBuffer;
+    }
+
+    const seconds = 4;
+    const length = Math.max(1, Math.floor(context.sampleRate * seconds));
+    const buffer = context.createBuffer(1, length, context.sampleRate);
+    const channel = buffer.getChannelData(0);
+    let seed = 0xa11d10f;
+    for (let index = 0; index < channel.length; index += 1) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      channel[index] = (seed / 0xffffffff) * 2 - 1;
+    }
+    const fadeLength = Math.min(Math.floor(context.sampleRate * 0.12), Math.floor(channel.length / 8));
+    for (let index = 0; index < fadeLength; index += 1) {
+      const mix = index / Math.max(1, fadeLength - 1);
+      const tailIndex = channel.length - fadeLength + index;
+      channel[tailIndex] = channel[tailIndex] * (1 - mix) + channel[index] * mix;
+    }
+    this.ambienceNoiseBuffer = buffer;
+    return buffer;
+  }
+
+'''
+          if insertion_anchor not in audio:
+              raise SystemExit('method insertion anchor missing')
+          audio = audio.replace(insertion_anchor, methods + insertion_anchor, 1)
+          audio_path.write_text(audio, encoding='utf-8')
+
+          opening_path = Path('src/game/scenes/OpeningScene.ts')
+          opening = opening_path.read_text(encoding='utf-8')
+
+          old_shutdown = "    this.presentationSkip.reset();\n    this.tweens.killAll();\n    getPlatformRuntime().activity.setGameplayDesired(false);\n"
+          new_shutdown = "    this.presentationSkip.reset();\n    getGameAudio().clearResultAmbience();\n    this.tweens.killAll();\n    getPlatformRuntime().activity.setGameplayDesired(false);\n"
+          if old_shutdown not in opening:
+              raise SystemExit('Opening shutdown anchor missing')
+          opening = opening.replace(old_shutdown, new_shutdown, 1)
+
+          old_continue = "  private continueFromResult(): void {\n    if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;\n    getGameAudio().play('ui-click');\n"
+          new_continue = "  private continueFromResult(): void {\n    if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;\n    getGameAudio().clearResultAmbience();\n    getGameAudio().play('ui-click');\n"
+          if old_continue not in opening:
+              raise SystemExit('Opening continue anchor missing')
+          opening = opening.replace(old_continue, new_continue, 1)
+
+          old_carousel = "    const secretSelected = Boolean(this.lastReveal?.hiddenPocket && this.resultCarouselIndex === 1);\n    if (this.resultCarouselHeading?.active) {\n"
+          new_carousel = "    const secretSelected = Boolean(this.lastReveal?.hiddenPocket && this.resultCarouselIndex === 1);\n    if (this.lastReveal) {\n      getGameAudio().setResultAmbience(secretSelected ? 'secret' : this.lastReveal.standard.rarity);\n    }\n    if (this.resultCarouselHeading?.active) {\n"
+          if old_carousel not in opening:
+              raise SystemExit('Opening carousel anchor missing')
+          opening = opening.replace(old_carousel, new_carousel, 1)
+          opening_path.write_text(opening, encoding='utf-8')
+          PY
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Asset self-test
+        run: npm run assets:selftest
+
+      - name: Asset validation
+        run: npm run assets:validate
+
+      - name: Build
+        run: npm run build
+
+      - name: Product diff guard
+        shell: bash
+        run: |
+          git diff --check
+          git status --short
+          test -f src/game/data/audioPresentation.ts
+          test -f tests/audio-presentation.test.ts
+          grep -q "setResultAmbience(secretSelected" src/game/scenes/OpeningScene.ts
+          grep -q "ensureBaseAmbience" src/game/systems/audio.ts
+
+      - name: Commit clean product tree
+        shell: bash
+        run: |
+          rm .github/workflows/tmp-audio-presence-r1.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add layered ambient audio states"
+          git push origin HEAD:polish/audio-presence-r1
