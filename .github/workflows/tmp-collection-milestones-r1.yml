@@ -1,0 +1,490 @@
+name: TEMP collection milestones R1
+
+on:
+  push:
+    branches:
+      - polish/collection-milestones-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-audit-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/collection-milestones-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply bounded collection milestone pass
+        run: |
+          set -euo pipefail
+          cat > src/game/systems/collectionMilestones.ts <<'EOF'
+          import type { ContentRegistry } from '../data/collectibles';
+          import type { PendingReveal } from './drops';
+          import type { SaveState } from './save';
+
+          export type CollectionMilestoneKind =
+            | 'standards-half'
+            | 'standards-complete'
+            | 'first-secret'
+            | 'secrets-complete';
+
+          export interface CollectionMilestone {
+            kind: CollectionMilestoneKind;
+            current: number;
+            total: number;
+          }
+
+          const countOwned = (owned: readonly string[], validIds: ReadonlySet<string>): number =>
+            owned.reduce((count, id) => count + (validIds.has(id) ? 1 : 0), 0);
+
+          export const resolveCollectionMilestone = (
+            registry: ContentRegistry,
+            pending: PendingReveal,
+            committed: SaveState,
+          ): CollectionMilestone | null => {
+            const standardIds = new Set(registry.standardItems.map(({ collectible }) => collectible.id));
+            const secretIds = new Set(registry.secrets.map(({ collectible }) => collectible.id));
+            const totalStandards = standardIds.size;
+            const totalSecrets = secretIds.size;
+            const afterStandards = countOwned(committed.discoveredStandard, standardIds);
+            const afterSecrets = countOwned(committed.discoveredSecrets, secretIds);
+
+            const beforeStandardOwned = pending.standard.isNew
+              ? committed.discoveredStandard.filter((id) => id !== pending.standard.collectibleId)
+              : committed.discoveredStandard;
+            const beforeSecretOwned = pending.hiddenPocket?.isNew
+              ? committed.discoveredSecrets.filter((id) => id !== pending.hiddenPocket?.collectibleId)
+              : committed.discoveredSecrets;
+            const beforeStandards = countOwned(beforeStandardOwned, standardIds);
+            const beforeSecrets = countOwned(beforeSecretOwned, secretIds);
+            const halfStandards = Math.ceil(totalStandards / 2);
+
+            // At most one celebration per opening. Completion outranks first/halfway beats.
+            if (totalSecrets > 0 && beforeSecrets < totalSecrets && afterSecrets >= totalSecrets) {
+              return { kind: 'secrets-complete', current: totalSecrets, total: totalSecrets };
+            }
+            if (totalStandards > 0 && beforeStandards < totalStandards && afterStandards >= totalStandards) {
+              return { kind: 'standards-complete', current: totalStandards, total: totalStandards };
+            }
+            if (totalSecrets > 0 && beforeSecrets === 0 && afterSecrets >= 1) {
+              return { kind: 'first-secret', current: 1, total: totalSecrets };
+            }
+            if (
+              totalStandards > 0 &&
+              halfStandards < totalStandards &&
+              beforeStandards < halfStandards &&
+              afterStandards >= halfStandards
+            ) {
+              return { kind: 'standards-half', current: halfStandards, total: totalStandards };
+            }
+            return null;
+          };
+          EOF
+
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str, count: int = 1) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if text.count(old) < count:
+                  raise SystemExit(f'anchor missing in {path}: {old[:140]!r}')
+              text = text.replace(old, new, count)
+              file.write_text(text, encoding='utf-8')
+
+          # Presentation contract for one compact, non-blocking result toast.
+          replace(
+              'src/game/data/presentation.ts',
+              """export interface RevealFxPreset {\n""",
+              """export const COLLECTION_MILESTONE_PRESENTATION = {\n  width: 320,\n  minWidth: 270,\n  height: 58,\n  safeSidePadding: 42,\n  centerTopOffset: 78,\n  introOffsetY: -8,\n  introMs: 180,\n  holdMs: 880,\n  exitOffsetY: -6,\n  exitMs: 210,\n} as const;\n\nexport interface RevealFxPreset {\n""",
+          )
+
+          # Localized copy stays compact enough for the 320px cap.
+          replace(
+              'src/i18n/en.ts',
+              """    secretDuplicate: 'SECRET DUPLICATE',\n""",
+              """    secretDuplicate: 'SECRET DUPLICATE',\n    milestoneStandardsHalf: 'STANDARD SET · HALFWAY',\n    milestoneStandardsComplete: 'STANDARD SET COMPLETE',\n    milestoneFirstSecret: 'FIRST SECRET FOUND',\n    milestoneSecretsComplete: 'ALL SECRETS FOUND',\n    milestoneCollected: 'COLLECTED',\n""",
+          )
+          replace(
+              'src/i18n/ru.ts',
+              """    secretDuplicate: 'ДУБЛИКАТ СЕКРЕТА',\n""",
+              """    secretDuplicate: 'ДУБЛИКАТ СЕКРЕТА',\n    milestoneStandardsHalf: 'ОСНОВНЫЕ · ПОЛОВИНА',\n    milestoneStandardsComplete: 'ОСНОВНЫЕ СОБРАНЫ',\n    milestoneFirstSecret: 'ПЕРВЫЙ СЕКРЕТ НАЙДЕН',\n    milestoneSecretsComplete: 'ВСЕ СЕКРЕТЫ НАЙДЕНЫ',\n    milestoneCollected: 'СОБРАНО',\n""",
+          )
+
+          # Opening scene lifecycle + one-shot post-commit presentation.
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """  AMBIENT_PRESENTATION,\n  getCarouselSpacing,\n""",
+              """  AMBIENT_PRESENTATION,\n  COLLECTION_MILESTONE_PRESENTATION,\n  getCarouselSpacing,\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """import { OpeningSession } from '../systems/openingSession';\n""",
+              """import { OpeningSession } from '../systems/openingSession';\nimport {\n  resolveCollectionMilestone,\n  type CollectionMilestone,\n  type CollectionMilestoneKind,\n} from '../systems/collectionMilestones';\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """  private rewardTrayContainer: Phaser.GameObjects.Container | null = null;\n  private tearHint: Phaser.GameObjects.Text | null = null;\n""",
+              """  private rewardTrayContainer: Phaser.GameObjects.Container | null = null;\n  private collectionMilestoneTarget: Phaser.GameObjects.Container | null = null;\n  private tearHint: Phaser.GameObjects.Text | null = null;\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.presentationSkip.reset();\n    getGameAudio().stopDragTexture(true);\n""",
+              """    this.presentationSkip.reset();\n    this.clearCollectionMilestoneMotion();\n    getGameAudio().stopDragTexture(true);\n""",
+              1,
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.clearStandardPresenceMotion();\n    this.clearHudMotion();\n""",
+              """    this.clearStandardPresenceMotion();\n    this.clearCollectionMilestoneMotion();\n    this.clearHudMotion();\n""",
+              1,
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.rewardTrayContainer = null;\n    this.tearHint = null;\n""",
+              """    this.rewardTrayContainer = null;\n    this.collectionMilestoneTarget = null;\n    this.tearHint = null;\n""",
+              1,
+          )
+
+          # Resolve exactly once after durable commit; render/resize never owns milestone detection.
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.saveState = committed;\n    this.trackRevealCompletion(pending, committed);\n    this.phase = 'result';\n""",
+              """    const collectionMilestone = resolveCollectionMilestone(SLICE_REGISTRY, pending, committed);\n    this.saveState = committed;\n    this.trackRevealCompletion(pending, committed);\n    this.phase = 'result';\n""",
+          )
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """    this.deferredResize = false;\n    this.renderResolvedResult(pending);\n    await this.waitPresentation(RESULT_HOLD_MS);\n""",
+              """    this.deferredResize = false;\n    this.renderResolvedResult(pending);\n    if (collectionMilestone) this.showCollectionMilestone(collectionMilestone);\n    await this.waitPresentation(RESULT_HOLD_MS);\n""",
+          )
+
+          # Existing analytics remains canonical; completion SFX moves to the visible milestone moment.
+          replace(
+              'src/game/scenes/OpeningScene.ts',
+              """      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n        getGameAudio().play('collection-complete');\n      }\n""",
+              """      if (!wasCompleteBefore) {\n        analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });\n      }\n""",
+          )
+
+          marker = """  private getResultPanelCopy(pending: PendingReveal): {\n"""
+          methods = """  private clearCollectionMilestoneMotion(): void {\n    const target = this.collectionMilestoneTarget;\n    if (!target) return;\n    this.tweens.killTweensOf(target);\n    if (target.active) target.destroy(true);\n    this.collectionMilestoneTarget = null;\n  }\n\n  private getCollectionMilestoneCopy(kind: CollectionMilestoneKind): {\n    title: string;\n    accent: number;\n  } {\n    const messages = getMessages(getPlatformRuntime().language).opening;\n    if (kind === 'standards-half') {\n      return { title: messages.milestoneStandardsHalf, accent: 0x8df8ff };\n    }\n    if (kind === 'standards-complete') {\n      return { title: messages.milestoneStandardsComplete, accent: 0xffd36a };\n    }\n    if (kind === 'first-secret') {\n      return { title: messages.milestoneFirstSecret, accent: 0xff7088 };\n    }\n    return { title: messages.milestoneSecretsComplete, accent: 0xff4d6d };\n  }\n\n  private showCollectionMilestone(milestone: CollectionMilestone): void {\n    if (!this.root || !this.metrics || this.isSceneShutdown()) return;\n    this.clearCollectionMilestoneMotion();\n\n    const messages = getMessages(getPlatformRuntime().language).opening;\n    const copy = this.getCollectionMilestoneCopy(milestone.kind);\n    const width = Math.max(\n      COLLECTION_MILESTONE_PRESENTATION.minWidth,\n      Math.min(\n        COLLECTION_MILESTONE_PRESENTATION.width,\n        this.metrics.logicalWidth - COLLECTION_MILESTONE_PRESENTATION.safeSidePadding * 2,\n      ),\n    );\n    const targetY = this.metrics.safeTop + COLLECTION_MILESTONE_PRESENTATION.centerTopOffset;\n    const toast = this.add\n      .container(\n        this.metrics.centerX,\n        targetY + COLLECTION_MILESTONE_PRESENTATION.introOffsetY,\n      )\n      .setAlpha(0)\n      .setScale(0.965);\n    const background = this.add.graphics();\n    background.fillStyle(0x17101f, 0.93);\n    background.fillRoundedRect(\n      -width / 2,\n      -COLLECTION_MILESTONE_PRESENTATION.height / 2,\n      width,\n      COLLECTION_MILESTONE_PRESENTATION.height,\n      16,\n    );\n    background.lineStyle(2, copy.accent, 0.66);\n    background.strokeRoundedRect(\n      -width / 2,\n      -COLLECTION_MILESTONE_PRESENTATION.height / 2,\n      width,\n      COLLECTION_MILESTONE_PRESENTATION.height,\n      16,\n    );\n    const diamond = this.add\n      .rectangle(-width / 2 + 18, 0, 7, 7, copy.accent, 0.96)\n      .setRotation(Math.PI / 4)\n      .setStrokeStyle(1, 0xffffff, 0.34);\n    const title = this.add\n      .text(0, -9, copy.title, {\n        color: '#fff8ff',\n        stroke: '#100b16',\n        strokeThickness: 2,\n        fontFamily: DIGITAL_FONT_FAMILY,\n        fontSize: '8px',\n        fontStyle: 'bold',\n      })\n      .setOrigin(0.5);\n    const progress = this.add\n      .text(0, 12, `${milestone.current}/${milestone.total} ${messages.milestoneCollected}`, {\n        color: `#${copy.accent.toString(16).padStart(6, '0')}`,\n        stroke: '#100b16',\n        strokeThickness: 1,\n        fontFamily: DIGITAL_FONT_FAMILY,\n        fontSize: '7px',\n      })\n      .setOrigin(0.5);\n    toast.add([background, diamond, title, progress]);\n    toast.setData('milestoneKind', milestone.kind);\n    toast.setData('panelWidth', width);\n    toast.setData('title', title);\n    toast.setData('progress', progress);\n    this.root.add(toast);\n    this.collectionMilestoneTarget = toast;\n\n    if (milestone.kind === 'standards-complete' || milestone.kind === 'secrets-complete') {\n      getGameAudio().play('collection-complete');\n    }\n\n    this.tweens.add({\n      targets: toast,\n      y: targetY,\n      alpha: 1,\n      scale: 1,\n      duration: COLLECTION_MILESTONE_PRESENTATION.introMs,\n      ease: 'Back.Out',\n      onComplete: () => {\n        if (!toast.active) return;\n        this.tweens.add({\n          targets: toast,\n          y: targetY + COLLECTION_MILESTONE_PRESENTATION.exitOffsetY,\n          alpha: 0,\n          scale: 1.015,\n          delay: COLLECTION_MILESTONE_PRESENTATION.holdMs,\n          duration: COLLECTION_MILESTONE_PRESENTATION.exitMs,\n          ease: 'Sine.In',\n          onComplete: () => {\n            if (toast.active) toast.destroy(true);\n            if (this.collectionMilestoneTarget === toast) this.collectionMilestoneTarget = null;\n          },\n        });\n      },\n    });\n  }\n\n"""
+          replace('src/game/scenes/OpeningScene.ts', marker, methods + marker)
+          PY
+
+          cat > tests/collection-milestones.test.ts <<'EOF'
+          import { describe, expect, it } from 'vitest';
+
+          import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+          import { resolveCollectionMilestone } from '../src/game/systems/collectionMilestones';
+          import type { PendingReveal } from '../src/game/systems/drops';
+          import { createInitialSaveState, type SaveState } from '../src/game/systems/save';
+
+          const standardIds = SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
+          const secretIds = SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id);
+
+          const makeCommitted = (standards: readonly string[], secrets: readonly string[]): SaveState => ({
+            ...createInitialSaveState(),
+            discoveredStandard: [...standards],
+            discoveredSecrets: [...secrets],
+            totalOpens: 10,
+          });
+
+          const makePending = ({
+            standardId,
+            standardIsNew = true,
+            secretId = null,
+            secretIsNew = false,
+          }: {
+            standardId: string;
+            standardIsNew?: boolean;
+            secretId?: string | null;
+            secretIsNew?: boolean;
+          }): PendingReveal => {
+            const familyId = SLICE_REGISTRY.collectibleFamilyById.get(standardId) ?? 'camera';
+            return {
+              id: 'milestone-test',
+              baseTotalOpens: 9,
+              openingNumber: 10,
+              pouchType: 'basic',
+              lootPoolId: 'y2k-essentials',
+              standard: {
+                collectibleId: standardId,
+                familyId,
+                rarity: 'common',
+                isNew: standardIsNew,
+              },
+              signal: {
+                before: 0,
+                after: 0,
+                gain: 0,
+                lockArmedBefore: false,
+                lockConsumed: false,
+                lockReached: false,
+                lockRetained: false,
+              },
+              overcharge: {
+                beforeHundredths: 100,
+                appliedGainHundredths: 0,
+                afterHundredths: 100,
+              },
+              chips: {
+                before: 0,
+                cost: 0,
+                base: 0,
+                cacheTier: 'none',
+                cacheBonus: 0,
+                recycle: 0,
+                rawEarned: 0,
+                multiplierHundredths: 100,
+                overchargeBonus: 0,
+                secretBonus: secretId ? 40 : 0,
+                totalEarned: secretId ? 40 : 0,
+                after: secretId ? 40 : 0,
+              },
+              hiddenPocket: secretId
+                ? {
+                    collectibleId: secretId,
+                    familyId: SLICE_REGISTRY.collectibleFamilyById.get(secretId) ?? 'camera',
+                    isNew: secretIsNew,
+                    bonusChips: 40,
+                  }
+                : null,
+              commit: makeCommitted([], []),
+            };
+          };
+
+          describe('collection milestones', () => {
+            it('fires the halfway standard beat exactly on 3→4', () => {
+              const committed = makeCommitted(standardIds.slice(0, 4), []);
+              const pending = makePending({ standardId: standardIds[3] });
+              expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+                kind: 'standards-half', current: 4, total: 8,
+              });
+            });
+
+            it('does not replay halfway on later standard discoveries or duplicates', () => {
+              const five = makeCommitted(standardIds.slice(0, 5), []);
+              expect(resolveCollectionMilestone(
+                SLICE_REGISTRY,
+                makePending({ standardId: standardIds[4] }),
+                five,
+              )).toBeNull();
+              expect(resolveCollectionMilestone(
+                SLICE_REGISTRY,
+                makePending({ standardId: standardIds[0], standardIsNew: false }),
+                five,
+              )).toBeNull();
+            });
+
+            it('fires standards complete exactly on 7→8 and outranks a first Secret on the same opening', () => {
+              const committed = makeCommitted(standardIds, [secretIds[0]]);
+              const pending = makePending({
+                standardId: standardIds[7],
+                secretId: secretIds[0],
+                secretIsNew: true,
+              });
+              expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+                kind: 'standards-complete', current: 8, total: 8,
+              });
+            });
+
+            it('fires first Secret only on the first new Secret', () => {
+              const committed = makeCommitted([standardIds[0]], [secretIds[0]]);
+              const pending = makePending({
+                standardId: standardIds[0],
+                standardIsNew: false,
+                secretId: secretIds[0],
+                secretIsNew: true,
+              });
+              expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+                kind: 'first-secret', current: 1, total: 2,
+              });
+            });
+
+            it('fires 2/2 Secrets completion and gives it top priority', () => {
+              const committed = makeCommitted(standardIds, secretIds);
+              const pending = makePending({
+                standardId: standardIds[7],
+                secretId: secretIds[1],
+                secretIsNew: true,
+              });
+              expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+                kind: 'secrets-complete', current: 2, total: 2,
+              });
+            });
+
+            it('ignores unknown ids and already-complete collections', () => {
+              const committed = makeCommitted([...standardIds, 'unknown-standard'], [...secretIds, 'unknown-secret']);
+              const pending = makePending({ standardId: standardIds[0], standardIsNew: false });
+              expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toBeNull();
+            });
+          });
+          EOF
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Source contract guard
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          scene = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          resolver = Path('src/game/systems/collectionMilestones.ts').read_text(encoding='utf-8')
+          assert 'resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)' in scene
+          assert 'this.renderResolvedResult(pending);\n    if (collectionMilestone) this.showCollectionMilestone(collectionMilestone);' in scene
+          completion = scene.split('private trackRevealCompletion', 1)[1].split('private clearCollectionMilestoneMotion', 1)[0]
+          assert "play('collection-complete')" not in completion
+          assert "milestone.kind === 'standards-complete' || milestone.kind === 'secrets-complete'" in scene
+          assert "kind: 'secrets-complete'" in resolver
+          assert "kind: 'standards-complete'" in resolver
+          assert "kind: 'first-secret'" in resolver
+          assert "kind: 'standards-half'" in resolver
+          # Presentation does not write or resolve economy state.
+          milestone_section = scene.split('private showCollectionMilestone', 1)[1].split('private getResultPanelCopy', 1)[0]
+          assert 'commitReveal' not in milestone_section
+          assert 'prepareReveal' not in milestone_section
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run milestone presentation browser audit
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/main.ts')
+          text = path.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text: raise SystemExit('main audit anchor missing')
+          text = text.replace(anchor, anchor + "  if (import.meta.env.DEV) (window as typeof window & { __mptAuditGame?: Phaser.Game; __mptAuditAudio?: unknown }).__mptAuditGame = game;\n  if (import.meta.env.DEV) (window as typeof window & { __mptAuditAudio?: unknown }).__mptAuditAudio = audio;\n", 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          cat > tools/tmp-collection-milestone-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+          await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+          await page.waitForFunction(() => window.__mptAuditGame?.scene?.getScene?.('OpeningScene')?.phase === 'idle', null, { timeout: 15000 });
+          const hide = page.getByRole('button', { name: 'Hide', exact: true });
+          if (await hide.isVisible().catch(() => false)) await hide.click();
+
+          await page.evaluate(() => {
+            window.__mptMilestoneCues = [];
+            const audio = window.__mptAuditAudio;
+            const play = audio.play.bind(audio);
+            audio.play = cue => {
+              if (cue === 'collection-complete') window.__mptMilestoneCues.push(cue);
+              return play(cue);
+            };
+          });
+
+          const show = async milestone => {
+            await page.evaluate(value => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              scene.showCollectionMilestone(value);
+            }, milestone);
+            await page.waitForTimeout(230);
+            return page.evaluate(() => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              const toast = scene.collectionMilestoneTarget;
+              const title = toast?.getData('title');
+              const progress = toast?.getData('progress');
+              return toast ? {
+                phase: scene.phase,
+                x: toast.x,
+                y: toast.y,
+                alpha: toast.alpha,
+                width: Number(toast.getData('panelWidth')),
+                title: title?.text ?? '',
+                titleWidth: title?.width ?? 0,
+                progress: progress?.text ?? '',
+                progressWidth: progress?.width ?? 0,
+                centerX: scene.metrics.centerX,
+                safeTop: scene.metrics.safeTop,
+                logicalWidth: scene.metrics.logicalWidth,
+              } : null;
+            });
+          };
+
+          const half = await show({ kind: 'standards-half', current: 4, total: 8 });
+          await page.screenshot({ path: 'audit-artifacts/standards-half.png', fullPage: true });
+          const complete = await show({ kind: 'standards-complete', current: 8, total: 8 });
+          await page.screenshot({ path: 'audit-artifacts/standards-complete.png', fullPage: true });
+          const firstSecret = await show({ kind: 'first-secret', current: 1, total: 2 });
+          await page.screenshot({ path: 'audit-artifacts/first-secret.png', fullPage: true });
+          const secretsComplete = await show({ kind: 'secrets-complete', current: 2, total: 2 });
+          await page.screenshot({ path: 'audit-artifacts/secrets-complete.png', fullPage: true });
+          const cues = await page.evaluate(() => window.__mptMilestoneCues);
+          await page.waitForTimeout(1200);
+          const afterExit = await page.evaluate(() => Boolean(window.__mptAuditGame.scene.getScene('OpeningScene').collectionMilestoneTarget));
+
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          for (const [name, shot] of Object.entries({ half, complete, firstSecret, secretsComplete })) {
+            assert(shot, `${name} toast missing`);
+            assert(shot.phase === 'idle', `${name} toast must not change gameplay phase`);
+            assert(Math.abs(shot.x - shot.centerX) < 0.1, `${name} toast must be centered`);
+            assert(shot.y > shot.safeTop + 45 && shot.y < 130, `${name} toast y out of top-safe band`);
+            assert(shot.width <= 320 && shot.width >= 270, `${name} width outside bounded contract`);
+            assert(shot.titleWidth < shot.width - 36, `${name} title overflow`);
+            assert(shot.progressWidth < shot.width - 36, `${name} progress overflow`);
+            assert(shot.alpha > 0.95, `${name} toast should reach stable visible state`);
+          }
+          assert(cues.length === 2, `only full-completion milestones should play completion cue, got ${cues.length}`);
+          assert(afterExit === false, 'milestone toast must self-destroy after its one-shot presentation');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify({ half, complete, firstSecret, secretsComplete, cues, afterExit, errors }, null, 2));
+          await browser.close();
+          EOF
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/?debug=1 >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/mpt-vite.log; exit 1; fi
+          node tools/tmp-collection-milestone-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: collection-milestone-audit
+          path: audit-artifacts
+          if-no-files-found: error
+
+      - name: Restore audit-only changes and commit clean product tree
+        run: |
+          set -euo pipefail
+          git checkout -- src/main.ts
+          rm -f tools/tmp-collection-milestone-audit.mjs
+          rm -rf audit-artifacts
+          rm -f .github/workflows/tmp-collection-milestones-r1.yml
+          git status --short
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add bounded collection milestone moments'
+          git push origin HEAD:polish/collection-milestones-r1
