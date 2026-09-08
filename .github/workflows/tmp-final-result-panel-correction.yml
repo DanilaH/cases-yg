@@ -25,7 +25,18 @@ jobs:
           node-version: 22
           cache: npm
       - name: Apply bounded product correction
-        run: python tools/tmp-final-result-panel-correction.py
+        run: |
+          python tools/tmp-final-result-panel-correction.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/game/data/presentation.ts')
+          text = p.read_text()
+          old = '  panelY: 620,\n'
+          new = '  panelY: 612,\n'
+          if text.count(old) != 1:
+              raise SystemExit('Expected patched panelY 620 exactly once before safe-bound clamp')
+          p.write_text(text.replace(old, new, 1))
+          PY
       - name: Diff hygiene
         run: git diff --check
       - run: npm ci
