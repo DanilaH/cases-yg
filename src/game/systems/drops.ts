@@ -70,7 +70,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
   const discoveredStandard = resolved.standard.isNew
     ? [...state.discoveredStandard, resolved.standard.collectibleId]
     : [...state.discoveredStandard];
-  const discoveredSecrets = resolved.hiddenPocket
+  const discoveredSecrets = resolved.hiddenPocket?.isNew
     ? [...state.discoveredSecrets, resolved.hiddenPocket.collectibleId]
     : [...state.discoveredSecrets];
 
