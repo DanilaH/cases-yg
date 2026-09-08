@@ -2,13 +2,13 @@
 
 This file contains only questions that are **actually unresolved now**. Lite V2 mechanics and the Opening Feel Correction are implemented; do not treat merged behavior as TODO design debate.
 
-Phase 2.6 correction/Overcharge is implemented and exact-audited under `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`; only final direct repeated-use acceptance remains before Yandex DRAFT. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical feel-correction contract.
+Phase 2.6 correction/Overcharge is implemented, exact-audited and repeated-use accepted under `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The later Secret reward/reward-tray correction is also implemented and merged under `SECRET_REWARD_CORRECTION.md`; its exact browser acceptance passed 34/34. Because that correction changed runtime after the earlier repeated-use gate, one fresh merged-main repeated-use regression is the only remaining internal gate before Yandex DRAFT. `OPENING_FEEL_CORRECTION_SCOPE.md` remains the historical feel-correction contract.
 
 ---
 
 # 1. Post-correction evidence question set
 
-The first repeated hands-on justified the correction, which is now merged and reviewed. Remaining items here are evidence/tuning questions for Phase 2.6, its direct regression, and later hosted/content-scale work.
+The repeated hands-on passes justified the bounded corrections, which are now merged and reviewed. Remaining items here are evidence/tuning questions for the current final merged-main regression and later hosted/content-scale work.
 
 ## 1.1 Accent digital/pixel font — RESOLVED FOR CURRENT BUILD
 
@@ -87,7 +87,7 @@ Duplicate recycle C/R/E/L
 
 Current deterministic analysis satisfies the Charged net-sink invariant.
 
-No balance numbers changed in the feel-correction or bounded follow-up passes. Keep these legacy values unchanged during Phase 2.6 except for the explicitly new Overcharge parameters; after hosted/content-scale simulation, evidence questions remain:
+Legacy pouch/cache/rarity/recycle numbers did not change in the feel-correction, Phase 2.6, or Secret correction. Phase 2.6 added only its explicit Overcharge parameters, and the later approved Secret correction added one separate fixed `+40 CHIPS` jackpot. Current economy analysis includes the Hidden Pocket expected value and still keeps Charged a net CHIPS sink. After hosted/content-scale simulation, evidence questions remain:
 
 - is 60 CHIPS reached at a satisfying cadence?
 - are Basic payouts meaningful without feeling grindy?
@@ -107,7 +107,11 @@ Charged retained-lock gain: +0.50
 Overcharge cap:             x1.50
 ```
 
-The mechanic and these values are implemented, transaction-tested and exact-browser-audited. Legacy Lite V2 pouch/cache/rarity/recycle values were not changed. Re-open Overcharge tuning only if final direct hands-on, hosted DRAFT, or later content-scale economy evidence shows a concrete problem.
+The mechanic and these values are implemented, transaction-tested and exact-browser-audited. Legacy Lite V2 pouch/cache/rarity/recycle values were not changed. Re-open Overcharge tuning only if the fresh merged-main regression, hosted DRAFT, or later content-scale economy evidence shows a concrete problem.
+
+## 2.2 Secret jackpot tuning — RESOLVED FOR CURRENT VALIDATION BUILD
+
+Current approved Secret payout is a fixed `+40 CHIPS` per successful Hidden Pocket, for both NEW and duplicate Secret outcomes after collection completion. It is persisted as its own transaction component and is never multiplied by Overcharge. Save V4 compatibility preserves pre-correction staged V3 Hidden Pockets at their original `+0` Secret bonus. Re-open `+40` only from hosted/content-scale economy evidence, not intuition.
 
 ---
 
@@ -170,7 +174,7 @@ Re-open exactly one local shader only if a reviewed no-shader result proves a sp
 
 # 6. Real Yandex DRAFT findings — NEXT EXTERNAL QUESTION SET
 
-After corrected hands-on acceptance, hosted validation may reveal issues local CI cannot:
+After the current fresh merged-main repeated-use regression passes, hosted validation may reveal issues local CI cannot:
 
 - SDK boot/loading timing;
 - safe storage behavior;
@@ -186,7 +190,7 @@ Do not invent fixes before the draft exposes a problem.
 
 # 7. First expanded content roster / Drop grouping — OPEN AFTER DRAFT
 
-Only after corrected hands-on + real Yandex DRAFT validation, lock:
+Only after the final merged-main regression + real Yandex DRAFT validation, lock:
 
 - first additional gadget families;
 - first real Drop name/theme;

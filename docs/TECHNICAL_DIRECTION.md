@@ -17,7 +17,7 @@ Target platforms: Desktop + Mobile landscape.
 
 ## 2. Current architecture state
 
-Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, and Phase 2.6 Signal Overcharge are implemented in current `main`. The Phase 2.6 runtime passed exact technical/browser validation; the final direct repeated-use regression found one stale Overcharge reward-tag tween lifecycle race, fixed narrowly in PR #50 and accepted by an exact fixed-tree targeted + 24-opening regression. Real Yandex DRAFT is now the immediate gate — not broad architecture work.
+Gameplay Loop Lite V2, the bounded **Opening Feel Correction**, Phase 2.6 Signal Overcharge, and the bounded Secret reward/reward-tray correction are implemented in current `main`. The earlier final repeated-use gate caught and fixed the stale Overcharge reward-tag tween race; the later Secret correction then changed save/economy/presentation again and was merged through PRs #55–#57. Its exact product tree passed a 34/34 browser acceptance with manual screenshot/video review. One fresh merged-main repeated-use regression is therefore the current internal gate; real Yandex DRAFT follows only if that regression stays clean.
 
 Existing architecture already contains the required truth boundaries:
 
@@ -27,7 +27,8 @@ Existing architecture already contains the required truth boundaries:
 - automatic duplicate recycle;
 - 4-segment Signal pity;
 - Drop/loot-pool-aware content selection;
-- versioned save migration;
+- versioned save migration through Save V4;
+- persisted Secret new/duplicate outcome + exact per-transaction jackpot bonus;
 - recoverable atomic cost/reward transaction;
 - presentation separated from durable economy mutation.
 
@@ -120,8 +121,9 @@ Structural invariants remain:
 - Signal respects active pool + selected-pouch eligibility;
 - CHIPS/Signal global across Drops;
 - Charged remains a CHIPS sink in expectation;
-- balance numbers stayed unchanged through the feel correction and remain provisional pending later evidence.
-- Phase 2.6 may add only Overcharge-specific pouch gain/cap tuning; legacy pouch cost/base/cache/rarity/recycle numbers do not move by intuition.
+- legacy pouch cost/base/cache/rarity/recycle numbers stayed unchanged through the feel/Overcharge/Secret corrections and remain provisional pending later evidence;
+- Phase 2.6 added only Overcharge-specific pouch gain/cap tuning;
+- the later bounded Secret correction added the approved fixed `+40 CHIPS` Secret jackpot without changing legacy pouch economics.
 
 No player Drop selector before Drop #2.
 
@@ -129,7 +131,7 @@ No player Drop selector before Drop #2.
 
 ## 6. Save / atomic reveal contract — CRITICAL BASELINE + PHASE 2.6 EXTENSION
 
-Current save is versioned (`SAVE_VERSION = 3`) behind `StorageAdapter`.
+Current save is versioned (`SAVE_VERSION = 4`) behind `StorageAdapter`.
 
 `pendingReveal` predetermines the complete economic outcome before visual presentation:
 
@@ -145,8 +147,9 @@ pouch cost
 base CHIPS
 cache tier + bonus
 recycle CHIPS
+Overcharge multiplier-before / bonus / retained gain or reset
 Signal transition
-Hidden Pocket result
+Hidden Pocket result + persisted new/duplicate flag + exact Secret jackpot bonus
 final deterministic snapshot
 ```
 
@@ -160,12 +163,13 @@ Invariants:
 - original pouch profile/loot pool survive recovery;
 - presentation tweens, fast-forward and visual banking never determine durable state.
 
-Phase 2.6 must extend this same boundary rather than bypass it:
+The current V4 transaction extends this same boundary rather than bypassing it:
 
-- persist Overcharge multiplier-before, bonus CHIPS, actual clamped gain/reset and multiplier-after in the prepared reveal;
-- migrate existing saves to an inactive `x1.00` Overcharge state without losing pending-reveal safety;
-- recovery must never recalculate a different multiplier transition;
-- reward count-up, gain flight, MAX pulse and discharge are presentation-only views of the stored transition.
+- Overcharge multiplier-before, bonus CHIPS, actual clamped gain/reset and multiplier-after are persisted in the prepared reveal;
+- `hiddenPocket.isNew`, `hiddenPocket.bonusChips` and `chips.secretBonus` persist the exact Secret outcome;
+- new Secret transactions carry the fixed `+40 CHIPS` jackpot, while migrated pre-correction staged V3 Hidden Pockets retain bonus `0`;
+- recovery never recalculates a different multiplier or Secret payout;
+- reward count-up, Secret carousel selection, premium ambience, gain flight, MAX pulse and discharge are presentation-only views of stored truth.
 
 ---
 
@@ -229,7 +233,7 @@ Current contract:
 
 - create bounded aggregate visual reward components near hero;
 - keep displayed HUD at appropriate pre-reward/after-cost value until acceptance;
-- on acceptance bank base → cache → recycle;
+- on acceptance bank base → cache → recycle → persisted Secret jackpot when present;
 - each bank step animates displayed count toward the deterministic target;
 - final displayed value equals durable committed snapshot;
 - local card punch/shake/glow is purely cosmetic.
@@ -336,7 +340,7 @@ Current integrated cues include synthesized `chip-clack` for CHIPS banking and s
 
 ## 15. Current regression coverage
 
-Current suite baseline is 114 tests plus typecheck/assets/build. Focused coverage and the exact-revision audits cover:
+Current suite baseline is **130 tests** plus typecheck/assets/build. Focused coverage and the exact-revision audits cover:
 
 - fast-forward cannot prepare/commit twice;
 - fast-forward cannot alter pending reveal data;
@@ -347,13 +351,13 @@ Current suite baseline is 114 tests plus typecheck/assets/build. Focused coverag
 - recovery remains idempotent;
 - Charged selection continuity/fallback remains intact.
 
-The browser/video regressions cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts. The final direct repeated-use gate additionally reproduced and fixed the Overcharge reward-tag teardown race, then passed **86/86** assertions on the exact fixed tree with manual artifact review.
+The browser/video regressions cover the matrix in `PROBE_VALIDATION.md`, including grab/tear motion, staged CHIPS, bank/count-up, selector states, Charged differentiation, neon/digital treatment, fast-forward and compact RU layouts. The earlier final direct repeated-use gate reproduced and fixed the Overcharge reward-tag teardown race, then passed **86/86** assertions on the exact fixed tree. The later Secret correction exact tree additionally passed **34/34** assertions across NEW/duplicate Secret, EN 1280, RU 900, carousel reward switching, ~4-second persistent premium state, recovery and aggressive fast-forward with zero runtime/request/HTTP diagnostics and manual artifact review. A fresh merged-main repeated-use regression remains required because this later correction changed runtime behavior.
 
 ---
 
 ## 16. Yandex boundary
 
-Real hosted Yandex DRAFT is now the **current next gate** after Phase 2.6 implementation + exact audit + direct regression approval.
+Real hosted Yandex DRAFT is the **next external gate**, but it remains blocked on one fresh merged-main repeated-use regression after the Secret correction.
 
 Hosted gate still covers SDK boot/loading, storage, lifecycle/audio, ad behavior, interrupted Basic/Charged recovery and Metrica.
 
@@ -378,4 +382,4 @@ Do not introduce by default:
 - custom shader system;
 - generalized abstractions for Archive/prestige or future Overcharge expansion beyond the approved small Signal extension.
 
-Phase 2.6 should stay narrow: preserve existing boundaries, add only the smallest pure-state/save fields needed for deterministic Overcharge, and keep presentation helpers local.
+Keep the completed Overcharge + Secret corrections narrow: preserve the current pure-state/save boundaries, keep presentation helpers local, and do not add unrelated meta/content work before hosted DRAFT evidence.

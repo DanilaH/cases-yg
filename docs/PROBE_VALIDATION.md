@@ -15,18 +15,22 @@ Current status:
 - latest exact-audited Phase 2.6 runtime product head: `40db07a3c8069ef8ca01c5c35de0c355337d410e`;
 - comprehensive Phase 2.6 exact browser/state audit: **43/43 PASS** with zero runtime/request/HTTP failures;
 - focused post-fix cash-out audit: **15/15 PASS** in RU 900 + EN 1280; artifact digest `sha256:0d55df870f9b4c90c1d8c566c8c6cb7a4af4b6e6486ab991077670271de6a1cd`;
-- squash-merged `main`: `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020` via PR #48; subsequent differences from the exact audit head are canonical-doc synchronization/merge history, not runtime behavior;
-- post-merge main CI #274: **PASS**;
-- current suite baseline: **114 unit tests** + typecheck + asset self-test/validation + production build;
+- historical Phase 2.6 squash-merged `main`: `f070cbeb0adf8329d8a514d78a1cad0bb1f8d020` via PR #48;
+- historical Phase 2.6 post-merge main CI #274: **PASS**;
+- current suite baseline: **130 unit tests** + typecheck + asset self-test/validation + production build;
 - final direct hands-on: **COMPLETE WITH BOUNDED FINDINGS**;
 - Phase 2.6 final-hands-on correction + Signal Overcharge: **IMPLEMENTED / EXACT-AUDITED**;
 - final direct repeated-use Phase 2.6 regression: **COMPLETE / ACCEPTED**;
 - post-fix exact lifecycle regression: **86/86 PASS** with 10 targeted retained-lock Overcharge openings + a fresh 24-opening normal loop, zero runtime/request/HTTP failures and manual artifact review;
-- real Yandex DRAFT: **UNBLOCKED / NEXT EXTERNAL GATE**.
+- Secret reward/reward-tray correction: **IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED** via PRs #55–#57;
+- Secret exact product acceptance: **34/34 PASS** on `629d5beb666aa9365ce7197082938ea1a50d9d15`, zero runtime/request/HTTP diagnostics, manual screenshot/video review complete;
+- current merged runtime after PR #57: `341c4a265a39c1d8f9d7e1cd1030b7d4e8c62cba`; post-merge CI **PASS**;
+- final merged-main repeated-use regression after Secret correction: **PENDING — CURRENT INTERNAL GATE**;
+- real Yandex DRAFT: **BLOCKED ON THAT FINAL INTERNAL REGRESSION / NEXT EXTERNAL GATE AFTER PASS**.
 
-Historical correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Current delta/acceptance contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`.
+Historical feel-correction scope: `OPENING_FEEL_CORRECTION_SCOPE.md`. Phase 2.6 contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Current post-Phase-2.6 Secret contract: `SECRET_REWARD_CORRECTION.md`.
 
-The Lite baseline and Phase 2.6 direct regression are proven. The final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard without changing economy or transaction semantics, and the exact fixed tree then passed targeted stress plus the full repeated-use loop. Hosted Yandex behavior remains unproven until the DRAFT gate.
+The Lite baseline and Phase 2.6 direct regression are proven. The earlier final repeated-use pass found one presentation-lifecycle race in the Overcharge bonus counter; PR #50 added a bounded destroyed-tag guard and the exact fixed tree passed targeted stress plus the full repeated-use loop. The later bounded Secret correction is also implemented and exact-browser-accepted, but it changed save/economy/presentation after that earlier repeated-use approval. Therefore one fresh merged-main repeated-use regression is required before DRAFT. Hosted Yandex behavior remains unproven until the external DRAFT gate.
 
 ---
 
@@ -50,9 +54,14 @@ The current merged implementation has established:
 - refresh cannot reroll collectible/cache/Hidden Pocket;
 - recovery cannot double-grant rewards;
 - Basic/Charged selection continuity and insufficient-wallet fallback work;
-- compact 900/1024 and RU states are technically valid.
+- compact 900/1024 and RU states are technically valid;
+- Save V4 persists exact Secret new/duplicate state and per-transaction jackpot bonus;
+- successful Hidden Pocket selects undiscovered Secrets first, then continues as duplicates after completion;
+- the fixed `+40 CHIPS` Secret jackpot is excluded from Overcharge multiplication;
+- pre-correction staged V3 Hidden Pocket reveals migrate without retroactive jackpot payment;
+- Secret result/tray state follows carousel selection and recovery reconstructs the premium result.
 
-Current suite baseline: **114 unit tests** plus typecheck, asset self-test/validation and production build.
+Current suite baseline: **130 unit tests** plus typecheck, asset self-test/validation and production build.
 
 The correction must preserve all of these properties.
 
