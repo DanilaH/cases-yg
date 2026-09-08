@@ -1,0 +1,219 @@
+name: TEMP collect banking feel R2
+
+on:
+  push:
+    branches:
+      - polish/collect-banking-feel-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-audit-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/collect-banking-feel-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Reuse bounded product patch from R1
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess, textwrap
+          text = Path('.github/workflows/tmp-collect-banking-feel-r1.yml').read_text(encoding='utf-8')
+          match = re.search(
+              r"      - name: Apply bounded collect and banking choreography pass\n        run: \|\n(?P<body>.*?)\n      - run: npm ci",
+              text,
+              re.S,
+          )
+          if not match:
+              raise SystemExit('could not extract R1 product patch')
+          body = textwrap.dedent(match.group('body'))
+          subprocess.run(['bash', '-e', '-c', body], check=True)
+          PY
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Product contract guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          scene = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          assert 'animateCollectionAcceptance' in scene
+          assert 'this.collectionButton?.disableInteractive()' in scene
+          section = scene.split('private async animateRewardBanking', 1)[1].split('private async animatePostStandardEconomy', 1)[0]
+          assert 'commitReveal' not in section
+          assert 'prepareReveal' not in section
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run corrected collect/banking browser audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/main.ts')
+          text = path.read_text(encoding='utf-8')
+          anchor = "  game.sound.mute = blocked;\n"
+          if anchor not in text: raise SystemExit('main audit anchor missing')
+          text = text.replace(anchor, anchor + "  if (import.meta.env.DEV) (window as typeof window & { __mptAuditGame?: Phaser.Game }).__mptAuditGame = game;\n", 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          cat > tools/tmp-collect-banking-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          const errors = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+
+          const waitGame = () => page.waitForFunction(
+            () => Boolean(window.__mptAuditGame?.scene?.getScene?.('OpeningScene')),
+            null,
+            { timeout: 15000 },
+          );
+          const waitResult = () => page.waitForFunction(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            return scene.phase === 'result' && scene.resultReady;
+          }, null, { timeout: 15000 });
+          const debugButton = async name => {
+            const button = page.getByRole('button', { name, exact: true });
+            await button.waitFor({ state: 'visible' });
+            await Promise.all([page.waitForEvent('load'), button.click()]);
+            await waitGame();
+          };
+          const showDebug = async () => {
+            const button = page.getByRole('button', { name: 'DEBUG', exact: true });
+            if (await button.isVisible().catch(() => false)) await button.click();
+          };
+          const hideDebug = async () => {
+            const button = page.getByRole('button', { name: 'Hide', exact: true });
+            if (await button.isVisible().catch(() => false)) await button.click();
+          };
+          const trackTargets = () => page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            window.__mptTrackedCollectTargets = scene.resultCarouselItems.length > 0
+              ? scene.resultCarouselItems.filter(item => item.active)
+              : scene.resultBreathTarget?.active ? [scene.resultBreathTarget] : [];
+          });
+          const snapshot = () => page.evaluate(() => {
+            const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+            const tracked = (window.__mptTrackedCollectTargets ?? []).filter(item => item.active);
+            return {
+              phase: scene.phase,
+              resultReady: scene.resultReady,
+              panel: scene.resultActionPanel?.active ? {
+                x: scene.resultActionPanel.x,
+                y: scene.resultActionPanel.y,
+                alpha: scene.resultActionPanel.alpha,
+              } : null,
+              collectionButton: scene.collectionButton?.active ? {
+                x: scene.collectionButton.x,
+                y: scene.collectionButton.y,
+                scaleX: scene.collectionButton.scaleX,
+                interactive: Boolean(scene.collectionButton.input?.enabled),
+              } : null,
+              targets: tracked.map(target => ({
+                x: target.x,
+                y: target.y,
+                scaleX: target.scaleX,
+                scaleY: target.scaleY,
+                alpha: target.alpha,
+              })),
+              carouselCount: scene.resultCarouselItems.length,
+            };
+          });
+
+          await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+          await waitGame();
+          await debugButton('Force Common');
+          await waitResult();
+          await hideDebug();
+          await trackTargets();
+          const commonBefore = await snapshot();
+          await page.screenshot({ path: 'audit-artifacts/common-result-before-collect.png', fullPage: true });
+          await page.evaluate(() => window.__mptAuditGame.scene.getScene('OpeningScene').continueFromResult());
+          await page.waitForTimeout(95);
+          const commonAccept = await snapshot();
+          await page.screenshot({ path: 'audit-artifacts/common-collect-ack.png', fullPage: true });
+          await page.waitForFunction(() => window.__mptAuditGame.scene.getScene('OpeningScene').phase === 'idle', null, { timeout: 12000 });
+
+          await showDebug();
+          await debugButton('Force Hidden Pocket');
+          await waitResult();
+          await hideDebug();
+          await trackTargets();
+          const hiddenBefore = await snapshot();
+          await page.evaluate(() => window.__mptAuditGame.scene.getScene('OpeningScene').continueFromResult());
+          await page.waitForTimeout(95);
+          const hiddenAccept = await snapshot();
+          await page.screenshot({ path: 'audit-artifacts/hidden-collect-ack.png', fullPage: true });
+          await page.evaluate(() => window.__mptAuditGame.scene.getScene('OpeningScene').handlePointerDown({ id: 999, x: 0, y: 0 }));
+          await page.waitForFunction(() => window.__mptAuditGame.scene.getScene('OpeningScene').phase === 'idle', null, { timeout: 5000 });
+
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          assert(commonBefore.targets.length === 1 && commonAccept.targets.length === 1, 'common collectible target must remain trackable through acknowledgement');
+          assert(commonAccept.phase === 'banking', 'common must enter banking');
+          assert(commonAccept.targets[0].x > commonBefore.targets[0].x, 'common target should pull toward Collection/right');
+          assert(commonAccept.targets[0].y > commonBefore.targets[0].y, 'common target should settle downward');
+          assert(commonAccept.targets[0].scaleX < commonBefore.targets[0].scaleX, 'common target should contract');
+          assert(commonAccept.targets[0].alpha < commonBefore.targets[0].alpha, 'common target should visually acknowledge collection');
+          assert(commonAccept.panel && commonBefore.panel && commonAccept.panel.alpha < commonBefore.panel.alpha, 'result CTA should dim during acceptance');
+          assert(commonAccept.collectionButton?.interactive === false, 'Collection navigation must be disabled during banking');
+          assert(hiddenBefore.carouselCount === 2 && hiddenBefore.targets.length === 2 && hiddenAccept.targets.length === 2, 'Hidden Pocket must preserve both pages during acknowledgement');
+          assert(hiddenAccept.targets.every((target, index) => target.x > hiddenBefore.targets[index].x), 'Hidden Pocket pages should pull right together');
+          assert(hiddenAccept.targets.every((target, index) => target.y > hiddenBefore.targets[index].y), 'Hidden Pocket pages should settle together');
+          assert(hiddenAccept.targets.every((target, index) => target.scaleX < hiddenBefore.targets[index].scaleX), 'Hidden Pocket pages should contract together');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify({ commonBefore, commonAccept, hiddenBefore, hiddenAccept, errors }, null, 2));
+          await browser.close();
+          EOF
+          mkdir -p audit-artifacts
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/?debug=1 >/dev/null; then break; fi
+            sleep 1
+          done
+          node tools/tmp-collect-banking-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: collect-banking-feel-audit
+          path: audit-artifacts
+          if-no-files-found: error
+
+      - name: Commit clean product tree
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json
+          rm -rf audit-artifacts
+          rm -f tools/tmp-collect-banking-audit.mjs
+          rm -f .github/workflows/tmp-collect-banking-feel-r1.yml
+          rm -f .github/workflows/tmp-collect-banking-feel-r2.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Polish collect and banking handoff"
+          git push origin HEAD:polish/collect-banking-feel-r1
