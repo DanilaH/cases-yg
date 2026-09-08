@@ -11,7 +11,7 @@ permissions:
 jobs:
   candidate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:
@@ -95,6 +95,115 @@ jobs:
           sha256sum "$archive" | tee /tmp/draft-candidate-sha256.txt
           unzip -l "$archive" | head -40
           ls -lh "$archive"
+      - name: Install production smoke browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Smoke production bundle through Yandex runtime path
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/yandex-production-smoke
+          cp -R dist /tmp/yandex-production-smoke
+          cat > /tmp/yandex-production-smoke/sdk.js <<'JS'
+          (() => {
+            const state = window.__mptYandexSmoke = {
+              initCalls: 0,
+              readyCalls: 0,
+              gameplayStarts: 0,
+              gameplayStops: 0,
+            };
+            const listeners = new Map();
+            window.YaGames = {
+              init: async () => {
+                state.initCalls += 1;
+                return {
+                  environment: { i18n: { lang: 'en' } },
+                  getStorage: async () => window.localStorage,
+                  features: {
+                    LoadingAPI: {
+                      ready: () => { state.readyCalls += 1; },
+                    },
+                    GameplayAPI: {
+                      start: () => { state.gameplayStarts += 1; },
+                      stop: () => { state.gameplayStops += 1; },
+                    },
+                  },
+                  on: (event, callback) => {
+                    const bucket = listeners.get(event) ?? new Set();
+                    bucket.add(callback);
+                    listeners.set(event, bucket);
+                    return () => bucket.delete(callback);
+                  },
+                  adv: {},
+                };
+              },
+            };
+          })();
+          JS
+          python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/yandex-production-smoke > /tmp/yandex-production-smoke-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4174/ >/dev/null; then break; fi
+            sleep 0.25
+          done
+          cat > /tmp/yandex-production-smoke.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs/promises';
+
+          const errors = [];
+          const failedRequests = [];
+          const badResponses = [];
+          const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+          page.on('pageerror', error => errors.push({ kind: 'pageerror', message: error.message, stack: error.stack ?? null }));
+          page.on('console', message => {
+            if (message.type() === 'error') errors.push({ kind: 'console-error', message: message.text() });
+          });
+          page.on('requestfailed', request => failedRequests.push({ url: request.url(), failure: request.failure()?.errorText ?? 'unknown' }));
+          page.on('response', response => {
+            if (response.status() >= 400) badResponses.push({ status: response.status(), url: response.url() });
+          });
+
+          let fatal = null;
+          let observed = null;
+          try {
+            await page.goto('http://127.0.0.1:4174/?debug=1', { waitUntil: 'domcontentloaded' });
+            await page.locator('#game canvas').waitFor({ state: 'visible', timeout: 20000 });
+            await page.waitForFunction(() => window.__mptYandexSmoke?.readyCalls === 1, null, { timeout: 20000 });
+            await page.waitForFunction(() => document.querySelector('.mpt-debug-panel')?.textContent?.includes('Platform: yandex'), null, { timeout: 10000 });
+            await page.waitForTimeout(500);
+            observed = await page.evaluate(() => ({
+              smoke: window.__mptYandexSmoke,
+              debugText: document.querySelector('.mpt-debug-panel')?.textContent ?? '',
+              canvasCount: document.querySelectorAll('#game canvas').length,
+              orientationVisible: document.querySelector('#orientation-gate')?.getAttribute('data-visible'),
+            }));
+            await page.screenshot({ path: '/tmp/yandex-draft-production-smoke.png' });
+          } catch (error) {
+            fatal = error instanceof Error ? { message: error.message, stack: error.stack } : { message: String(error) };
+          } finally {
+            await browser.close();
+          }
+
+          const report = { fatal, observed, errors, failedRequests, badResponses };
+          await fs.writeFile('/tmp/yandex-draft-production-smoke.json', JSON.stringify(report, null, 2) + '\n');
+          console.log(JSON.stringify(report, null, 2));
+          if (
+            fatal ||
+            errors.length ||
+            failedRequests.length ||
+            badResponses.length ||
+            observed?.smoke?.initCalls !== 1 ||
+            observed?.smoke?.readyCalls !== 1 ||
+            observed?.canvasCount !== 1 ||
+            !observed?.debugText?.includes('Platform: yandex')
+          ) {
+            process.exitCode = 1;
+          }
+          JS
+          node /tmp/yandex-production-smoke.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: yandex-draft-candidate-r1
@@ -102,4 +211,6 @@ jobs:
             /tmp/mystery-pocket-tech-yandex-draft-r1.zip
             /tmp/draft-candidate-manifest.json
             /tmp/draft-candidate-sha256.txt
+            /tmp/yandex-draft-production-smoke.json
+            /tmp/yandex-draft-production-smoke.png
           retention-days: 7
