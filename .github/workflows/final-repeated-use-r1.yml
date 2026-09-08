@@ -63,7 +63,12 @@ jobs:
           new2 = "  await waitGame(page);\n  await page.evaluate(() => { const panel = document.querySelector('.mpt-debug-panel'); if (panel) panel.style.display = 'none'; });\n  await shot(page, '00-fresh-idle');"
           if old2 not in s:
               raise SystemExit('debug-panel patch target not found')
-          p.write_text(s.replace(old2, new2, 1))
+          s = s.replace(old2, new2, 1)
+          old3 = "page.on('pageerror', error => errors.push({ kind: 'pageerror', message: error.message }));"
+          new3 = "page.on('pageerror', error => errors.push({ kind: 'pageerror', message: error.message, stack: error.stack }));"
+          if old3 not in s:
+              raise SystemExit('pageerror stack patch target not found')
+          p.write_text(s.replace(old3, new3, 1))
           PY
       - name: Run repeated-use normal-loop review
         run: node .github/scripts/final-repeated-use-r1.mjs
