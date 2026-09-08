@@ -246,8 +246,13 @@ export const OPENING_FEEL_PRESENTATION = {
 } as const;
 
 export const RESULT_PRESENTATION = {
-  panelY: 604,
+  // Keep the lower result card visually grounded near the bottom action line.
+  panelY: 612,
   panelHeight: 112,
+  // Three optical row anchors keep title, state and CTA evenly distributed.
+  headingY: -31,
+  statusY: 1,
+  hintY: 35,
   panelMaxWidth: 430,
   panelMinWidth: 330,
   carouselDotY: 504,
