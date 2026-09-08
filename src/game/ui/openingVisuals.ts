@@ -120,15 +120,8 @@ const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Conta
 };
 
 const findTearHint = (root: Phaser.GameObjects.Container): Phaser.GameObjects.Text | null => {
-  for (const child of root.list) {
-    if (
-      child instanceof Phaser.GameObjects.Text &&
-      Math.abs(child.y - MOTION_PRESENTATION.tearHintY) < 1
-    ) {
-      return child;
-    }
-  }
-  return null;
+  const hint = root.getData('tearHint') as Phaser.GameObjects.Text | undefined;
+  return hint?.active ? hint : null;
 };
 
 export const createPouchVisual = (
