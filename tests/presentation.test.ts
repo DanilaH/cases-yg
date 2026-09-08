@@ -101,9 +101,12 @@ describe('reveal presentation', () => {
     expect(secret.anticipationHoldMs).toBeLessThanOrEqual(200);
     expect(common.introDuration).toBeLessThan(rare.introDuration);
     expect(rare.introDuration).toBeLessThanOrEqual(epic.introDuration);
-    expect(epic.aftershockScale).toBeGreaterThan(1);
-    expect(legendary.aftershockScale).toBeGreaterThan(epic.aftershockScale);
-    expect(legendary.aftershockDurationMs).toBeGreaterThan(epic.aftershockDurationMs);
+    expect(epic.aftershockScale).toBe(1);
+    expect(epic.aftershockDurationMs).toBe(0);
+    expect(legendary.aftershockScale).toBeGreaterThan(1);
+    expect(legendary.aftershockScale).toBeLessThanOrEqual(1.02);
+    expect(legendary.aftershockDurationMs).toBeGreaterThan(0);
+    expect(legendary.aftershockDurationMs).toBeLessThanOrEqual(100);
     expect(secret.aftershockScale).toBe(1);
   });
 
