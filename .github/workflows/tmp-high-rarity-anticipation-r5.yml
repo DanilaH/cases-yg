@@ -1,0 +1,237 @@
+name: TEMP high rarity anticipation R5
+
+on:
+  push:
+    branches:
+      - polish/high-rarity-anticipation-r1
+
+permissions:
+  contents: write
+
+jobs:
+  implement-audit-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/high-rarity-anticipation-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Reuse bounded product patch
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/tmp-high-rarity-anticipation-r1.yml').read_text(encoding='utf-8')
+          marker = '      - name: Apply bounded anticipation and rarity-mass pass\n'
+          start = text.index(marker)
+          run_start = text.index('        run: |\n', start) + len('        run: |\n')
+          end = text.index('\n\n      - run: npm ci', run_start)
+          lines = text[run_start:end].splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+          Path('/tmp/apply-r1.sh').write_text(script, encoding='utf-8')
+          PY
+          bash /tmp/apply-r1.sh
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Product contract guard
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          scene = Path('src/game/scenes/OpeningScene.ts').read_text(encoding='utf-8')
+          audio = Path('src/game/systems/audio.ts').read_text(encoding='utf-8')
+          presentation = Path('src/game/data/presentation.ts').read_text(encoding='utf-8')
+          audio_presentation = Path('src/game/data/audioPresentation.ts').read_text(encoding='utf-8')
+          assert "audio.beginRevealAnticipation(pending.standard.rarity, fx.anticipationHoldMs)" in scene
+          assert "getGameAudio().beginRevealAnticipation('secret', fx.anticipationHoldMs)" in scene
+          assert 'fx.aftershockScale > 1' in scene
+          assert 'beginRevealAnticipation' in audio
+          assert 'REVEAL_ANTICIPATION_AUDIO' in audio_presentation
+          assert 'session.commitReveal()' in scene
+          section = scene.split('private async animateStandardReveal', 1)[1].split('private async animateRecoveredReveal', 1)[0]
+          assert 'commitReveal' not in section
+          assert 'prepareReveal' not in section
+          assert 'resolve' not in section.lower()
+          assert presentation.count('anticipationHoldMs:') == 6
+          PY
+          git diff --check
+
+      - name: Install browser audit dependency
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+
+      - name: Run direct normal-path reveal audit
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/main.ts')
+          text = path.read_text(encoding='utf-8')
+          audio_anchor = "  const audio = getGameAudio();\n"
+          if audio_anchor not in text: raise SystemExit('audio audit anchor missing')
+          audio_injection = """  const audio = getGameAudio();\n  if (import.meta.env.DEV) {\n    const pushAuditEvent = (event: Record<string, unknown>): void => {\n      try {\n        const current = JSON.parse(sessionStorage.getItem('__mptAnticipationAudit') ?? '[]') as unknown[];\n        current.push({ ...event, t: performance.now() });\n        sessionStorage.setItem('__mptAnticipationAudit', JSON.stringify(current));\n      } catch {\n        // Audit-only instrumentation must never affect the game.\n      }\n    };\n    const originalBeginRevealAnticipation = audio.beginRevealAnticipation.bind(audio);\n    audio.beginRevealAnticipation = (rarity, holdMs): void => {\n      pushAuditEvent({ kind: 'anticipation', rarity, holdMs });\n      originalBeginRevealAnticipation(rarity, holdMs);\n    };\n    const originalPlay = audio.play.bind(audio);\n    audio.play = (cue): void => {\n      pushAuditEvent({ kind: 'play', cue });\n      originalPlay(cue);\n    };\n  }\n"""
+          text = text.replace(audio_anchor, audio_injection, 1)
+          game_anchor = "  game.sound.mute = blocked;\n"
+          if game_anchor not in text: raise SystemExit('game audit anchor missing')
+          text = text.replace(game_anchor, game_anchor + "  if (import.meta.env.DEV) (window as typeof window & { __mptAuditGame?: Phaser.Game }).__mptAuditGame = game;\n", 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          cat > tools/tmp-anticipation-direct-audit.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          fs.mkdirSync('audit-artifacts', { recursive: true });
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+          const page = await context.newPage();
+          const errors = [];
+          page.on('pageerror', error => errors.push(`pageerror:${error.message}`));
+          page.on('console', message => { if (message.type() === 'error') errors.push(`console:${message.text()}`); });
+
+          const waitGame = async () => page.waitForFunction(() => Boolean(window.__mptAuditGame?.scene?.getScene?.('OpeningScene')), null, { timeout: 15000 });
+          const waitIdle = async () => page.waitForFunction(() => window.__mptAuditGame?.scene?.getScene?.('OpeningScene')?.phase === 'idle', null, { timeout: 15000 });
+          const waitResult = async () => page.waitForFunction(() => {
+            const scene = window.__mptAuditGame?.scene?.getScene?.('OpeningScene');
+            return Boolean(scene && scene.phase === 'result' && scene.resultReady && scene.lastReveal);
+          }, null, { timeout: 20000 });
+
+          const resetClean = async () => {
+            await page.goto('http://127.0.0.1:5173/?debug=1', { waitUntil: 'load' });
+            await waitGame();
+            await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+            await page.reload({ waitUntil: 'load' });
+            await waitGame();
+            await waitIdle();
+          };
+
+          const stage = async name => {
+            await resetClean();
+            const button = page.getByRole('button', { name, exact: true });
+            await button.waitFor({ state: 'visible' });
+            await Promise.all([page.waitForEvent('load'), button.click()]);
+            await waitGame();
+            await waitResult();
+          };
+
+          const directStandard = async (name, screenshot) => {
+            await stage(name);
+            const result = await page.evaluate(async () => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              const pending = scene.lastReveal;
+              sessionStorage.setItem('__mptAnticipationAudit', '[]');
+              scene.renderIdle();
+              scene.phase = 'revealing';
+              const startedAt = performance.now();
+              const standard = await scene.animateStandardReveal(pending);
+              return {
+                rarity: pending.standard.rarity,
+                elapsed: performance.now() - startedAt,
+                events: JSON.parse(sessionStorage.getItem('__mptAnticipationAudit') ?? '[]'),
+                finalScale: standard.scaleX,
+                finalAlpha: standard.alpha,
+              };
+            });
+            await page.screenshot({ path: `audit-artifacts/${screenshot}`, fullPage: true });
+            return result;
+          };
+
+          const directHidden = async () => {
+            await stage('Force Hidden Pocket');
+            const result = await page.evaluate(async () => {
+              const scene = window.__mptAuditGame.scene.getScene('OpeningScene');
+              const pending = scene.lastReveal;
+              sessionStorage.setItem('__mptAnticipationAudit', '[]');
+              scene.renderIdle();
+              scene.phase = 'revealing';
+              const standard = await scene.animateStandardReveal(pending);
+              sessionStorage.setItem('__mptAnticipationAudit', '[]');
+              const startedAt = performance.now();
+              await scene.animateHiddenPocket(pending, standard);
+              return {
+                elapsed: performance.now() - startedAt,
+                events: JSON.parse(sessionStorage.getItem('__mptAnticipationAudit') ?? '[]'),
+              };
+            });
+            await page.screenshot({ path: 'audit-artifacts/secret-direct-result.png', fullPage: true });
+            return result;
+          };
+
+          const common = await directStandard('Force Common', 'common-direct-result.png');
+          const epic = await directStandard('Force Epic', 'epic-direct-result.png');
+          const legendary = await directStandard('Force Legendary (Charged)', 'legendary-direct-result.png');
+          const secret = await directHidden();
+
+          const anticipation = (run, rarity) => run.events.find(event => event.kind === 'anticipation' && event.rarity === rarity);
+          const playAfter = (run, cue, t) => run.events.find(event => event.kind === 'play' && event.cue === cue && event.t >= t);
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          const commonA = anticipation(common, 'common');
+          const epicA = anticipation(epic, 'epic');
+          const legendaryA = anticipation(legendary, 'legendary');
+          const secretA = anticipation(secret, 'secret');
+          assert(commonA?.holdMs === 0, 'Common normal reveal must have zero hold');
+          assert(epicA?.holdMs === 90, 'Epic normal reveal must use 90ms hold');
+          assert(legendaryA?.holdMs === 150, 'Legendary normal reveal must use 150ms hold');
+          assert(secretA?.holdMs === 180, 'Secret reveal must use 180ms hold');
+          const epicPop = playAfter(epic, 'reveal-pop', epicA.t);
+          const legendaryPop = playAfter(legendary, 'reveal-pop', legendaryA.t);
+          const secretReveal = playAfter(secret, 'secret-reveal', secretA.t);
+          assert(epicPop && epicPop.t - epicA.t >= 70, 'Epic transient must follow real hold');
+          assert(legendaryPop && legendaryPop.t - legendaryA.t >= 125, 'Legendary transient must follow stronger hold');
+          assert(secretReveal && secretReveal.t - secretA.t >= 155, 'Secret transient must follow strongest hold');
+          assert(legendaryPop.t - legendaryA.t > epicPop.t - epicA.t, 'Legendary hold must exceed Epic at runtime');
+          assert(epic.elapsed > common.elapsed + 50, 'Epic total normal reveal should gain bounded anticipation/mass');
+          assert(legendary.elapsed > epic.elapsed + 80, 'Legendary total normal reveal should read heavier than Epic');
+          assert(common.finalAlpha === 1 && epic.finalAlpha === 1 && legendary.finalAlpha === 1, 'standard reveals must settle fully visible');
+          assert(errors.length === 0, `runtime errors: ${errors.join('; ')}`);
+
+          fs.writeFileSync('audit-artifacts/report.json', JSON.stringify({ common, epic, legendary, secret, errors }, null, 2));
+          await browser.close();
+          EOF
+          npm run dev -- --host 127.0.0.1 > /tmp/mpt-vite.log 2>&1 &
+          echo $! > /tmp/mpt-vite.pid
+          ready=0
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/?debug=1 >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/mpt-vite.log; exit 1; fi
+          node tools/tmp-anticipation-direct-audit.mjs
+          kill $(cat /tmp/mpt-vite.pid) || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: high-rarity-anticipation-audit-r5
+          path: audit-artifacts
+          if-no-files-found: error
+
+      - name: Restore audit-only changes and commit clean product tree
+        run: |
+          set -euo pipefail
+          git checkout -- src/main.ts
+          rm -f tools/tmp-anticipation-direct-audit.mjs
+          rm -rf audit-artifacts
+          rm -f .github/workflows/tmp-high-rarity-anticipation-r1.yml
+          rm -f .github/workflows/tmp-high-rarity-anticipation-r2.yml
+          rm -f .github/workflows/tmp-high-rarity-anticipation-r3.yml
+          rm -f .github/workflows/tmp-high-rarity-anticipation-r4.yml
+          rm -f .github/workflows/tmp-high-rarity-anticipation-r5.yml
+          git status --short
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Polish high rarity anticipation and settle'
+          git push origin HEAD:polish/high-rarity-anticipation-r1
