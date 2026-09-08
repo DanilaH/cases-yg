@@ -159,22 +159,16 @@ export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentat
     case 'rare':
       return {
         clearPersistent: true,
-        persistent: 'rare',
-        persistentDelayMs: 170,
         duck: { multiplier: 0.74, attackMs: 10, holdMs: 70, releaseMs: 190 },
       };
     case 'epic':
       return {
         clearPersistent: true,
-        persistent: 'epic',
-        persistentDelayMs: 210,
         duck: { multiplier: 0.66, attackMs: 10, holdMs: 95, releaseMs: 230 },
       };
     case 'legendary':
       return {
         clearPersistent: true,
-        persistent: 'legendary',
-        persistentDelayMs: 260,
         duck: { multiplier: 0.56, attackMs: 10, holdMs: 125, releaseMs: 270 },
       };
     case 'hidden-pocket':
@@ -184,8 +178,6 @@ export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentat
     case 'secret-reveal':
       return {
         clearPersistent: true,
-        persistent: 'secret',
-        persistentDelayMs: 320,
         duck: { multiplier: 0.28, attackMs: 10, holdMs: 280, releaseMs: 450 },
       };
     case 'duplicate':
