@@ -29,6 +29,7 @@ describe('audio runtime contract', () => {
     expect(secret.busGain).toBeGreaterThan(legendary.busGain);
     expect(secret.shimmerGain).toBeGreaterThan(legendary.shimmerGain);
     expect(secret.baseMixMultiplier).toBeLessThan(legendary.baseMixMultiplier);
+    expect(secret.fadeOutMs).toBeGreaterThan(legendary.fadeOutMs);
     expect(secret.busGain).toBeLessThan(0.5);
   });
 });
