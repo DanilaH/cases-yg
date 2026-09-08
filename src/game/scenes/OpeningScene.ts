@@ -1747,8 +1747,12 @@ export class OpeningScene extends Phaser.Scene {
             delay: 90,
             duration: 360,
             ease: 'Cubic.Out',
-            onUpdate: () => tag.setText(`+${Math.round(counter.value)}`),
-            onComplete: () => tag.setText(`+${pending.chips.overchargeBonus}`),
+            onUpdate: () => {
+              if (tag.active) tag.setText(`+${Math.round(counter.value)}`);
+            },
+            onComplete: () => {
+              if (tag.active) tag.setText(`+${pending.chips.overchargeBonus}`);
+            },
           });
         }
       }
