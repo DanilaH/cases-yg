@@ -43,6 +43,8 @@ export const ru = {
     milestoneFirstSecret: 'ПЕРВЫЙ СЕКРЕТ НАЙДЕН',
     milestoneSecretsComplete: 'ВСЕ СЕКРЕТЫ НАЙДЕНЫ',
     milestoneCollected: 'СОБРАНО',
+    nearCompletionStandardSet: 'ОСНОВНЫЕ',
+    nearCompletionOneLeft: 'ОСТАЛСЯ 1',
   },
   collection: {
     title: 'Коллекция',
@@ -56,6 +58,8 @@ export const ru = {
     emptyShelf: 'Открой гаджет этого типа, чтобы он появился на полке',
     secret: 'СЕКРЕТ',
     loadError: 'Не удалось загрузить коллекцию. Перезагрузите игру и попробуйте снова.',
+    nearCompletionOneLeft: 'ОСТАЛСЯ 1',
+    lastStandard: 'ПОСЛЕДНИЙ',
   },
   audio: {
     mute: 'Выключить звук',

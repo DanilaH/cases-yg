@@ -43,6 +43,8 @@ export const en = {
     milestoneFirstSecret: 'FIRST SECRET FOUND',
     milestoneSecretsComplete: 'ALL SECRETS FOUND',
     milestoneCollected: 'COLLECTED',
+    nearCompletionStandardSet: 'STANDARD SET',
+    nearCompletionOneLeft: '1 LEFT',
   },
   collection: {
     title: 'Collection',
@@ -56,6 +58,8 @@ export const en = {
     emptyShelf: 'Open this gadget family to place it on the shelf',
     secret: 'SECRET',
     loadError: 'Collection data could not be loaded. Reload to retry.',
+    nearCompletionOneLeft: '1 LEFT',
+    lastStandard: 'LAST STANDARD',
   },
   audio: {
     mute: 'Sound off',

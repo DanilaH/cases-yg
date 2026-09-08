@@ -43,6 +43,36 @@ export interface CollectionSnapshot {
   secretTotal: number;
 }
 
+export interface StandardNearCompletion {
+  current: number;
+  total: number;
+  missingCollectibleId: string;
+  familyId: string;
+  rarity: StandardRarity;
+}
+
+export const getStandardNearCompletion = (
+  registry: ContentRegistry,
+  state: Pick<SaveState, 'discoveredStandard'>,
+): StandardNearCompletion | null => {
+  const total = registry.standardItems.length;
+  if (total < 2) return null;
+
+  const owned = new Set(state.discoveredStandard);
+  const missing = registry.standardItems.filter(({ collectible }) => !owned.has(collectible.id));
+  if (missing.length !== 1) return null;
+
+  const last = missing[0];
+  if (!last) return null;
+  return {
+    current: total - 1,
+    total,
+    missingCollectibleId: last.collectible.id,
+    familyId: last.familyId,
+    rarity: last.rarity,
+  };
+};
+
 export const buildCollectionSnapshot = (
   registry: ContentRegistry,
   state: Pick<SaveState, 'discoveredStandard' | 'discoveredSecrets'>,

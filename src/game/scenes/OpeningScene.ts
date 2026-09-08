@@ -22,6 +22,7 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
+import { getStandardNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
@@ -1968,6 +1969,26 @@ export class OpeningScene extends Phaser.Scene {
         });
         tray.add([icon, text]);
         cursorY += Math.max(18, text.height + 5);
+      }
+
+      const nearCompletion = getStandardNearCompletion(SLICE_REGISTRY, pending.commit);
+      if (nearCompletion) {
+        const nearCompletionText = this.add.text(
+          textX,
+          cursorY,
+          `${messages.opening.nearCompletionStandardSet} ${nearCompletion.current}/${nearCompletion.total} · ${messages.opening.nearCompletionOneLeft}`,
+          {
+            color: '#8df8ff',
+            stroke: '#100b16',
+            strokeThickness: 2,
+            fontFamily: DIGITAL_FONT_FAMILY,
+            fontSize: '6px',
+            wordWrap: { width: width - 48, useAdvancedWrap: true },
+          },
+        );
+        nearCompletionText.setData('nearCompletion', true);
+        tray.add(nearCompletionText);
+        cursorY += Math.max(18, nearCompletionText.height + 5);
       }
 
       if (animate && pending.chips.overchargeBonus > 0) {
