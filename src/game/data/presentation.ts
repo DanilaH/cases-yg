@@ -309,6 +309,12 @@ export const OPENING_FEEL_PRESENTATION = {
   discoveryHoldMs: 80,
   discoverySettleMs: 200,
   duplicateConversionAccentMs: 260,
+  collectAcknowledgeMs: 160,
+  collectItemScale: 0.94,
+  collectItemShiftX: 12,
+  collectItemShiftY: 8,
+  collectPanelAlpha: 0.28,
+  collectDestinationPulseScale: 1.04,
   hudShimmerDurationMs: 900,
   hudShimmerRepeatDelayMs: 2100,
 } as const;

@@ -166,6 +166,16 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.discoveryFrameHeight % 8).toBe(0);
     expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeGreaterThanOrEqual(200);
     expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeLessThanOrEqual(320);
+    expect(OPENING_FEEL_PRESENTATION.collectAcknowledgeMs).toBeGreaterThanOrEqual(120);
+    expect(OPENING_FEEL_PRESENTATION.collectAcknowledgeMs).toBeLessThanOrEqual(220);
+    expect(OPENING_FEEL_PRESENTATION.collectItemScale).toBeGreaterThanOrEqual(0.9);
+    expect(OPENING_FEEL_PRESENTATION.collectItemScale).toBeLessThanOrEqual(0.97);
+    expect(OPENING_FEEL_PRESENTATION.collectItemShiftX).toBeGreaterThan(0);
+    expect(OPENING_FEEL_PRESENTATION.collectItemShiftX).toBeLessThanOrEqual(16);
+    expect(OPENING_FEEL_PRESENTATION.collectItemShiftY).toBeGreaterThan(0);
+    expect(OPENING_FEEL_PRESENTATION.collectItemShiftY).toBeLessThanOrEqual(12);
+    expect(OPENING_FEEL_PRESENTATION.collectPanelAlpha).toBeLessThanOrEqual(0.35);
+    expect(OPENING_FEEL_PRESENTATION.collectDestinationPulseScale).toBeLessThanOrEqual(1.06);
   });
 
   it('keeps ambient and idle motion subtle and bounded', () => {

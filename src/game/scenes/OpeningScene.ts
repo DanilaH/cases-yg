@@ -2496,21 +2496,76 @@ export class OpeningScene extends Phaser.Scene {
     return true;
   }
 
+  private async animateCollectionAcceptance(): Promise<Phaser.GameObjects.Container[]> {
+    if (!this.root || !this.metrics) return [];
+
+    const collectTargets = this.resultCarouselItems.length > 0
+      ? this.resultCarouselItems.filter((item) => item.active)
+      : this.resultBreathTarget?.active
+        ? [this.resultBreathTarget]
+        : [];
+
+    this.stopRewardBreathing();
+    this.resultCarouselZone?.disableInteractive();
+    this.collectionButton?.disableInteractive();
+
+    const motions: Promise<void>[] = [];
+    for (const target of collectTargets) {
+      const currentScaleX = target.scaleX;
+      const currentScaleY = target.scaleY;
+      motions.push(
+        this.runSkippableTween({
+          targets: target,
+          x: target.x + OPENING_FEEL_PRESENTATION.collectItemShiftX,
+          y: target.y + OPENING_FEEL_PRESENTATION.collectItemShiftY,
+          scaleX: currentScaleX * OPENING_FEEL_PRESENTATION.collectItemScale,
+          scaleY: currentScaleY * OPENING_FEEL_PRESENTATION.collectItemScale,
+          alpha: Math.max(0.18, target.alpha * 0.8),
+          duration: OPENING_FEEL_PRESENTATION.collectAcknowledgeMs,
+          ease: 'Cubic.Out',
+        }),
+      );
+    }
+
+    if (this.resultActionPanel?.active) {
+      motions.push(
+        this.runSkippableTween({
+          targets: this.resultActionPanel,
+          y: this.resultActionPanel.y + 3,
+          alpha: OPENING_FEEL_PRESENTATION.collectPanelAlpha,
+          duration: OPENING_FEEL_PRESENTATION.collectAcknowledgeMs,
+          ease: 'Sine.Out',
+        }),
+      );
+    }
+
+    if (this.collectionButton?.active) {
+      const button = this.collectionButton;
+      this.tweens.killTweensOf(button);
+      button.setScale(1);
+      motions.push(
+        this.runSkippableTween({
+          targets: button,
+          scale: OPENING_FEEL_PRESENTATION.collectDestinationPulseScale,
+          duration: OPENING_FEEL_PRESENTATION.collectAcknowledgeMs / 2,
+          yoyo: true,
+          ease: 'Sine.Out',
+        }),
+      );
+    }
+
+    await Promise.all(motions);
+    return collectTargets;
+  }
+
   private async animateRewardBanking(pending: PendingReveal): Promise<void> {
     if (!this.saveState || !this.root || this.isSceneShutdown()) return;
     this.phase = 'banking';
     this.resultReady = false;
     this.stopResultPanelPulse();
-    if (this.resultActionPanel?.active) {
-      this.tweens.add({
-        targets: this.resultActionPanel,
-        alpha: 0.42,
-        duration: 150,
-        ease: 'Sine.Out',
-      });
-    }
 
-    if (this.finishDeferredBankingResize()) return;
+    const collectTargets = await this.animateCollectionAcceptance();
+    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
     let nextValue = pending.chips.before - pending.chips.cost;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
@@ -2549,8 +2604,8 @@ export class OpeningScene extends Phaser.Scene {
     }
     if (this.resultCarouselItems.length > 0) {
       fadeTargets.push(...this.resultCarouselItems.filter((item) => item.active));
-    } else if (this.resultBreathTarget?.active) {
-      fadeTargets.push(this.resultBreathTarget);
+    } else if (collectTargets.length > 0) {
+      fadeTargets.push(...collectTargets.filter((item) => item.active));
     }
     if (fadeTargets.length > 0) {
       this.tweens.add({
