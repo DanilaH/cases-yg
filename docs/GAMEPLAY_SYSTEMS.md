@@ -34,13 +34,15 @@ star grab response + `pouch-grab` material cue
 → drag tension
 → tear snap/recoil
 → short anticipation
-→ collectible arrival + rarity bloom
+→ if this opening consumes an armed Signal Lock: pink/cyan projectile leaves Signal HUD, trails into the still-closed pouch, and HUD resolves to the post-consume state
+→ collectible arrival + rarity bloom only after the lock-consume impact completes
 → earned CHIPS/cache/recycle staged once beside result
 → optional Hidden Pocket
 → resolved readable result enters on a later beat while reward tray remains continuous
-→ duplicate Signal gain, when present, transfers from reward tray to Signal HUD during the result read
+→ ordinary duplicate Signal +1, when present, transfers from reward tray to Signal HUD during the result/reward phase
+→ retained/consumed Overcharge presentation resolves in the same pre-collect result phase
 → player accepts
-→ base/cache/recycle bank to CHIPS HUD in order
+→ base/cache/recycle bank to CHIPS HUD in order; Signal/Overcharge are not replayed during collect
 → next action
 ```
 
@@ -176,9 +178,10 @@ Current presentation:
 2. `DUPLICATE` remains readable;
 3. a short scan/glint/conversion beat may reinforce recycle;
 4. rarity-aware `RECYCLED +N · RARITY` stages near the item;
-5. recycle CHIPS later bank to wallet;
-6. one Signal fragment/spark travels to Signal HUD;
-7. destination segment pulses/fills.
+5. ordinary `SIGNAL +1`, when earned, transfers from reward staging to the Signal HUD before result acceptance;
+6. the destination segment pulses/fills and the HUD shows the predetermined post-opening Signal state;
+7. recycle CHIPS later bank to wallet after acceptance;
+8. collect-time banking must not replay a second Signal/Overcharge transition.
 
 The goal is to make a duplicate visibly become progress rather than add extra ceremony.
 
@@ -225,6 +228,18 @@ SIGNAL
 
 At lock, use a brief electronic pulse/flicker/glitch. No long blocking animation.
 
+Consumed-lock choreography is now locked presentation behavior:
+
+```text
+closed pouch + armed 4/4
+→ Signal projectile leaves HUD with visible pink/cyan trail
+→ projectile impacts the still-unrevealed pouch
+→ HUD already shows the predetermined post-consume state
+→ only then may the standard collectible reveal begin
+```
+
+Ordinary duplicate `SIGNAL +1` remains a post-reveal reward/result transfer and completes before collect. Fast-forward may shorten the visual beats but must preserve this semantic order.
+
 ## 5.1 Signal Overcharge — CURRENT PHASE 2.6 RUNTIME
 
 Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. Current validation tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`.
@@ -257,11 +272,11 @@ Presentation must make inactive/active/MAX states, bonus CHIPS, post-reward gain
 - disabled openings #1–3;
 - Basic from #4: `1.5%`;
 - Charged from #4: `6%`;
-- only while an undiscovered Secret exists in active pool;
-- current slice does not roll Secret duplicates;
+- while Secrets are missing, Hidden Pocket selects a missing Secret first;
+- after `2/2`, Hidden Pocket remains alive and may resolve to a Secret duplicate jackpot;
 - at most one Secret per opening.
 
-Current Secret value is collection discovery, not recycle income. Phase 2.6 now communicates that reward meaning explicitly and strengthens the reveal with the bounded aura/cloud + particle/burst/shake treatment.
+Current Secret value is a separate fixed `+40 CHIPS` jackpot plus collection discovery when new. Secret duplicates also award `+40 CHIPS` without adding another collection ID. The Secret bonus is not multiplied by Overcharge.
 
 Hidden Pocket remains the strongest surprise beat. New neon/rarity treatment must not flatten it.
 
@@ -435,15 +450,15 @@ Do not add a permanent full collection sidebar or permanent odds table to main O
 
 # 15. Acceptance state
 
-Existing Lite V2 automated/local gates are complete. First hands-on is complete with findings.
+Existing Lite V2 automated/local gates, direct repeated-use regressions, Secret correction, and the final result-choreography correction are complete.
 
-Correction implementation + exact-revision screenshot/video + manual review are complete.
+PR #65 merged the bounded presentation-only correction after targeted Chromium evidence and manual review: Hidden Pocket carousel chrome, dense reward bounds, pre-reveal Signal-lock consumption, ordinary Signal timing, and Charged aura teardown are accepted locally.
 
 Current gate:
 
-> **Phase 2.6 implementation + exact audit are complete; one final direct repeated-use regression remains before real Yandex DRAFT**.
+> **Real hosted Yandex DRAFT validation is the next external gate.**
 
-Only after acceptance: real Yandex DRAFT.
+Do not infer hosted SDK/storage/ad/device safety from CI or local browser evidence.
 
 ---
 

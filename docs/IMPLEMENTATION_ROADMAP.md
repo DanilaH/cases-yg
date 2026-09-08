@@ -13,11 +13,12 @@ The two-family build is a private development base, not the public release.
 7. **Final direct repeated-use regression — COMPLETE / ACCEPTED AFTER BOUNDED LIFECYCLE FIX**
 8. **Secret reward/reward-tray correction — IMPLEMENTED / EXACT-BROWSER-AUDITED / MERGED**
 9. **Final merged-main repeated-use regression after Secret correction — COMPLETE / ACCEPTED (82/82)**
-10. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
-11. **Content/release expansion — BLOCKED until draft passes**
-12. **Public release hardening**
+10. **Result/reveal choreography correction after local visual review — COMPLETE / TARGETED-BROWSER-AUDITED / MERGED (#63–#65)**
+11. **Real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE**
+12. **Content/release expansion — BLOCKED until draft passes**
+13. **Public release hardening**
 
-The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression was required and has now passed 82/82 on the exact merged runtime with manual artifact review. Hosted Yandex DRAFT is now the current gate.
+The latest direct play exposed concrete UI/input/clarity issues plus one legitimate dead-Signal edge after collection completion. The approved response stayed bounded: those findings and Signal Overcharge were implemented, exact-audited and accepted. The earlier final repeated-use regression then found one stale Overcharge reward-tag tween lifecycle crash; PR #50 fixed only that callback-after-teardown defect, and the exact fixed tree passed targeted stress plus a fresh 24-opening normal loop. A later bounded Secret/reward correction was then implemented and merged through PRs #55–#57, including Save V4 and exact 34/34 browser acceptance. Because that correction changed runtime after the earlier repeated-use approval, a fresh merged-main repeated-use regression was required and passed 82/82 on the exact merged runtime with manual artifact review. Subsequent local visual review produced only bounded presentation findings: PR #63 tightened result layout and ordinary Signal timing, PR #64 aligned the reward/result grid, and PR #65 completed Hidden Pocket carousel chrome, dense reward wrapping, real pre-reveal Signal-lock consumption and Charged aura teardown. Those changes were targeted-browser-audited and merged without changing economy/save/drop/platform semantics. Hosted Yandex DRAFT is now the current gate.
 
 Do not tune legacy economy numbers by intuition. Current Overcharge gain/cap and the fixed `+40 CHIPS` Secret jackpot are locked for this validation build and may be reopened only from evidence. Do not expand content or add unrelated meta systems before hosted DRAFT.
 
@@ -325,6 +326,22 @@ The required fresh merged-main repeated-use regression is complete and accepted:
 
 ---
 
+# Phase 2.8 — result/reveal choreography correction — COMPLETE / MERGED
+
+A later local visual pass found presentation-order/layout defects rather than new gameplay needs. The bounded response merged through PRs #63–#65:
+
+- reward tray moved/aligned into the upper reading lane without colliding with Hidden Pocket copy;
+- `HIDDEN POCKET!` moved directly above the lower result panel;
+- standard↔Secret carousel selection now switches heading visibility, rarity chrome, panel border, reward content and Secret ambience coherently;
+- long `CHIPS / CACHE / RECYCLED / OVERCHARGE` combinations wrap into bounded multi-line reward rows with dynamic tray height;
+- ordinary `SIGNAL +1` resolves during reward/result staging before collect and is not replayed later;
+- an actually consumed armed Signal Lock now leaves the HUD with a visible pink/cyan trail, impacts the still-closed pouch, resolves post-consume HUD state, and only then permits collectible reveal;
+- Charged pouch aura fades/moves/scales out with the pouch and recursively kills nested aura tweens on teardown/recovery.
+
+PR #65 changed presentation only: no economy, Save V4, drop, transaction or Yandex platform semantics changed. Targeted Chromium audit reported zero page/console/request errors and the intended visual states were manually reviewed before the clean merge. The next gate remains hosted Yandex DRAFT.
+
+---
+
 # Deferred information pass — NOT PART OF 2.1
 
 Hands-on also raised a valid information need:
@@ -353,7 +370,7 @@ Player-facing Drop selection remains deferred until Drop #2 exists.
 
 # Phase 3 — real Yandex DRAFT validation — CURRENT NEXT EXTERNAL GATE
 
-The merged Phase 2.6 + Secret correction runtime has passed the fresh final repeated-use regression. Run `docs/YANDEX_SLICE_VALIDATION.md` on the rebuilt exact candidate.
+The merged Phase 2.6 + Secret correction + Phase 2.8 result-choreography runtime has passed its local/direct gates. Run `docs/YANDEX_SLICE_VALIDATION.md` on the next explicitly rebuilt exact candidate.
 
 Must cover:
 
