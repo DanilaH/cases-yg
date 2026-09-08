@@ -147,6 +147,19 @@ export const POUCH_PRESENTATION = {
   tearLineY: -82,
 } as const;
 
+export const COLLECTION_MILESTONE_PRESENTATION = {
+  width: 320,
+  minWidth: 270,
+  height: 58,
+  safeSidePadding: 42,
+  centerTopOffset: 78,
+  introOffsetY: -8,
+  introMs: 180,
+  holdMs: 880,
+  exitOffsetY: -6,
+  exitMs: 210,
+} as const;
+
 export interface RevealFxPreset {
   backdropAlpha: number;
   flashAlpha: number;

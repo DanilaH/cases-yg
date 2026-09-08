@@ -7,6 +7,7 @@ import { LITE_V2_BALANCE, type ChipsCacheTierId, type PouchType } from '../data/
 import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
 import {
   AMBIENT_PRESENTATION,
+  COLLECTION_MILESTONE_PRESENTATION,
   getCarouselSpacing,
   getCarouselVisualState,
   getRewardTrayHeight,
@@ -32,6 +33,11 @@ import {
   isSignalWaitingForCharged,
 } from '../systems/openingEconomy';
 import { OpeningSession } from '../systems/openingSession';
+import {
+  resolveCollectionMilestone,
+  type CollectionMilestone,
+  type CollectionMilestoneKind,
+} from '../systems/collectionMilestones';
 import { formatOverchargeMultiplier } from '../systems/overcharge';
 import { MathRandomSource } from '../systems/random';
 import { PresentationSkipController } from '../systems/presentationSkip';
@@ -124,6 +130,7 @@ export class OpeningScene extends Phaser.Scene {
   private chargedReadyPulsePending = false;
   private chargedAura: Phaser.GameObjects.Container | null = null;
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
+  private collectionMilestoneTarget: Phaser.GameObjects.Container | null = null;
   private tearHint: Phaser.GameObjects.Text | null = null;
   private readonly presentationSkip = new PresentationSkipController();
 
@@ -198,6 +205,7 @@ export class OpeningScene extends Phaser.Scene {
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
     this.presentationSkip.reset();
+    this.clearCollectionMilestoneMotion();
     getGameAudio().stopDragTexture(true);
     getGameAudio().clearResultAmbience();
     this.tweens.killAll();
@@ -237,6 +245,7 @@ export class OpeningScene extends Phaser.Scene {
     this.clearAmbientMotion();
     this.clearSecretPremiumMotion();
     this.clearStandardPresenceMotion();
+    this.clearCollectionMilestoneMotion();
     this.clearHudMotion();
     if (this.chargedAura) this.killContainerTreeTweens(this.chargedAura);
     this.root?.destroy(true);
@@ -259,6 +268,7 @@ export class OpeningScene extends Phaser.Scene {
     this.signalHudSegments = [];
     this.chargedAura = null;
     this.rewardTrayContainer = null;
+    this.collectionMilestoneTarget = null;
     this.tearHint = null;
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
     this.metrics = metrics;
@@ -1684,6 +1694,7 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
+    const collectionMilestone = resolveCollectionMilestone(SLICE_REGISTRY, pending, committed);
     this.saveState = committed;
     this.trackRevealCompletion(pending, committed);
     this.phase = 'result';
@@ -1691,6 +1702,7 @@ export class OpeningScene extends Phaser.Scene {
 
     this.deferredResize = false;
     this.renderResolvedResult(pending);
+    if (collectionMilestone) this.showCollectionMilestone(collectionMilestone);
     await this.waitPresentation(RESULT_HOLD_MS);
     if (this.phase !== 'result') return;
     this.resultReady = true;
@@ -3419,9 +3431,132 @@ export class OpeningScene extends Phaser.Scene {
       );
       if (!wasCompleteBefore) {
         analytics.track('standard_collection_complete', { openingNumber: pending.openingNumber });
-        getGameAudio().play('collection-complete');
       }
     }
+  }
+
+  private clearCollectionMilestoneMotion(): void {
+    const target = this.collectionMilestoneTarget;
+    if (!target) return;
+    this.tweens.killTweensOf(target);
+    if (target.active) target.destroy(true);
+    this.collectionMilestoneTarget = null;
+  }
+
+  private getCollectionMilestoneCopy(kind: CollectionMilestoneKind): {
+    title: string;
+    accent: number;
+  } {
+    const messages = getMessages(getPlatformRuntime().language).opening;
+    if (kind === 'standards-half') {
+      return { title: messages.milestoneStandardsHalf, accent: 0x8df8ff };
+    }
+    if (kind === 'standards-complete') {
+      return { title: messages.milestoneStandardsComplete, accent: 0xffd36a };
+    }
+    if (kind === 'first-secret') {
+      return { title: messages.milestoneFirstSecret, accent: 0xff7088 };
+    }
+    return { title: messages.milestoneSecretsComplete, accent: 0xff4d6d };
+  }
+
+  private showCollectionMilestone(milestone: CollectionMilestone): void {
+    if (!this.root || !this.metrics || this.isSceneShutdown()) return;
+    this.clearCollectionMilestoneMotion();
+
+    const messages = getMessages(getPlatformRuntime().language).opening;
+    const copy = this.getCollectionMilestoneCopy(milestone.kind);
+    const width = Math.max(
+      COLLECTION_MILESTONE_PRESENTATION.minWidth,
+      Math.min(
+        COLLECTION_MILESTONE_PRESENTATION.width,
+        this.metrics.logicalWidth - COLLECTION_MILESTONE_PRESENTATION.safeSidePadding * 2,
+      ),
+    );
+    const targetY = this.metrics.safeTop + COLLECTION_MILESTONE_PRESENTATION.centerTopOffset;
+    const toast = this.add
+      .container(
+        this.metrics.centerX,
+        targetY + COLLECTION_MILESTONE_PRESENTATION.introOffsetY,
+      )
+      .setAlpha(0)
+      .setScale(0.965);
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.93);
+    background.fillRoundedRect(
+      -width / 2,
+      -COLLECTION_MILESTONE_PRESENTATION.height / 2,
+      width,
+      COLLECTION_MILESTONE_PRESENTATION.height,
+      16,
+    );
+    background.lineStyle(2, copy.accent, 0.66);
+    background.strokeRoundedRect(
+      -width / 2,
+      -COLLECTION_MILESTONE_PRESENTATION.height / 2,
+      width,
+      COLLECTION_MILESTONE_PRESENTATION.height,
+      16,
+    );
+    const diamond = this.add
+      .rectangle(-width / 2 + 18, 0, 7, 7, copy.accent, 0.96)
+      .setRotation(Math.PI / 4)
+      .setStrokeStyle(1, 0xffffff, 0.34);
+    const title = this.add
+      .text(0, -9, copy.title, {
+        color: '#fff8ff',
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '8px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    const progress = this.add
+      .text(0, 12, `${milestone.current}/${milestone.total} ${messages.milestoneCollected}`, {
+        color: `#${copy.accent.toString(16).padStart(6, '0')}`,
+        stroke: '#100b16',
+        strokeThickness: 1,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '7px',
+      })
+      .setOrigin(0.5);
+    toast.add([background, diamond, title, progress]);
+    toast.setData('milestoneKind', milestone.kind);
+    toast.setData('panelWidth', width);
+    toast.setData('title', title);
+    toast.setData('progress', progress);
+    this.root.add(toast);
+    this.collectionMilestoneTarget = toast;
+
+    if (milestone.kind === 'standards-complete' || milestone.kind === 'secrets-complete') {
+      getGameAudio().play('collection-complete');
+    }
+
+    this.tweens.add({
+      targets: toast,
+      y: targetY,
+      alpha: 1,
+      scale: 1,
+      duration: COLLECTION_MILESTONE_PRESENTATION.introMs,
+      ease: 'Back.Out',
+      onComplete: () => {
+        if (!toast.active) return;
+        this.tweens.add({
+          targets: toast,
+          y: targetY + COLLECTION_MILESTONE_PRESENTATION.exitOffsetY,
+          alpha: 0,
+          scale: 1.015,
+          delay: COLLECTION_MILESTONE_PRESENTATION.holdMs,
+          duration: COLLECTION_MILESTONE_PRESENTATION.exitMs,
+          ease: 'Sine.In',
+          onComplete: () => {
+            if (toast.active) toast.destroy(true);
+            if (this.collectionMilestoneTarget === toast) this.collectionMilestoneTarget = null;
+          },
+        });
+      },
+    });
   }
 
   private getResultPanelCopy(pending: PendingReveal): {

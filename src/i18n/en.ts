@@ -38,6 +38,11 @@ export const en = {
     hiddenPocket: 'HIDDEN POCKET!',
     secretDiscovered: 'SECRET DISCOVERED',
     secretDuplicate: 'SECRET DUPLICATE',
+    milestoneStandardsHalf: 'STANDARD SET · HALFWAY',
+    milestoneStandardsComplete: 'STANDARD SET COMPLETE',
+    milestoneFirstSecret: 'FIRST SECRET FOUND',
+    milestoneSecretsComplete: 'ALL SECRETS FOUND',
+    milestoneCollected: 'COLLECTED',
   },
   collection: {
     title: 'Collection',
