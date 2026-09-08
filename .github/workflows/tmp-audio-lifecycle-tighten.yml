@@ -1,0 +1,137 @@
+name: TEMP audio lifecycle tighten
+
+on:
+  push:
+    branches:
+      - polish/audio-presence-r1-review
+
+permissions:
+  contents: write
+
+jobs:
+  tighten:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/audio-presence-r1-review
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply lifecycle cleanup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/systems/audio.ts')
+          text = path.read_text(encoding='utf-8')
+
+          old = """  public clearResultAmbience(): void {
+    this.desiredResultAmbience = null;
+    this.cancelQueuedResultAmbience();
+    if (this.context) this.stopPersistentRarity(this.context, 190, true);
+  }
+"""
+          new = """  public clearResultAmbience(): void {
+    this.desiredResultAmbience = null;
+    this.cancelQueuedResultAmbience();
+    if (this.context) {
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 190;
+      this.stopPersistentRarity(this.context, fadeOutMs, true);
+    }
+  }
+"""
+          if old not in text: raise SystemExit('clearResultAmbience anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = """    if (directive.clearPersistent) {
+      this.desiredResultAmbience = null;
+      this.cancelQueuedResultAmbience();
+      this.stopPersistentRarity(context, 140, true);
+    }
+"""
+          new = """    if (directive.clearPersistent) {
+      this.desiredResultAmbience = null;
+      this.cancelQueuedResultAmbience();
+      const fadeOutMs = this.activeResultAmbience
+        ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+        : 140;
+      this.stopPersistentRarity(context, fadeOutMs, true);
+    }
+"""
+          if old not in text: raise SystemExit('presentation clear anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = """    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    this.stopPersistentRarity(context, 120, false);
+"""
+          new = """    this.desiredResultAmbience = rarity;
+    this.cancelQueuedResultAmbience();
+    const fadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 120;
+    this.stopPersistentRarity(context, fadeOutMs, false);
+"""
+          if old not in text: raise SystemExit('queue switch anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = """    this.stopPersistentRarity(context, 140, false);
+    this.activeResultAmbience = rarity;
+"""
+          new = """    const previousFadeOutMs = this.activeResultAmbience
+      ? getRarityAmbienceProfile(this.activeResultAmbience).fadeOutMs
+      : 140;
+    this.stopPersistentRarity(context, previousFadeOutMs, false);
+    this.activeResultAmbience = rarity;
+"""
+          if old not in text: raise SystemExit('start switch anchor missing')
+          text = text.replace(old, new, 1)
+
+          old = """      for (const source of sources) {
+        try {
+          source.stop(now + Math.max(0.05, fadeMs / 1000 + 0.03));
+        } catch {
+          // Already-stopped sources are harmless during teardown/re-entry.
+        }
+      }
+    }
+"""
+          new = """      for (const source of sources) {
+        try {
+          source.stop(now + Math.max(0.05, fadeMs / 1000 + 0.03));
+        } catch {
+          // Already-stopped sources are harmless during teardown/re-entry.
+        }
+      }
+      window.setTimeout(() => {
+        try {
+          bus.disconnect();
+        } catch {
+          // The old local bus may already be disconnected during rapid re-entry.
+        }
+      }, fadeMs + 80);
+    }
+"""
+          if old not in text: raise SystemExit('bus cleanup anchor missing')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit clean product tree
+        run: |
+          rm .github/workflows/tmp-audio-lifecycle-tighten.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Tighten persistent audio cleanup"
+          git push origin HEAD:polish/audio-presence-r1-review
