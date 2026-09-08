@@ -85,6 +85,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addButton('Consume SIGNAL LOCK', () => stageAndReload('signal-lock-consumed'));
   addButton('SIGNAL LOCK waiting for Charged', () => stageAndReload('signal-lock-waiting'));
   addButton('Force Hidden Pocket', () => stageAndReload('hidden-pocket'));
+  addButton('Force Hidden Pocket Duplicate', () => stageAndReload('hidden-pocket-duplicate'));
 
   addLabel('Collection/save');
   addButton('Seed standards 8/8', () => mutateAndReload(() => seedDebugCollection(repository, 'standard')));

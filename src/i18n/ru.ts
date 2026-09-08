@@ -37,6 +37,7 @@ export const ru = {
     megaCache: 'МЕГА-ТАЙНИК',
     hiddenPocket: 'СКРЫТЫЙ КАРМАН!',
     secretDiscovered: 'СЕКРЕТ НАЙДЕН',
+    secretDuplicate: 'ДУБЛИКАТ СЕКРЕТА',
   },
   collection: {
     title: 'Коллекция',

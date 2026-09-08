@@ -37,6 +37,7 @@ export const en = {
     megaCache: 'MEGA CACHE',
     hiddenPocket: 'HIDDEN POCKET!',
     secretDiscovered: 'SECRET DISCOVERED',
+    secretDuplicate: 'SECRET DUPLICATE',
   },
   collection: {
     title: 'Collection',
