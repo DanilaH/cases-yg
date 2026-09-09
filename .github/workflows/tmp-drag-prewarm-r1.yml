@@ -1,0 +1,169 @@
+name: Temporary drag prewarm patch
+
+on:
+  push:
+    branches:
+      - fix/drag-prewarm-r1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/drag-prewarm-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Patch drag source lifecycle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          audio_path = Path('src/game/systems/audio.ts')
+          audio = audio_path.read_text()
+
+          marker = "  public setDragTexture(progress: number, velocity: number): void {\n"
+          prime = """  public primeDragTexture(): void {
+            if (this.muted || this.blocked || typeof AudioContext === 'undefined') return;
+
+            const context = this.getContext();
+            if (!context) return;
+            const prime = (): void => {
+              if (this.muted || this.blocked || context.state !== 'running') return;
+              this.ensureDragTextureGraph(context);
+            };
+            if (context.state === 'running') {
+              prime();
+              return;
+            }
+            if (context.state === 'suspended') {
+              void context.resume().then(prime).catch(() => undefined);
+            }
+          }
+
+"""
+          if marker not in audio:
+              raise SystemExit('setDragTexture marker missing')
+          audio = audio.replace(marker, prime + marker, 1)
+
+          old = """  private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
+            const now = context.currentTime;
+            const isStarting = !this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain;
+            if (isStarting || this.dragTextureEnvelopeStartedAt === null) this.dragTextureEnvelopeStartedAt = now;
+            const startupProgress = Math.min(
+              1,
+              Math.max(0, ((now - this.dragTextureEnvelopeStartedAt) * 1000) / DRAG_TEXTURE_PROFILE.startAttackMs),
+            );
+            const mix = getDragTextureMix(progress, velocity, startupProgress);
+            if (isStarting) {
+              const source = context.createBufferSource();
+              source.buffer = this.getAmbienceNoiseBuffer(context);
+              source.loop = true;
+              const filter = context.createBiquadFilter();
+              filter.type = 'bandpass';
+              filter.frequency.setValueAtTime(mix.bandHz, now);
+              filter.Q.setValueAtTime(mix.q, now);
+              const gain = context.createGain();
+              gain.gain.setValueAtTime(0.0001, now);
+              source.connect(filter);
+              filter.connect(gain);
+              gain.connect(context.destination);
+              source.start(now, (now * 0.37) % 3.5);
+              this.dragTextureSource = source;
+              this.dragTextureFilter = filter;
+              this.dragTextureGain = gain;
+            }
+
+            const filter = this.dragTextureFilter;
+"""
+          new = """  private ensureDragTextureGraph(context: AudioContext): void {
+            if (this.dragTextureSource && this.dragTextureFilter && this.dragTextureGain) return;
+            if (this.dragTextureSource || this.dragTextureFilter || this.dragTextureGain) this.stopDragTexture(true);
+
+            const now = context.currentTime;
+            const idleMix = getDragTextureMix(0, 0, 0);
+            const source = context.createBufferSource();
+            source.buffer = this.getAmbienceNoiseBuffer(context);
+            source.loop = true;
+            const filter = context.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(idleMix.bandHz, now);
+            filter.Q.setValueAtTime(idleMix.q, now);
+            const gain = context.createGain();
+            gain.gain.setValueAtTime(0.0001, now);
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(context.destination);
+            source.start(now, (now * 0.37) % 3.5);
+            this.dragTextureSource = source;
+            this.dragTextureFilter = filter;
+            this.dragTextureGain = gain;
+          }
+
+          private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
+            this.ensureDragTextureGraph(context);
+            const now = context.currentTime;
+            if (this.dragTextureEnvelopeStartedAt === null) this.dragTextureEnvelopeStartedAt = now;
+            const startupProgress = Math.min(
+              1,
+              Math.max(0, ((now - this.dragTextureEnvelopeStartedAt) * 1000) / DRAG_TEXTURE_PROFILE.startAttackMs),
+            );
+            const mix = getDragTextureMix(progress, velocity, startupProgress);
+
+            const filter = this.dragTextureFilter;
+"""
+          if old not in audio:
+              raise SystemExit('updateDragTexture block missing')
+          audio = audio.replace(old, new, 1)
+          audio_path.write_text(audio)
+
+          scene_path = Path('src/game/scenes/OpeningScene.ts')
+          scene = scene_path.read_text()
+          idle_old = """    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+            this.applyChargedPouchTreatment();
+"""
+          idle_new = """    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+            getGameAudio().primeDragTexture();
+            this.applyChargedPouchTreatment();
+"""
+          if idle_old not in scene:
+              raise SystemExit('idle pouch marker missing')
+          scene = scene.replace(idle_old, idle_new, 1)
+          grab_old = """    this.stopStarPulse();
+            getGameAudio().play('pouch-grab');
+"""
+          grab_new = """    this.stopStarPulse();
+            getGameAudio().primeDragTexture();
+            getGameAudio().play('pouch-grab');
+"""
+          if grab_old not in scene:
+              raise SystemExit('beginDrag marker missing')
+          scene = scene.replace(grab_old, grab_new, 1)
+          scene_path.write_text(scene)
+          PY
+      - name: Verify scope
+        run: |
+          git diff -- src/game/systems/audio.ts src/game/scenes/OpeningScene.ts
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = "src/game/scenes/OpeningScene.ts src/game/systems/audio.ts "
+      - name: Verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+      - name: Commit product patch and remove harness
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/tmp-drag-prewarm-r1.yml
+          git add src/game/systems/audio.ts src/game/scenes/OpeningScene.ts .github/workflows/tmp-drag-prewarm-r1.yml
+          git commit -m "Prewarm drag texture before first movement"
+          git push origin HEAD:fix/drag-prewarm-r1
