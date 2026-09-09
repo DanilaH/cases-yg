@@ -55,6 +55,7 @@ describe('audio presentation', () => {
     expect(ONE_SHOT_PITCH_VARIATION.tonalAmount).toBeLessThanOrEqual(0.02);
     expect(getOneShotPitchVariation('ui-click')).toBeGreaterThan(getOneShotPitchVariation('legendary'));
     expect(getOneShotPitchVariation('chip-clack')).toBe(0);
+    expect(getOneShotPitchVariation('pouch-grab')).toBe(0);
 
     const start = getChipPitchMultiplier(0, 0.5);
     const middle = getChipPitchMultiplier(0.5, 0.5);
@@ -91,7 +92,7 @@ describe('audio presentation', () => {
     const fastMid = getDragTextureMix(0.5, 0.9);
     const end = getDragTextureMix(1, 1);
 
-    expect(DRAG_TEXTURE_PROFILE.maxGain).toBeLessThanOrEqual(0.01);
+    expect(DRAG_TEXTURE_PROFILE.maxGain).toBe(0.01);
     expect(DRAG_TEXTURE_PROFILE.idleReleaseMs).toBeLessThanOrEqual(110);
     expect(DRAG_TEXTURE_PROFILE.releaseMs).toBeLessThanOrEqual(70);
     expect(DRAG_TEXTURE_PROFILE.progressWeight + DRAG_TEXTURE_PROFILE.velocityWeight).toBeCloseTo(1);
