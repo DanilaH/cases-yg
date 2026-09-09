@@ -1,0 +1,70 @@
+name: TEMP hands-on visual browser audit
+
+on:
+  push:
+    branches:
+      - polish/hands-on-feel-corrections-r1
+    paths:
+      - .github/workflows/tmp-audit-hands-on-visual.yml
+
+permissions:
+  contents: write
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/hands-on-feel-corrections-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Expose game to temporary audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/main.ts')
+          t=p.read_text()
+          anchor='  game.sound.mute = blocked;\n'
+          injection='''  if (import.meta.env.DEV) {\n    (window as typeof window & { __auditGame?: Phaser.Game | null }).__auditGame = game;\n  }\n'''
+          if anchor not in t: raise SystemExit('audit anchor missing')
+          p.write_text(t.replace(anchor, anchor + injection, 1))
+          PY
+      - name: Run browser audit
+        run: |
+          npm run dev -- --host 127.0.0.1 >/tmp/vite-hands-on-visual.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          for i in $(seq 1 50); do curl -fsS http://127.0.0.1:5173/ >/dev/null && break || sleep 1; done
+          node tools/tmp-audit-hands-on-visual.mjs
+      - name: Print report
+        if: always()
+        run: |
+          test -f audit-hands-on-visual/report.json && cat audit-hands-on-visual/report.json || true
+          tail -80 /tmp/vite-hands-on-visual.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hands-on-visual-audit
+          path: audit-hands-on-visual
+          retention-days: 14
+      - name: Remove temporary audit tooling
+        if: always()
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json || true
+          rm -rf audit-hands-on-visual
+          rm -f tools/tmp-audit-hands-on-visual.mjs .github/workflows/tmp-audit-hands-on-visual.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove temporary hands-on visual browser audit'
+            git push origin HEAD:polish/hands-on-feel-corrections-r1
+          fi
