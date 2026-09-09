@@ -255,7 +255,7 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
   },
   rare: {
     enabled: true,
-    busGain: 0.234,
+    busGain: 0.384,
     toneGain: 0.0105,
     shimmerGain: 0.0018,
     toneFrequencies: [392, 587.33],
@@ -280,7 +280,7 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
   },
   epic: {
     enabled: true,
-    busGain: 0.27,
+    busGain: 0.42,
     toneGain: 0.012,
     shimmerGain: 0.0025,
     toneFrequencies: [349.23, 523.25, 783.99],
@@ -305,7 +305,7 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
   },
   legendary: {
     enabled: true,
-    busGain: 0.324,
+    busGain: 0.474,
     toneGain: 0.0145,
     shimmerGain: 0.0042,
     // Promote the ear-approved Secret harmonic family into Legendary.
@@ -331,7 +331,7 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
   },
   secret: {
     enabled: true,
-    busGain: 0.366,
+    busGain: 0.516,
     toneGain: 0.016,
     shimmerGain: 0.0054,
     // Preserve the successful family, extending it upward rather than adding low pressure.
