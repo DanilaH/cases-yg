@@ -407,11 +407,14 @@ class GameAudioController {
     const gain = this.dragTextureGain;
     if (!filter || !gain) return;
     const updateSeconds = DRAG_TEXTURE_PROFILE.updateMs / 1000;
-    gain.gain.cancelAndHoldAtTime(now);
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
     gain.gain.linearRampToValueAtTime(mix.gain, now + updateSeconds);
-    filter.frequency.cancelAndHoldAtTime(now);
+    filter.frequency.cancelScheduledValues(now);
+    filter.frequency.setValueAtTime(Math.max(20, filter.frequency.value), now);
     filter.frequency.linearRampToValueAtTime(mix.bandHz, now + updateSeconds);
-    filter.Q.cancelAndHoldAtTime(now);
+    filter.Q.cancelScheduledValues(now);
+    filter.Q.setValueAtTime(Math.max(0.1, filter.Q.value), now);
     filter.Q.linearRampToValueAtTime(mix.q, now + updateSeconds);
     this.queueDragTextureIdleDecay();
   }
