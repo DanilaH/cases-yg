@@ -2804,7 +2804,7 @@ export class OpeningScene extends Phaser.Scene {
       for (const leg of page.legs) {
         const amount = leg.amount;
         const target = nextValue + amount;
-        const crossesReady =
+        const crossesReady: boolean =
           !readyShown &&
           crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
           nextValue < chargedCost &&
