@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AMBIENT_PRESENTATION,
+  COLLECTION_MILESTONE_PRESENTATION,
   COLLECTIBLE_PRESENTATION,
   getCarouselVisualState,
   getCollectiblePresentation,
@@ -188,8 +189,13 @@ describe('reveal presentation', () => {
     expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeLessThanOrEqual(1.04);
     expect(discoveryDuration).toBeGreaterThanOrEqual(350);
     expect(discoveryDuration).toBeLessThanOrEqual(600);
-    expect(OPENING_FEEL_PRESENTATION.discoveryFrameWidth % 8).toBe(0);
-    expect(OPENING_FEEL_PRESENTATION.discoveryFrameHeight % 8).toBe(0);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineCopies).toBeGreaterThanOrEqual(6);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineCopies).toBeLessThanOrEqual(12);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineRadius).toBeGreaterThanOrEqual(2);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineRadius).toBeLessThanOrEqual(4);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineAlpha).toBeLessThanOrEqual(0.7);
+    expect(OPENING_FEEL_PRESENTATION.revealBackdropFadeInMs).toBeGreaterThanOrEqual(240);
+    expect(OPENING_FEEL_PRESENTATION.revealBackdropFadeOutMs).toBeGreaterThanOrEqual(260);
     expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeGreaterThanOrEqual(200);
     expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeLessThanOrEqual(320);
     expect(OPENING_FEEL_PRESENTATION.collectAcknowledgeMs).toBeGreaterThanOrEqual(120);
@@ -217,5 +223,9 @@ describe('reveal presentation', () => {
     expect(MOTION_PRESENTATION.resultReadyGlowDuration).toBeGreaterThanOrEqual(500);
     expect(MOTION_PRESENTATION.resultReadyGlowDuration).toBeLessThanOrEqual(900);
     expect(MOTION_PRESENTATION.rewardBreathScale).toBeLessThan(1.05);
+    expect(COLLECTION_MILESTONE_PRESENTATION.holdMs).toBeGreaterThanOrEqual(1600);
+    expect(COLLECTION_MILESTONE_PRESENTATION.holdMs).toBeLessThanOrEqual(2200);
+    expect(COLLECTION_MILESTONE_PRESENTATION.objectGap).toBeGreaterThanOrEqual(20);
+    expect(COLLECTION_MILESTONE_PRESENTATION.resultGap).toBeGreaterThanOrEqual(16);
   });
 });
