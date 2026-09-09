@@ -110,6 +110,8 @@ class GameAudioController {
   private ambienceNoiseBuffer: AudioBuffer | null = null;
   private baseAmbienceBus: GainNode | null = null;
   private persistentRarityBus: GainNode | null = null;
+  private persistentRarityToneFilter: BiquadFilterNode | null = null;
+  private persistentRarityShimmerGain: GainNode | null = null;
   private persistentRaritySources: AudioScheduledSourceNode[] = [];
   private activeResultAmbience: PersistentResultAmbience | null = null;
   private desiredResultAmbience: PersistentResultAmbience | null = null;
@@ -478,6 +480,43 @@ class GameAudioController {
     }
   }
 
+  public setResultBankingProgress(progress: number): void {
+    const context = this.context;
+    const rarity = this.activeResultAmbience;
+    const bus = this.persistentRarityBus;
+    if (!context || context.state !== 'running' || !rarity || !bus) return;
+
+    const profile = getRarityAmbienceProfile(rarity);
+    const clamped = Math.max(0, Math.min(1, progress));
+    const eased = 1 - (1 - clamped) * (1 - clamped);
+    const now = context.currentTime;
+    const at = now + 0.07;
+    const busTarget = profile.busGain * (1 + (profile.bankingPeakMultiplier - 1) * eased);
+    bus.gain.cancelScheduledValues(now);
+    bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value), now);
+    bus.gain.linearRampToValueAtTime(busTarget, at);
+
+    const toneFilter = this.persistentRarityToneFilter;
+    if (toneFilter) {
+      toneFilter.frequency.cancelScheduledValues(now);
+      toneFilter.frequency.setValueAtTime(Math.max(20, toneFilter.frequency.value), now);
+      toneFilter.frequency.linearRampToValueAtTime(
+        profile.toneLowpassHz + profile.bankingToneFilterLiftHz * eased,
+        at,
+      );
+    }
+
+    const shimmerGain = this.persistentRarityShimmerGain;
+    if (shimmerGain) {
+      shimmerGain.gain.cancelScheduledValues(now);
+      shimmerGain.gain.setValueAtTime(Math.max(0.0001, shimmerGain.gain.value), now);
+      shimmerGain.gain.linearRampToValueAtTime(
+        profile.shimmerGain * (1 + (profile.bankingShimmerMultiplier - 1) * eased),
+        at,
+      );
+    }
+  }
+
   private applyPresentationCue(context: AudioContext, cue: SfxCue): void {
     this.ensureBaseAmbience(context);
     const directive = getAudioCuePresentationDirective(cue);
@@ -677,6 +716,7 @@ class GameAudioController {
     toneFilter.type = 'lowpass';
     toneFilter.frequency.setValueAtTime(profile.toneLowpassHz, now);
     toneFilter.Q.setValueAtTime(0.65, now);
+    this.persistentRarityToneFilter = toneFilter;
     const toneGain = context.createGain();
     toneGain.gain.setValueAtTime(profile.toneGain / Math.max(1, profile.toneFrequencies.length), now);
     toneGain.connect(toneFilter);
@@ -730,6 +770,7 @@ class GameAudioController {
       shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.62 : 0.78, now);
       const shimmerGain = context.createGain();
       shimmerGain.gain.setValueAtTime(profile.shimmerGain, now);
+      this.persistentRarityShimmerGain = shimmerGain;
       const shimmerBandDepth = context.createGain();
       shimmerBandDepth.gain.setValueAtTime(profile.shimmerBandMotionHz, now);
       const shimmerGainDepth = context.createGain();
@@ -750,6 +791,8 @@ class GameAudioController {
     const bus = this.persistentRarityBus;
     const sources = this.persistentRaritySources;
     this.persistentRarityBus = null;
+    this.persistentRarityToneFilter = null;
+    this.persistentRarityShimmerGain = null;
     this.persistentRaritySources = [];
     this.activeResultAmbience = null;
     if (bus) {

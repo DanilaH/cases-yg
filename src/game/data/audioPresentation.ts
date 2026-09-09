@@ -50,6 +50,9 @@ export interface RarityAmbienceProfile {
   introPeakMultiplier: number;
   introPeakMs: number;
   introSettleMs: number;
+  bankingPeakMultiplier: number;
+  bankingToneFilterLiftHz: number;
+  bankingShimmerMultiplier: number;
   baseMixMultiplier: number;
   fadeInMs: number;
   fadeOutMs: number;
@@ -228,6 +231,9 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     introPeakMultiplier: 1,
     introPeakMs: 0,
     introSettleMs: 0,
+    bankingPeakMultiplier: 1,
+    bankingToneFilterLiftHz: 0,
+    bankingShimmerMultiplier: 1,
     baseMixMultiplier: 0.96,
     fadeInMs: 0,
     fadeOutMs: 190,
@@ -250,6 +256,9 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     introPeakMultiplier: 1.08,
     introPeakMs: 240,
     introSettleMs: 260,
+    bankingPeakMultiplier: 1.1,
+    bankingToneFilterLiftHz: 180,
+    bankingShimmerMultiplier: 1.12,
     baseMixMultiplier: 0.68,
     fadeInMs: 320,
     fadeOutMs: 210,
@@ -272,6 +281,9 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     introPeakMultiplier: 1.1,
     introPeakMs: 250,
     introSettleMs: 280,
+    bankingPeakMultiplier: 1.12,
+    bankingToneFilterLiftHz: 260,
+    bankingShimmerMultiplier: 1.16,
     baseMixMultiplier: 0.55,
     fadeInMs: 320,
     fadeOutMs: 225,
@@ -295,6 +307,9 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     introPeakMultiplier: 1.14,
     introPeakMs: 270,
     introSettleMs: 320,
+    bankingPeakMultiplier: 1.16,
+    bankingToneFilterLiftHz: 420,
+    bankingShimmerMultiplier: 1.22,
     baseMixMultiplier: 0.43,
     fadeInMs: 340,
     fadeOutMs: 245,
@@ -318,6 +333,9 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     introPeakMultiplier: 1.18,
     introPeakMs: 300,
     introSettleMs: 360,
+    bankingPeakMultiplier: 1.18,
+    bankingToneFilterLiftHz: 620,
+    bankingShimmerMultiplier: 1.28,
     baseMixMultiplier: 0.31,
     fadeInMs: 360,
     fadeOutMs: 270,

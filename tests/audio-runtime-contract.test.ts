@@ -12,6 +12,8 @@ describe('audio runtime contract', () => {
       expect(profile.fadeOutMs).toBeLessThanOrEqual(300);
       expect(profile.pulseDepth).toBeLessThanOrEqual(0.2);
       expect(profile.stereoSpread).toBeLessThanOrEqual(0.5);
+      expect(profile.bankingPeakMultiplier).toBeLessThanOrEqual(1.2);
+      expect(profile.bankingShimmerMultiplier).toBeLessThanOrEqual(1.3);
     }
   });
 

@@ -83,6 +83,11 @@ describe('audio presentation', () => {
       expect(profile.introPeakMultiplier).toBeGreaterThan(1);
       expect(profile.introPeakMultiplier).toBeLessThanOrEqual(1.2);
       expect(profile.introPeakMs + profile.introSettleMs).toBeLessThanOrEqual(700);
+      expect(profile.bankingPeakMultiplier).toBeGreaterThanOrEqual(1.1);
+      expect(profile.bankingPeakMultiplier).toBeLessThanOrEqual(1.2);
+      expect(profile.bankingToneFilterLiftHz).toBeGreaterThan(0);
+      expect(profile.bankingShimmerMultiplier).toBeGreaterThanOrEqual(1.1);
+      expect(profile.bankingShimmerMultiplier).toBeLessThanOrEqual(1.3);
     }
   });
 
