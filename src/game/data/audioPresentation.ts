@@ -98,7 +98,7 @@ export interface DragTextureMix {
 
 export const DRAG_TEXTURE_PROFILE: Readonly<DragTextureProfile> = {
   minGain: 0.0018,
-  maxGain: 0.0085,
+  maxGain: 0.01,
   minBandHz: 950,
   maxBandHz: 2800,
   minQ: 0.55,
@@ -153,13 +153,12 @@ export const ONE_SHOT_PITCH_VARIATION: Readonly<OneShotPitchVariationProfile> = 
 } as const;
 
 export const getOneShotPitchVariation = (cue: SfxCue): number => {
-  if (cue === 'chip-clack') return 0;
+  if (cue === 'chip-clack' || cue === 'pouch-grab') return 0;
   if (
     cue === 'ui-click' ||
     cue === 'ui-skip' ||
     cue === 'carousel-switch' ||
     cue === 'pouch-select' ||
-    cue === 'pouch-grab' ||
     cue === 'ui-denied' ||
     cue === 'duplicate' ||
     cue === 'signal-gain'
