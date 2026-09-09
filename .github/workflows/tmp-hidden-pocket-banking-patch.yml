@@ -1,0 +1,85 @@
+name: Temporary Hidden Pocket Banking Patch
+
+on:
+  push:
+    branches:
+      - feel/hidden-pocket-owned-banking-r1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[hidden-banking-patch]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feel/hidden-pocket-owned-banking-r1
+      - name: Apply reviewed Hidden Pocket banking patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  """import { computeRewardTrayPlacement } from '../systems/rewardLayout';\nimport {\n  canAffordPouch,""",
+                  """import { computeRewardTrayPlacement } from '../systems/rewardLayout';\nimport { createRewardBankingPlan, type RewardBankingOwner } from '../systems/rewardBanking';\nimport {\n  canAffordPouch,""",
+              ),
+              (
+                  """  private async bankChipLeg(\n    targetValue: number,\n    chargedReadyOnArrival: boolean,\n    sequenceStartAmount: number,\n    sequenceTotalAmount: number,\n  ): Promise<void> {""",
+                  """  private async bankChipLeg(\n    targetValue: number,\n    chargedReadyOnArrival: boolean,\n    sequenceStartAmount: number,\n    sequenceTotalAmount: number,\n    pageStartAmount: number,\n    pageTotalAmount: number,\n  ): Promise<void> {""",
+              ),
+              (
+                  """        getGameAudio().setResultBankingProgress(\n          (sequenceStartAmount + amount) / Math.max(1, sequenceTotalAmount),\n        );""",
+                  """        getGameAudio().setResultBankingProgress(\n          (pageStartAmount + amount) / Math.max(1, pageTotalAmount),\n        );""",
+              ),
+              (
+                  """            const sequenceProgress =\n              (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);\n            getGameAudio().setResultBankingProgress(sequenceProgress);\n            if (!fastForwarding && shouldPlayChipClack(plan, index)) {\n              getGameAudio().playChipClack(sequenceProgress);\n            }""",
+                  """            const pageProgress =\n              (pageStartAmount + arrived) / Math.max(1, pageTotalAmount);\n            const sequenceProgress =\n              (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);\n            getGameAudio().setResultBankingProgress(pageProgress);\n            if (!fastForwarding && shouldPlayChipClack(plan, index)) {\n              getGameAudio().playChipClack(sequenceProgress);\n            }""",
+              ),
+              (
+                  """    const collectTargets = this.resultCarouselItems.length > 0\n      ? this.resultCarouselItems.filter((item) => item.active)\n      : this.resultBreathTarget?.active\n        ? [this.resultBreathTarget]\n        : [];""",
+                  """    const activeCarouselItem = this.resultCarouselItems[this.resultCarouselIndex];\n    const collectTargets = this.resultCarouselItems.length > 0\n      ? activeCarouselItem?.active\n        ? [activeCarouselItem]\n        : []\n      : this.resultBreathTarget?.active\n        ? [this.resultBreathTarget]\n        : [];""",
+              ),
+              (
+                  """  private async animateCollectionAcceptance(): Promise<Phaser.GameObjects.Container[]> {""",
+                  """  private async animateCollectionAcceptance(\n    includeActionChrome = true,\n  ): Promise<Phaser.GameObjects.Container[]> {""",
+              ),
+              (
+                  """    if (this.resultActionPanel?.active) {\n      motions.push(""",
+                  """    if (includeActionChrome && this.resultActionPanel?.active) {\n      motions.push(""",
+              ),
+              (
+                  """    if (this.collectionButton?.active) {\n      const button = this.collectionButton;""",
+                  """    if (includeActionChrome && this.collectionButton?.active) {\n      const button = this.collectionButton;""",
+              ),
+              (
+                  """    await Promise.all(motions);\n    return collectTargets;\n  }\n\n  private async animateRewardBanking(pending: PendingReveal): Promise<void> {""",
+                  """    await Promise.all(motions);\n    return collectTargets;\n  }\n\n  private async switchBankingCarouselOwner(\n    pending: PendingReveal,\n    owner: RewardBankingOwner,\n  ): Promise<void> {\n    if (!pending.hiddenPocket || this.resultCarouselItems.length < 2 || !this.root) {\n      getGameAudio().setResultBankingProgress(0);\n      return;\n    }\n\n    const targetIndex = owner === 'secret' ? 1 : 0;\n    if (this.resultCarouselIndex !== targetIndex) {\n      this.resultCarouselIndex = targetIndex;\n      getGameAudio().play('carousel-switch');\n      this.positionResultCarousel(0, true);\n      getGameAudio().setResultBankingProgress(0);\n      this.renderRewardTray(pending, this.root, false);\n      if (this.resultActionPanel?.active) {\n        this.tweens.add({\n          targets: this.resultActionPanel,\n          alpha: 0,\n          duration: 120,\n          ease: 'Sine.In',\n        });\n      }\n      await this.waitPresentation(190);\n      return;\n    }\n\n    getGameAudio().setResultBankingProgress(0);\n  }\n\n  private async animateRewardBanking(pending: PendingReveal): Promise<void> {""",
+              ),
+              (
+                  """    const collectTargets = await this.animateCollectionAcceptance();\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n\n    let nextValue = pending.chips.before - pending.chips.cost;\n    const totalBankAmount =\n      pending.chips.base +\n      pending.chips.cacheBonus +\n      pending.chips.recycle +\n      pending.chips.overchargeBonus +\n      pending.chips.secretBonus;\n    let bankedAmount = 0;\n    const chargedCost = getChargedCost(LITE_V2_BALANCE);\n    let readyShown = false;\n    const bankLeg = async (amount: number): Promise<void> => {\n      if (amount <= 0) return;\n      const target = nextValue + amount;\n      const crossesReady =\n        !readyShown &&\n        crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&\n        nextValue < chargedCost &&\n        target >= chargedCost;\n      await this.bankChipLeg(target, crossesReady, bankedAmount, totalBankAmount);\n      readyShown ||= crossesReady;\n      bankedAmount += amount;\n      nextValue = target;\n    };\n\n    await bankLeg(pending.chips.base);\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n    await bankLeg(pending.chips.cacheBonus);\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n    await bankLeg(pending.chips.recycle);\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n    await bankLeg(pending.chips.overchargeBonus);\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n    await bankLeg(pending.chips.secretBonus);\n    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n\n    if (totalBankAmount > 0) getGameAudio().setResultBankingProgress(1);""",
+                  """    const bankingPlan = createRewardBankingPlan(pending, this.resultCarouselIndex);\n    const collectTargets: Phaser.GameObjects.Container[] = [];\n    let nextValue = pending.chips.before - pending.chips.cost;\n    let bankedAmount = 0;\n    const chargedCost = getChargedCost(LITE_V2_BALANCE);\n    let readyShown = false;\n\n    for (let pageIndex = 0; pageIndex < bankingPlan.pages.length; pageIndex += 1) {\n      const page = bankingPlan.pages[pageIndex]!;\n      await this.switchBankingCarouselOwner(pending, page.owner);\n      if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n\n      const accepted = await this.animateCollectionAcceptance(pageIndex === 0);\n      collectTargets.push(...accepted);\n      if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n\n      let pageBankedAmount = 0;\n      for (const leg of page.legs) {\n        const amount = leg.amount;\n        const target = nextValue + amount;\n        const crossesReady =\n          !readyShown &&\n          crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&\n          nextValue < chargedCost &&\n          target >= chargedCost;\n        await this.bankChipLeg(\n          target,\n          crossesReady,\n          bankedAmount,\n          bankingPlan.totalAmount,\n          pageBankedAmount,\n          page.totalAmount,\n        );\n        readyShown ||= crossesReady;\n        bankedAmount += amount;\n        pageBankedAmount += amount;\n        nextValue = target;\n        if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;\n      }\n\n      if (page.totalAmount > 0) getGameAudio().setResultBankingProgress(1);\n    }\n\n    if (bankingPlan.totalAmount > 0) getGameAudio().setResultBankingProgress(1);""",
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one OpeningScene patch anchor, found {count}: {old[:120]!r}')
+              text = text.replace(old, new)
+
+          path.write_text(text)
+          PY
+      - name: Commit product patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/OpeningScene.ts
+          git diff --cached --check
+          git commit -m "[hidden-banking-patch] Sequence page-owned reward banking"
+          git push origin HEAD:feel/hidden-pocket-owned-banking-r1
