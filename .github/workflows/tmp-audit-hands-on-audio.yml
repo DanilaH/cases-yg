@@ -6,6 +6,7 @@ on:
       - polish/hands-on-audio-corrections-r1
     paths:
       - .github/workflows/tmp-audit-hands-on-audio.yml
+      - tools/tmp-audit-hands-on-audio.mjs
 
 permissions:
   contents: write
