@@ -100,6 +100,9 @@ export interface DragTextureProfile {
   progressWeight: number;
   velocityWeight: number;
   updateMs: number;
+  startAttackMs: number;
+  startVelocityCap: number;
+  startGainMultiplier: number;
   idleReleaseMs: number;
   releaseMs: number;
 }
@@ -120,29 +123,41 @@ export const DRAG_TEXTURE_PROFILE: Readonly<DragTextureProfile> = {
   progressWeight: 0.62,
   velocityWeight: 0.38,
   updateMs: 35,
+  startAttackMs: 120,
+  startVelocityCap: 0.32,
+  startGainMultiplier: 0.28,
   idleReleaseMs: 90,
   releaseMs: 55,
 } as const;
 
-export const getDragTextureMix = (progress: number, velocity: number): DragTextureMix => {
+export const getDragTextureMix = (progress: number, velocity: number, startupProgress = 1): DragTextureMix => {
   const clampedProgress = Math.max(0, Math.min(1, progress));
   const clampedVelocity = Math.max(0, Math.min(1, velocity));
+  const clampedStartup = Math.max(0, Math.min(1, startupProgress));
+  const startupVelocityCap =
+    DRAG_TEXTURE_PROFILE.startVelocityCap +
+    (1 - DRAG_TEXTURE_PROFILE.startVelocityCap) * clampedStartup;
+  const effectiveVelocity = Math.min(clampedVelocity, startupVelocityCap);
   const intensity = Math.min(
     1,
     clampedProgress * DRAG_TEXTURE_PROFILE.progressWeight +
-      clampedVelocity * DRAG_TEXTURE_PROFILE.velocityWeight,
+      effectiveVelocity * DRAG_TEXTURE_PROFILE.velocityWeight,
   );
-  const brightness = Math.min(1, clampedProgress * 0.72 + clampedVelocity * 0.28);
+  const brightness = Math.min(1, clampedProgress * 0.72 + effectiveVelocity * 0.28);
+  const startupGainMultiplier =
+    DRAG_TEXTURE_PROFILE.startGainMultiplier +
+    (1 - DRAG_TEXTURE_PROFILE.startGainMultiplier) * clampedStartup;
   return {
     gain:
-      DRAG_TEXTURE_PROFILE.minGain +
-      (DRAG_TEXTURE_PROFILE.maxGain - DRAG_TEXTURE_PROFILE.minGain) * intensity,
+      (DRAG_TEXTURE_PROFILE.minGain +
+        (DRAG_TEXTURE_PROFILE.maxGain - DRAG_TEXTURE_PROFILE.minGain) * intensity) *
+      startupGainMultiplier,
     bandHz:
       DRAG_TEXTURE_PROFILE.minBandHz +
       (DRAG_TEXTURE_PROFILE.maxBandHz - DRAG_TEXTURE_PROFILE.minBandHz) * brightness,
     q:
       DRAG_TEXTURE_PROFILE.minQ +
-      (DRAG_TEXTURE_PROFILE.maxQ - DRAG_TEXTURE_PROFILE.minQ) * clampedVelocity,
+      (DRAG_TEXTURE_PROFILE.maxQ - DRAG_TEXTURE_PROFILE.minQ) * effectiveVelocity,
   };
 };
 
