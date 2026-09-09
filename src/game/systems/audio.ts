@@ -290,6 +290,24 @@ class GameAudioController {
     }
   }
 
+  public primeDragTexture(): void {
+    if (this.muted || this.blocked || typeof AudioContext === 'undefined') return;
+
+    const context = this.getContext();
+    if (!context) return;
+    const prime = (): void => {
+      if (this.muted || this.blocked || context.state !== 'running') return;
+      this.ensureDragTextureGraph(context);
+    };
+    if (context.state === 'running') {
+      prime();
+      return;
+    }
+    if (context.state === 'suspended') {
+      void context.resume().then(prime).catch(() => undefined);
+    }
+  }
+
   public setDragTexture(progress: number, velocity: number): void {
     if (this.muted || this.blocked || typeof AudioContext === 'undefined') {
       this.stopDragTexture(true);
@@ -351,33 +369,39 @@ class GameAudioController {
     }, DRAG_TEXTURE_PROFILE.releaseMs + 70);
   }
 
-  private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
+  private ensureDragTextureGraph(context: AudioContext): void {
+    if (this.dragTextureSource && this.dragTextureFilter && this.dragTextureGain) return;
+    if (this.dragTextureSource || this.dragTextureFilter || this.dragTextureGain) this.stopDragTexture(true);
+
     const now = context.currentTime;
-    const isStarting = !this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain;
-    if (isStarting || this.dragTextureEnvelopeStartedAt === null) this.dragTextureEnvelopeStartedAt = now;
+    const idleMix = getDragTextureMix(0, 0, 0);
+    const source = context.createBufferSource();
+    source.buffer = this.getAmbienceNoiseBuffer(context);
+    source.loop = true;
+    const filter = context.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(idleMix.bandHz, now);
+    filter.Q.setValueAtTime(idleMix.q, now);
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    source.start(now, (now * 0.37) % 3.5);
+    this.dragTextureSource = source;
+    this.dragTextureFilter = filter;
+    this.dragTextureGain = gain;
+  }
+
+  private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
+    this.ensureDragTextureGraph(context);
+    const now = context.currentTime;
+    if (this.dragTextureEnvelopeStartedAt === null) this.dragTextureEnvelopeStartedAt = now;
     const startupProgress = Math.min(
       1,
       Math.max(0, ((now - this.dragTextureEnvelopeStartedAt) * 1000) / DRAG_TEXTURE_PROFILE.startAttackMs),
     );
     const mix = getDragTextureMix(progress, velocity, startupProgress);
-    if (isStarting) {
-      const source = context.createBufferSource();
-      source.buffer = this.getAmbienceNoiseBuffer(context);
-      source.loop = true;
-      const filter = context.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(mix.bandHz, now);
-      filter.Q.setValueAtTime(mix.q, now);
-      const gain = context.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(context.destination);
-      source.start(now, (now * 0.37) % 3.5);
-      this.dragTextureSource = source;
-      this.dragTextureFilter = filter;
-      this.dragTextureGain = gain;
-    }
 
     const filter = this.dragTextureFilter;
     const gain = this.dragTextureGain;

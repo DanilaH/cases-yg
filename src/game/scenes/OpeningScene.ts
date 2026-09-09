@@ -826,6 +826,7 @@ export class OpeningScene extends Phaser.Scene {
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+    getGameAudio().primeDragTexture();
     this.applyChargedPouchTreatment();
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
     this.renderPouchSelector(root);
@@ -1505,6 +1506,7 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;
 
     this.stopStarPulse();
+    getGameAudio().primeDragTexture();
     getGameAudio().play('pouch-grab');
     this.phase = 'dragging';
     this.drag = {
