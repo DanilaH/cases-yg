@@ -1,0 +1,58 @@
+name: TEMP hands-on audio browser audit
+
+on:
+  push:
+    branches:
+      - polish/hands-on-audio-corrections-r1
+    paths:
+      - .github/workflows/tmp-audit-hands-on-audio.yml
+
+permissions:
+  contents: write
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/hands-on-audio-corrections-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install project
+        run: npm ci
+      - name: Install Playwright
+        run: npm install --no-save playwright@1.55.0
+      - name: Build
+        run: npm run build
+      - name: Start preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/mpt-preview.log 2>&1 &
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat /tmp/mpt-preview.log
+          exit 1
+      - name: Run browser audit
+        run: node tools/tmp-audit-hands-on-audio.mjs
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hands-on-audio-audit
+          path: hands-on-audio-audit.json
+          if-no-files-found: warn
+      - name: Remove temporary audit tooling
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm tools/tmp-audit-hands-on-audio.mjs .github/workflows/tmp-audit-hands-on-audio.yml
+          git commit -m "Remove temporary hands-on audio browser audit"
+          git push origin HEAD:polish/hands-on-audio-corrections-r1
