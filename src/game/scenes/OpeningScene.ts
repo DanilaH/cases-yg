@@ -2390,6 +2390,9 @@ export class OpeningScene extends Phaser.Scene {
         settled = true;
         clearSkip();
         this.setChipsHudValue(targetValue, true);
+        getGameAudio().setResultBankingProgress(
+          (sequenceStartAmount + amount) / Math.max(1, sequenceTotalAmount),
+        );
         if (chargedReadyOnArrival) this.chargedReadyPulsePending = true;
         resolve();
       };
@@ -2418,9 +2421,10 @@ export class OpeningScene extends Phaser.Scene {
             if (token.active) token.destroy();
             arrived += 1;
             this.setChipsHudValue(startValue + arrived, false);
+            const sequenceProgress =
+              (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);
+            getGameAudio().setResultBankingProgress(sequenceProgress);
             if (!fastForwarding && shouldPlayChipClack(plan, index)) {
-              const sequenceProgress =
-                (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);
               getGameAudio().playChipClack(sequenceProgress);
             }
             if (arrived >= plan.amount) finish();
@@ -2666,6 +2670,7 @@ export class OpeningScene extends Phaser.Scene {
   private finishDeferredBankingResize(): boolean {
     if (!this.deferredResize || this.phase !== 'banking' || this.isSceneShutdown()) return false;
     this.presentationSkip.reset();
+    getGameAudio().clearResultAmbience();
     this.renderIdle();
     return true;
   }
@@ -2776,6 +2781,7 @@ export class OpeningScene extends Phaser.Scene {
     await bankLeg(pending.chips.secretBonus);
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
+    if (totalBankAmount > 0) getGameAudio().setResultBankingProgress(1);
     this.setChipsHudValue(pending.chips.after, false);
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
     if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
@@ -2799,7 +2805,10 @@ export class OpeningScene extends Phaser.Scene {
       });
     }
     await this.waitPresentation(OPENING_FEEL_PRESENTATION.uiFadeOutMs);
-    if (!this.isSceneShutdown()) this.renderIdle(undefined, true);
+    if (!this.isSceneShutdown()) {
+      getGameAudio().clearResultAmbience();
+      this.renderIdle(undefined, true);
+    }
   }
 
   private async animatePostStandardEconomy(
@@ -4093,12 +4102,12 @@ export class OpeningScene extends Phaser.Scene {
 
   private continueFromResult(): void {
     if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;
-    getGameAudio().clearResultAmbience();
     getGameAudio().play('ui-click');
     this.resultCarouselDrag = null;
     const pending = this.lastReveal;
     void this.animateRewardBanking(pending).catch((error: unknown) => {
       console.error('[opening] reward banking presentation failed', error);
+      getGameAudio().clearResultAmbience();
       if (this.saveState && !this.isSceneShutdown()) this.renderIdle();
     });
   }
