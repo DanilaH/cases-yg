@@ -1511,7 +1511,7 @@ export class OpeningScene extends Phaser.Scene {
       pointerId: pointer.id,
       startPointerX: pointer.x,
       progress: 0,
-      lastPointerTime: this.time.now,
+      lastPointerTime: pointer.time,
     };
     this.setChromeEnabled(false);
     this.tweens.killTweensOf(this.pouch.tab);
@@ -1580,11 +1580,11 @@ export class OpeningScene extends Phaser.Scene {
     const travel = this.pouch.tabEndX - this.pouch.tabStartX;
     const progress = Math.min(1, logicalDelta / DRAG_THRESHOLD);
     const previousProgress = this.drag.progress;
-    const elapsedSeconds = Math.max(0.008, (this.time.now - this.drag.lastPointerTime) / 1000);
+    const elapsedSeconds = Math.max(0.008, (pointer.time - this.drag.lastPointerTime) / 1000);
     const progressDelta = Math.abs(progress - previousProgress);
     const normalizedVelocity = Phaser.Math.Clamp(progressDelta / elapsedSeconds / 4, 0, 1);
     this.drag.progress = progress;
-    this.drag.lastPointerTime = this.time.now;
+    this.drag.lastPointerTime = pointer.time;
     if (progress > 0.005 && progressDelta > 0.0005) {
       getGameAudio().setDragTexture(progress, normalizedVelocity);
     }
