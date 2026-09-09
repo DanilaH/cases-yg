@@ -42,77 +42,19 @@ jobs:
           done
           cat /tmp/mpt-dev.log
           exit 1
-      - name: Correct audit for default Secret carousel page
+      - name: Align audit with default Secret carousel page
         run: |
           python - <<'PY'
           from pathlib import Path
           p = Path('tools/tmp-audit-hands-on-audio.mjs')
           t = p.read_text()
-          start = t.index('const standardInitial = await persistentSnapshot();')
-          end = t.index('const bankingMark = await oscillatorCount();')
-          new = '''const secretInitial = await persistentSnapshot();
-
-const subthresholdMark = await oscillatorCount();
-await drag(-30);
-const subthresholdClicks = await recentCarouselSwitchCount(subthresholdMark);
-assert(subthresholdClicks === 0, 'Sub-threshold carousel drag emitted a switch cue', { subthresholdClicks });
-
-const returnMark = await oscillatorCount();
-await drag(112);
-const returnClicks = await recentCarouselSwitchCount(returnMark);
-const standardAfterReturn = await persistentSnapshot();
-assert(returnClicks === 1, 'Secret to standard page change did not emit exactly one switch cue', { returnClicks });
-assert(standardAfterReturn.total < secretInitial.total, 'Secret persistent sources were not retired on return', {
-  secretInitial,
-  standardAfterReturn,
-});
-
-const secondSecretMark = await oscillatorCount();
-await drag(-112);
-const secondSecretClicks = await recentCarouselSwitchCount(secondSecretMark);
-const secretSecond = await persistentSnapshot();
-assert(secondSecretClicks === 1, 'Standard to Secret page change did not emit exactly one switch cue', { secondSecretClicks });
-assert(secretSecond.total > standardAfterReturn.total, 'Secret page did not take persistent ambience ownership', {
-  standardAfterReturn,
-  secretSecond,
-});
-assert(Math.abs(secretSecond.total - secretInitial.total) <= 1, 'Persistent rarity sources stacked across carousel cycles', {
-  secretInitial,
-  secretSecond,
-});
-
-const secondReturnMark = await oscillatorCount();
-await drag(112);
-const secondReturnClicks = await recentCarouselSwitchCount(secondReturnMark);
-const standardSecondReturn = await persistentSnapshot();
-assert(secondReturnClicks === 1, 'Second return page change did not emit exactly one switch cue', { secondReturnClicks });
-assert(Math.abs(standardSecondReturn.total - standardAfterReturn.total) <= 1, 'Base/persistent source count drifted after repeated page switching', {
-  standardAfterReturn,
-  standardSecondReturn,
-});
-
-'''
-          t = t[:start] + new + t[end:]
-          report_start = t.index('const report = {')
-          report_end = t.index('\n\nawait writeFile', report_start)
-          report = '''const report = {
-  failures,
-  pageErrors,
-  badResponses,
-  secretInitial,
-  standardAfterReturn,
-  secretSecond,
-  standardSecondReturn,
-  afterBanking,
-  switchCounts: {
-    subthreshold: subthresholdClicks,
-    firstReturn: returnClicks,
-    secondSecret: secondSecretClicks,
-    secondReturn: secondReturnClicks,
-  },
-  chipClacks: clacks,
-};'''
-          p.write_text(t[:report_start] + report + t[report_end:])
+          t = t.replace("const realSwitchMark = await oscillatorCount();\nawait drag(-112);", "const realSwitchMark = await oscillatorCount();\nawait drag(112);", 1)
+          t = t.replace("assert(secretFirst.total > standardInitial.total, 'Secret page did not take persistent ambience ownership'", "assert(secretFirst.total < standardInitial.total, 'Secret sources did not retire when switching to standard'", 1)
+          t = t.replace("const returnMark = await oscillatorCount();\nawait drag(112);", "const returnMark = await oscillatorCount();\nawait drag(-112);", 1)
+          t = t.replace("assert(standardAfterReturn.total < secretFirst.total, 'Secret persistent sources were not retired on return'", "assert(standardAfterReturn.total > secretFirst.total, 'Secret page did not take persistent ambience ownership'", 1)
+          t = t.replace("const secondSecretMark = await oscillatorCount();\nawait drag(-112);", "const secondSecretMark = await oscillatorCount();\nawait drag(112);", 1)
+          t = t.replace("await drag(112);\nconst standardSecondReturn", "await drag(-112);\nconst standardSecondReturn", 1)
+          p.write_text(t)
           PY
       - name: Run browser audit
         run: node tools/tmp-audit-hands-on-audio.mjs
