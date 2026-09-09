@@ -27,6 +27,7 @@ import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '..
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import { computeRewardTrayPlacement } from '../systems/rewardLayout';
+import { createRewardBankingPlan, type RewardBankingOwner } from '../systems/rewardBanking';
 import {
   canAffordPouch,
   crossedChargedReadyThreshold,
@@ -2367,6 +2368,8 @@ export class OpeningScene extends Phaser.Scene {
     chargedReadyOnArrival: boolean,
     sequenceStartAmount: number,
     sequenceTotalAmount: number,
+    pageStartAmount: number,
+    pageTotalAmount: number,
   ): Promise<void> {
     if (!this.root || !this.metrics || targetValue <= this.chipsHudValue) return;
     const startValue = this.chipsHudValue;
@@ -2391,7 +2394,7 @@ export class OpeningScene extends Phaser.Scene {
         clearSkip();
         this.setChipsHudValue(targetValue, true);
         getGameAudio().setResultBankingProgress(
-          (sequenceStartAmount + amount) / Math.max(1, sequenceTotalAmount),
+          (pageStartAmount + amount) / Math.max(1, pageTotalAmount),
         );
         if (chargedReadyOnArrival) this.chargedReadyPulsePending = true;
         resolve();
@@ -2421,9 +2424,11 @@ export class OpeningScene extends Phaser.Scene {
             if (token.active) token.destroy();
             arrived += 1;
             this.setChipsHudValue(startValue + arrived, false);
+            const pageProgress =
+              (pageStartAmount + arrived) / Math.max(1, pageTotalAmount);
             const sequenceProgress =
               (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);
-            getGameAudio().setResultBankingProgress(sequenceProgress);
+            getGameAudio().setResultBankingProgress(pageProgress);
             if (!fastForwarding && shouldPlayChipClack(plan, index)) {
               getGameAudio().playChipClack(sequenceProgress);
             }
@@ -2675,11 +2680,16 @@ export class OpeningScene extends Phaser.Scene {
     return true;
   }
 
-  private async animateCollectionAcceptance(): Promise<Phaser.GameObjects.Container[]> {
+  private async animateCollectionAcceptance(
+    includeActionChrome = true,
+  ): Promise<Phaser.GameObjects.Container[]> {
     if (!this.root || !this.metrics) return [];
 
+    const activeCarouselItem = this.resultCarouselItems[this.resultCarouselIndex];
     const collectTargets = this.resultCarouselItems.length > 0
-      ? this.resultCarouselItems.filter((item) => item.active)
+      ? activeCarouselItem?.active
+        ? [activeCarouselItem]
+        : []
       : this.resultBreathTarget?.active
         ? [this.resultBreathTarget]
         : [];
@@ -2706,7 +2716,7 @@ export class OpeningScene extends Phaser.Scene {
       );
     }
 
-    if (this.resultActionPanel?.active) {
+    if (includeActionChrome && this.resultActionPanel?.active) {
       motions.push(
         this.runSkippableTween({
           targets: this.resultActionPanel,
@@ -2718,7 +2728,7 @@ export class OpeningScene extends Phaser.Scene {
       );
     }
 
-    if (this.collectionButton?.active) {
+    if (includeActionChrome && this.collectionButton?.active) {
       const button = this.collectionButton;
       this.tweens.killTweensOf(button);
       button.setScale(1);
@@ -2737,51 +2747,87 @@ export class OpeningScene extends Phaser.Scene {
     return collectTargets;
   }
 
+  private async switchBankingCarouselOwner(
+    pending: PendingReveal,
+    owner: RewardBankingOwner,
+  ): Promise<void> {
+    if (!pending.hiddenPocket || this.resultCarouselItems.length < 2 || !this.root) {
+      getGameAudio().setResultBankingProgress(0);
+      return;
+    }
+
+    const targetIndex = owner === 'secret' ? 1 : 0;
+    if (this.resultCarouselIndex !== targetIndex) {
+      this.resultCarouselIndex = targetIndex;
+      getGameAudio().play('carousel-switch');
+      this.positionResultCarousel(0, true);
+      getGameAudio().setResultBankingProgress(0);
+      this.renderRewardTray(pending, this.root, false);
+      if (this.resultActionPanel?.active) {
+        this.tweens.add({
+          targets: this.resultActionPanel,
+          alpha: 0,
+          duration: 120,
+          ease: 'Sine.In',
+        });
+      }
+      await this.waitPresentation(190);
+      return;
+    }
+
+    getGameAudio().setResultBankingProgress(0);
+  }
+
   private async animateRewardBanking(pending: PendingReveal): Promise<void> {
     if (!this.saveState || !this.root || this.isSceneShutdown()) return;
     this.phase = 'banking';
     this.resultReady = false;
     this.stopResultPanelPulse();
 
-    const collectTargets = await this.animateCollectionAcceptance();
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-
+    const bankingPlan = createRewardBankingPlan(pending, this.resultCarouselIndex);
+    const collectTargets: Phaser.GameObjects.Container[] = [];
     let nextValue = pending.chips.before - pending.chips.cost;
-    const totalBankAmount =
-      pending.chips.base +
-      pending.chips.cacheBonus +
-      pending.chips.recycle +
-      pending.chips.overchargeBonus +
-      pending.chips.secretBonus;
     let bankedAmount = 0;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
     let readyShown = false;
-    const bankLeg = async (amount: number): Promise<void> => {
-      if (amount <= 0) return;
-      const target = nextValue + amount;
-      const crossesReady =
-        !readyShown &&
-        crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
-        nextValue < chargedCost &&
-        target >= chargedCost;
-      await this.bankChipLeg(target, crossesReady, bankedAmount, totalBankAmount);
-      readyShown ||= crossesReady;
-      bankedAmount += amount;
-      nextValue = target;
-    };
 
-    await bankLeg(pending.chips.base);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-    await bankLeg(pending.chips.cacheBonus);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-    await bankLeg(pending.chips.recycle);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-    await bankLeg(pending.chips.overchargeBonus);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
-    await bankLeg(pending.chips.secretBonus);
-    if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+    for (let pageIndex = 0; pageIndex < bankingPlan.pages.length; pageIndex += 1) {
+      const page = bankingPlan.pages[pageIndex]!;
+      await this.switchBankingCarouselOwner(pending, page.owner);
+      if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
-    if (totalBankAmount > 0) getGameAudio().setResultBankingProgress(1);
+      const accepted = await this.animateCollectionAcceptance(pageIndex === 0);
+      collectTargets.push(...accepted);
+      if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+
+      let pageBankedAmount = 0;
+      for (const leg of page.legs) {
+        const amount = leg.amount;
+        const target = nextValue + amount;
+        const crossesReady: boolean =
+          !readyShown &&
+          crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
+          nextValue < chargedCost &&
+          target >= chargedCost;
+        await this.bankChipLeg(
+          target,
+          crossesReady,
+          bankedAmount,
+          bankingPlan.totalAmount,
+          pageBankedAmount,
+          page.totalAmount,
+        );
+        readyShown ||= crossesReady;
+        bankedAmount += amount;
+        pageBankedAmount += amount;
+        nextValue = target;
+        if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
+      }
+
+      if (page.totalAmount > 0) getGameAudio().setResultBankingProgress(1);
+    }
+
+    if (bankingPlan.totalAmount > 0) getGameAudio().setResultBankingProgress(1);
     this.setChipsHudValue(pending.chips.after, false);
     const fadeTargets: Phaser.GameObjects.GameObject[] = [];
     if (this.rewardTrayContainer?.active) fadeTargets.push(this.rewardTrayContainer);
