@@ -24,6 +24,16 @@ describe('audio presentation', () => {
     expect(BASE_AMBIENCE_PROFILE.fadeInMs).toBeGreaterThanOrEqual(700);
   });
 
+  it('keeps base ambience motion slow, asynchronous and bounded', () => {
+    expect(BASE_AMBIENCE_PROFILE.padMotionRateHz).toBeGreaterThan(0);
+    expect(BASE_AMBIENCE_PROFILE.padMotionRateHz).toBeLessThanOrEqual(0.05);
+    expect(BASE_AMBIENCE_PROFILE.shimmerMotionRateHz).toBeGreaterThan(0);
+    expect(BASE_AMBIENCE_PROFILE.shimmerMotionRateHz).toBeLessThanOrEqual(0.05);
+    expect(BASE_AMBIENCE_PROFILE.shimmerMotionRateHz).not.toBe(BASE_AMBIENCE_PROFILE.padMotionRateHz);
+    expect(BASE_AMBIENCE_PROFILE.padFilterSweepHz).toBeLessThanOrEqual(180);
+    expect(BASE_AMBIENCE_PROFILE.shimmerMotionDepth).toBeLessThanOrEqual(0.35);
+  });
+
   it('keeps Common clean and tiers persistent rarity presence through density and mix', () => {
     const common = getRarityAmbienceProfile('common');
     const rare = getRarityAmbienceProfile('rare');
@@ -47,6 +57,33 @@ describe('audio presentation', () => {
     expect(secret.baseMixMultiplier).toBeLessThanOrEqual(0.36);
     expect(Math.min(...rare.toneFrequencies)).toBeGreaterThanOrEqual(350);
     expect(Math.min(...secret.toneFrequencies)).toBeGreaterThanOrEqual(280);
+  });
+
+  it('promotes the approved Secret family into Legendary and extends Secret upward', () => {
+    const legendary = getRarityAmbienceProfile('legendary');
+    const secret = getRarityAmbienceProfile('secret');
+
+    expect(legendary.toneFrequencies).toEqual([293.66, 440, 659.25, 880, 1174.66]);
+    expect(secret.toneFrequencies.slice(0, legendary.toneFrequencies.length)).toEqual(legendary.toneFrequencies);
+    expect(Math.max(...secret.toneFrequencies)).toBeGreaterThan(Math.max(...legendary.toneFrequencies));
+    expect(secret.shimmerGain).toBeGreaterThan(legendary.shimmerGain);
+    expect(secret.shimmerBandHz).toBeGreaterThan(legendary.shimmerBandHz);
+    expect(secret.stereoSpread).toBeGreaterThan(legendary.stereoSpread);
+  });
+
+  it('uses slow spectral colour motion and a restrained intro crest for rarity holds', () => {
+    for (const rarity of ['rare', 'epic', 'legendary', 'secret'] as const) {
+      const profile = getRarityAmbienceProfile(rarity);
+      expect(profile.motionRateHz).toBeGreaterThanOrEqual(0.025);
+      expect(profile.motionRateHz).toBeLessThanOrEqual(0.05);
+      expect(profile.toneFilterMotionHz).toBeGreaterThan(0);
+      expect(profile.shimmerBandMotionHz).toBeGreaterThan(0);
+      expect(profile.shimmerMotionDepth).toBeGreaterThan(0);
+      expect(profile.shimmerMotionDepth).toBeLessThanOrEqual(0.3);
+      expect(profile.introPeakMultiplier).toBeGreaterThan(1);
+      expect(profile.introPeakMultiplier).toBeLessThanOrEqual(1.2);
+      expect(profile.introPeakMs + profile.introSettleMs).toBeLessThanOrEqual(700);
+    }
   });
 
   it('keeps one-shot pitch variation subtle and gives CHIPS one bounded rising contour', () => {
