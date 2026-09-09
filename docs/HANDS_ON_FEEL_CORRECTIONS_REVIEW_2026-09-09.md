@@ -1,6 +1,6 @@
 # Independent Review — Hands-on Feel Corrections
 
-Status: **REVIEWED / IMPLEMENTATION CONSTRAINTS LOCKED / AUDIO PASS STRUCTURALLY VALIDATED**
+Status: **REVIEWED / IMPLEMENTATION CONSTRAINTS LOCKED / COMBINED BROWSER+LIFECYCLE VALIDATED / SUBJECTIVE EAR-CHECK PENDING**
 
 This review checks `HANDS_ON_FEEL_CORRECTIONS_2026-09-09.md` against the current code and the existing `AUDIO_AND_REWARD_FEEL_POLISH_PLAN.md` before implementation.
 
@@ -99,6 +99,29 @@ Runtime browser/audio lifecycle gate `34319503347` passed with artifact digest `
 - collect/banking returned to the 6-source base state;
 - the observed CHIPS clack contour rose from about `1096 Hz` at the start to about `1390–1400 Hz` near the end while remaining inside the bounded ceiling.
 
+### Combined post-merge repeated-use acceptance
+
+After both corrections were merged on main at `e50fb21fd772fa8319152380e1f3174ec93ce614`, a combined browser/lifecycle gate was run against that exact product state as Actions run `34321676461`. The temporary audit branch contained only audit tooling; the workflow separately asserted that the product delta from main was empty before running. The audit artifact digest is `sha256:900c99e9ef6ab1eb996390b689a10f7cbbfcaa86e8040c586614e102a6c88ecc`.
+
+The combined gate passed all **39/39** assertions with `fatal = null`, zero page/runtime errors, zero failed local requests and zero bad local HTTP responses. It also reran the product static gates: typecheck, **155/155 tests across 19 files**, asset self-test, asset validation and production build all passed.
+
+Repeated-use coverage included:
+
+- **12 real pouch openings** through the actual tear interaction; every opening settled with `pendingReveal = null` and durable `totalOpens` advanced correctly;
+- persistent environment continuity across reveal → result → idle: the same environment root and the same **27 ambient objects** remained alive across ordinary state changes;
+- resize during an active reveal recovered cleanly to a ready result at the narrower viewport and then back to idle;
+- an Opening → Collection → Opening roundtrip completed during the repeated-use sequence without breaking the loop;
+- targeted Hidden Pocket result started on the Secret page, switched to the standard page and back, with heading/presentation ownership following the active page;
+- each real Hidden Pocket page change emitted exactly one carousel switch cue;
+- persistent audio source ownership moved **Secret 13 → standard 6 → Secret 13** without stacking, then returned to the 6-source base state after collect;
+- Hidden collect cleared standard/Secret result presentation targets;
+- naturally completed banking produced enough CHIPS clacks to revalidate the global contour: approximately `1094 Hz` at the start to `1380 Hz` at the end, with the observed maximum about `1400.44 Hz`, still below the bounded ceiling;
+- mute suspended the existing AudioContext, unmute resumed it, and the base persistent source count stayed at 6 rather than spawning another stack.
+
+The temporary combined-audit branch was reset back to the validated main commit after the successful run; its audit script/workflow are not product changes.
+
 ### Remaining acceptance boundary
 
-These gates validate contracts, lifecycle ownership, source cleanup, hierarchy and the intended pitch contour. They do **not** prove subjective acoustic comfort. Final acceptance of the new timbre still requires hands-on listening on headphones and normal speakers. In particular, “cozy rather than server-room”, long-hold rarity comfort and perceived loudness balance remain ear-check items; they must not be marked final solely from automated validation.
+The structural correction series is now closed by static, dedicated visual/audio browser gates and a combined repeated-use browser/lifecycle gate. These gates validate contracts, lifecycle ownership, source cleanup, environment continuity, Hidden Pocket page ownership, interaction durability and the intended pitch contour.
+
+They do **not** prove subjective acoustic comfort. Final acceptance of the new timbre still requires hands-on listening on headphones and normal speakers. In particular, “cozy rather than server-room”, long-hold rarity comfort and perceived loudness balance remain ear-check items; they must not be marked final solely from automated validation.
