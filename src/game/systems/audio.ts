@@ -3,6 +3,8 @@ import {
   BASE_AMBIENCE_PROFILE,
   DRAG_TEXTURE_PROFILE,
   getAudioCuePresentationDirective,
+  getChipPitchMultiplier,
+  getOneShotPitchVariation,
   getDragTextureMix,
   getRarityAmbienceProfile,
   getRevealAnticipationAudioProfile,
@@ -59,6 +61,10 @@ const CUES: Readonly<Record<SfxCue, readonly ToneSpec[]>> = {
     { frequency: 1480, endFrequency: 920, duration: 0.042, type: 'square', gain: 0.026 },
     { frequency: 1840, duration: 0.026, type: 'triangle', gain: 0.015, delay: 0.018 },
   ],
+  'carousel-switch': [
+    { frequency: 720, endFrequency: 810, duration: 0.038, type: 'triangle', gain: 0.014 },
+    { frequency: 1080, endFrequency: 980, duration: 0.026, type: 'sine', gain: 0.008, delay: 0.012 },
+  ],
   'pouch-select': [
     { frequency: 520, endFrequency: 720, duration: 0.055, type: 'triangle', gain: 0.026 },
     { frequency: 920, endFrequency: 1080, duration: 0.045, type: 'sine', gain: 0.018, delay: 0.035 },
@@ -113,7 +119,6 @@ class GameAudioController {
   private dragTextureFilter: BiquadFilterNode | null = null;
   private dragTextureGain: GainNode | null = null;
   private dragTextureIdleTimer: number | null = null;
-  private chipClackIndex = 0;
   private muted = false;
   private blocked = false;
 
@@ -200,6 +205,23 @@ class GameAudioController {
     this.schedule(context, cue);
   }
 
+
+  public playChipClack(progress: number): void {
+    if (this.muted || this.blocked || typeof AudioContext === 'undefined') return;
+    const context = this.getContext();
+    if (!context) return;
+    const schedule = (): void => {
+      if (this.muted || this.blocked || context.state !== 'running') return;
+      this.applyPresentationCue(context, 'chip-clack');
+      this.scheduleChipClack(context, progress);
+    };
+    if (context.state === 'suspended') {
+      void context.resume().then(schedule).catch(() => undefined);
+      return;
+    }
+    schedule();
+  }
+
   private getContext(): AudioContext | null {
     try {
       this.context ??= new AudioContext();
@@ -213,18 +235,22 @@ class GameAudioController {
     if (this.muted || this.blocked || context.state !== 'running') return;
 
     this.applyPresentationCue(context, cue);
+    const variation = getOneShotPitchVariation(cue);
+    const pitchFactor = 1 + (Math.random() * 2 - 1) * variation;
 
     const sample = this.samples.get(cue);
     if (sample) {
       const source = context.createBufferSource();
       const gain = context.createGain();
       const start = context.currentTime;
-      const tail = Math.min(0.12, Math.max(0.05, sample.duration * 0.1));
-      const fadeStart = start + Math.max(0, sample.duration - tail);
+      const playbackDuration = sample.duration / Math.max(0.5, pitchFactor);
+      const tail = Math.min(0.12, Math.max(0.05, playbackDuration * 0.1));
+      const fadeStart = start + Math.max(0, playbackDuration - tail);
       source.buffer = sample;
+      source.playbackRate.setValueAtTime(pitchFactor, start);
       gain.gain.setValueAtTime(0.72, start);
       gain.gain.setValueAtTime(0.72, fadeStart);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + sample.duration);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + playbackDuration);
       source.connect(gain);
       gain.connect(context.destination);
       source.start(start);
@@ -232,11 +258,11 @@ class GameAudioController {
     }
 
     if (cue === 'chip-clack') {
-      this.scheduleChipClack(context);
+      this.scheduleChipClack(context, 0.5);
       return;
     }
     if (cue === 'pouch-grab') {
-      this.schedulePouchGrab(context);
+      this.schedulePouchGrab(context, pitchFactor);
       return;
     }
 
@@ -247,9 +273,9 @@ class GameAudioController {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       oscillator.type = spec.type;
-      oscillator.frequency.setValueAtTime(spec.frequency, start);
+      oscillator.frequency.setValueAtTime(spec.frequency * pitchFactor, start);
       if (spec.endFrequency !== undefined) {
-        oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, spec.endFrequency), end);
+        oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, spec.endFrequency * pitchFactor), end);
       }
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.exponentialRampToValueAtTime(spec.gain, start + Math.min(0.018, spec.duration / 4));
@@ -486,11 +512,11 @@ class GameAudioController {
     room.loop = true;
     const roomLow = context.createBiquadFilter();
     roomLow.type = 'lowpass';
-    roomLow.frequency.setValueAtTime(1450, now);
-    roomLow.Q.setValueAtTime(0.55, now);
+    roomLow.frequency.setValueAtTime(BASE_AMBIENCE_PROFILE.roomLowpassHz, now);
+    roomLow.Q.setValueAtTime(0.38, now);
     const roomHigh = context.createBiquadFilter();
     roomHigh.type = 'highpass';
-    roomHigh.frequency.setValueAtTime(38, now);
+    roomHigh.frequency.setValueAtTime(BASE_AMBIENCE_PROFILE.roomHighpassHz, now);
     const roomGain = context.createGain();
     roomGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.roomNoiseGain, now);
     room.connect(roomLow);
@@ -499,34 +525,31 @@ class GameAudioController {
     roomGain.connect(bus);
     room.start(now);
 
-    const humFilter = context.createBiquadFilter();
-    humFilter.type = 'lowpass';
-    humFilter.frequency.setValueAtTime(230, now);
-    humFilter.Q.setValueAtTime(0.7, now);
-    humFilter.connect(bus);
-    const humFrequencies = [55, 110] as const;
-    humFrequencies.forEach((frequency, index) => {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = index === 0 ? 'sine' : 'triangle';
-      oscillator.frequency.setValueAtTime(frequency, now);
-      gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.humGain / humFrequencies.length, now);
-      oscillator.connect(gain);
-      gain.connect(humFilter);
-      oscillator.start(now);
-    });
+    // The original 55/110 Hz transformer layer read as a server-room fan in
+    // headphones. Keep the profile field for tuneability, but do not construct
+    // a machine-hum layer when the reviewed profile disables it.
+    if (BASE_AMBIENCE_PROFILE.humGain > 0) {
+      const hum = context.createOscillator();
+      const humGain = context.createGain();
+      hum.type = 'sine';
+      hum.frequency.setValueAtTime(146.83, now);
+      humGain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.humGain, now);
+      hum.connect(humGain);
+      humGain.connect(bus);
+      hum.start(now);
+    }
 
     const padFilter = context.createBiquadFilter();
     padFilter.type = 'lowpass';
-    padFilter.frequency.setValueAtTime(620, now);
-    padFilter.Q.setValueAtTime(0.42, now);
+    padFilter.frequency.setValueAtTime(BASE_AMBIENCE_PROFILE.padLowpassHz, now);
+    padFilter.Q.setValueAtTime(0.32, now);
     padFilter.connect(bus);
     BASE_AMBIENCE_PROFILE.padFrequencies.forEach((frequency, index) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      oscillator.type = index === 1 ? 'sine' : 'triangle';
+      oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.detune.setValueAtTime(index === 0 ? -4 : index === 1 ? 3 : 0, now);
+      oscillator.detune.setValueAtTime(index === 0 ? -2 : index === 1 ? 1.5 : 3, now);
       gain.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.padGain / BASE_AMBIENCE_PROFILE.padFrequencies.length, now);
       oscillator.connect(gain);
       gain.connect(padFilter);
@@ -535,8 +558,8 @@ class GameAudioController {
     const padLfo = context.createOscillator();
     const padLfoDepth = context.createGain();
     padLfo.type = 'sine';
-    padLfo.frequency.setValueAtTime(0.028, now);
-    padLfoDepth.gain.setValueAtTime(95, now);
+    padLfo.frequency.setValueAtTime(0.021, now);
+    padLfoDepth.gain.setValueAtTime(120, now);
     padLfo.connect(padLfoDepth);
     padLfoDepth.connect(padFilter.frequency);
     padLfo.start(now);
@@ -647,9 +670,9 @@ class GameAudioController {
     profile.toneFrequencies.forEach((frequency, index) => {
       const oscillator = context.createOscillator();
       const panner = context.createStereoPanner();
-      oscillator.type = index % 2 === 0 ? 'sine' : 'triangle';
+      oscillator.type = 'sine';
       oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.detune.setValueAtTime((index - (profile.toneFrequencies.length - 1) / 2) * 2.5, now);
+      oscillator.detune.setValueAtTime((index - (profile.toneFrequencies.length - 1) / 2) * 1.6, now);
       const side = index % 2 === 0 ? -1 : 1;
       panner.pan.setValueAtTime(side * profile.stereoSpread * Math.min(1, 0.45 + index * 0.12), now);
       oscillator.connect(panner);
@@ -678,7 +701,7 @@ class GameAudioController {
       const shimmerBand = context.createBiquadFilter();
       shimmerBand.type = 'bandpass';
       shimmerBand.frequency.setValueAtTime(profile.shimmerBandHz, now);
-      shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.9 : 1.25, now);
+      shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.62 : 0.78, now);
       const shimmerGain = context.createGain();
       shimmerGain.gain.setValueAtTime(profile.shimmerGain, now);
       shimmer.connect(shimmerBand);
@@ -742,13 +765,13 @@ class GameAudioController {
     return buffer;
   }
 
-  private schedulePouchGrab(context: AudioContext): void {
+  private schedulePouchGrab(context: AudioContext, pitchFactor: number): void {
     const now = context.currentTime;
     const noise = context.createBufferSource();
     noise.buffer = this.getChipNoiseBuffer(context);
     const band = context.createBiquadFilter();
     band.type = 'bandpass';
-    band.frequency.setValueAtTime(3300, now);
+    band.frequency.setValueAtTime(3300 * pitchFactor, now);
     band.Q.setValueAtTime(1.35, now);
     const noiseGain = context.createGain();
     noiseGain.gain.setValueAtTime(0.0001, now);
@@ -763,8 +786,8 @@ class GameAudioController {
     const body = context.createOscillator();
     const bodyGain = context.createGain();
     body.type = 'triangle';
-    body.frequency.setValueAtTime(430, now + 0.004);
-    body.frequency.exponentialRampToValueAtTime(255, now + 0.052);
+    body.frequency.setValueAtTime(430 * pitchFactor, now + 0.004);
+    body.frequency.exponentialRampToValueAtTime(255 * pitchFactor, now + 0.052);
     bodyGain.gain.setValueAtTime(0.0001, now);
     bodyGain.gain.exponentialRampToValueAtTime(0.028, now + 0.005);
     bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
@@ -774,11 +797,9 @@ class GameAudioController {
     body.stop(now + 0.06);
   }
 
-  private scheduleChipClack(context: AudioContext): void {
+  private scheduleChipClack(context: AudioContext, progress: number): void {
     const now = context.currentTime;
-    const variants = [0.92, 1.04, 0.97, 1.09, 1.0] as const;
-    const variant = variants[this.chipClackIndex % variants.length] ?? 1;
-    this.chipClackIndex += 1;
+    const variant = getChipPitchMultiplier(progress, Math.random());
 
     const noise = context.createBufferSource();
     noise.buffer = this.getChipNoiseBuffer(context);

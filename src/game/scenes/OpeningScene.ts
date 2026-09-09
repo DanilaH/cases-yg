@@ -1613,11 +1613,13 @@ export class OpeningScene extends Phaser.Scene {
 
       const moved = Math.hypot(gesture.deltaX, gesture.deltaY);
       if (gesture.startedInCarousel && this.resultCarouselItems.length > 1) {
+        const previousIndex = this.resultCarouselIndex;
         this.resultCarouselIndex = resolveCarouselIndex(
           this.resultCarouselIndex,
           this.resultCarouselItems.length,
           gesture.deltaX,
         );
+        if (this.resultCarouselIndex !== previousIndex) getGameAudio().play('carousel-switch');
         this.positionResultCarousel(0, true);
         this.syncCarouselRewardBreathing();
         if (this.lastReveal && this.root) {
@@ -2363,6 +2365,8 @@ export class OpeningScene extends Phaser.Scene {
   private async bankChipLeg(
     targetValue: number,
     chargedReadyOnArrival: boolean,
+    sequenceStartAmount: number,
+    sequenceTotalAmount: number,
   ): Promise<void> {
     if (!this.root || !this.metrics || targetValue <= this.chipsHudValue) return;
     const startValue = this.chipsHudValue;
@@ -2414,7 +2418,11 @@ export class OpeningScene extends Phaser.Scene {
             if (token.active) token.destroy();
             arrived += 1;
             this.setChipsHudValue(startValue + arrived, false);
-            if (!fastForwarding && shouldPlayChipClack(plan, index)) getGameAudio().play('chip-clack');
+            if (!fastForwarding && shouldPlayChipClack(plan, index)) {
+              const sequenceProgress =
+                (sequenceStartAmount + arrived) / Math.max(1, sequenceTotalAmount);
+              getGameAudio().playChipClack(sequenceProgress);
+            }
             if (arrived >= plan.amount) finish();
           },
         });
@@ -2734,6 +2742,13 @@ export class OpeningScene extends Phaser.Scene {
     if (this.isSceneShutdown() || this.finishDeferredBankingResize()) return;
 
     let nextValue = pending.chips.before - pending.chips.cost;
+    const totalBankAmount =
+      pending.chips.base +
+      pending.chips.cacheBonus +
+      pending.chips.recycle +
+      pending.chips.overchargeBonus +
+      pending.chips.secretBonus;
+    let bankedAmount = 0;
     const chargedCost = getChargedCost(LITE_V2_BALANCE);
     let readyShown = false;
     const bankLeg = async (amount: number): Promise<void> => {
@@ -2744,8 +2759,9 @@ export class OpeningScene extends Phaser.Scene {
         crossedChargedReadyThreshold(pending, LITE_V2_BALANCE) &&
         nextValue < chargedCost &&
         target >= chargedCost;
-      await this.bankChipLeg(target, crossesReady);
+      await this.bankChipLeg(target, crossesReady, bankedAmount, totalBankAmount);
       readyShown ||= crossesReady;
+      bankedAmount += amount;
       nextValue = target;
     };
 
