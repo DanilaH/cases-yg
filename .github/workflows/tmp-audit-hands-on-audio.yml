@@ -31,16 +31,16 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
-      - name: Start preview
+      - name: Start dev server
         run: |
-          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/mpt-preview.log 2>&1 &
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/mpt-dev.log 2>&1 &
           for i in {1..40}; do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then
               exit 0
             fi
             sleep 0.5
           done
-          cat /tmp/mpt-preview.log
+          cat /tmp/mpt-dev.log
           exit 1
       - name: Run browser audit
         run: node tools/tmp-audit-hands-on-audio.mjs
