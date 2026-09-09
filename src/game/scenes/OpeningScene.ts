@@ -381,16 +381,16 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     for (let index = 0; index < profile.sparkleCount; index += 1) {
-      const angle = (Math.PI * 2 * index) / Math.max(1, profile.sparkleCount) + 0.42;
-      const radius = 104 + (index % 2) * 24;
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const radius = Phaser.Math.FloatBetween(92, 146);
       const sparkle = this.trackStandardPresenceTarget(
         this.add
           .circle(
             Math.cos(angle) * radius,
-            Math.sin(angle) * radius * 0.72,
-            index % 2 === 0 ? 2.2 : 1.6,
+            Math.sin(angle) * radius * Phaser.Math.FloatBetween(0.62, 0.82),
+            Phaser.Math.FloatBetween(1.4, 2.5),
             color,
-            0.18 + index * 0.035,
+            Phaser.Math.FloatBetween(0.14, 0.25),
           )
           .setBlendMode(Phaser.BlendModes.ADD),
       );
@@ -398,14 +398,14 @@ export class OpeningScene extends Phaser.Scene {
       const baseY = sparkle.y;
       this.tweens.add({
         targets: sparkle,
-        y: baseY - 6 - (index % 2) * 3,
-        alpha: Math.min(0.46, 0.3 + index * 0.04),
-        scale: 1.3 + (index % 2) * 0.12,
-        duration: profile.pulseDurationMs + 180 + index * 130,
-        delay: 180 + index * 190,
+        y: baseY - Phaser.Math.FloatBetween(5, 11),
+        alpha: Phaser.Math.FloatBetween(0.3, 0.48),
+        scale: Phaser.Math.FloatBetween(1.2, 1.48),
+        duration: Math.round(profile.pulseDurationMs * Phaser.Math.FloatBetween(0.78, 1.22)),
+        delay: Phaser.Math.Between(120, 1250),
         yoyo: true,
         repeat: -1,
-        repeatDelay: 420 + index * 110,
+        repeatDelay: Phaser.Math.Between(420, 1700),
         ease: 'Sine.InOut',
       });
     }
@@ -433,16 +433,21 @@ export class OpeningScene extends Phaser.Scene {
     this.tweens.add({ targets: cloudA, x: 22, y: -4, angle: 3, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     this.tweens.add({ targets: cloudB, x: -18, y: 12, angle: -4, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
+    // Keep Secret premium presence distributed, but avoid a recognisable fixed
+    // ten-point ring on every reveal. This is presentation-only randomness; the
+    // persisted loot result is already resolved before this layer is created.
+    const sparklePhase = Phaser.Math.FloatBetween(0, Math.PI * 2);
     for (let index = 0; index < 10; index += 1) {
-      const angle = (Math.PI * 2 * index) / 10 + 0.31;
-      const radius = 92 + (index % 3) * 34;
+      const premium = index % 3 === 0;
+      const angle = sparklePhase + (Math.PI * 2 * index) / 10 + Phaser.Math.FloatBetween(-0.28, 0.28);
+      const radius = Phaser.Math.FloatBetween(86, 158);
       const sparkle = this.trackSecretPremiumTarget(
         this.add.circle(
           Math.cos(angle) * radius,
-          Math.sin(angle) * radius * 0.72,
-          index % 3 === 0 ? 3.2 : 2.1,
-          index % 3 === 0 ? SECRET_PREMIUM_GOLD : SECRET_REVEAL_COLOR,
-          0.28 + (index % 4) * 0.08,
+          Math.sin(angle) * radius * Phaser.Math.FloatBetween(0.64, 0.82),
+          premium ? Phaser.Math.FloatBetween(2.8, 3.5) : Phaser.Math.FloatBetween(1.8, 2.5),
+          premium ? SECRET_PREMIUM_GOLD : SECRET_REVEAL_COLOR,
+          premium ? Phaser.Math.FloatBetween(0.34, 0.48) : Phaser.Math.FloatBetween(0.22, 0.38),
         ).setBlendMode(Phaser.BlendModes.ADD),
       );
       layer.add(sparkle);
@@ -450,15 +455,15 @@ export class OpeningScene extends Phaser.Scene {
       const baseY = sparkle.y;
       this.tweens.add({
         targets: sparkle,
-        x: baseX + (index % 2 === 0 ? 9 : -9),
-        y: baseY - 14 - (index % 3) * 4,
-        alpha: index % 3 === 0 ? 0.88 : 0.58,
-        scale: index % 3 === 0 ? 1.55 : 1.25,
-        duration: 1100 + index * 90,
-        delay: index * 95,
+        x: baseX + Phaser.Math.FloatBetween(-11, 11),
+        y: baseY - Phaser.Math.FloatBetween(11, 23),
+        alpha: premium ? Phaser.Math.FloatBetween(0.72, 0.9) : Phaser.Math.FloatBetween(0.48, 0.64),
+        scale: premium ? Phaser.Math.FloatBetween(1.42, 1.62) : Phaser.Math.FloatBetween(1.18, 1.34),
+        duration: Phaser.Math.Between(1050, 1980),
+        delay: Phaser.Math.Between(0, 900),
         yoyo: true,
         repeat: -1,
-        repeatDelay: 260 + (index % 4) * 170,
+        repeatDelay: Phaser.Math.Between(260, 980),
         ease: 'Sine.InOut',
       });
     }
@@ -468,43 +473,74 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
-    const usableWidth = Math.max(160, metrics.logicalWidth - 120);
     const colors = [0xf4e5ff, 0xb9efff, 0xffe7f2];
+
+    // Large, extremely faint pools keep the authored room from reading as a
+    // frozen backdrop once the audio bed is alive. They remain behind gameplay
+    // chrome and move on deliberately slow, asynchronous cycles.
+    for (let index = 0; index < AMBIENT_PRESENTATION.glowCount; index += 1) {
+      const radius = Phaser.Math.FloatBetween(
+        AMBIENT_PRESENTATION.minGlowRadius,
+        AMBIENT_PRESENTATION.maxGlowRadius,
+      );
+      const x = Phaser.Math.FloatBetween(metrics.logicalWidth * 0.24, metrics.logicalWidth * 0.82);
+      const y = Phaser.Math.FloatBetween(150, 570);
+      const alpha = Phaser.Math.FloatBetween(
+        AMBIENT_PRESENTATION.minGlowAlpha,
+        AMBIENT_PRESENTATION.maxGlowAlpha,
+      );
+      const glow = this.add
+        .circle(x, y, radius, colors[index % colors.length], alpha)
+        .setScale(Phaser.Math.FloatBetween(1.25, 1.75), Phaser.Math.FloatBetween(0.52, 0.82))
+        .setBlendMode(Phaser.BlendModes.ADD);
+      root.add(glow);
+      this.ambientParticles.push(glow);
+
+      const baseScaleX = glow.scaleX;
+      const baseScaleY = glow.scaleY;
+      this.tweens.add({
+        targets: glow,
+        x: x + Phaser.Math.FloatBetween(-38, 38),
+        y: y + Phaser.Math.FloatBetween(-24, 24),
+        alpha: Math.min(AMBIENT_PRESENTATION.maxGlowAlpha * 1.35, alpha * Phaser.Math.FloatBetween(1.08, 1.3)),
+        scaleX: baseScaleX * Phaser.Math.FloatBetween(1.025, 1.06),
+        scaleY: baseScaleY * Phaser.Math.FloatBetween(1.025, 1.07),
+        duration: Phaser.Math.Between(
+          AMBIENT_PRESENTATION.minGlowDuration,
+          AMBIENT_PRESENTATION.maxGlowDuration,
+        ),
+        delay: Phaser.Math.Between(0, 3200),
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
+
     for (let index = 0; index < AMBIENT_PRESENTATION.count; index += 1) {
-      const radiusMix = (index % 4) / 3;
-      const alphaMix = (index % 5) / 4;
-      const radius = Phaser.Math.Linear(
-        AMBIENT_PRESENTATION.minRadius,
-        AMBIENT_PRESENTATION.maxRadius,
-        radiusMix,
-      );
-      const alpha = Phaser.Math.Linear(
-        AMBIENT_PRESENTATION.minAlpha,
-        AMBIENT_PRESENTATION.maxAlpha,
-        alphaMix,
-      );
-      const x = 60 + ((index * 173) % usableWidth);
-      const y = 122 + ((index * 97) % 470);
-      const particle = this.add.circle(x, y, radius, colors[index % colors.length], alpha);
+      const radius = Phaser.Math.FloatBetween(AMBIENT_PRESENTATION.minRadius, AMBIENT_PRESENTATION.maxRadius);
+      const alpha = Phaser.Math.FloatBetween(AMBIENT_PRESENTATION.minAlpha, AMBIENT_PRESENTATION.maxAlpha);
+      const x = Phaser.Math.FloatBetween(54, Math.max(55, metrics.logicalWidth - 54));
+      const y = Phaser.Math.FloatBetween(108, 622);
+      const particle = this.add
+        .circle(x, y, radius, colors[Phaser.Math.Between(0, colors.length - 1)], alpha)
+        .setBlendMode(Phaser.BlendModes.ADD);
       root.add(particle);
       this.ambientParticles.push(particle);
 
-      const driftX = (index % 2 === 0 ? 1 : -1) * (18 + (index % 4) * 8);
-      const driftY = -(10 + (index % 3) * 7);
-      const durationMix = (index % 6) / 5;
+      const driftX = Phaser.Math.FloatBetween(-AMBIENT_PRESENTATION.maxDriftX, AMBIENT_PRESENTATION.maxDriftX);
+      const driftY = Phaser.Math.FloatBetween(-AMBIENT_PRESENTATION.maxDriftY, AMBIENT_PRESENTATION.maxDriftY);
+      const targetAlpha = Math.min(0.24, alpha * Phaser.Math.FloatBetween(1.2, 1.72));
       this.tweens.add({
         targets: particle,
-        x: x + Phaser.Math.Clamp(driftX, -AMBIENT_PRESENTATION.maxDriftX, AMBIENT_PRESENTATION.maxDriftX),
-        y: y + Phaser.Math.Clamp(driftY, -AMBIENT_PRESENTATION.maxDriftY, AMBIENT_PRESENTATION.maxDriftY),
-        alpha: Math.min(0.24, alpha * 1.55),
-        duration: Phaser.Math.Linear(
-          AMBIENT_PRESENTATION.minDuration,
-          AMBIENT_PRESENTATION.maxDuration,
-          durationMix,
-        ),
-        delay: index * 110,
+        x: x + driftX,
+        y: y + driftY,
+        alpha: targetAlpha,
+        scale: Phaser.Math.FloatBetween(0.82, 1.34),
+        duration: Phaser.Math.Between(AMBIENT_PRESENTATION.minDuration, AMBIENT_PRESENTATION.maxDuration),
+        delay: Phaser.Math.Between(0, 3400),
         yoyo: true,
         repeat: -1,
+        repeatDelay: Phaser.Math.Between(120, 1500),
         ease: 'Sine.InOut',
       });
     }
@@ -1467,6 +1503,7 @@ export class OpeningScene extends Phaser.Scene {
       if (this.requestPresentationFastForward()) getGameAudio().play('ui-skip');
       return;
     }
+
 
     if (this.phase !== 'result') return;
     if (!this.resultReady && this.requestPresentationFastForward()) {
@@ -3351,25 +3388,29 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.root) return;
     const root = this.root;
     for (let index = 0; index < count; index += 1) {
-      const angle = (Math.PI * 2 * index) / count + 0.12 * (index % 3);
-      const distanceJitter = distance * (0.74 + (index % 4) * 0.09);
+      // Presentation randomness only: loot resolution is already persisted before
+      // this runs. Breaking the old spoke/grid pattern makes repeated openings
+      // feel less stamped without touching any gameplay RNG.
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const distanceJitter = distance * Phaser.Math.FloatBetween(0.68, 1.08);
       const sparkle = this.add
         .circle(
           x,
           y,
-          (index % 3 === 0 ? 7 : index % 2 === 0 ? 5 : 3.5) * sizeScale,
+          Phaser.Math.FloatBetween(3.2, 7.2) * sizeScale,
           color,
-          1,
+          Phaser.Math.FloatBetween(0.72, 1),
         )
-        .setStrokeStyle(1.5, 0xffffff, 0.46);
+        .setStrokeStyle(1.5, 0xffffff, Phaser.Math.FloatBetween(0.34, 0.56));
       root.add(sparkle);
       this.tweens.add({
         targets: sparkle,
         x: x + Math.cos(angle) * distanceJitter,
-        y: y + Math.sin(angle) * distanceJitter * 0.78 - 12,
+        y: y + Math.sin(angle) * distanceJitter * Phaser.Math.FloatBetween(0.7, 0.86) - Phaser.Math.FloatBetween(6, 18),
         alpha: 0,
-        scale: 0.18,
-        duration: duration + (index % 4) * 34,
+        scale: Phaser.Math.FloatBetween(0.12, 0.24),
+        duration: Math.round(duration * Phaser.Math.FloatBetween(0.88, 1.14)),
+        delay: Phaser.Math.Between(0, 72),
         ease: 'Cubic.Out',
         onComplete: () => sparkle.destroy(),
       });
