@@ -4,6 +4,8 @@ import type { PendingReveal } from '../src/game/systems/drops';
 import { createRewardBankingPlan } from '../src/game/systems/rewardBanking';
 
 const makePending = (hiddenPocket: PendingReveal['hiddenPocket']): PendingReveal => ({
+  id: 'reward-banking-test',
+  baseTotalOpens: 8,
   openingNumber: 9,
   pouchType: 'charged',
   lootPoolId: 'test',
@@ -22,7 +24,6 @@ const makePending = (hiddenPocket: PendingReveal['hiddenPocket']): PendingReveal
     cacheBonus: 4,
     recycle: 3,
     rawEarned: 17,
-    overchargeMultiplierHundredths: 120,
     overchargeBonus: 3,
     secretBonus: hiddenPocket ? 40 : 0,
     totalEarned: hiddenPocket ? 60 : 20,
@@ -32,23 +33,29 @@ const makePending = (hiddenPocket: PendingReveal['hiddenPocket']): PendingReveal
     before: 2,
     after: 3,
     gain: 1,
+    lockArmedBefore: false,
     lockReached: false,
     lockConsumed: false,
     lockRetained: false,
   },
   overcharge: {
     beforeHundredths: 100,
-    appliedMultiplierHundredths: 100,
-    appliedGainHundredths: 0,
     afterHundredths: 100,
+    appliedGainHundredths: 0,
+    bonusChips: 3,
   },
   commit: {
     chips: hiddenPocket ? 140 : 100,
     signal: 3,
     overchargeHundredths: 100,
+    activeLootPoolId: 'test',
     totalOpens: 9,
     discoveredStandard: [],
-    discoveredSecret: hiddenPocket ? [hiddenPocket.collectibleId] : [],
+    discoveredSecrets: hiddenPocket ? [hiddenPocket.collectibleId] : [],
+    stats: {
+      duplicates: 1,
+      hiddenPockets: hiddenPocket ? 1 : 0,
+    },
   },
 });
 
@@ -72,6 +79,7 @@ describe('reward banking ownership', () => {
     expect(plan.pages[0]?.totalAmount).toBe(20);
     expect(plan.pages[1]?.legs).toEqual([{ kind: 'secret', amount: 40 }]);
     expect(plan.totalAmount).toBe(60);
+    expect(plan.totalAmount).toBe(pending.chips.totalEarned);
   });
 
   it('banks Secret then standard when the Secret page is active without changing totals', () => {
@@ -86,6 +94,7 @@ describe('reward banking ownership', () => {
     expect(plan.pages[0]?.totalAmount).toBe(40);
     expect(plan.pages[1]?.totalAmount).toBe(20);
     expect(plan.totalAmount).toBe(60);
+    expect(plan.totalAmount).toBe(pending.chips.totalEarned);
     expect(plan.pages.flatMap((page) => page.legs).reduce((sum, leg) => sum + leg.amount, 0)).toBe(60);
   });
 
@@ -99,5 +108,6 @@ describe('reward banking ownership', () => {
     pending.chips.after = pending.chips.before - pending.chips.cost + pending.chips.base;
     const plan = createRewardBankingPlan(pending, 0);
     expect(plan.pages[0]?.legs).toEqual([{ kind: 'base', amount: 10 }]);
+    expect(plan.totalAmount).toBe(pending.chips.totalEarned);
   });
 });
