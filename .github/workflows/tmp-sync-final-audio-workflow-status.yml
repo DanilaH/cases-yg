@@ -1,0 +1,48 @@
+name: Temporary final audio workflow status sync
+
+on:
+  push:
+    branches:
+      - docs/final-audio-feel-acceptance-r1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[final-audio-status-sync]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: docs/final-audio-feel-acceptance-r1
+      - name: Sync workflow status
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/FINAL_AUDIO_FEEL_CORRECTION_WORKFLOW_2026-09-09.md')
+          s = p.read_text()
+          old = 'Status: **APPROVED WORK ORDER / SECOND SUBJECTIVE EAR-CHECK FINDINGS / IMPLEMENTATION PENDING**'
+          new = '''Status: **IMPLEMENTED / AUTOMATED STRUCTURAL ACCEPTANCE PASSED / SUBJECTIVE EAR-CHECK PENDING**
+
+Final implementation/acceptance update:
+
+- validated product revision: `f194800e17f5c9c6abf929f09c4a47b148c1ecab`;
+- final implementation landed through PRs #90–#93;
+- exact-revision combined audit run `34333593406` passed **76/76 assertions**;
+- static suite passed **162/162 tests across 20 files**, plus typecheck, asset gates and production build;
+- long-idle, 30-second Common/Rare/Epic/Legendary/Secret holds, repeated real tears, both Hidden Pocket banking orders, global CHIPS contour, mute/resume and reveal/result/banking resize lifecycle are structurally green;
+- full evidence and the remaining listening gate are recorded in `FINAL_AUDIO_FEEL_ACCEPTANCE_2026-09-09.md`;
+- hosted Yandex DRAFT remains blocked only by the final subjective ear-check.'''
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected one status anchor, found {s.count(old)}')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit status sync
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/FINAL_AUDIO_FEEL_CORRECTION_WORKFLOW_2026-09-09.md
+          git diff --cached --check
+          git commit -m "[final-audio-status-sync] Mark automated acceptance complete"
+          git push origin HEAD:docs/final-audio-feel-acceptance-r1
