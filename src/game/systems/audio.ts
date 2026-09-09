@@ -558,8 +558,8 @@ class GameAudioController {
     const padLfo = context.createOscillator();
     const padLfoDepth = context.createGain();
     padLfo.type = 'sine';
-    padLfo.frequency.setValueAtTime(0.021, now);
-    padLfoDepth.gain.setValueAtTime(120, now);
+    padLfo.frequency.setValueAtTime(BASE_AMBIENCE_PROFILE.padMotionRateHz, now);
+    padLfoDepth.gain.setValueAtTime(BASE_AMBIENCE_PROFILE.padFilterSweepHz, now);
     padLfo.connect(padLfoDepth);
     padLfoDepth.connect(padFilter.frequency);
     padLfo.start(now);
@@ -580,6 +580,18 @@ class GameAudioController {
     shimmerLow.connect(shimmerGain);
     shimmerGain.connect(bus);
     shimmer.start(now + 0.37);
+
+    const shimmerLfo = context.createOscillator();
+    const shimmerLfoDepth = context.createGain();
+    shimmerLfo.type = 'sine';
+    shimmerLfo.frequency.setValueAtTime(BASE_AMBIENCE_PROFILE.shimmerMotionRateHz, now);
+    shimmerLfoDepth.gain.setValueAtTime(
+      BASE_AMBIENCE_PROFILE.shimmerGain * BASE_AMBIENCE_PROFILE.shimmerMotionDepth,
+      now,
+    );
+    shimmerLfo.connect(shimmerLfoDepth);
+    shimmerLfoDepth.connect(shimmerGain.gain);
+    shimmerLfo.start(now + 0.53);
   }
 
   private duckBase(
@@ -653,8 +665,11 @@ class GameAudioController {
 
     const now = context.currentTime;
     const bus = context.createGain();
+    const introPeakAt = now + profile.introPeakMs / 1000;
+    const introSettleAt = introPeakAt + profile.introSettleMs / 1000;
     bus.gain.setValueAtTime(0.0001, now);
-    bus.gain.linearRampToValueAtTime(profile.busGain, now + profile.fadeInMs / 1000);
+    bus.gain.linearRampToValueAtTime(profile.busGain * profile.introPeakMultiplier, introPeakAt);
+    bus.gain.linearRampToValueAtTime(profile.busGain, introSettleAt);
     bus.connect(context.destination);
     this.persistentRarityBus = bus;
 
@@ -694,6 +709,17 @@ class GameAudioController {
     pulse.start(now);
     this.persistentRaritySources.push(pulse);
 
+    // One slow shared colour source changes spectral balance without creating a melody.
+    const colour = context.createOscillator();
+    const toneColourDepth = context.createGain();
+    colour.type = 'sine';
+    colour.frequency.setValueAtTime(profile.motionRateHz, now);
+    toneColourDepth.gain.setValueAtTime(profile.toneFilterMotionHz, now);
+    colour.connect(toneColourDepth);
+    toneColourDepth.connect(toneFilter.frequency);
+    colour.start(now + 0.17);
+    this.persistentRaritySources.push(colour);
+
     if (profile.shimmerGain > 0) {
       const shimmer = context.createBufferSource();
       shimmer.buffer = this.getAmbienceNoiseBuffer(context);
@@ -704,6 +730,14 @@ class GameAudioController {
       shimmerBand.Q.setValueAtTime(rarity === 'secret' ? 0.62 : 0.78, now);
       const shimmerGain = context.createGain();
       shimmerGain.gain.setValueAtTime(profile.shimmerGain, now);
+      const shimmerBandDepth = context.createGain();
+      shimmerBandDepth.gain.setValueAtTime(profile.shimmerBandMotionHz, now);
+      const shimmerGainDepth = context.createGain();
+      shimmerGainDepth.gain.setValueAtTime(profile.shimmerGain * profile.shimmerMotionDepth, now);
+      colour.connect(shimmerBandDepth);
+      shimmerBandDepth.connect(shimmerBand.frequency);
+      colour.connect(shimmerGainDepth);
+      shimmerGainDepth.connect(shimmerGain.gain);
       shimmer.connect(shimmerBand);
       shimmerBand.connect(shimmerGain);
       shimmerGain.connect(bus);

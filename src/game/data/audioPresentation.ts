@@ -11,7 +11,11 @@ export interface BaseAmbienceProfile {
   humGain: number;
   padGain: number;
   padLowpassHz: number;
+  padMotionRateHz: number;
+  padFilterSweepHz: number;
   shimmerGain: number;
+  shimmerMotionRateHz: number;
+  shimmerMotionDepth: number;
   fadeInMs: number;
   padFrequencies: readonly number[];
 }
@@ -36,9 +40,16 @@ export interface RarityAmbienceProfile {
   toneFrequencies: readonly number[];
   pulseRateHz: number;
   pulseDepth: number;
+  motionRateHz: number;
+  toneFilterMotionHz: number;
+  shimmerBandMotionHz: number;
+  shimmerMotionDepth: number;
   stereoSpread: number;
   toneLowpassHz: number;
   shimmerBandHz: number;
+  introPeakMultiplier: number;
+  introPeakMs: number;
+  introSettleMs: number;
   baseMixMultiplier: number;
   fadeInMs: number;
   fadeOutMs: number;
@@ -141,7 +152,11 @@ export const BASE_AMBIENCE_PROFILE: Readonly<BaseAmbienceProfile> = {
   humGain: 0,
   padGain: 0.015,
   padLowpassHz: 1450,
+  padMotionRateHz: 0.021,
+  padFilterSweepHz: 120,
   shimmerGain: 0.0018,
+  shimmerMotionRateHz: 0.037,
+  shimmerMotionDepth: 0.24,
   fadeInMs: 900,
   padFrequencies: [174.61, 261.63, 349.23],
 } as const;
@@ -203,69 +218,106 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     toneFrequencies: [],
     pulseRateHz: 0,
     pulseDepth: 0,
+    motionRateHz: 0,
+    toneFilterMotionHz: 0,
+    shimmerBandMotionHz: 0,
+    shimmerMotionDepth: 0,
     stereoSpread: 0,
     toneLowpassHz: 0,
     shimmerBandHz: 0,
+    introPeakMultiplier: 1,
+    introPeakMs: 0,
+    introSettleMs: 0,
     baseMixMultiplier: 0.96,
     fadeInMs: 0,
     fadeOutMs: 190,
   },
   rare: {
     enabled: true,
-    busGain: 0.18,
-    toneGain: 0.01,
-    shimmerGain: 0.0016,
+    busGain: 0.195,
+    toneGain: 0.0105,
+    shimmerGain: 0.0018,
     toneFrequencies: [392, 587.33],
     pulseRateHz: 0.09,
-    pulseDepth: 0.045,
+    pulseDepth: 0.07,
+    motionRateHz: 0.043,
+    toneFilterMotionHz: 180,
+    shimmerBandMotionHz: 260,
+    shimmerMotionDepth: 0.12,
     stereoSpread: 0.16,
     toneLowpassHz: 2400,
     shimmerBandHz: 4100,
+    introPeakMultiplier: 1.08,
+    introPeakMs: 240,
+    introSettleMs: 260,
     baseMixMultiplier: 0.68,
     fadeInMs: 320,
     fadeOutMs: 210,
   },
   epic: {
     enabled: true,
-    busGain: 0.21,
-    toneGain: 0.0115,
-    shimmerGain: 0.0022,
+    busGain: 0.225,
+    toneGain: 0.012,
+    shimmerGain: 0.0025,
     toneFrequencies: [349.23, 523.25, 783.99],
     pulseRateHz: 0.08,
-    pulseDepth: 0.055,
+    pulseDepth: 0.09,
+    motionRateHz: 0.049,
+    toneFilterMotionHz: 260,
+    shimmerBandMotionHz: 420,
+    shimmerMotionDepth: 0.18,
     stereoSpread: 0.25,
     toneLowpassHz: 2800,
     shimmerBandHz: 4700,
+    introPeakMultiplier: 1.1,
+    introPeakMs: 250,
+    introSettleMs: 280,
     baseMixMultiplier: 0.55,
     fadeInMs: 320,
     fadeOutMs: 225,
   },
   legendary: {
     enabled: true,
-    busGain: 0.24,
-    toneGain: 0.013,
-    shimmerGain: 0.003,
-    toneFrequencies: [329.63, 493.88, 739.99, 987.77],
-    pulseRateHz: 0.07,
-    pulseDepth: 0.065,
-    stereoSpread: 0.34,
-    toneLowpassHz: 3200,
-    shimmerBandHz: 5200,
+    busGain: 0.27,
+    toneGain: 0.0145,
+    shimmerGain: 0.0042,
+    // Promote the ear-approved Secret harmonic family into Legendary.
+    toneFrequencies: [293.66, 440, 659.25, 880, 1174.66],
+    pulseRateHz: 0.06,
+    pulseDepth: 0.12,
+    motionRateHz: 0.037,
+    toneFilterMotionHz: 420,
+    shimmerBandMotionHz: 620,
+    shimmerMotionDepth: 0.24,
+    stereoSpread: 0.42,
+    toneLowpassHz: 3600,
+    shimmerBandHz: 5800,
+    introPeakMultiplier: 1.14,
+    introPeakMs: 270,
+    introSettleMs: 320,
     baseMixMultiplier: 0.43,
     fadeInMs: 340,
     fadeOutMs: 245,
   },
   secret: {
     enabled: true,
-    busGain: 0.27,
-    toneGain: 0.014,
-    shimmerGain: 0.004,
-    toneFrequencies: [293.66, 440, 659.25, 880, 1174.66],
-    pulseRateHz: 0.055,
-    pulseDepth: 0.075,
-    stereoSpread: 0.44,
-    toneLowpassHz: 3600,
-    shimmerBandHz: 5800,
+    busGain: 0.305,
+    toneGain: 0.016,
+    shimmerGain: 0.0054,
+    // Preserve the successful family, extending it upward rather than adding low pressure.
+    toneFrequencies: [293.66, 440, 659.25, 880, 1174.66, 1567.98],
+    pulseRateHz: 0.052,
+    pulseDepth: 0.15,
+    motionRateHz: 0.031,
+    toneFilterMotionHz: 620,
+    shimmerBandMotionHz: 900,
+    shimmerMotionDepth: 0.3,
+    stereoSpread: 0.49,
+    toneLowpassHz: 4300,
+    shimmerBandHz: 6600,
+    introPeakMultiplier: 1.18,
+    introPeakMs: 300,
+    introSettleMs: 360,
     baseMixMultiplier: 0.31,
     fadeInMs: 360,
     fadeOutMs: 270,
