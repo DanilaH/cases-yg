@@ -133,8 +133,14 @@ describe('audio presentation', () => {
     const slowMid = getDragTextureMix(0.5, 0.15);
     const fastMid = getDragTextureMix(0.5, 0.9);
     const end = getDragTextureMix(1, 1);
+    const startupBurst = getDragTextureMix(0.02, 1, 0);
+    const steadyBurst = getDragTextureMix(0.02, 1, 1);
 
     expect(DRAG_TEXTURE_PROFILE.maxGain).toBe(0.01);
+    expect(DRAG_TEXTURE_PROFILE.startAttackMs).toBeGreaterThanOrEqual(100);
+    expect(DRAG_TEXTURE_PROFILE.startAttackMs).toBeLessThanOrEqual(160);
+    expect(DRAG_TEXTURE_PROFILE.startVelocityCap).toBeLessThanOrEqual(0.35);
+    expect(DRAG_TEXTURE_PROFILE.startGainMultiplier).toBeLessThanOrEqual(0.35);
     expect(DRAG_TEXTURE_PROFILE.idleReleaseMs).toBeLessThanOrEqual(110);
     expect(DRAG_TEXTURE_PROFILE.releaseMs).toBeLessThanOrEqual(70);
     expect(DRAG_TEXTURE_PROFILE.progressWeight + DRAG_TEXTURE_PROFILE.velocityWeight).toBeCloseTo(1);
@@ -144,6 +150,9 @@ describe('audio presentation', () => {
     expect(fastMid.bandHz).toBeGreaterThan(slowMid.bandHz);
     expect(end.gain).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxGain);
     expect(end.bandHz).toBeLessThanOrEqual(DRAG_TEXTURE_PROFILE.maxBandHz);
+    expect(startupBurst.gain).toBeLessThan(steadyBurst.gain * 0.5);
+    expect(startupBurst.bandHz).toBeLessThan(steadyBurst.bandHz);
+    expect(startupBurst.q).toBeLessThan(steadyBurst.q);
   });
 
   it('clears stale result ambience before a new physical/reveal cycle', () => {

@@ -121,6 +121,7 @@ class GameAudioController {
   private dragTextureFilter: BiquadFilterNode | null = null;
   private dragTextureGain: GainNode | null = null;
   private dragTextureIdleTimer: number | null = null;
+  private dragTextureEnvelopeStartedAt: number | null = null;
   private muted = false;
   private blocked = false;
 
@@ -317,6 +318,7 @@ class GameAudioController {
     this.dragTextureSource = null;
     this.dragTextureFilter = null;
     this.dragTextureGain = null;
+    this.dragTextureEnvelopeStartedAt = null;
     if (!source) return;
 
     const context = this.context;
@@ -350,9 +352,15 @@ class GameAudioController {
   }
 
   private updateDragTexture(context: AudioContext, progress: number, velocity: number): void {
-    const mix = getDragTextureMix(progress, velocity);
     const now = context.currentTime;
-    if (!this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain) {
+    const isStarting = !this.dragTextureSource || !this.dragTextureFilter || !this.dragTextureGain;
+    if (isStarting || this.dragTextureEnvelopeStartedAt === null) this.dragTextureEnvelopeStartedAt = now;
+    const startupProgress = Math.min(
+      1,
+      Math.max(0, ((now - this.dragTextureEnvelopeStartedAt) * 1000) / DRAG_TEXTURE_PROFILE.startAttackMs),
+    );
+    const mix = getDragTextureMix(progress, velocity, startupProgress);
+    if (isStarting) {
       const source = context.createBufferSource();
       source.buffer = this.getAmbienceNoiseBuffer(context);
       source.loop = true;
@@ -406,6 +414,7 @@ class GameAudioController {
     const gain = this.dragTextureGain;
     if (!context || context.state !== 'running' || !gain) return;
     const now = context.currentTime;
+    this.dragTextureEnvelopeStartedAt = null;
     gain.gain.cancelScheduledValues(now);
     gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + DRAG_TEXTURE_PROFILE.releaseMs / 1000);
