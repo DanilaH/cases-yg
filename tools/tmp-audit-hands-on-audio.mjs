@@ -169,9 +169,12 @@ const hideDebugPanel = async () => page.evaluate(() => {
 });
 
 await page.goto(baseUrl, { waitUntil: 'networkidle' });
-const reloadPromise = page.waitForEvent('load', { timeout: 10000 });
 await page.getByRole('button', { name: 'Force Hidden Pocket', exact: true }).click();
-await reloadPromise;
+// The debug action stages the durable pending reveal and schedules its own reload.
+// Give that navigation time to begin, then force one deterministic reload while the
+// pending transaction is still uncommitted so the recovery path is reproducible.
+await page.waitForTimeout(350);
+await page.reload({ waitUntil: 'networkidle' });
 await page.waitForSelector('canvas');
 await page.waitForTimeout(3200);
 await hideDebugPanel();
