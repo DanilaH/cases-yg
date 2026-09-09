@@ -2,19 +2,26 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BASE_AMBIENCE_PROFILE,
+  CHIP_PITCH_PROFILE,
   DRAG_TEXTURE_PROFILE,
+  ONE_SHOT_PITCH_VARIATION,
   getAudioCuePresentationDirective,
+  getChipPitchMultiplier,
+  getOneShotPitchVariation,
   getDragTextureMix,
   getRarityAmbienceProfile,
   getRevealAnticipationAudioProfile,
 } from '../src/game/data/audioPresentation';
 
 describe('audio presentation', () => {
-  it('keeps the base bed restrained and non-melodic by construction', () => {
-    expect(BASE_AMBIENCE_PROFILE.busGain).toBeLessThanOrEqual(0.3);
-    expect(BASE_AMBIENCE_PROFILE.roomNoiseGain).toBeGreaterThan(BASE_AMBIENCE_PROFILE.shimmerGain);
+  it('keeps the base bed calm and away from server-room pressure', () => {
+    expect(BASE_AMBIENCE_PROFILE.busGain).toBeLessThanOrEqual(0.22);
+    expect(BASE_AMBIENCE_PROFILE.roomNoiseGain).toBeLessThanOrEqual(0.015);
+    expect(BASE_AMBIENCE_PROFILE.humGain).toBe(0);
+    expect(BASE_AMBIENCE_PROFILE.roomHighpassHz).toBeGreaterThanOrEqual(120);
     expect(BASE_AMBIENCE_PROFILE.padFrequencies).toHaveLength(3);
-    expect(BASE_AMBIENCE_PROFILE.fadeInMs).toBeGreaterThanOrEqual(500);
+    expect(Math.min(...BASE_AMBIENCE_PROFILE.padFrequencies)).toBeGreaterThanOrEqual(170);
+    expect(BASE_AMBIENCE_PROFILE.fadeInMs).toBeGreaterThanOrEqual(700);
   });
 
   it('keeps Common clean and tiers persistent rarity presence through density and mix', () => {
@@ -34,6 +41,29 @@ describe('audio presentation', () => {
     expect(rare.baseMixMultiplier).toBeGreaterThan(epic.baseMixMultiplier);
     expect(epic.baseMixMultiplier).toBeGreaterThan(legendary.baseMixMultiplier);
     expect(legendary.baseMixMultiplier).toBeGreaterThan(secret.baseMixMultiplier);
+    expect(rare.baseMixMultiplier).toBeLessThanOrEqual(0.72);
+    expect(epic.baseMixMultiplier).toBeLessThanOrEqual(0.6);
+    expect(legendary.baseMixMultiplier).toBeLessThanOrEqual(0.48);
+    expect(secret.baseMixMultiplier).toBeLessThanOrEqual(0.36);
+    expect(Math.min(...rare.toneFrequencies)).toBeGreaterThanOrEqual(350);
+    expect(Math.min(...secret.toneFrequencies)).toBeGreaterThanOrEqual(280);
+  });
+
+  it('keeps one-shot pitch variation subtle and gives CHIPS one bounded rising contour', () => {
+    expect(ONE_SHOT_PITCH_VARIATION.defaultAmount).toBeLessThanOrEqual(0.03);
+    expect(ONE_SHOT_PITCH_VARIATION.uiAmount).toBeLessThanOrEqual(0.04);
+    expect(ONE_SHOT_PITCH_VARIATION.tonalAmount).toBeLessThanOrEqual(0.02);
+    expect(getOneShotPitchVariation('ui-click')).toBeGreaterThan(getOneShotPitchVariation('legendary'));
+    expect(getOneShotPitchVariation('chip-clack')).toBe(0);
+
+    const start = getChipPitchMultiplier(0, 0.5);
+    const middle = getChipPitchMultiplier(0.5, 0.5);
+    const end = getChipPitchMultiplier(1, 0.5);
+    expect(start).toBeCloseTo(CHIP_PITCH_PROFILE.startMultiplier);
+    expect(start).toBeLessThan(middle);
+    expect(middle).toBeLessThan(end);
+    expect(end).toBeCloseTo(CHIP_PITCH_PROFILE.endMultiplier);
+    expect(getChipPitchMultiplier(1, 1)).toBeLessThanOrEqual(1.2);
   });
 
   it('keeps transient rarity cues transient so stable result state owns ambience', () => {

@@ -16,7 +16,7 @@ describe('audio runtime contract', () => {
   });
 
   it('does not turn ordinary UI into ambience state changes', () => {
-    for (const cue of ['ui-click', 'ui-skip', 'pouch-select', 'ui-denied', 'charged-spend', 'chip-clack'] as const) {
+    for (const cue of ['ui-click', 'ui-skip', 'carousel-switch', 'pouch-select', 'ui-denied', 'charged-spend', 'chip-clack'] as const) {
       const directive = getAudioCuePresentationDirective(cue);
       expect(directive.persistent).toBeUndefined();
       expect(directive.clearPersistent).toBeUndefined();
@@ -29,6 +29,8 @@ describe('audio runtime contract', () => {
     expect(secret.busGain).toBeGreaterThan(legendary.busGain);
     expect(secret.shimmerGain).toBeGreaterThan(legendary.shimmerGain);
     expect(secret.baseMixMultiplier).toBeLessThan(legendary.baseMixMultiplier);
+    expect(legendary.baseMixMultiplier).toBeLessThanOrEqual(0.48);
+    expect(secret.baseMixMultiplier).toBeLessThanOrEqual(0.36);
     expect(secret.fadeOutMs).toBeGreaterThan(legendary.fadeOutMs);
     expect(secret.busGain).toBeLessThan(0.5);
   });

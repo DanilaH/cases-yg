@@ -6,11 +6,26 @@ export type PersistentResultAmbience = Exclude<ResultAmbienceRarity, 'common'>;
 export interface BaseAmbienceProfile {
   busGain: number;
   roomNoiseGain: number;
+  roomHighpassHz: number;
+  roomLowpassHz: number;
   humGain: number;
   padGain: number;
+  padLowpassHz: number;
   shimmerGain: number;
   fadeInMs: number;
   padFrequencies: readonly number[];
+}
+
+export interface OneShotPitchVariationProfile {
+  defaultAmount: number;
+  uiAmount: number;
+  tonalAmount: number;
+}
+
+export interface ChipPitchProfile {
+  startMultiplier: number;
+  endMultiplier: number;
+  jitterAmount: number;
 }
 
 export interface RarityAmbienceProfile {
@@ -118,14 +133,67 @@ export const getDragTextureMix = (progress: number, velocity: number): DragTextu
 };
 
 export const BASE_AMBIENCE_PROFILE: Readonly<BaseAmbienceProfile> = {
-  busGain: 0.3,
-  roomNoiseGain: 0.05,
-  humGain: 0.016,
-  padGain: 0.022,
-  shimmerGain: 0.005,
-  fadeInMs: 650,
-  padFrequencies: [110, 164.81, 220],
+  // Hands-on correction: room tone should feel like soft air, not a server rack.
+  busGain: 0.2,
+  roomNoiseGain: 0.012,
+  roomHighpassHz: 150,
+  roomLowpassHz: 2600,
+  humGain: 0,
+  padGain: 0.015,
+  padLowpassHz: 1450,
+  shimmerGain: 0.0018,
+  fadeInMs: 900,
+  padFrequencies: [174.61, 261.63, 349.23],
 } as const;
+
+export const ONE_SHOT_PITCH_VARIATION: Readonly<OneShotPitchVariationProfile> = {
+  defaultAmount: 0.022,
+  uiAmount: 0.032,
+  tonalAmount: 0.012,
+} as const;
+
+export const getOneShotPitchVariation = (cue: SfxCue): number => {
+  if (cue === 'chip-clack') return 0;
+  if (
+    cue === 'ui-click' ||
+    cue === 'ui-skip' ||
+    cue === 'carousel-switch' ||
+    cue === 'pouch-select' ||
+    cue === 'pouch-grab' ||
+    cue === 'ui-denied' ||
+    cue === 'duplicate' ||
+    cue === 'signal-gain'
+  ) {
+    return ONE_SHOT_PITCH_VARIATION.uiAmount;
+  }
+  if (
+    cue === 'common' ||
+    cue === 'rare' ||
+    cue === 'epic' ||
+    cue === 'legendary' ||
+    cue === 'secret-reveal' ||
+    cue === 'collection-complete'
+  ) {
+    return ONE_SHOT_PITCH_VARIATION.tonalAmount;
+  }
+  return ONE_SHOT_PITCH_VARIATION.defaultAmount;
+};
+
+export const CHIP_PITCH_PROFILE: Readonly<ChipPitchProfile> = {
+  startMultiplier: 0.92,
+  endMultiplier: 1.18,
+  jitterAmount: 0.012,
+} as const;
+
+export const getChipPitchMultiplier = (progress: number, jitterUnit = 0.5): number => {
+  const clamped = Math.max(0, Math.min(1, progress));
+  const eased = 1 - (1 - clamped) * (1 - clamped);
+  const contour =
+    CHIP_PITCH_PROFILE.startMultiplier +
+    (CHIP_PITCH_PROFILE.endMultiplier - CHIP_PITCH_PROFILE.startMultiplier) * eased;
+  const jitter = (Math.max(0, Math.min(1, jitterUnit)) * 2 - 1) * CHIP_PITCH_PROFILE.jitterAmount;
+  return contour * (1 + jitter);
+};
 
 export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, RarityAmbienceProfile>> = {
   common: {
@@ -141,67 +209,67 @@ export const RARITY_AMBIENCE_PROFILES: Readonly<Record<ResultAmbienceRarity, Rar
     shimmerBandHz: 0,
     baseMixMultiplier: 0.96,
     fadeInMs: 0,
-    fadeOutMs: 180,
+    fadeOutMs: 190,
   },
   rare: {
     enabled: true,
-    busGain: 0.24,
-    toneGain: 0.026,
-    shimmerGain: 0.004,
-    toneFrequencies: [164.81, 329.63],
-    pulseRateHz: 0.13,
-    pulseDepth: 0.08,
-    stereoSpread: 0.18,
-    toneLowpassHz: 760,
-    shimmerBandHz: 2500,
-    baseMixMultiplier: 0.88,
+    busGain: 0.18,
+    toneGain: 0.01,
+    shimmerGain: 0.0016,
+    toneFrequencies: [392, 587.33],
+    pulseRateHz: 0.09,
+    pulseDepth: 0.045,
+    stereoSpread: 0.16,
+    toneLowpassHz: 2400,
+    shimmerBandHz: 4100,
+    baseMixMultiplier: 0.68,
     fadeInMs: 320,
-    fadeOutMs: 180,
+    fadeOutMs: 210,
   },
   epic: {
     enabled: true,
-    busGain: 0.28,
-    toneGain: 0.03,
-    shimmerGain: 0.006,
-    toneFrequencies: [146.83, 293.66, 587.33],
-    pulseRateHz: 0.16,
-    pulseDepth: 0.11,
-    stereoSpread: 0.28,
-    toneLowpassHz: 980,
-    shimmerBandHz: 3100,
-    baseMixMultiplier: 0.76,
-    fadeInMs: 300,
-    fadeOutMs: 190,
+    busGain: 0.21,
+    toneGain: 0.0115,
+    shimmerGain: 0.0022,
+    toneFrequencies: [349.23, 523.25, 783.99],
+    pulseRateHz: 0.08,
+    pulseDepth: 0.055,
+    stereoSpread: 0.25,
+    toneLowpassHz: 2800,
+    shimmerBandHz: 4700,
+    baseMixMultiplier: 0.55,
+    fadeInMs: 320,
+    fadeOutMs: 225,
   },
   legendary: {
     enabled: true,
-    busGain: 0.34,
-    toneGain: 0.034,
-    shimmerGain: 0.008,
-    toneFrequencies: [130.81, 261.63, 523.25],
-    pulseRateHz: 0.14,
-    pulseDepth: 0.15,
-    stereoSpread: 0.38,
-    toneLowpassHz: 1150,
-    shimmerBandHz: 3600,
-    baseMixMultiplier: 0.64,
-    fadeInMs: 280,
-    fadeOutMs: 210,
+    busGain: 0.24,
+    toneGain: 0.013,
+    shimmerGain: 0.003,
+    toneFrequencies: [329.63, 493.88, 739.99, 987.77],
+    pulseRateHz: 0.07,
+    pulseDepth: 0.065,
+    stereoSpread: 0.34,
+    toneLowpassHz: 3200,
+    shimmerBandHz: 5200,
+    baseMixMultiplier: 0.43,
+    fadeInMs: 340,
+    fadeOutMs: 245,
   },
   secret: {
     enabled: true,
-    busGain: 0.38,
-    toneGain: 0.038,
-    shimmerGain: 0.011,
-    toneFrequencies: [82.41, 164.81, 247, 494],
-    pulseRateHz: 0.1,
-    pulseDepth: 0.18,
-    stereoSpread: 0.5,
-    toneLowpassHz: 1280,
-    shimmerBandHz: 4200,
-    baseMixMultiplier: 0.48,
-    fadeInMs: 340,
-    fadeOutMs: 240,
+    busGain: 0.27,
+    toneGain: 0.014,
+    shimmerGain: 0.004,
+    toneFrequencies: [293.66, 440, 659.25, 880, 1174.66],
+    pulseRateHz: 0.055,
+    pulseDepth: 0.075,
+    stereoSpread: 0.44,
+    toneLowpassHz: 3600,
+    shimmerBandHz: 5800,
+    baseMixMultiplier: 0.31,
+    fadeInMs: 360,
+    fadeOutMs: 270,
   },
 } as const;
 
