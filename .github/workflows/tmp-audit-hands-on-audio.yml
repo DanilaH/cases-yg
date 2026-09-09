@@ -42,6 +42,78 @@ jobs:
           done
           cat /tmp/mpt-dev.log
           exit 1
+      - name: Correct audit for default Secret carousel page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tools/tmp-audit-hands-on-audio.mjs')
+          t = p.read_text()
+          start = t.index('const standardInitial = await persistentSnapshot();')
+          end = t.index('const bankingMark = await oscillatorCount();')
+          new = '''const secretInitial = await persistentSnapshot();
+
+const subthresholdMark = await oscillatorCount();
+await drag(-30);
+const subthresholdClicks = await recentCarouselSwitchCount(subthresholdMark);
+assert(subthresholdClicks === 0, 'Sub-threshold carousel drag emitted a switch cue', { subthresholdClicks });
+
+const returnMark = await oscillatorCount();
+await drag(112);
+const returnClicks = await recentCarouselSwitchCount(returnMark);
+const standardAfterReturn = await persistentSnapshot();
+assert(returnClicks === 1, 'Secret to standard page change did not emit exactly one switch cue', { returnClicks });
+assert(standardAfterReturn.total < secretInitial.total, 'Secret persistent sources were not retired on return', {
+  secretInitial,
+  standardAfterReturn,
+});
+
+const secondSecretMark = await oscillatorCount();
+await drag(-112);
+const secondSecretClicks = await recentCarouselSwitchCount(secondSecretMark);
+const secretSecond = await persistentSnapshot();
+assert(secondSecretClicks === 1, 'Standard to Secret page change did not emit exactly one switch cue', { secondSecretClicks });
+assert(secretSecond.total > standardAfterReturn.total, 'Secret page did not take persistent ambience ownership', {
+  standardAfterReturn,
+  secretSecond,
+});
+assert(Math.abs(secretSecond.total - secretInitial.total) <= 1, 'Persistent rarity sources stacked across carousel cycles', {
+  secretInitial,
+  secretSecond,
+});
+
+const secondReturnMark = await oscillatorCount();
+await drag(112);
+const secondReturnClicks = await recentCarouselSwitchCount(secondReturnMark);
+const standardSecondReturn = await persistentSnapshot();
+assert(secondReturnClicks === 1, 'Second return page change did not emit exactly one switch cue', { secondReturnClicks });
+assert(Math.abs(standardSecondReturn.total - standardAfterReturn.total) <= 1, 'Base/persistent source count drifted after repeated page switching', {
+  standardAfterReturn,
+  standardSecondReturn,
+});
+
+'''
+          t = t[:start] + new + t[end:]
+          report_start = t.index('const report = {')
+          report_end = t.index('\n\nawait writeFile', report_start)
+          report = '''const report = {
+  failures,
+  pageErrors,
+  badResponses,
+  secretInitial,
+  standardAfterReturn,
+  secretSecond,
+  standardSecondReturn,
+  afterBanking,
+  switchCounts: {
+    subthreshold: subthresholdClicks,
+    firstReturn: returnClicks,
+    secondSecret: secondSecretClicks,
+    secondReturn: secondReturnClicks,
+  },
+  chipClacks: clacks,
+};'''
+          p.write_text(t[:report_start] + report + t[report_end:])
+          PY
       - name: Run browser audit
         run: node tools/tmp-audit-hands-on-audio.mjs
       - name: Upload report
@@ -54,6 +126,7 @@ jobs:
       - name: Remove temporary audit tooling
         if: success()
         run: |
+          git checkout -- tools/tmp-audit-hands-on-audio.mjs package.json package-lock.json || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm tools/tmp-audit-hands-on-audio.mjs .github/workflows/tmp-audit-hands-on-audio.yml
