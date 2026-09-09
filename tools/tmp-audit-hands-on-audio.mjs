@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { writeFile } from 'node:fs/promises';
 
-const baseUrl = 'http://127.0.0.1:4173/?debug=1';
+const baseUrl = 'http://127.0.0.1:5173/?debug=1';
 const reportPath = 'hands-on-audio-audit.json';
 const failures = [];
 const pageErrors = [];
@@ -20,7 +20,7 @@ const page = await context.newPage();
 
 page.on('pageerror', (error) => pageErrors.push(String(error)));
 page.on('response', (response) => {
-  if (response.status() >= 400 && response.url().startsWith('http://127.0.0.1:4173')) {
+  if (response.status() >= 400 && response.url().startsWith('http://127.0.0.1:5173')) {
     badResponses.push({ status: response.status(), url: response.url() });
   }
 });
@@ -170,9 +170,6 @@ const hideDebugPanel = async () => page.evaluate(() => {
 
 await page.goto(baseUrl, { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Force Hidden Pocket', exact: true }).click();
-// The debug action stages the durable pending reveal and schedules its own reload.
-// Give that navigation time to begin, then force one deterministic reload while the
-// pending transaction is still uncommitted so the recovery path is reproducible.
 await page.waitForTimeout(350);
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForSelector('canvas');
