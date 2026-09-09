@@ -1,0 +1,50 @@
+name: TEMP confirm opening timing R2
+on:
+  push:
+    branches: [polish/independent-feel-correction-r1]
+    paths: [.github/workflows/tmp-confirm-timing-r2.yml]
+permissions:
+  contents: write
+jobs:
+  confirm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/independent-feel-correction-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Expose audit handles
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/main.ts'); t=p.read_text(); anchor='  game.sound.mute = blocked;\n'
+          injection='''  if (import.meta.env.DEV) {\n    const auditWindow = window as typeof window & { __auditGame?: Phaser.Game; __auditAudio?: unknown };\n    auditWindow.__auditGame = game;\n    auditWindow.__auditAudio = audio;\n  }\n'''
+          if anchor not in t: raise SystemExit('audit anchor missing')
+          p.write_text(t.replace(anchor, anchor + injection, 1))
+          PY
+      - name: Confirm timing stability
+        run: |
+          npm run dev -- --host 127.0.0.1 >/tmp/vite-confirm.log 2>&1 &
+          PID=$!; trap 'kill $PID || true' EXIT
+          for i in $(seq 1 50); do curl -fsS http://127.0.0.1:5173/ >/dev/null && break || sleep 1; done
+          node tools/tmp-confirm-timing.mjs
+      - name: Clean temporary timing probe
+        if: always()
+        run: |
+          git checkout -- src/main.ts package.json package-lock.json || true
+          rm -f .github/workflows/tmp-confirm-timing-r2.yml tools/tmp-confirm-timing.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove temporary timing confirmation R2'
+            git push origin HEAD:polish/independent-feel-correction-r1
+          fi
