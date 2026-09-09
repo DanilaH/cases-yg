@@ -1,0 +1,62 @@
+name: Temporary drag pointer-time patch
+
+on:
+  push:
+    branches:
+      - fix/drag-pointer-time-r1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/drag-pointer-time-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - name: Patch pointer-event timing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+          replacements = [
+              ('lastPointerTime: this.time.now,', 'lastPointerTime: pointer.time,'),
+              ('const elapsedSeconds = Math.max(0.008, (this.time.now - this.drag.lastPointerTime) / 1000);', 'const elapsedSeconds = Math.max(0.008, (pointer.time - this.drag.lastPointerTime) / 1000);'),
+              ('this.drag.lastPointerTime = this.time.now;', 'this.drag.lastPointerTime = pointer.time;'),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one occurrence: {old!r}; found {text.count(old)}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - name: Verify exact scope
+        run: |
+          git diff -- src/game/scenes/OpeningScene.ts
+          test "$(git diff --name-only | tr '\n' ' ')" = "src/game/scenes/OpeningScene.ts "
+          grep -F "lastPointerTime: pointer.time" src/game/scenes/OpeningScene.ts
+          grep -F "pointer.time - this.drag.lastPointerTime" src/game/scenes/OpeningScene.ts
+          grep -F "this.drag.lastPointerTime = pointer.time" src/game/scenes/OpeningScene.ts
+      - name: Verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+      - name: Commit product patch and remove harness
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-fix-drag-pointer-time-r1.yml
+          git add src/game/scenes/OpeningScene.ts
+          git commit -m "Use pointer event time for drag velocity"
+          git push origin HEAD:fix/drag-pointer-time-r1
