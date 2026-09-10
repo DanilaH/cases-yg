@@ -28,4 +28,10 @@ for old, new in strict_replacements.items():
         raise SystemExit(f'drop-ui-pass.py: strict replacement not found: {old}')
     source = source.replace(old, new)
 
+fixture_old = "      signal: 3,\\n      overchargeHundredths: 130,"
+fixture_new = "      signal: LITE_V2_BALANCE.signalThreshold,\\n      overchargeHundredths: 130,"
+if source.count(fixture_old) != 1:
+    raise SystemExit(f'drop-ui-pass.py: economy fixture replacement not found ({source.count(fixture_old)})')
+source = source.replace(fixture_old, fixture_new)
+
 exec(compile(source, str(source_path), 'exec'))
