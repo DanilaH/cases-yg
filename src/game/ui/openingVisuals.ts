@@ -148,16 +148,19 @@ export const createPouchVisual = (
     ...POUCH_PRESENTATION.body,
     x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
     y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,
+    displayWidth: POUCH_PRESENTATION.body.displayWidth + variantPresentation.bodyWidthOffset,
   };
   const stripPresentation = {
     ...POUCH_PRESENTATION.strip,
     x: POUCH_PRESENTATION.strip.x + variantPresentation.stripOffsetX,
     y: POUCH_PRESENTATION.strip.y + variantPresentation.stripOffsetY,
+    displayWidth: POUCH_PRESENTATION.strip.displayWidth + variantPresentation.stripWidthOffset,
   };
   const tabPresentation = {
     ...POUCH_PRESENTATION.tab,
     x: POUCH_PRESENTATION.tab.x + variantPresentation.tabOffsetX,
     y: POUCH_PRESENTATION.tab.y + variantPresentation.tabOffsetY,
+    displayWidth: POUCH_PRESENTATION.tab.displayWidth + variantPresentation.tabWidthOffset,
   };
 
   const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body'));

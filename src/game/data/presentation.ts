@@ -148,10 +148,13 @@ export const getDropPouchSkin = (lootPoolId: GameLootPoolId): DropPouchSkin =>
 export interface PouchVariantPresentation {
   bodyOffsetX: number;
   bodyOffsetY: number;
+  bodyWidthOffset: number;
   stripOffsetX: number;
   stripOffsetY: number;
+  stripWidthOffset: number;
   tabOffsetX: number;
   tabOffsetY: number;
+  tabWidthOffset: number;
 }
 
 // Optical offsets are intentionally variant-specific: Basic and Charged use
@@ -160,18 +163,24 @@ export const POUCH_VARIANT_PRESENTATION = {
   basic: {
     bodyOffsetX: 0,
     bodyOffsetY: 0,
+    bodyWidthOffset: 0,
     stripOffsetX: -4,
     stripOffsetY: 0,
+    stripWidthOffset: 2,
     tabOffsetX: 0,
     tabOffsetY: 0,
+    tabWidthOffset: 0,
   },
   charged: {
     bodyOffsetX: -7,
     bodyOffsetY: -2,
+    bodyWidthOffset: 0,
     stripOffsetX: -7,
     stripOffsetY: 0,
+    stripWidthOffset: 4,
     tabOffsetX: 0,
     tabOffsetY: 0,
+    tabWidthOffset: 0,
   },
 } as const satisfies Readonly<Record<'basic' | 'charged', PouchVariantPresentation>>;
 
