@@ -201,10 +201,24 @@ export class OpeningScene extends Phaser.Scene {
     let idleMessage: string | undefined;
     const requestedLootPoolId = this.requestedLootPoolId;
     this.requestedLootPoolId = null;
+    const targetLootPoolId =
+      requestedLootPoolId && !this.saveState.pendingReveal
+        ? requestedLootPoolId
+        : this.saveState.activeLootPoolId;
+
+    try {
+      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, targetLootPoolId);
+    } catch (error: unknown) {
+      console.warn('[art] active Drop collectible art failed to load; using fallbacks', error);
+    }
+
+    if (this.isSceneShutdown()) return;
+
     if (requestedLootPoolId && !this.saveState.pendingReveal) {
       try {
         const previousLootPoolId = this.saveState.activeLootPoolId;
         this.saveState = await this.session.selectLootPool(requestedLootPoolId);
+        if (this.isSceneShutdown()) return;
         if (previousLootPoolId !== requestedLootPoolId) {
           platform.analytics.track('drop_selected', {
             lootPoolId: requestedLootPoolId,
@@ -213,18 +227,11 @@ export class OpeningScene extends Phaser.Scene {
         }
       } catch (error: unknown) {
         this.saveState = this.session.getState();
+        if (this.isSceneShutdown()) return;
         idleMessage = getMessages(platform.language).opening.dropSwitchError;
         console.error('[drop] failed to apply Collection Drop selection', error);
       }
     }
-
-    try {
-      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, this.saveState.activeLootPoolId);
-    } catch (error: unknown) {
-      console.warn('[art] active Drop collectible art failed to load; using fallbacks', error);
-    }
-
-    if (this.isSceneShutdown()) return;
 
     const pending = this.saveState.pendingReveal;
     if (pending) this.selectedPouchType = pending.pouchType;
@@ -1261,6 +1268,10 @@ export class OpeningScene extends Phaser.Scene {
     }
     try {
       this.saveState = await this.session.selectLootPool(nextPoolId);
+      if (this.isSceneShutdown()) {
+        this.dropSwitchInFlight = false;
+        return;
+      }
       getPlatformRuntime().analytics.track('drop_selected', {
         lootPoolId: nextPoolId,
         source: 'opening',
@@ -1270,6 +1281,7 @@ export class OpeningScene extends Phaser.Scene {
     } catch (error: unknown) {
       this.dropSwitchInFlight = false;
       this.saveState = this.session.getState();
+      if (this.isSceneShutdown()) return;
       console.error('[drop] failed to switch Drop', error);
       this.renderIdle(getMessages(getPlatformRuntime().language).opening.dropSwitchError);
     }
