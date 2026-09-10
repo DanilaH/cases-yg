@@ -24,7 +24,7 @@ export const ensureLootPoolCollectibleArt = async (
     const failedKeys = new Set<string>();
 
     const cleanup = (): void => {
-      scene.load.off(Phaser.Loader.Events.LOAD_ERROR, onLoadError);
+      scene.load.off('loaderror', onLoadError);
       scene.load.off(Phaser.Loader.Events.COMPLETE, onComplete);
     };
     const onLoadError = (file: Phaser.Loader.File): void => {
@@ -40,7 +40,7 @@ export const ensureLootPoolCollectibleArt = async (
       resolve();
     };
 
-    scene.load.on(Phaser.Loader.Events.LOAD_ERROR, onLoadError);
+    scene.load.on('loaderror', onLoadError);
     scene.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
     missing.forEach(({ textureKey, assetPath }) => scene.load.image(textureKey, assetPath));
     scene.load.start();
