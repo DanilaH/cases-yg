@@ -955,14 +955,17 @@ export class OpeningScene extends Phaser.Scene {
 
     const root = this.createRoot();
     const metrics = this.metrics!;
-    this.renderResourceHud(root, this.saveState);
+    const displayedLootPoolId = this.getDisplayedLootPoolId();
+    const presentationState = displayedLootPoolId === this.saveState.activeLootPoolId
+      ? this.saveState
+      : { ...this.saveState, activeLootPoolId: displayedLootPoolId };
+    this.renderResourceHud(root, presentationState);
     if (this.saveState.totalOpens > 0) {
       this.createCollectionButton(root, true);
     }
     this.createMuteButton(root);
     this.renderDropSelector(root);
 
-    const displayedLootPoolId = this.getDisplayedLootPoolId();
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(
       this,
