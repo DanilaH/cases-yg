@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import { getRuntimeCollectibleArtForLootPool, getRuntimeStaticArt } from '../data/artAssets';
+import { getRuntimeBootStaticArt, getRuntimeCollectibleArtForLootPool } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../data/collectibles';
 
 export class BootScene extends Phaser.Scene {
@@ -12,7 +12,7 @@ export class BootScene extends Phaser.Scene {
     for (const art of getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, DEFAULT_LOOT_POOL_ID)) {
       this.load.image(art.textureKey, art.assetPath);
     }
-    for (const art of getRuntimeStaticArt()) {
+    for (const art of getRuntimeBootStaticArt()) {
       this.load.image(art.textureKey, art.assetPath);
     }
   }

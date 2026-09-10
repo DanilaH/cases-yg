@@ -7,6 +7,9 @@ export type StaticArtId =
   | 'pouch-body'
   | 'pouch-tear-strip'
   | 'pouch-star-tab'
+  | 'charged-pouch-body'
+  | 'charged-pouch-tear-strip'
+  | 'charged-pouch-star-tab'
   | 'opening-bg'
   | 'collection-bg'
   | 'collection-foreground';
@@ -27,6 +30,9 @@ const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'pouch-body': 'assets/package/pouch-body.webp',
   'pouch-tear-strip': 'assets/package/pouch-tear-strip-compact.webp',
   'pouch-star-tab': 'assets/package/pouch-star-tab.webp',
+  'charged-pouch-body': 'assets/package/charged-pouch-body.webp',
+  'charged-pouch-tear-strip': 'assets/package/charged-pouch-tear-strip-compact.webp',
+  'charged-pouch-star-tab': 'assets/package/charged-pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
   'collection-bg': 'assets/backgrounds/collection-bg.webp',
   'collection-foreground': 'assets/backgrounds/collection-foreground.webp',
@@ -104,6 +110,9 @@ export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
   'pouch-tear-strip',
   'pouch-star-tab',
+  'charged-pouch-body',
+  'charged-pouch-tear-strip',
+  'charged-pouch-star-tab',
   'opening-bg',
   'collection-bg',
   'collection-foreground',
@@ -113,6 +122,34 @@ export const collectibleTextureKey = (collectibleId: string): string =>
   `${COLLECTIBLE_TEXTURE_PREFIX}${collectibleId}`;
 
 export const staticTextureKey = (id: StaticArtId): string => `${STATIC_TEXTURE_PREFIX}${id}`;
+
+export type PouchArtVariant = 'basic' | 'charged';
+export type PouchArtLayer = 'body' | 'tear-strip' | 'star-tab';
+
+const POUCH_STATIC_ART_IDS: Readonly<Record<PouchArtVariant, Readonly<Record<PouchArtLayer, StaticArtId>>>> = {
+  basic: {
+    body: 'pouch-body',
+    'tear-strip': 'pouch-tear-strip',
+    'star-tab': 'pouch-star-tab',
+  },
+  charged: {
+    body: 'charged-pouch-body',
+    'tear-strip': 'charged-pouch-tear-strip',
+    'star-tab': 'charged-pouch-star-tab',
+  },
+};
+
+const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = [
+  'pouch-body',
+  'pouch-tear-strip',
+  'pouch-star-tab',
+  'opening-bg',
+  'collection-bg',
+  'collection-foreground',
+];
+
+export const pouchStaticArtId = (variant: PouchArtVariant, layer: PouchArtLayer): StaticArtId =>
+  POUCH_STATIC_ART_IDS[variant][layer];
 
 const toRuntimeCollectibleArt = (
   registry: ContentRegistry,
@@ -143,11 +180,20 @@ export const getRuntimeCollectibleArtForLootPool = (
   return toRuntimeCollectibleArt(registry, lootPoolId);
 };
 
-export const getRuntimeStaticArt = (): readonly RuntimeStaticArt[] =>
-  (Object.keys(STATIC_ART_PATHS) as StaticArtId[])
+const toRuntimeStaticArt = (ids: readonly StaticArtId[]): readonly RuntimeStaticArt[] =>
+  ids
     .filter((id) => AVAILABLE_STATIC_ART_IDS.has(id))
     .map((id) => ({
       id,
       textureKey: staticTextureKey(id),
       assetPath: STATIC_ART_PATHS[id],
     }));
+
+export const getRuntimeStaticArt = (): readonly RuntimeStaticArt[] =>
+  toRuntimeStaticArt(Object.keys(STATIC_ART_PATHS) as StaticArtId[]);
+
+export const getRuntimeBootStaticArt = (): readonly RuntimeStaticArt[] =>
+  toRuntimeStaticArt(BOOT_STATIC_ART_IDS);
+
+export const getRuntimePouchArt = (variant: PouchArtVariant): readonly RuntimeStaticArt[] =>
+  toRuntimeStaticArt(Object.values(POUCH_STATIC_ART_IDS[variant]));

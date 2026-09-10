@@ -1,24 +1,30 @@
 import Phaser from 'phaser';
 
-import { getRuntimeCollectibleArtForLootPool } from '../data/artAssets';
+import {
+  getRuntimeCollectibleArtForLootPool,
+  getRuntimePouchArt,
+  type PouchArtVariant,
+  type RuntimeCollectibleArt,
+  type RuntimeStaticArt,
+} from '../data/artAssets';
 import type { ContentRegistry, LootPoolId } from '../data/collectibles';
 
+type RuntimeImageArt = Pick<RuntimeCollectibleArt | RuntimeStaticArt, 'textureKey' | 'assetPath'>;
+
 /**
- * Loads only collectible textures belonging to one Drop and skips textures that
- * already exist in Phaser's global texture manager. A rejected load is safe to
- * recover from: callers can keep using procedural collectible fallbacks and a
- * later visit will retry only the still-missing textures.
+ * Loads only missing reviewed image textures for the current Scene activation.
+ * Shutdown settles the Promise and detaches listeners so stale async work never
+ * retains a dead Scene. Failed files stay absent from the texture manager and
+ * are therefore eligible for retry on the next visit.
  */
-export const ensureLootPoolCollectibleArt = async (
+const ensureRuntimeImageArt = async (
   scene: Phaser.Scene,
-  registry: ContentRegistry,
-  lootPoolId: LootPoolId,
+  art: readonly RuntimeImageArt[],
+  failureLabel: string,
 ): Promise<void> => {
   if (!scene.sys.isActive()) return;
 
-  const missing = getRuntimeCollectibleArtForLootPool(registry, lootPoolId).filter(
-    ({ textureKey }) => !scene.textures.exists(textureKey),
-  );
+  const missing = art.filter(({ textureKey }) => !scene.textures.exists(textureKey));
   if (missing.length === 0) return;
 
   await new Promise<void>((resolve, reject) => {
@@ -44,7 +50,7 @@ export const ensureLootPoolCollectibleArt = async (
     };
     const onComplete = (): void => {
       if (failedKeys.size > 0) {
-        finish(new Error(`Failed to load collectible art: ${[...failedKeys].join(', ')}`));
+        finish(new Error(`Failed to load ${failureLabel}: ${[...failedKeys].join(', ')}`));
         return;
       }
       finish();
@@ -58,3 +64,13 @@ export const ensureLootPoolCollectibleArt = async (
     scene.load.start();
   });
 };
+
+export const ensureLootPoolCollectibleArt = (
+  scene: Phaser.Scene,
+  registry: ContentRegistry,
+  lootPoolId: LootPoolId,
+): Promise<void> =>
+  ensureRuntimeImageArt(scene, getRuntimeCollectibleArtForLootPool(registry, lootPoolId), 'collectible art');
+
+export const ensurePouchArt = (scene: Phaser.Scene, variant: PouchArtVariant): Promise<void> =>
+  ensureRuntimeImageArt(scene, getRuntimePouchArt(variant), `${variant} pouch art`);

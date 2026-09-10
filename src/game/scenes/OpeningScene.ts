@@ -22,7 +22,7 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
-import { ensureLootPoolCollectibleArt } from '../systems/artLoading';
+import { ensureLootPoolCollectibleArt, ensurePouchArt } from '../systems/artLoading';
 import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
@@ -131,6 +131,7 @@ export class OpeningScene extends Phaser.Scene {
   private selectedPouchType: PouchType = 'basic';
   private requestedLootPoolId: GameLootPoolId | null = null;
   private dropSwitchInFlight = false;
+  private pouchArtLoadInFlight = false;
   private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
   private pouchSelectorLabel: Phaser.GameObjects.Text | null = null;
   private chipsHudContainer: Phaser.GameObjects.Container | null = null;
@@ -165,6 +166,7 @@ export class OpeningScene extends Phaser.Scene {
     this.ignoreNextResultTap = false;
     this.chargedReadyPulsePending = false;
     this.dropSwitchInFlight = false;
+    this.pouchArtLoadInFlight = false;
     this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
@@ -234,7 +236,17 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     const pending = this.saveState.pendingReveal;
-    if (pending) this.selectedPouchType = pending.pouchType;
+    if (pending) {
+      this.selectedPouchType = pending.pouchType;
+      if (pending.pouchType === 'charged') {
+        try {
+          await ensurePouchArt(this, 'charged');
+        } catch (error: unknown) {
+          console.warn('[art] recovered Charged Pouch art failed to load; using fallbacks', error);
+        }
+        if (this.isSceneShutdown()) return;
+      }
+    }
     this.renderIdle(idleMessage);
     platform.markReady();
 
@@ -871,9 +883,8 @@ export class OpeningScene extends Phaser.Scene {
     this.renderDropSelector(root);
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
-    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
+    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y, this.selectedPouchType);
     getGameAudio().primeDragTexture();
-    this.applyChargedPouchTreatment();
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
     this.renderPouchSelector(root);
     if (this.chargedReadyPulsePending) {
@@ -1249,7 +1260,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private async switchDrop(direction: -1 | 1): Promise<void> {
-    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.session || !this.saveState) return;
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight || !this.session || !this.saveState) return;
     const currentIndex = this.getActiveDropIndex();
     const nextIndex = (currentIndex + direction + GAME_LOOT_POOL_IDS.length) % GAME_LOOT_POOL_IDS.length;
     const nextPoolId: GameLootPoolId = GAME_LOOT_POOL_IDS[nextIndex] ?? GAME_LOOT_POOL_IDS[0];
@@ -1380,7 +1391,7 @@ export class OpeningScene extends Phaser.Scene {
           this.showUnavailableChargedFeedback(card);
           return;
         }
-        this.selectPouchType(pouchType, card);
+        void this.selectPouchType(pouchType, card);
       });
       root.add([card, hitTarget]);
       this.pouchSelectorButtons.push(card);
@@ -1446,12 +1457,34 @@ export class OpeningScene extends Phaser.Scene {
     this.setChipsHudValue(this.chipsHudValue, true);
   }
 
-  private selectPouchType(pouchType: PouchType, sourceCard?: Phaser.GameObjects.Container): void {
-    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.saveState || this.selectedPouchType === pouchType) return;
+  private async selectPouchType(pouchType: PouchType, sourceCard?: Phaser.GameObjects.Container): Promise<void> {
+    if (
+      this.phase !== 'idle' ||
+      this.dropSwitchInFlight ||
+      this.pouchArtLoadInFlight ||
+      !this.saveState ||
+      this.selectedPouchType === pouchType
+    ) return;
     if (!canAffordPouch(this.saveState, pouchType, LITE_V2_BALANCE)) return;
+
+    this.pouchArtLoadInFlight = true;
+    try {
+      await ensurePouchArt(this, pouchType);
+    } catch (error: unknown) {
+      console.warn(`[art] ${pouchType} Pouch art failed to load; using fallbacks`, error);
+    }
+    if (this.isSceneShutdown()) {
+      this.pouchArtLoadInFlight = false;
+      return;
+    }
+    if (this.phase !== 'idle' || !this.saveState || !canAffordPouch(this.saveState, pouchType, LITE_V2_BALANCE)) {
+      this.pouchArtLoadInFlight = false;
+      return;
+    }
+
     this.selectedPouchType = pouchType;
     getGameAudio().play('pouch-select');
-    if (sourceCard) {
+    if (sourceCard?.active) {
       this.tweens.killTweensOf(sourceCard);
       this.tweens.add({
         targets: sourceCard,
@@ -1461,7 +1494,7 @@ export class OpeningScene extends Phaser.Scene {
         ease: 'Sine.Out',
       });
     }
-    if (this.pouch) {
+    if (this.pouch?.group.active) {
       this.tweens.killTweensOf(this.pouch.group);
       this.tweens.add({
         targets: this.pouch.group,
@@ -1472,7 +1505,8 @@ export class OpeningScene extends Phaser.Scene {
       });
     }
     this.time.delayedCall(95, () => {
-      if (this.phase === 'idle') this.renderIdle();
+      this.pouchArtLoadInFlight = false;
+      if (this.phase === 'idle' && !this.isSceneShutdown()) this.renderIdle();
     });
   }
 
@@ -1540,22 +1574,6 @@ export class OpeningScene extends Phaser.Scene {
     });
   }
 
-  private applyChargedPouchTreatment(): void {
-    if (!this.pouch || this.selectedPouchType !== 'charged') return;
-    const tintChildren = (container: Phaser.GameObjects.Container): void => {
-      for (const child of container.list) {
-        if (child instanceof Phaser.GameObjects.Image) {
-          child.setTint(0xc9f6ff, 0xc4b4ff, 0xffb5e4, 0xa9e8ff);
-        } else if (child instanceof Phaser.GameObjects.Container) {
-          tintChildren(child);
-        }
-      }
-    };
-    tintChildren(this.pouch.bodyLayer);
-    tintChildren(this.pouch.strip);
-    tintChildren(this.pouch.tab);
-  }
-
   private getChipsHudTarget(): { x: number; y: number } {
     if (!this.metrics) return { x: 36, y: 24 };
     return {
@@ -1589,7 +1607,7 @@ export class OpeningScene extends Phaser.Scene {
     if (enabled) {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerup', () => {
-        if (this.dropSwitchInFlight) return;
+        if (this.dropSwitchInFlight || this.pouchArtLoadInFlight) return;
         getGameAudio().play('ui-click');
         this.ignoreNextResultTap = true;
         this.scene.start('CollectionScene');
@@ -1649,7 +1667,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private beginDrag(pointer: Phaser.Input.Pointer): void {
-    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.pouch || !this.metrics) return;
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight || !this.pouch || !this.metrics) return;
 
     this.stopStarPulse();
     getGameAudio().primeDragTexture();
