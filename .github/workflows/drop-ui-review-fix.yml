@@ -1,0 +1,39 @@
+name: Validate Drop UI review fix
+
+on:
+  push:
+    branches:
+      - content/add-drop-ui
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[drop-ui-review-fix]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply review fix
+        run: python3 tools/drop-ui-review-fix.py
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit review fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m '[drop-ui-review-fix] preserve selected Drop across Collection views'
+          git push origin HEAD:content/add-drop-ui
