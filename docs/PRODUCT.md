@@ -65,26 +65,26 @@ Implementation, repeated-use follow-up fixes, exact-revision video/screenshot au
 
 Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Current validation tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`. One final direct repeated-use regression remains before Yandex DRAFT. The future expensive pouch remains a hypothesis only.
 
-### Stage C — real Yandex DRAFT validation — NEXT AFTER STAGE B3 ACCEPTANCE
+### Stage C — expanded content + economy scale — COMPLETE / AUDITED
 
-Validate hosted SDK boot/loading, lifecycle/audio, safe storage, interrupted Basic/Charged recovery, ads, rewarded exactly-once CHIPS probe and analytics/Metrica where configured.
+The runtime now contains six themed Drops / twelve families / sixty authored collectibles with Drop-aware Collection navigation and on-demand art loading. The full-game economy audit accepted the existing balance unchanged after multi-strategy simulation and focused cross-Drop Signal/Overcharge stress.
+
+### Stage D — real Yandex DRAFT validation — NEXT
+
+Upload the exact expanded candidate and validate hosted SDK boot/Game Ready/gameplay markup, lifecycle/audio, safe storage, interrupted Basic/Charged recovery, six-Drop loading/navigation, ads debug probes and analytics/Metrica where configured.
 
 CI/local browser automation cannot replace this gate.
 
-### Stage D — content/release build — BLOCKED ON STAGE C
+### Stage E — public-release hardening
 
-Only after corrected feel and hosted platform behavior are proven:
+After hosted platform behavior is proven:
 
-- materially expand gadget families;
-- group content into themed Drops;
-- expose Drop selection only when Drop #2 exists;
-- scale Collection from real density;
-- re-simulate/tune economy at content scale;
-- finalize monetization/store creative.
-
-### Stage E — public Yandex release
-
-Final moderation/store/release hardening happens on the expanded content build.
+- fix only demonstrated hosted defects;
+- finalize rewarded/interstitial/sticky monetization decisions;
+- finalize Metrica/CSP choice;
+- finalize store metadata and six-Drop release creative;
+- run declared-device/browser/moderation self-check;
+- submit the expanded candidate for public moderation.
 
 ---
 
@@ -234,9 +234,9 @@ Player-facing Drop selector waits for Drop #2.
 
 ## 10. Content / Collection / monetization strategy — UNCHANGED
 
-Camera and Flip Phone remain the private validation catalog. Future content belongs to themed Drops rather than a global mega-pool.
+Camera and Flip Phone remain the historical validation catalog. Current production content is organized as six themed Drops with two families per Drop rather than a global mega-pool.
 
-Shelf = attractive best finds. Library = exhaustive ownership/completion view. Scale only from real roster density.
+Shelf = attractive best finds. Library = exhaustive ownership/completion view. Both now operate against the real six-Drop roster and active Drop context.
 
 Ads remain optional/reasonable: rewarded explicit, interstitial outside active reveal, failures non-blocking, no artificial energy scarcity.
 
