@@ -50,6 +50,12 @@ const baseDebugState = (state: SaveState): SaveState => ({
   activeLootPoolId: SLICE_LOOT_POOL_ID,
   totalOpens: Math.max(3, state.totalOpens),
   pendingReveal: null,
+  discoveredStandard: unique([
+    ...state.discoveredStandard,
+    phoneItemId('common'),
+    phoneItemId('rare'),
+    phoneItemId('legendary'),
+  ]),
   // Debug scenarios must never inherit an incompatible armed Overcharge state.
   // Individual lock scenarios explicitly opt back into a valid armed pair below.
   signal: 0,

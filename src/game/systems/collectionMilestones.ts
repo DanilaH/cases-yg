@@ -22,8 +22,19 @@ export const resolveCollectionMilestone = (
   pending: PendingReveal,
   committed: SaveState,
 ): CollectionMilestone | null => {
-  const standardIds = new Set(registry.standardItems.map(({ collectible }) => collectible.id));
-  const secretIds = new Set(registry.secrets.map(({ collectible }) => collectible.id));
+  if (!registry.lootPoolById.has(pending.lootPoolId)) {
+    throw new Error(`Unknown loot pool: ${pending.lootPoolId}`);
+  }
+  const standardIds = new Set(
+    registry.standardItems
+      .filter(({ lootPoolId }) => lootPoolId === pending.lootPoolId)
+      .map(({ collectible }) => collectible.id),
+  );
+  const secretIds = new Set(
+    registry.secrets
+      .filter(({ lootPoolId }) => lootPoolId === pending.lootPoolId)
+      .map(({ collectible }) => collectible.id),
+  );
   const totalStandards = standardIds.size;
   const totalSecrets = secretIds.size;
   const afterStandards = countOwned(committed.discoveredStandard, standardIds);

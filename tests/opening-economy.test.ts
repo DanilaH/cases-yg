@@ -50,7 +50,7 @@ describe('Opening economy presentation state', () => {
       ...createInitialSaveState(),
       chips: 55,
       totalOpens: 3,
-      discoveredStandard: ['camera-common'],
+      discoveredStandard: ['flip-phone-common', 'flip-phone-rare', 'flip-phone-legendary', 'camera-common'],
     };
     const pending = createPendingReveal({
       state,

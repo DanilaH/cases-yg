@@ -1,4 +1,4 @@
-import type { ContentRegistry, GadgetFamilyDefinition, StandardRarity } from '../data/collectibles';
+import type { ContentRegistry, GadgetFamilyDefinition, LootPoolId, StandardRarity } from '../data/collectibles';
 import type { SaveState } from './save';
 
 export interface FamilyCollectionSnapshot {
@@ -51,15 +51,15 @@ export interface StandardNearCompletion {
   rarity: StandardRarity;
 }
 
-export const getStandardNearCompletion = (
-  registry: ContentRegistry,
+const getNearCompletionFromItems = (
+  items: ContentRegistry['standardItems'],
   state: Pick<SaveState, 'discoveredStandard'>,
 ): StandardNearCompletion | null => {
-  const total = registry.standardItems.length;
+  const total = items.length;
   if (total < 2) return null;
 
   const owned = new Set(state.discoveredStandard);
-  const missing = registry.standardItems.filter(({ collectible }) => !owned.has(collectible.id));
+  const missing = items.filter(({ collectible }) => !owned.has(collectible.id));
   if (missing.length !== 1) return null;
 
   const last = missing[0];
@@ -71,6 +71,25 @@ export const getStandardNearCompletion = (
     familyId: last.familyId,
     rarity: last.rarity,
   };
+};
+
+export const getStandardNearCompletion = (
+  registry: ContentRegistry,
+  state: Pick<SaveState, 'discoveredStandard'>,
+): StandardNearCompletion | null => getNearCompletionFromItems(registry.standardItems, state);
+
+export const getStandardLootPoolNearCompletion = (
+  registry: ContentRegistry,
+  lootPoolId: LootPoolId,
+  state: Pick<SaveState, 'discoveredStandard'>,
+): StandardNearCompletion | null => {
+  if (!registry.lootPoolById.has(lootPoolId)) {
+    throw new Error(`Unknown loot pool: ${lootPoolId}`);
+  }
+  return getNearCompletionFromItems(
+    registry.standardItems.filter((item) => item.lootPoolId === lootPoolId),
+    state,
+  );
 };
 
 export const buildCollectionSnapshot = (

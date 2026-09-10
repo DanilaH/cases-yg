@@ -11,13 +11,15 @@ import {
 import { analyzePouchEconomy, resolveLitePouchReward, type LiteRewardState } from '../src/game/systems/pouches';
 import { SequenceRandom } from './helpers';
 
+const POST_ONBOARDING_STANDARD_IDS = ['flip-phone-common', 'flip-phone-rare', 'flip-phone-legendary'] as const;
+
 const makeState = (overrides: Partial<LiteRewardState> = {}): LiteRewardState => ({
   chips: 0,
   signal: 0,
   overchargeHundredths: 100,
   totalOpens: 3,
   activeLootPoolId: SLICE_LOOT_POOL_ID,
-  discoveredStandard: [],
+  discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS],
   discoveredSecrets: [],
   ...overrides,
 });
@@ -112,7 +114,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
 
   it('auto-recycles a duplicate into rarity-dependent CHIPS and one Signal segment', () => {
     const result = resolveLitePouchReward({
-      state: makeState({ discoveredStandard: ['camera-common'] }),
+      state: makeState({ discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
       registry: SLICE_REGISTRY,
       balance: LITE_V2_BALANCE,
@@ -128,7 +130,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
 
   it('arms Signal at 4/4 and does not overfill it', () => {
     const reachesLock = resolveLitePouchReward({
-      state: makeState({ signal: 3, discoveredStandard: ['camera-common'] }),
+      state: makeState({ signal: 3, discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
       registry: SLICE_REGISTRY,
       balance: LITE_V2_BALANCE,
@@ -207,7 +209,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
 
   it('does not start Overcharge on the same opening that first reaches 4/4', () => {
     const result = resolveLitePouchReward({
-      state: makeState({ signal: 3, discoveredStandard: ['camera-common'] }),
+      state: makeState({ signal: 3, discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
       registry: SLICE_REGISTRY,
       balance: LITE_V2_BALANCE,

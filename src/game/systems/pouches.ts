@@ -226,12 +226,12 @@ const chooseProtectedStandard = (
   registry: ContentRegistry,
   balance: LiteBalanceConfig,
   profile: PouchProfile,
-  openingNumber: number,
+  ownedInPool: number,
   random: RandomSource,
 ): StandardCollectibleRecord | null => {
   let missing = getMissingEligibleStandard(state, registry, profile);
 
-  if (openingNumber === 2 && balance.onboarding.secondOpeningDifferentFamily) {
+  if (ownedInPool === 1 && balance.onboarding.secondOpeningDifferentFamily) {
     const firstFamilyId = findFirstOpenedFamilyInPool(state, registry, state.activeLootPoolId);
     const otherFamilyMissing = firstFamilyId ? missing.filter(({ familyId }) => familyId !== firstFamilyId) : missing;
     if (otherFamilyMissing.length > 0) {
@@ -251,7 +251,6 @@ const resolveStandard = (
   registry: ContentRegistry,
   balance: LiteBalanceConfig,
   profile: PouchProfile,
-  openingNumber: number,
   random: RandomSource,
 ): { selected: StandardCollectibleRecord; signalLockConsumed: boolean } => {
   const lockArmed = state.signal >= balance.signalThreshold;
@@ -265,8 +264,13 @@ const resolveStandard = (
     }
   }
 
-  if (openingNumber <= balance.onboarding.protectedOpenings) {
-    const protectedResult = chooseProtectedStandard(state, registry, balance, profile, openingNumber, random);
+  const discovered = new Set(state.discoveredStandard);
+  const ownedInPool = registry.standardItems.reduce(
+    (count, item) => count + (item.lootPoolId === state.activeLootPoolId && discovered.has(item.collectible.id) ? 1 : 0),
+    0,
+  );
+  if (ownedInPool < balance.onboarding.protectedOpenings) {
+    const protectedResult = chooseProtectedStandard(state, registry, balance, profile, ownedInPool, random);
     if (protectedResult) {
       return { selected: protectedResult, signalLockConsumed: false };
     }
@@ -396,7 +400,6 @@ export const resolveLitePouchReward = (input: ResolveLiteRewardInput): LiteRewar
     registry,
     balance,
     profile,
-    openingNumber,
     random,
   );
   const isNew = !state.discoveredStandard.includes(selected.collectible.id);
