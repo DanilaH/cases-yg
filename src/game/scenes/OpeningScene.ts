@@ -1253,6 +1253,7 @@ export class OpeningScene extends Phaser.Scene {
       this.renderIdle();
     } catch (error: unknown) {
       this.dropSwitchInFlight = false;
+      this.saveState = this.session.getState();
       console.error('[drop] failed to switch Drop', error);
       this.renderIdle(getMessages(getPlatformRuntime().language).opening.dropSwitchError);
     }
