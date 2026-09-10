@@ -1,0 +1,38 @@
+name: Validate Charged Pouch runtime art
+
+on:
+  push:
+    branches:
+      - content/charged-pouch-art
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[charged-pouch-art-pass]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python3 tools/charged-pouch-art-pass.py
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit Charged Pouch art pass
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src tests
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m '[charged-pouch-art-pass] wire authored Charged Pouch runtime art'
+          git push origin HEAD:content/charged-pouch-art
