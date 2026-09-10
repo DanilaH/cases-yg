@@ -5,11 +5,12 @@ import {
   AVAILABLE_STATIC_ART_IDS,
   collectibleTextureKey,
   getRuntimeCollectibleArt,
+  getRuntimeCollectibleArtForLootPool,
   getRuntimeStaticArt,
   staticTextureKey,
 } from '../src/game/data/artAssets';
 import { AVAILABLE_SFX_CUES, getRuntimeSfxAssets } from '../src/game/data/audioAssets';
-import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, SLICE_REGISTRY } from '../src/game/data/collectibles';
 
 const defaultCollectibleArtIds = [...AVAILABLE_COLLECTIBLE_ART_IDS];
 const defaultStaticArtIds = [...AVAILABLE_STATIC_ART_IDS];
@@ -33,6 +34,23 @@ afterEach(() => {
 });
 
 describe('runtime asset manifests', () => {
+  it('covers all production collectible exports and slices them to 10 assets per Drop', () => {
+    replaceSetContents(AVAILABLE_COLLECTIBLE_ART_IDS, defaultCollectibleArtIds);
+
+    expect(getRuntimeCollectibleArt(GAME_REGISTRY)).toHaveLength(60);
+    expect(AVAILABLE_COLLECTIBLE_ART_IDS.size).toBe(60);
+    for (const lootPoolId of GAME_LOOT_POOL_IDS) {
+      const art = getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, lootPoolId);
+      expect(art).toHaveLength(10);
+      expect(new Set(art.map(({ collectibleId }) => collectibleId)).size).toBe(10);
+    }
+  });
+
+  it('rejects an unknown Drop art request instead of silently returning an empty manifest', () => {
+    replaceSetContents(AVAILABLE_COLLECTIBLE_ART_IDS, defaultCollectibleArtIds);
+    expect(() => getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, 'missing-drop')).toThrow('Unknown loot pool');
+  });
+
   it('exposes reviewed collectible art using registry paths and stable texture keys', () => {
     AVAILABLE_COLLECTIBLE_ART_IDS.add('camera-common');
 

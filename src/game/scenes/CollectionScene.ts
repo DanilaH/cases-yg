@@ -5,6 +5,7 @@ import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GadgetFamilyDefinition, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
+import { ensureLootPoolCollectibleArt } from '../systems/artLoading';
 import {
   buildCollectionSnapshot,
   getShelfFeaturedOwned,
@@ -30,6 +31,7 @@ export class CollectionScene extends Phaser.Scene {
   private snapshot: CollectionSnapshot | null = null;
   private view: CollectionView = 'shelf';
   private page = 0;
+  private dropBrowseInFlight = false;
 
   public constructor() {
     super('CollectionScene');
@@ -37,6 +39,7 @@ export class CollectionScene extends Phaser.Scene {
 
   public create(): void {
     const platform = getPlatformRuntime();
+    this.dropBrowseInFlight = false;
     platform.activity.setGameplayDesired(false);
     this.scale.on('resize', this.render, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -56,6 +59,14 @@ export class CollectionScene extends Phaser.Scene {
       this.renderFailure();
       return;
     }
+
+    try {
+      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, this.selectedLootPoolId());
+    } catch (error: unknown) {
+      console.warn('[art] Collection active Drop art failed to load; using fallbacks', error);
+    }
+
+    if (!this.sys.isActive()) return;
 
     getPlatformRuntime().analytics.track('collection_open', {
       standardCount: this.snapshot.standardCount,
@@ -497,20 +508,34 @@ export class CollectionScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     if (this.page > 0) {
-      previous.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-        getGameAudio().play('ui-click');
-        this.page -= 1;
-        this.render();
-      });
+      previous.setInteractive({ useHandCursor: true }).on('pointerup', () => void this.browseDrop(-1));
     }
     if (this.page < pageCount - 1) {
-      next.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-        getGameAudio().play('ui-click');
-        this.page += 1;
-        this.render();
-      });
+      next.setInteractive({ useHandCursor: true }).on('pointerup', () => void this.browseDrop(1));
     }
     root.add([previous, pageLabel, next]);
+  }
+
+  private async browseDrop(direction: -1 | 1): Promise<void> {
+    if (this.dropBrowseInFlight) return;
+    const nextPage = this.page + direction;
+    if (nextPage < 0 || nextPage >= GAME_LOOT_POOL_IDS.length) return;
+    const nextPoolId: GameLootPoolId = GAME_LOOT_POOL_IDS[nextPage] ?? GAME_LOOT_POOL_IDS[0];
+
+    this.dropBrowseInFlight = true;
+    getGameAudio().play('ui-click');
+    try {
+      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, nextPoolId);
+    } catch (error: unknown) {
+      console.warn('[art] browsed Drop art failed to load; using fallbacks', error);
+    }
+    if (!this.sys.isActive()) {
+      this.dropBrowseInFlight = false;
+      return;
+    }
+    this.page = nextPage;
+    this.dropBrowseInFlight = false;
+    this.render();
   }
 
   private renderFailure(): void {
