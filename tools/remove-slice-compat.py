@@ -106,9 +106,10 @@ affected_tests = [
     'tests/near-completion.test.ts',
 ]
 
+# Constrain the match to one import statement. `[^}]*` may cross line breaks
+# inside a multiline import but cannot consume a preceding import's closing brace.
 collectibles_import_re = re.compile(
-    r"import\s*\{(?P<body>.*?)\}\s*from '../src/game/data/collectibles';",
-    re.DOTALL,
+    r"import\s*\{(?P<body>[^}]*)\}\s*from '../src/game/data/collectibles';",
 )
 
 for path in affected_tests:
