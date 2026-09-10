@@ -72,6 +72,306 @@
       "family": "flip-phone",
       "source": "assets-src/raw/flip-phone/secret-noir.png",
       "output": "public/assets/collectibles/flip-phone-secret-noir.webp"
+    },
+    {
+      "id": "webcam-common",
+      "family": "webcam",
+      "source": "assets-src/raw/webcam/common.png",
+      "output": "public/assets/collectibles/webcam-common.webp"
+    },
+    {
+      "id": "webcam-rare",
+      "family": "webcam",
+      "source": "assets-src/raw/webcam/rare.png",
+      "output": "public/assets/collectibles/webcam-rare.webp"
+    },
+    {
+      "id": "webcam-epic",
+      "family": "webcam",
+      "source": "assets-src/raw/webcam/epic.png",
+      "output": "public/assets/collectibles/webcam-epic.webp"
+    },
+    {
+      "id": "webcam-legendary",
+      "family": "webcam",
+      "source": "assets-src/raw/webcam/legendary.png",
+      "output": "public/assets/collectibles/webcam-legendary.webp"
+    },
+    {
+      "id": "webcam-secret-stereo",
+      "family": "webcam",
+      "source": "assets-src/raw/webcam/secret-stereo.png",
+      "output": "public/assets/collectibles/webcam-secret-stereo.webp"
+    },
+    {
+      "id": "home-console-common",
+      "family": "home-console",
+      "source": "assets-src/raw/home-console/common.png",
+      "output": "public/assets/collectibles/home-console-common.webp"
+    },
+    {
+      "id": "home-console-rare",
+      "family": "home-console",
+      "source": "assets-src/raw/home-console/rare.png",
+      "output": "public/assets/collectibles/home-console-rare.webp"
+    },
+    {
+      "id": "home-console-epic",
+      "family": "home-console",
+      "source": "assets-src/raw/home-console/epic.png",
+      "output": "public/assets/collectibles/home-console-epic.webp"
+    },
+    {
+      "id": "home-console-legendary",
+      "family": "home-console",
+      "source": "assets-src/raw/home-console/legendary.png",
+      "output": "public/assets/collectibles/home-console-legendary.webp"
+    },
+    {
+      "id": "home-console-secret-noir",
+      "family": "home-console",
+      "source": "assets-src/raw/home-console/secret-noir.png",
+      "output": "public/assets/collectibles/home-console-secret-noir.webp"
+    },
+    {
+      "id": "cassette-player-common",
+      "family": "cassette-player",
+      "source": "assets-src/raw/cassette-player/common.png",
+      "output": "public/assets/collectibles/cassette-player-common.webp"
+    },
+    {
+      "id": "cassette-player-rare",
+      "family": "cassette-player",
+      "source": "assets-src/raw/cassette-player/rare.png",
+      "output": "public/assets/collectibles/cassette-player-rare.webp"
+    },
+    {
+      "id": "cassette-player-epic",
+      "family": "cassette-player",
+      "source": "assets-src/raw/cassette-player/epic.png",
+      "output": "public/assets/collectibles/cassette-player-epic.webp"
+    },
+    {
+      "id": "cassette-player-legendary",
+      "family": "cassette-player",
+      "source": "assets-src/raw/cassette-player/legendary.png",
+      "output": "public/assets/collectibles/cassette-player-legendary.webp"
+    },
+    {
+      "id": "cassette-player-secret-remote",
+      "family": "cassette-player",
+      "source": "assets-src/raw/cassette-player/secret-remote.png",
+      "output": "public/assets/collectibles/cassette-player-secret-remote.webp"
+    },
+    {
+      "id": "crt-tv-common",
+      "family": "crt-tv",
+      "source": "assets-src/raw/crt-tv/common.png",
+      "output": "public/assets/collectibles/crt-tv-common.webp"
+    },
+    {
+      "id": "crt-tv-rare",
+      "family": "crt-tv",
+      "source": "assets-src/raw/crt-tv/rare.png",
+      "output": "public/assets/collectibles/crt-tv-rare.webp"
+    },
+    {
+      "id": "crt-tv-epic",
+      "family": "crt-tv",
+      "source": "assets-src/raw/crt-tv/epic.png",
+      "output": "public/assets/collectibles/crt-tv-epic.webp"
+    },
+    {
+      "id": "crt-tv-legendary",
+      "family": "crt-tv",
+      "source": "assets-src/raw/crt-tv/legendary.png",
+      "output": "public/assets/collectibles/crt-tv-legendary.webp"
+    },
+    {
+      "id": "crt-tv-secret-communicator",
+      "family": "crt-tv",
+      "source": "assets-src/raw/crt-tv/secret-communicator.png",
+      "output": "public/assets/collectibles/crt-tv-secret-communicator.webp"
+    },
+    {
+      "id": "mini-camcorder-common",
+      "family": "mini-camcorder",
+      "source": "assets-src/raw/mini-camcorder/common.png",
+      "output": "public/assets/collectibles/mini-camcorder-common.webp"
+    },
+    {
+      "id": "mini-camcorder-rare",
+      "family": "mini-camcorder",
+      "source": "assets-src/raw/mini-camcorder/rare.png",
+      "output": "public/assets/collectibles/mini-camcorder-rare.webp"
+    },
+    {
+      "id": "mini-camcorder-epic",
+      "family": "mini-camcorder",
+      "source": "assets-src/raw/mini-camcorder/epic.png",
+      "output": "public/assets/collectibles/mini-camcorder-epic.webp"
+    },
+    {
+      "id": "mini-camcorder-legendary",
+      "family": "mini-camcorder",
+      "source": "assets-src/raw/mini-camcorder/legendary.png",
+      "output": "public/assets/collectibles/mini-camcorder-legendary.webp"
+    },
+    {
+      "id": "mini-camcorder-secret-prototype",
+      "family": "mini-camcorder",
+      "source": "assets-src/raw/mini-camcorder/secret-prototype.png",
+      "output": "public/assets/collectibles/mini-camcorder-secret-prototype.webp"
+    },
+    {
+      "id": "pda-common",
+      "family": "pda",
+      "source": "assets-src/raw/pda/common.png",
+      "output": "public/assets/collectibles/pda-common.webp"
+    },
+    {
+      "id": "pda-rare",
+      "family": "pda",
+      "source": "assets-src/raw/pda/rare.png",
+      "output": "public/assets/collectibles/pda-rare.webp"
+    },
+    {
+      "id": "pda-epic",
+      "family": "pda",
+      "source": "assets-src/raw/pda/epic.png",
+      "output": "public/assets/collectibles/pda-epic.webp"
+    },
+    {
+      "id": "pda-legendary",
+      "family": "pda",
+      "source": "assets-src/raw/pda/legendary.png",
+      "output": "public/assets/collectibles/pda-legendary.webp"
+    },
+    {
+      "id": "pda-secret-flip",
+      "family": "pda",
+      "source": "assets-src/raw/pda/secret-flip.png",
+      "output": "public/assets/collectibles/pda-secret-flip.webp"
+    },
+    {
+      "id": "portable-disc-player-common",
+      "family": "portable-disc-player",
+      "source": "assets-src/raw/portable-disc-player/common.png",
+      "output": "public/assets/collectibles/portable-disc-player-common.webp"
+    },
+    {
+      "id": "portable-disc-player-rare",
+      "family": "portable-disc-player",
+      "source": "assets-src/raw/portable-disc-player/rare.png",
+      "output": "public/assets/collectibles/portable-disc-player-rare.webp"
+    },
+    {
+      "id": "portable-disc-player-epic",
+      "family": "portable-disc-player",
+      "source": "assets-src/raw/portable-disc-player/epic.png",
+      "output": "public/assets/collectibles/portable-disc-player-epic.webp"
+    },
+    {
+      "id": "portable-disc-player-legendary",
+      "family": "portable-disc-player",
+      "source": "assets-src/raw/portable-disc-player/legendary.png",
+      "output": "public/assets/collectibles/portable-disc-player-legendary.webp"
+    },
+    {
+      "id": "portable-disc-player-secret-remote",
+      "family": "portable-disc-player",
+      "source": "assets-src/raw/portable-disc-player/secret-remote.png",
+      "output": "public/assets/collectibles/portable-disc-player-secret-remote.webp"
+    },
+    {
+      "id": "handheld-console-common",
+      "family": "handheld-console",
+      "source": "assets-src/raw/handheld-console/common.png",
+      "output": "public/assets/collectibles/handheld-console-common.webp"
+    },
+    {
+      "id": "handheld-console-rare",
+      "family": "handheld-console",
+      "source": "assets-src/raw/handheld-console/rare.png",
+      "output": "public/assets/collectibles/handheld-console-rare.webp"
+    },
+    {
+      "id": "handheld-console-epic",
+      "family": "handheld-console",
+      "source": "assets-src/raw/handheld-console/epic.png",
+      "output": "public/assets/collectibles/handheld-console-epic.webp"
+    },
+    {
+      "id": "handheld-console-legendary",
+      "family": "handheld-console",
+      "source": "assets-src/raw/handheld-console/legendary.png",
+      "output": "public/assets/collectibles/handheld-console-legendary.webp"
+    },
+    {
+      "id": "handheld-console-secret-phone",
+      "family": "handheld-console",
+      "source": "assets-src/raw/handheld-console/secret-phone.png",
+      "output": "public/assets/collectibles/handheld-console-secret-phone.webp"
+    },
+    {
+      "id": "mp3-player-common",
+      "family": "mp3-player",
+      "source": "assets-src/raw/mp3-player/common.png",
+      "output": "public/assets/collectibles/mp3-player-common.webp"
+    },
+    {
+      "id": "mp3-player-rare",
+      "family": "mp3-player",
+      "source": "assets-src/raw/mp3-player/rare.png",
+      "output": "public/assets/collectibles/mp3-player-rare.webp"
+    },
+    {
+      "id": "mp3-player-epic",
+      "family": "mp3-player",
+      "source": "assets-src/raw/mp3-player/epic.png",
+      "output": "public/assets/collectibles/mp3-player-epic.webp"
+    },
+    {
+      "id": "mp3-player-legendary",
+      "family": "mp3-player",
+      "source": "assets-src/raw/mp3-player/legendary.png",
+      "output": "public/assets/collectibles/mp3-player-legendary.webp"
+    },
+    {
+      "id": "mp3-player-secret-pearl",
+      "family": "mp3-player",
+      "source": "assets-src/raw/mp3-player/secret-pearl.png",
+      "output": "public/assets/collectibles/mp3-player-secret-pearl.webp"
+    },
+    {
+      "id": "pager-common",
+      "family": "pager",
+      "source": "assets-src/raw/pager/common.png",
+      "output": "public/assets/collectibles/pager-common.webp"
+    },
+    {
+      "id": "pager-rare",
+      "family": "pager",
+      "source": "assets-src/raw/pager/rare.png",
+      "output": "public/assets/collectibles/pager-rare.webp"
+    },
+    {
+      "id": "pager-epic",
+      "family": "pager",
+      "source": "assets-src/raw/pager/epic.png",
+      "output": "public/assets/collectibles/pager-epic.webp"
+    },
+    {
+      "id": "pager-legendary",
+      "family": "pager",
+      "source": "assets-src/raw/pager/legendary.png",
+      "output": "public/assets/collectibles/pager-legendary.webp"
+    },
+    {
+      "id": "pager-secret-flip",
+      "family": "pager",
+      "source": "assets-src/raw/pager/secret-flip.png",
+      "output": "public/assets/collectibles/pager-secret-flip.webp"
     }
   ]
 }
