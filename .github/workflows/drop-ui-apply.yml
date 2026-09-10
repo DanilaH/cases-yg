@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Apply Drop UI pass
-        run: python3 tools/drop-ui-pass.py
+        run: python3 tools/run-drop-ui-pass.py
       - name: Install
         run: npm ci
       - name: Typecheck
