@@ -1,0 +1,82 @@
+name: Independent feel capture
+
+on:
+  push:
+    branches:
+      - review/independent-feel-pass-2026-09-10
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install review browser and capture dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg pulseaudio xvfb
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start virtual display and audio sink
+        shell: bash
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension RANDR > /tmp/xvfb.log 2>&1 &
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=review_sink sink_properties=device.description=ReviewSink
+          pactl set-default-sink review_sink
+          pactl list short sinks
+          pactl list short sources
+      - name: Start game
+        shell: bash
+        env:
+          DISPLAY: ':99'
+          PULSE_SINK: review_sink
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Capture real gameplay review videos
+        shell: bash
+        env:
+          DISPLAY: ':99'
+          PULSE_SINK: review_sink
+        run: node tools/review/capture-feel-review.mjs
+      - name: Analyze reviewed MP3 loudness and durations
+        shell: bash
+        run: |
+          mkdir -p review-artifacts/audio
+          {
+            echo '# Audio asset measurements'
+            for f in public/assets/audio/*.mp3; do
+              echo
+              echo "## $f"
+              ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$f" | sed 's/^/duration_seconds=/'
+              ffmpeg -hide_banner -nostats -i "$f" -filter_complex ebur128=peak=true -f null - 2>&1 | grep -E 'I:|Peak:' | tail -2
+            done
+          } > review-artifacts/audio/measurements.txt
+      - name: Capture runtime logs
+        if: always()
+        shell: bash
+        run: |
+          cp /tmp/vite.log review-artifacts/vite.log || true
+          cp /tmp/xvfb.log review-artifacts/xvfb.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: independent-feel-capture
+          path: review-artifacts
+          if-no-files-found: error
+          retention-days: 2
