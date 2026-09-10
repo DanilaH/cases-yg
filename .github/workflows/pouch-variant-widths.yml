@@ -1,0 +1,25 @@
+name: Apply pouch variant widths
+
+on:
+  push:
+    branches:
+      - polish/pouch-variant-offsets
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[pouch-variant-widths]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 tools/pouch-variant-widths.py
+      - name: Commit source changes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+DanilaH@users.noreply.github.com'
+          git add src/game/data/presentation.ts src/game/ui/openingVisuals.ts
+          git commit -m '[pouch-variant-widths] add per-variant width tuning'
+          git push origin HEAD:polish/pouch-variant-offsets
