@@ -1255,6 +1255,10 @@ export class OpeningScene extends Phaser.Scene {
     } catch (error: unknown) {
       console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
     }
+    if (this.isSceneShutdown()) {
+      this.dropSwitchInFlight = false;
+      return;
+    }
     try {
       this.saveState = await this.session.selectLootPool(nextPoolId);
       getPlatformRuntime().analytics.track('drop_selected', {
@@ -1431,7 +1435,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private selectPouchType(pouchType: PouchType, sourceCard?: Phaser.GameObjects.Container): void {
-    if (this.phase !== 'idle' || !this.saveState || this.selectedPouchType === pouchType) return;
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.saveState || this.selectedPouchType === pouchType) return;
     if (!canAffordPouch(this.saveState, pouchType, LITE_V2_BALANCE)) return;
     this.selectedPouchType = pouchType;
     getGameAudio().play('pouch-select');
@@ -1573,6 +1577,7 @@ export class OpeningScene extends Phaser.Scene {
     if (enabled) {
       button.setInteractive({ useHandCursor: true });
       button.on('pointerup', () => {
+        if (this.dropSwitchInFlight) return;
         getGameAudio().play('ui-click');
         this.ignoreNextResultTap = true;
         this.scene.start('CollectionScene');
@@ -1632,7 +1637,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private beginDrag(pointer: Phaser.Input.Pointer): void {
-    if (this.phase !== 'idle' || !this.pouch || !this.metrics) return;
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.pouch || !this.metrics) return;
 
     this.stopStarPulse();
     getGameAudio().primeDragTexture();
