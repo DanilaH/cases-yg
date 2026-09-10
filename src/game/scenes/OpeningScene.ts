@@ -130,7 +130,14 @@ export class OpeningScene extends Phaser.Scene {
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
   private requestedLootPoolId: GameLootPoolId | null = null;
+  private previewLootPoolId: GameLootPoolId | null = null;
   private dropSwitchInFlight = false;
+  private dropSwitchGeneration = 0;
+  private dropPreviewDirection: -1 | 0 | 1 = 0;
+  private dropSelectorContainer: Phaser.GameObjects.Container | null = null;
+  private dropSelectorInteractiveZones: Phaser.GameObjects.Zone[] = [];
+  private dropSelectorDrag: { pointerId: number; startX: number } | null = null;
+  private dropCompletionNudgePoolId: GameLootPoolId | null = null;
   private pouchArtLoadInFlight = false;
   private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
   private pouchSelectorLabel: Phaser.GameObjects.Text | null = null;
@@ -145,6 +152,7 @@ export class OpeningScene extends Phaser.Scene {
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
   private collectionMilestoneTarget: Phaser.GameObjects.Container | null = null;
   private tearHint: Phaser.GameObjects.Text | null = null;
+  private tearHintTimer: Phaser.Time.TimerEvent | null = null;
   private readonly presentationSkip = new PresentationSkipController();
 
   public constructor() {
@@ -165,8 +173,14 @@ export class OpeningScene extends Phaser.Scene {
     this.deferredResize = false;
     this.ignoreNextResultTap = false;
     this.chargedReadyPulsePending = false;
+    this.previewLootPoolId = null;
     this.dropSwitchInFlight = false;
+    this.dropSwitchGeneration += 1;
+    this.dropPreviewDirection = 0;
+    this.dropSelectorDrag = null;
+    this.dropCompletionNudgePoolId = null;
     this.pouchArtLoadInFlight = false;
+    this.clearTearHintTimer();
     this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
@@ -268,6 +282,10 @@ export class OpeningScene extends Phaser.Scene {
 
   private handleShutdown(): void {
     this.phase = 'shutdown';
+    this.dropSwitchGeneration += 1;
+    this.previewLootPoolId = null;
+    this.dropSelectorDrag = null;
+    this.clearTearHintTimer();
     this.input.off('pointerdown', this.handlePointerDown, this);
     this.input.off('pointermove', this.handlePointerMove, this);
     this.input.off('pointerup', this.handlePointerUp, this);
@@ -312,6 +330,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private createRoot(): Phaser.GameObjects.Container {
+    this.clearTearHintTimer();
     this.stopStarPulse();
     this.stopResultPanelPulse();
     this.stopRewardBreathing();
@@ -334,6 +353,9 @@ export class OpeningScene extends Phaser.Scene {
     this.resultCarouselZone = null;
     this.pouchSelectorButtons = [];
     this.pouchSelectorLabel = null;
+    this.dropSelectorContainer = null;
+    this.dropSelectorInteractiveZones = [];
+    this.dropSelectorDrag = null;
     this.chipsHudContainer = null;
     this.chipsHudText = null;
     this.signalHudContainer = null;
@@ -704,18 +726,70 @@ export class OpeningScene extends Phaser.Scene {
     this.stopStarPulse();
     this.tweens.add({
       targets: this.pouch.tab,
+      angle: OPENING_FEEL_PRESENTATION.tearHintNudgeAngle,
       scale: MOTION_PRESENTATION.starPulseScale,
       duration: MOTION_PRESENTATION.starPulseDuration,
       yoyo: true,
-      repeat: -1,
+      repeat: OPENING_FEEL_PRESENTATION.tearHintNudgeRepeats,
       ease: 'Sine.InOut',
+      onComplete: () => {
+        if (this.pouch?.tab.active) this.pouch.tab.setAngle(0).setScale(1);
+      },
     });
   }
 
   private stopStarPulse(): void {
     if (!this.pouch) return;
     this.tweens.killTweensOf(this.pouch.tab);
-    this.pouch.tab.setScale(1).setAlpha(1);
+    this.pouch.tab.setScale(1).setAlpha(1).setAngle(0);
+  }
+
+  private clearTearHintTimer(): void {
+    this.tearHintTimer?.remove(false);
+    this.tearHintTimer = null;
+  }
+
+  private hideTearHint(): void {
+    this.clearTearHintTimer();
+    if (!this.tearHint?.active) return;
+    this.tweens.killTweensOf(this.tearHint);
+    this.tearHint.setAlpha(0).setX(this.metrics?.centerX ?? this.tearHint.x);
+    this.stopStarPulse();
+  }
+
+  private scheduleTearHint(): void {
+    this.clearTearHintTimer();
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight) return;
+    this.tearHintTimer = this.time.delayedCall(
+      OPENING_FEEL_PRESENTATION.tearHintIdleDelayMs,
+      () => this.showTearHint(),
+    );
+  }
+
+  private showTearHint(): void {
+    this.tearHintTimer = null;
+    if (
+      this.phase !== 'idle' ||
+      this.dropSwitchInFlight ||
+      this.pouchArtLoadInFlight ||
+      !this.tearHint?.active ||
+      !this.pouch?.tab.active
+    ) return;
+    const centerX = this.metrics?.centerX ?? this.tearHint.x;
+    this.tearHint.setX(centerX).setAlpha(0);
+    this.tweens.add({
+      targets: this.tearHint,
+      alpha: 1,
+      x: centerX + 6,
+      duration: 150,
+      yoyo: true,
+      repeat: OPENING_FEEL_PRESENTATION.tearHintNudgeRepeats,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        if (this.tearHint?.active) this.tearHint.setX(centerX).setAlpha(1);
+      },
+    });
+    this.startStarPulse();
   }
 
   private startResultPanelPulse(): void {
@@ -888,8 +962,16 @@ export class OpeningScene extends Phaser.Scene {
     this.createMuteButton(root);
     this.renderDropSelector(root);
 
+    const displayedLootPoolId = this.getDisplayedLootPoolId();
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
-    this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y, this.selectedPouchType);
+    this.pouch = createPouchVisual(
+      this,
+      root,
+      metrics.centerX,
+      POUCH_Y,
+      this.selectedPouchType,
+      displayedLootPoolId,
+    );
     getGameAudio().primeDragTexture();
     this.pouch.dragZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.beginDrag(pointer));
     this.renderPouchSelector(root);
@@ -897,27 +979,33 @@ export class OpeningScene extends Phaser.Scene {
       this.chargedReadyPulsePending = false;
       this.showChargedReadyOnSelector();
     }
-    this.startStarPulse();
 
-    const bottomActionY = this.getBottomActionY();
+    const tearHintY = metrics.safeTop + 82;
     const tearHint = this.add
-      .text(metrics.centerX, bottomActionY, getMessages(getPlatformRuntime().language).opening.tearHint, {
+      .text(metrics.centerX, tearHintY, getMessages(getPlatformRuntime().language).opening.tearHint, {
         color: '#efe7f6',
         backgroundColor: '#2a2037',
-        padding: { x: 14, y: 8 },
+        padding: { x: 12, y: 7 },
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '18px',
+        fontSize: '16px',
       })
       .setOrigin(0.5)
+      .setAlpha(0)
       .setShadow(0, 2, '#120d19', 3, true, true);
     root.add(tearHint);
-    root.setData('tearHint', tearHint);
     this.tearHint = tearHint;
+    this.scheduleTearHint();
+
+    if (this.dropPreviewDirection) {
+      const direction = this.dropPreviewDirection;
+      this.dropPreviewDirection = 0;
+      this.animateDropPreview(direction);
+    }
 
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, bottomActionY - 42, message, {
+          .text(metrics.centerX, tearHintY + 38, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
@@ -968,17 +1056,6 @@ export class OpeningScene extends Phaser.Scene {
       });
     }
 
-    if (this.tearHint) {
-      const targetY = this.tearHint.y;
-      this.tearHint.setY(targetY + 4).setAlpha(0);
-      this.tweens.add({
-        targets: this.tearHint,
-        y: targetY,
-        alpha: 1,
-        duration: OPENING_FEEL_PRESENTATION.uiFadeInMs,
-        ease: 'Sine.Out',
-      });
-    }
   }
 
   private renderFailure(message: string): void {
@@ -1205,103 +1282,298 @@ export class OpeningScene extends Phaser.Scene {
     this.signalHudContainer = container;
   }
 
-  private getActiveDropIndex(): number {
-    if (!this.saveState) return 0;
-    const index = GAME_LOOT_POOL_IDS.indexOf(this.saveState.activeLootPoolId as GameLootPoolId);
+  private getDisplayedLootPoolId(): GameLootPoolId {
+    if (this.previewLootPoolId) return this.previewLootPoolId;
+    const active = this.saveState?.activeLootPoolId as GameLootPoolId | undefined;
+    return active && GAME_LOOT_POOL_IDS.includes(active) ? active : GAME_LOOT_POOL_IDS[0];
+  }
+
+  private getDisplayedDropIndex(): number {
+    const index = GAME_LOOT_POOL_IDS.indexOf(this.getDisplayedLootPoolId());
     return index >= 0 ? index : 0;
   }
 
   private renderDropSelector(root: Phaser.GameObjects.Container): void {
     if (!this.metrics || !this.saveState) return;
     const messages = getMessages(getPlatformRuntime().language);
-    const index = this.getActiveDropIndex();
-    const poolId: GameLootPoolId = GAME_LOOT_POOL_IDS[index] ?? GAME_LOOT_POOL_IDS[0];
-    const owned = new Set(this.saveState.discoveredStandard);
+    const index = this.getDisplayedDropIndex();
+    const poolId = this.getDisplayedLootPoolId();
+    const ownedStandards = new Set(this.saveState.discoveredStandard);
+    const ownedSecrets = new Set(this.saveState.discoveredSecrets);
     const standards = GAME_REGISTRY.standardItems.filter((item) => item.lootPoolId === poolId);
-    const standardCount = standards.filter(({ collectible }) => owned.has(collectible.id)).length;
-    const width = Math.min(360, Math.max(270, this.metrics.logicalWidth * 0.34));
-    const height = 54;
+    const secrets = GAME_REGISTRY.secrets.filter((item) => item.lootPoolId === poolId);
+    const standardCount = standards.filter(({ collectible }) => ownedStandards.has(collectible.id)).length;
+    const secretCount = secrets.filter(({ collectible }) => ownedSecrets.has(collectible.id)).length;
+    const width = Math.min(
+      OPENING_FEEL_PRESENTATION.dropSelectorMaxWidth,
+      Math.max(OPENING_FEEL_PRESENTATION.dropSelectorMinWidth, this.metrics.logicalWidth * 0.48),
+    );
+    const height = OPENING_FEEL_PRESENTATION.dropSelectorHeight;
     const x = this.metrics.centerX;
-    const y = this.metrics.safeTop + 10;
+    const y = this.metrics.safeBottom - OPENING_FEEL_PRESENTATION.dropSelectorBottomInset - height;
     const panel = this.add.container(x, y);
+    this.dropSelectorContainer = panel;
+
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.84);
-    background.fillRoundedRect(-width / 2, 0, width, height, 18);
-    background.lineStyle(1.5, 0x8df8ff, 0.28);
-    background.strokeRoundedRect(-width / 2, 0, width, height, 18);
+    background.fillStyle(0x15101f, 0.94);
+    background.fillRoundedRect(-width / 2, 0, width, height, 20);
+    background.lineStyle(2, 0x8df8ff, 0.46);
+    background.strokeRoundedRect(-width / 2, 0, width, height, 20);
+    const inner = this.add.graphics().setAlpha(0.42);
+    inner.lineStyle(1, 0xf2ddff, 0.24);
+    inner.strokeRoundedRect(-width / 2 + 4, 4, width - 8, height - 8, 17);
+
     const label = this.add
-      .text(0, 10, `${messages.opening.drop} · ${messages.drops[poolId]}`, {
-        color: '#f7f2ff',
+      .text(0, 12, `${messages.opening.drop} ${index + 1}/${GAME_LOOT_POOL_IDS.length} · ${messages.drops[poolId]}`, {
+        color: '#fbf7ff',
+        stroke: '#100b16',
+        strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: getPlatformRuntime().language === 'ru' ? '9px' : '10px',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5, 0);
+    const standardsLabel = messages.collection.standards.toUpperCase();
+    const secretsLabel = messages.collection.secrets.toUpperCase();
     const progress = this.add
-      .text(0, 34, `${standardCount}/${standards.length}   ·   ${index + 1}/${GAME_LOOT_POOL_IDS.length}`, {
-        color: '#9fdfe8',
+      .text(0, 43, `${standardsLabel} ${standardCount}/${standards.length}   ·   ${secretsLabel} ${secretCount}/${secrets.length}`, {
+        color: '#9feaf4',
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: '8px',
       })
       .setOrigin(0.5, 0);
+
+    const previousBack = this.add
+      .circle(-width / 2 + 34, height / 2, 25, 0x332742, 0.96)
+      .setStrokeStyle(1.5, 0xdccdf0, 0.28);
+    const nextBack = this.add
+      .circle(width / 2 - 34, height / 2, 25, 0x332742, 0.96)
+      .setStrokeStyle(1.5, 0xdccdf0, 0.28);
     const previous = this.add
-      .text(-width / 2 + 20, height / 2, '‹', {
-        color: '#e9e0f4',
+      .text(previousBack.x, previousBack.y - 2, '‹', {
+        color: '#f4edff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '28px',
+        fontSize: '34px',
       })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+      .setOrigin(0.5);
     const next = this.add
-      .text(width / 2 - 20, height / 2, '›', {
-        color: '#e9e0f4',
+      .text(nextBack.x, nextBack.y - 2, '›', {
+        color: '#f4edff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '28px',
+        fontSize: '34px',
       })
-      .setOrigin(0.5)
+      .setOrigin(0.5);
+    const hitWidth = OPENING_FEEL_PRESENTATION.dropSelectorArrowHitWidth;
+    const previousHit = this.add
+      .zone(previousBack.x, height / 2, hitWidth, height)
       .setInteractive({ useHandCursor: true });
-    previous.on('pointerup', () => void this.switchDrop(-1));
-    next.on('pointerup', () => void this.switchDrop(1));
-    panel.add([background, label, progress, previous, next]);
+    const nextHit = this.add
+      .zone(nextBack.x, height / 2, hitWidth, height)
+      .setInteractive({ useHandCursor: true });
+    const swipeHit = this.add
+      .zone(0, height / 2, Math.max(80, width - hitWidth * 2), height)
+      .setInteractive({ useHandCursor: true });
+
+    const pressArrow = (
+      direction: -1 | 1,
+      back: Phaser.GameObjects.Arc,
+      arrow: Phaser.GameObjects.Text,
+    ): void => {
+      if (this.phase !== 'idle' || this.pouchArtLoadInFlight) return;
+      this.hideTearHint();
+      this.tweens.killTweensOf([back, arrow]);
+      this.tweens.add({
+        targets: [back, arrow],
+        scale: 0.91,
+        duration: OPENING_FEEL_PRESENTATION.uiPressMs,
+        yoyo: true,
+        ease: 'Sine.Out',
+      });
+      void this.switchDrop(direction);
+    };
+    previousHit.on('pointerup', () => pressArrow(-1, previousBack, previous));
+    nextHit.on('pointerup', () => pressArrow(1, nextBack, next));
+
+    swipeHit.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.phase !== 'idle' || this.pouchArtLoadInFlight) return;
+      this.hideTearHint();
+      this.dropSelectorDrag = { pointerId: pointer.id, startX: pointer.x };
+    });
+    swipeHit.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      const drag = this.dropSelectorDrag;
+      this.dropSelectorDrag = null;
+      if (!drag || drag.pointerId !== pointer.id || this.phase !== 'idle' || !this.metrics) return;
+      const deltaX = (pointer.x - drag.startX) / this.metrics.scale;
+      if (Math.abs(deltaX) < OPENING_FEEL_PRESENTATION.dropSelectorSwipeThreshold) {
+        this.scheduleTearHint();
+        return;
+      }
+      void this.switchDrop(deltaX < 0 ? 1 : -1);
+    });
+    swipeHit.on('pointerout', () => {
+      this.dropSelectorDrag = null;
+    });
+
+    panel.add([background, inner, label, progress, previousBack, nextBack, previous, next, previousHit, nextHit, swipeHit]);
     root.add(panel);
+    this.dropSelectorInteractiveZones = [previousHit, nextHit, swipeHit];
+
+    this.tweens.add({
+      targets: inner,
+      alpha: 0.7,
+      duration: 1450,
+      yoyo: true,
+      repeat: -1,
+      repeatDelay: 2600,
+      ease: 'Sine.InOut',
+    });
+
+    const shouldNudgeNext = this.dropCompletionNudgePoolId === poolId;
+    if (shouldNudgeNext) {
+      this.dropCompletionNudgePoolId = null;
+      const nextLabel = this.add
+        .text(width / 2 - 68, 66, messages.opening.nextDrop, {
+          color: '#8df8ff',
+          stroke: '#100b16',
+          strokeThickness: 2,
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+          fontStyle: 'bold',
+        })
+        .setOrigin(1, 0.5)
+        .setAlpha(0);
+      panel.add(nextLabel);
+      this.tweens.add({
+        targets: [nextBack, next],
+        scale: 1.1,
+        duration: 230,
+        yoyo: true,
+        repeat: 2,
+        ease: 'Sine.InOut',
+      });
+      this.tweens.add({
+        targets: nextLabel,
+        alpha: 1,
+        x: nextLabel.x + 4,
+        duration: 250,
+        yoyo: true,
+        repeat: 2,
+        hold: 220,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  private animateDropPreview(direction: -1 | 1): void {
+    if (!this.pouch?.group.active || !this.dropSelectorContainer?.active) return;
+    const pouch = this.pouch.group;
+    const panel = this.dropSelectorContainer;
+    const pouchX = pouch.x;
+    const panelX = panel.x;
+    pouch.setX(pouchX + direction * 12).setAlpha(0.78);
+    panel.setX(panelX + direction * 8).setAlpha(0.82);
+    this.tweens.add({
+      targets: pouch,
+      x: pouchX,
+      alpha: 1,
+      duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,
+      ease: 'Cubic.Out',
+    });
+    this.tweens.add({
+      targets: panel,
+      x: panelX,
+      alpha: 1,
+      duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,
+      ease: 'Cubic.Out',
+    });
   }
 
   private async switchDrop(direction: -1 | 1): Promise<void> {
-    if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight || !this.session || !this.saveState) return;
-    const currentIndex = this.getActiveDropIndex();
+    if (this.phase !== 'idle' || this.pouchArtLoadInFlight || !this.session || !this.saveState) return;
+    const currentIndex = this.getDisplayedDropIndex();
     const nextIndex = (currentIndex + direction + GAME_LOOT_POOL_IDS.length) % GAME_LOOT_POOL_IDS.length;
     const nextPoolId: GameLootPoolId = GAME_LOOT_POOL_IDS[nextIndex] ?? GAME_LOOT_POOL_IDS[0];
-    if (nextPoolId === this.saveState.activeLootPoolId) return;
 
-    this.dropSwitchInFlight = true;
+    this.dropPreviewDirection = direction;
+    this.previewLootPoolId = nextPoolId;
+    this.dropSwitchGeneration += 1;
+    this.dropCompletionNudgePoolId = null;
+    this.hideTearHint();
     getGameAudio().play('ui-click');
+
+    // Preview is immediate: pouch skin + selector follow the user's latest intent.
+    // Durable storage remains serialized in reconcileDropSelection().
+    this.renderIdle();
+    void this.reconcileDropSelection();
+  }
+
+  private async reconcileDropSelection(): Promise<void> {
+    if (this.dropSwitchInFlight || !this.session || !this.saveState || this.phase !== 'idle') return;
+    this.dropSwitchInFlight = true;
+
     try {
-      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, nextPoolId);
-    } catch (error: unknown) {
-      console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
-    }
-    if (this.isSceneShutdown()) {
-      this.dropSwitchInFlight = false;
-      return;
-    }
-    try {
-      this.saveState = await this.session.selectLootPool(nextPoolId);
-      if (this.isSceneShutdown()) {
+      while (!this.isSceneShutdown() && this.phase === 'idle' && this.session && this.saveState) {
+        const generation = this.dropSwitchGeneration;
+        const target = this.previewLootPoolId ?? (this.session.getState().activeLootPoolId as GameLootPoolId);
+        const durableBefore = this.session.getState().activeLootPoolId as GameLootPoolId;
+
+        if (target === durableBefore) {
+          if (generation === this.dropSwitchGeneration) {
+            this.saveState = this.session.getState();
+            this.previewLootPoolId = null;
+            this.dropSwitchInFlight = false;
+            this.renderIdle();
+            return;
+          }
+          continue;
+        }
+
+        try {
+          await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, target);
+        } catch (error: unknown) {
+          console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
+        }
+        if (this.isSceneShutdown() || this.phase !== 'idle') return;
+
+        // A newer swipe/click supersedes this target before any durable mutation.
+        if (generation !== this.dropSwitchGeneration) continue;
+
+        try {
+          const selected = await this.session.selectLootPool(target);
+          this.saveState = selected;
+        } catch (error: unknown) {
+          this.saveState = this.session.getState();
+          if (generation !== this.dropSwitchGeneration) continue;
+          this.previewLootPoolId = null;
+          console.error('[drop] failed to switch Drop', error);
+          this.dropSwitchInFlight = false;
+          this.renderIdle(getMessages(getPlatformRuntime().language).opening.dropSwitchError);
+          return;
+        }
+        if (this.isSceneShutdown() || this.phase !== 'idle') return;
+
+        if (generation !== this.dropSwitchGeneration) {
+          // The just-finished durable write is now intermediate. Keep UI on the
+          // latest preview and serialize one more write instead of repainting stale state.
+          continue;
+        }
+
+        getPlatformRuntime().analytics.track('drop_selected', {
+          lootPoolId: target,
+          source: 'opening',
+        });
+        this.previewLootPoolId = null;
         this.dropSwitchInFlight = false;
+        this.renderIdle();
         return;
       }
-      getPlatformRuntime().analytics.track('drop_selected', {
-        lootPoolId: nextPoolId,
-        source: 'opening',
-      });
-      this.dropSwitchInFlight = false;
-      this.renderIdle();
-    } catch (error: unknown) {
-      this.dropSwitchInFlight = false;
-      this.saveState = this.session.getState();
-      if (this.isSceneShutdown()) return;
-      console.error('[drop] failed to switch Drop', error);
-      this.renderIdle(getMessages(getPlatformRuntime().language).opening.dropSwitchError);
+    } finally {
+      if (this.isSceneShutdown() || this.phase !== 'idle') {
+        this.dropSwitchInFlight = false;
+      }
     }
+
+    this.dropSwitchInFlight = false;
   }
 
   private renderPouchSelector(root: Phaser.GameObjects.Container): void {
@@ -1670,11 +1942,29 @@ export class OpeningScene extends Phaser.Scene {
       button.setAlpha(enabled ? idleAlpha : 0.16);
       if (hitTarget?.input) hitTarget.input.enabled = enabled;
     }
+    for (const zone of this.dropSelectorInteractiveZones) {
+      if (zone.input) zone.input.enabled = enabled;
+    }
+  }
+
+  private hideDropSelectorForReveal(): void {
+    if (!this.dropSelectorContainer?.active) return;
+    for (const zone of this.dropSelectorInteractiveZones) zone.disableInteractive();
+    this.dropSelectorDrag = null;
+    this.tweens.killTweensOf(this.dropSelectorContainer);
+    this.tweens.add({
+      targets: this.dropSelectorContainer,
+      alpha: 0,
+      y: this.dropSelectorContainer.y + 6,
+      duration: OPENING_FEEL_PRESENTATION.uiFadeOutMs,
+      ease: 'Sine.In',
+    });
   }
 
   private beginDrag(pointer: Phaser.Input.Pointer): void {
     if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight || !this.pouch || !this.metrics) return;
 
+    this.hideTearHint();
     this.stopStarPulse();
     getGameAudio().primeDragTexture();
     getGameAudio().play('pouch-grab');
@@ -1704,6 +1994,11 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (this.phase === 'idle') {
+      this.hideTearHint();
+      this.scheduleTearHint();
+      return;
+    }
     if (this.phase === 'revealing' || this.phase === 'banking') {
       if (this.requestPresentationFastForward()) getGameAudio().play('ui-skip');
       return;
@@ -1836,7 +2131,7 @@ export class OpeningScene extends Phaser.Scene {
       duration: 170,
       ease: 'Sine.Out',
       onComplete: () => {
-        if (this.phase === 'idle') this.startStarPulse();
+        if (this.phase === 'idle') this.scheduleTearHint();
       },
     });
     this.tweens.add({
@@ -1861,9 +2156,11 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().stopDragTexture(true);
     this.phase = 'revealing';
     this.drag = null;
+    this.hideTearHint();
     this.presentationSkip.guardUntilTime(this.time.now + OPENING_FEEL_PRESENTATION.postTearSkipGuardMs);
     this.pouch?.dragZone.disableInteractive();
     this.setChromeEnabled(false);
+    this.hideDropSelectorForReveal();
     getGameAudio().play('tear');
 
     try {
@@ -1940,6 +2237,16 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     const collectionMilestone = resolveCollectionMilestone(GAME_REGISTRY, pending, committed);
+    const activeStandards = GAME_REGISTRY.standardItems.filter(
+      (item) => item.lootPoolId === pending.lootPoolId,
+    );
+    if (
+      pending.standard.isNew &&
+      activeStandards.length > 0 &&
+      activeStandards.every(({ collectible }) => committed.discoveredStandard.includes(collectible.id))
+    ) {
+      this.dropCompletionNudgePoolId = pending.lootPoolId as GameLootPoolId;
+    }
     this.saveState = committed;
     this.trackRevealCompletion(pending, committed);
     this.phase = 'result';
@@ -2295,9 +2602,12 @@ export class OpeningScene extends Phaser.Scene {
   private createDiscoverySilhouetteAccent(
     standardVisual: Phaser.GameObjects.Container,
     color: number,
-  ): Phaser.GameObjects.GameObject[] {
+    copies: number = OPENING_FEEL_PRESENTATION.discoveryOutlineCopies,
+    radius: number = OPENING_FEEL_PRESENTATION.discoveryOutlineRadius,
+  ): Array<Phaser.GameObjects.Image | Phaser.GameObjects.Ellipse> {
     const sourceImage = standardVisual.list.find(
-      (child): child is Phaser.GameObjects.Image => child instanceof Phaser.GameObjects.Image,
+      (child): child is Phaser.GameObjects.Image =>
+        child instanceof Phaser.GameObjects.Image && child.getData('silhouetteAccent') !== true,
     );
     if (!sourceImage) {
       const fallback = this.add
@@ -2317,8 +2627,6 @@ export class OpeningScene extends Phaser.Scene {
 
     const sourceIndex = Math.max(0, standardVisual.getIndex(sourceImage));
     const targets: Phaser.GameObjects.Image[] = [];
-    const copies = OPENING_FEEL_PRESENTATION.discoveryOutlineCopies;
-    const radius = OPENING_FEEL_PRESENTATION.discoveryOutlineRadius;
     for (let index = 0; index < copies; index += 1) {
       const angle = (Math.PI * 2 * index) / copies;
       const outline = this.add
@@ -2332,6 +2640,7 @@ export class OpeningScene extends Phaser.Scene {
         .setScale(sourceImage.scaleX, sourceImage.scaleY);
       outline.setTint(color);
       outline.setAlpha(0);
+      outline.setData('silhouetteAccent', true);
       outline.setBlendMode(Phaser.BlendModes.ADD);
       standardVisual.addAt(outline, sourceIndex);
       targets.push(outline);
@@ -2339,11 +2648,42 @@ export class OpeningScene extends Phaser.Scene {
     return targets;
   }
 
+  private addPersistentStandardSilhouetteAccent(
+    standardVisual: Phaser.GameObjects.Container,
+    color: number,
+    isNew: boolean,
+  ): void {
+    const targets = this.createDiscoverySilhouetteAccent(
+      standardVisual,
+      color,
+      OPENING_FEEL_PRESENTATION.standardOutlineCopies,
+      OPENING_FEEL_PRESENTATION.standardOutlineRadius,
+    );
+    const baseAlpha = isNew
+      ? OPENING_FEEL_PRESENTATION.newPersistentOutlineAlpha
+      : OPENING_FEEL_PRESENTATION.standardOutlineAlpha;
+    const peakAlpha = isNew
+      ? OPENING_FEEL_PRESENTATION.newPersistentOutlinePeakAlpha
+      : OPENING_FEEL_PRESENTATION.standardOutlinePeakAlpha;
+    for (const target of targets) {
+      this.trackStandardPresenceTarget(target);
+      target.setAlpha(baseAlpha);
+    }
+    this.tweens.add({
+      targets,
+      alpha: peakAlpha,
+      duration: isNew ? 1150 : 1550,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
+  }
+
   private async animateDiscoveryBeat(
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
   ): Promise<void> {
-    if (!this.root || !this.metrics || !pending.standard.isNew || pending.hiddenPocket) return;
+    if (!this.root || !this.metrics || !pending.standard.isNew) return;
 
     const messages = getMessages(getPlatformRuntime().language);
     const presentation = getCollectiblePresentation(pending.standard.familyId);
@@ -3259,6 +3599,11 @@ export class OpeningScene extends Phaser.Scene {
       visual.group.setScale(finalScale);
     }
 
+    this.addPersistentStandardSilhouetteAccent(
+      visual.group,
+      color,
+      pending.standard.isNew,
+    );
     audio.play(pending.standard.rarity);
     return visual.group;
   }
@@ -3581,6 +3926,11 @@ export class OpeningScene extends Phaser.Scene {
       pending.standard.collectibleId,
     );
     standardVisual.group.setScale(standardVisual.presentation.revealScale);
+    this.addPersistentStandardSilhouetteAccent(
+      standardVisual.group,
+      RARITY_REVEAL_COLORS[pending.standard.rarity],
+      pending.standard.isNew,
+    );
     standardPage.setData('sideScale', standardVisual.presentation.carouselSideScale);
     standardPage.setData('breathTarget', standardVisual.group);
     standardPage.setData('breathBaseScale', standardVisual.presentation.revealScale);
@@ -4378,6 +4728,11 @@ export class OpeningScene extends Phaser.Scene {
         pending.standard.collectibleId,
       );
       standard.group.setScale(standard.presentation.revealScale);
+      this.addPersistentStandardSilhouetteAccent(
+        standard.group,
+        RARITY_REVEAL_COLORS[pending.standard.rarity],
+        pending.standard.isNew,
+      );
       this.startRewardBreathing(standard.group, standard.presentation.revealScale);
     }
 
