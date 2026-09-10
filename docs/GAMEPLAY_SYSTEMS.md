@@ -284,16 +284,22 @@ Hidden Pocket remains the strongest surprise beat. New neon/rarity treatment mus
 
 # 7. Drops / loot pools — CURRENT RUNTIME
 
-Current content resolves through one active loot pool; selector is hidden because there is one production Drop.
+Current production content is **6 themed Drops / 12 families / 60 collectibles**. Each Drop contains two families, eight standards and two Secrets.
 
-Rules remain:
+Current navigation/loading contract:
 
-- every family/collectible belongs to a pool;
-- Basic/Charged resolve only inside active pool;
-- Signal searches that pool + selected-pouch eligibility;
-- CHIPS/Signal are global;
-- Drop #2 should primarily be data/config work;
+- Collection exposes all six Drops through its pager;
+- browsing a non-active Drop lazy-loads that Drop's authored collectible art before rendering it;
+- Collection browsing itself is non-durable;
+- returning to Opening passes the browsed Drop, and `OpeningSession` owns the durable active-Drop switch;
+- a staged `pendingReveal` keeps its persisted Drop and cannot be silently retargeted by navigation;
+- Boot preloads only the default Drop plus required static assets; alternate Drops are loaded on demand;
+- Basic/Charged standard and Hidden Pocket resolution stay inside the active Drop;
+- Signal guarantee eligibility is active-Drop + selected-pouch scoped;
+- CHIPS, Signal and Overcharge remain global across Drops;
 - family-targeted pouches remain parked.
+
+Content-scale economy behavior is audited in `FULL_GAME_ECONOMY_AUDIT_2026-09-10.md`.
 
 ---
 

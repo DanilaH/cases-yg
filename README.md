@@ -6,16 +6,17 @@ Yandex Games collectible opener built around nostalgic Y2K pocket electronics.
 
 ## Current phase
 
-**Gameplay Loop Lite V2, Phase 2.6 Signal Overcharge, Phase 2.7 Secret reward correction, and the final merged-main repeated-use regression are accepted. Real hosted Yandex DRAFT validation is the next gate.**
+**Expanded six-Drop release candidate is implemented and content-scale economy-audited. Local Yandex DRAFT preconditions are accepted; real hosted Yandex DRAFT validation is the next gate.**
 
-Current private content:
+Current production content:
 
-- Digital Camera;
-- Flip Phone;
-- Common / Rare / Epic / Legendary for each;
-- 2 Secrets.
+- 6 themed Drops;
+- 12 gadget families;
+- 48 Common / Rare / Epic / Legendary standard collectibles;
+- 12 Secrets;
+- 60 authored collectible assets total.
 
-This two-family build is a development base, not the public release.
+The original Camera + Flip Phone two-family slice is historical validation context, not the current runtime catalog.
 
 Current runtime loop:
 
@@ -49,7 +50,7 @@ Implemented mechanics:
 
 Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15`. Mega currently pays `120–180 CHIPS`. Secret jackpot currently pays `+40 CHIPS`.
 
-These are provisional development values, not final public-release tuning.
+These values passed the six-Drop content-scale audit and remain the current release-candidate tuning. Reopen them only from hosted/player evidence or a material economy/content change.
 
 ## Opening feel / presentation
 
@@ -97,17 +98,21 @@ Completed:
   - carousel-aware reward tray;
 - Secret browser acceptance — NEW/duplicate, RU/EN, recovery, fast-forward, persistent FX;
 - final merged-main repeated-use regression — 24 real openings + Secret lifecycle/navigation stress, **82/82 PASS**, runtime/request/HTTP failures **0/0/0**;
-- current automated suite: **131 tests** after the pre-DRAFT platform lifecycle regression was added, plus typecheck/assets/build gates;
-- Yandex production archive shape verified from the exact accepted tree.
+- six-Drop content expansion: 12 families / 60 authored collectibles with on-demand Drop loading;
+- full-game economy audit: current balance accepted unchanged across 3,000-seed strategy simulation + focused Overcharge stress;
+- current automated suite: **172 tests**, plus typecheck/assets/build gates;
+- Yandex candidate archive audited at ~11.72 MB uncompressed / ~10.52 MB ZIP with `index.html` at archive root;
+- local Yandex DRAFT readiness review found and corrected early `GameplayAPI.start()` timing.
 
 Current order:
 
-1. run real hosted Yandex DRAFT validation;
-2. fix only hosted-platform defects that the draft actually exposes;
-3. decide deferred Drop/odds/progress work from evidence;
-4. content expansion only after hosted validation.
+1. upload the exact expanded candidate to real hosted Yandex DRAFT;
+2. run SDK/Game Ready/gameplay-marker, pause/audio, storage/recovery, six-Drop loading, ads-debug and RU/EN checks;
+3. fix only hosted-platform defects that the draft actually exposes;
+4. finalize public monetization placements, Metrica/CSP choice, store metadata and release media;
+5. run the final moderation self-check and submit.
 
-Do not add unrelated meta systems/content before the hosted gate.
+Do not add unrelated meta systems/content before hosted evidence.
 
 ## Production-grade boundaries already present
 
@@ -118,7 +123,7 @@ Do not add unrelated meta systems/content before the hosted gate.
 - injected safe storage + Save V4 versioned `pendingReveal`;
 - responsive Desktop/Mobile landscape layout;
 - data-driven gadget/loot-pool registry;
-- integrated Camera/Flip Phone art;
+- 60 authored collectible assets across six Drops with active-Drop lazy loading;
 - production pouch/background/SFX assets;
 - Phaser-rendered CHIPS token + Charged aura;
 - deterministic debug scenarios;
@@ -160,7 +165,9 @@ Canonical current docs:
 - [`docs/OPEN_QUESTIONS.md`](docs/OPEN_QUESTIONS.md) — genuinely unresolved choices;
 - [`docs/INFRASTRUCTURE_STATUS.md`](docs/INFRASTRUCTURE_STATUS.md) — actual infrastructure status;
 - [`docs/ASSET_MANIFEST.md`](docs/ASSET_MANIFEST.md) — current + correction asset impact;
-- [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — hosted checks local CI cannot replace.
+- [`docs/FULL_GAME_ECONOMY_AUDIT_2026-09-10.md`](docs/FULL_GAME_ECONOMY_AUDIT_2026-09-10.md) — six-Drop economy evidence and keep-balance decision;
+- [`docs/YANDEX_DRAFT_READINESS_2026-09-10.md`](docs/YANDEX_DRAFT_READINESS_2026-09-10.md) — current expanded-candidate local readiness + exact hosted run order;
+- [`docs/YANDEX_SLICE_VALIDATION.md`](docs/YANDEX_SLICE_VALIDATION.md) — detailed hosted checks local CI cannot replace.
 
 ## Product principle
 

@@ -1,10 +1,10 @@
 # Yandex Games public-release checklist
 
-This checklist is for the **expanded public release**, not the current two-family development build.
+This checklist is for the current **expanded six-Drop public-release candidate**.
 
-Platform requirements were checked against Yandex Games documentation on 2026-09-02. Re-check immediately before submission.
+Platform requirements were re-checked against current Yandex Games documentation on **2026-09-10**. Re-check again immediately before public moderation if requirements change.
 
-The project has a separate earlier hosted gate in `YANDEX_SLICE_VALIDATION.md`: **Lite V2 hands-on → real Yandex DRAFT validation → content expansion → final public-release hardening**.
+The current expanded candidate uses `YANDEX_DRAFT_READINESS_2026-09-10.md` as the authoritative pre-upload handoff. `YANDEX_SLICE_VALIDATION.md` retains the detailed hosted scenario matrix; historical assumptions that content expansion happens after the first hosted gate are superseded.
 
 ---
 
@@ -18,7 +18,7 @@ Before public moderation verify:
 - platform pause/resume events pause and resume gameplay/audio correctly;
 - game remains usable without mandatory authorization unless release scope later adds an account-dependent feature.
 
-These paths should already have been exercised in the real hosted Lite V2 DRAFT before content expansion. If the final release build materially changes startup/loading/platform behavior, repeat the relevant hosted checks.
+These paths must be exercised in the real hosted DRAFT using the current expanded candidate. The six-Drop/content-loading build has not yet earned hosted-platform acceptance from local CI alone.
 
 ---
 
@@ -100,9 +100,7 @@ Cloud/player save remains a separate release choice if later needed.
 
 # 5. Expanded-content / Drop loading
 
-The public release will contain substantially more than the current 10 collectible assets.
-
-Content should be organized into themed Drops/loot pools rather than one global mega-pool.
+The current expanded candidate contains **60 authored collectible assets** organized into six themed Drops / loot pools rather than one global mega-pool.
 
 Before Game Ready / moderation:
 
@@ -115,7 +113,7 @@ Before Game Ready / moderation:
 - active Drop content is complete and deterministic;
 - switching Drops cannot corrupt pending rewards or Signal targeting.
 
-Do not blindly preload every 1024 texture merely because the current small catalog can.
+Do not blindly preload every 1024 texture; keep active-Drop/on-demand loading unless hosted profiling demonstrates a better strategy.
 
 ---
 
@@ -186,7 +184,7 @@ Current planning targets:
 - optional hero 1560×520;
 - required landscape screenshots 16:9 within current allowed long-side range.
 
-Produce these from the **expanded release key visual/content**, not automatically from the current two-family catalog unless Camera/Flip Phone still happen to be the strongest marketing heroes.
+Produce these from the **actual expanded six-Drop release build/key visual**. Camera/Flip Phone may still appear only if they are genuinely the strongest marketing heroes.
 
 Screenshots must show the actual release build. Real gameplay should occupy the required majority of screenshot composition under current Yandex moderation rules, and localization must match the selected language.
 
