@@ -200,7 +200,6 @@ export class CollectionScene extends Phaser.Scene {
       if (this.view === view) return;
       getGameAudio().play('ui-click');
       this.view = view;
-      this.page = 0;
       this.render();
     });
     root.add(tab);

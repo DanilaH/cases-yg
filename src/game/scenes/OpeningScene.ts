@@ -189,11 +189,6 @@ export class OpeningScene extends Phaser.Scene {
 
     try {
       this.saveState = await this.session.load();
-      const requestedLootPoolId = this.requestedLootPoolId;
-      this.requestedLootPoolId = null;
-      if (requestedLootPoolId && !this.saveState.pendingReveal) {
-        this.saveState = await this.session.selectLootPool(requestedLootPoolId);
-      }
     } catch (error: unknown) {
       this.phase = 'failed';
       this.renderFailure(getMessages(platform.language).opening.saveLoadError);
@@ -202,11 +197,31 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
+    let idleMessage: string | undefined;
+    const requestedLootPoolId = this.requestedLootPoolId;
+    this.requestedLootPoolId = null;
+    if (requestedLootPoolId && !this.saveState.pendingReveal) {
+      try {
+        const previousLootPoolId = this.saveState.activeLootPoolId;
+        this.saveState = await this.session.selectLootPool(requestedLootPoolId);
+        if (previousLootPoolId !== requestedLootPoolId) {
+          platform.analytics.track('drop_selected', {
+            lootPoolId: requestedLootPoolId,
+            source: 'collection',
+          });
+        }
+      } catch (error: unknown) {
+        this.saveState = this.session.getState();
+        idleMessage = getMessages(platform.language).opening.dropSwitchError;
+        console.error('[drop] failed to apply Collection Drop selection', error);
+      }
+    }
+
     if (this.isSceneShutdown()) return;
 
     const pending = this.saveState.pendingReveal;
     if (pending) this.selectedPouchType = pending.pouchType;
-    this.renderIdle();
+    this.renderIdle(idleMessage);
     platform.markReady();
 
     if (pending) {
