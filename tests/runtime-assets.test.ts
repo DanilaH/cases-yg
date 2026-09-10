@@ -5,8 +5,11 @@ import {
   AVAILABLE_STATIC_ART_IDS,
   collectibleTextureKey,
   getRuntimeCollectibleArt,
+  getRuntimeBootStaticArt,
   getRuntimeCollectibleArtForLootPool,
+  getRuntimePouchArt,
   getRuntimeStaticArt,
+  pouchStaticArtId,
   staticTextureKey,
 } from '../src/game/data/artAssets';
 import { AVAILABLE_SFX_CUES, getRuntimeSfxAssets } from '../src/game/data/audioAssets';
@@ -65,6 +68,33 @@ describe('runtime asset manifests', () => {
 
   it('keeps unreviewed collectible art out of preload', () => {
     expect(getRuntimeCollectibleArt(SLICE_REGISTRY)).toEqual([]);
+  });
+
+  it('keeps authored Charged Pouch art out of boot preload and maps all three layers', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+    const bootIds = getRuntimeBootStaticArt().map(({ id }) => id);
+    expect(bootIds).toContain('pouch-body');
+    expect(bootIds).not.toContain('charged-pouch-body');
+    expect(getRuntimePouchArt('charged')).toEqual([
+      {
+        id: 'charged-pouch-body',
+        textureKey: staticTextureKey('charged-pouch-body'),
+        assetPath: 'assets/package/charged-pouch-body.webp',
+      },
+      {
+        id: 'charged-pouch-tear-strip',
+        textureKey: staticTextureKey('charged-pouch-tear-strip'),
+        assetPath: 'assets/package/charged-pouch-tear-strip-compact.webp',
+      },
+      {
+        id: 'charged-pouch-star-tab',
+        textureKey: staticTextureKey('charged-pouch-star-tab'),
+        assetPath: 'assets/package/charged-pouch-star-tab.webp',
+      },
+    ]);
+    expect(pouchStaticArtId('basic', 'body')).toBe('pouch-body');
+    expect(pouchStaticArtId('charged', 'body')).toBe('charged-pouch-body');
   });
 
   it('maps reviewed pouch/background layers without scene-specific file knowledge', () => {

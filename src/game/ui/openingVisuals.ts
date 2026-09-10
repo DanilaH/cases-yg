@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-import { collectibleTextureKey, staticTextureKey } from '../data/artAssets';
+import { collectibleTextureKey, pouchStaticArtId, staticTextureKey, type PouchArtVariant } from '../data/artAssets';
 import type { StandardRarity } from '../data/collectibles';
 import {
   getCollectiblePresentation,
@@ -129,6 +129,7 @@ export const createPouchVisual = (
   root: Phaser.GameObjects.Container,
   x: number,
   y: number,
+  variant: PouchArtVariant = 'basic',
 ): PouchVisual => {
   const group = scene.add.container(x, y);
   const shadow = scene.add.ellipse(
@@ -143,7 +144,7 @@ export const createPouchVisual = (
 
   const bodyLayer = scene.add.container(0, 0);
   const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
-  const bodyTexture = staticTextureKey('pouch-body');
+  const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body'));
   if (scene.textures.exists(bodyTexture)) {
     bodyLayer.add(body);
     addPouchLayer(scene, bodyLayer, bodyTexture, POUCH_PRESENTATION.body);
@@ -170,7 +171,7 @@ export const createPouchVisual = (
 
   const strip = scene.add.container(0, 0);
 
-  const stripTexture = staticTextureKey('pouch-tear-strip');
+  const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip'));
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
     stripImage = addPouchLayer(scene, strip, stripTexture, POUCH_PRESENTATION.strip);
@@ -181,7 +182,7 @@ export const createPouchVisual = (
   const tabStartX = 0;
   const tabEndX = POUCH_PRESENTATION.tabTravel;
   const tab = scene.add.container(tabStartX, 0);
-  const tabTexture = staticTextureKey('pouch-star-tab');
+  const tabTexture = staticTextureKey(pouchStaticArtId(variant, 'star-tab'));
   if (scene.textures.exists(tabTexture)) {
     addPouchLayer(scene, tab, tabTexture, POUCH_PRESENTATION.tab);
   } else {
