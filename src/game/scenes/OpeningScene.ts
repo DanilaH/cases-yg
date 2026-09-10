@@ -4,7 +4,7 @@ import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { LITE_V2_BALANCE, type ChipsCacheTierId, type PouchType } from '../data/balance';
-import { SLICE_REGISTRY, type StandardRarity } from '../data/collectibles';
+import { GAME_REGISTRY, type StandardRarity } from '../data/collectibles';
 import {
   AMBIENT_PRESENTATION,
   COLLECTION_MILESTONE_PRESENTATION,
@@ -22,7 +22,7 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
-import { getStandardNearCompletion } from '../systems/collection';
+import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
@@ -45,7 +45,7 @@ import { MathRandomSource } from '../systems/random';
 import { PresentationSkipController } from '../systems/presentationSkip';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { persistMutedPreference } from '../systems/settings';
-import { isStandardCollectionComplete } from '../systems/signal';
+import { isStandardLootPoolComplete } from '../systems/signal';
 import {
   createCollectibleVisual,
   createPouchVisual,
@@ -171,7 +171,7 @@ export class OpeningScene extends Phaser.Scene {
     const platform = getPlatformRuntime();
     this.session = new OpeningSession({
       repository: new SaveRepository(platform.storage),
-      registry: SLICE_REGISTRY,
+      registry: GAME_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new MathRandomSource(),
     });
@@ -1040,7 +1040,7 @@ export class OpeningScene extends Phaser.Scene {
     const threshold = LITE_V2_BALANCE.signalThreshold;
     const clamped = Phaser.Math.Clamp(Math.floor(state.signal), 0, threshold);
     const lockReady = clamped >= threshold;
-    const waitingForCharged = isSignalWaitingForCharged(state, SLICE_REGISTRY, LITE_V2_BALANCE);
+    const waitingForCharged = isSignalWaitingForCharged(state, GAME_REGISTRY, LITE_V2_BALANCE);
     const overcharge = Phaser.Math.Clamp(
       state.overchargeHundredths,
       100,
@@ -1769,7 +1769,7 @@ export class OpeningScene extends Phaser.Scene {
       return;
     }
 
-    const collectionMilestone = resolveCollectionMilestone(SLICE_REGISTRY, pending, committed);
+    const collectionMilestone = resolveCollectionMilestone(GAME_REGISTRY, pending, committed);
     this.saveState = committed;
     this.trackRevealCompletion(pending, committed);
     this.phase = 'result';
@@ -2045,7 +2045,7 @@ export class OpeningScene extends Phaser.Scene {
         cursorY += Math.max(18, text.height + 5);
       }
 
-      const nearCompletion = getStandardNearCompletion(SLICE_REGISTRY, pending.commit);
+      const nearCompletion = getStandardLootPoolNearCompletion(GAME_REGISTRY, pending.lootPoolId, pending.commit);
       if (nearCompletion) {
         const nearCompletionText = this.add.text(
           textX,
@@ -3157,7 +3157,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private addStandardResultLabels(pending: PendingReveal, x: number, y: number): void {
     const root = this.root!;
-    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    const family = GAME_REGISTRY.familyById.get(pending.standard.familyId);
     const familyName = family?.name[getPlatformRuntime().language] ?? pending.standard.familyId;
     const rarity = getMessages(getPlatformRuntime().language).rarity[pending.standard.rarity];
     const color = `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
@@ -3639,9 +3639,10 @@ export class OpeningScene extends Phaser.Scene {
         bonusChips: pending.hiddenPocket.bonusChips,
       });
     }
-    if (isStandardCollectionComplete(SLICE_REGISTRY, committed.discoveredStandard)) {
-      const wasCompleteBefore = isStandardCollectionComplete(
-        SLICE_REGISTRY,
+    if (isStandardLootPoolComplete(GAME_REGISTRY, pending.lootPoolId, committed.discoveredStandard)) {
+      const wasCompleteBefore = isStandardLootPoolComplete(
+        GAME_REGISTRY,
+        pending.lootPoolId,
         pending.standard.isNew
           ? committed.discoveredStandard.filter((id) => id !== pending.standard.collectibleId)
           : committed.discoveredStandard,
@@ -3853,7 +3854,7 @@ export class OpeningScene extends Phaser.Scene {
     const language = getPlatformRuntime().language;
     const messages = getMessages(language);
     if (pending.hiddenPocket && this.resultCarouselIndex === 1) {
-      const family = SLICE_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
+      const family = GAME_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
       return {
         title: family?.name[language] ?? pending.hiddenPocket.familyId,
         rarity: messages.rarity.secret,
@@ -3865,7 +3866,7 @@ export class OpeningScene extends Phaser.Scene {
       };
     }
 
-    const family = SLICE_REGISTRY.familyById.get(pending.standard.familyId);
+    const family = GAME_REGISTRY.familyById.get(pending.standard.familyId);
     const statusParts = this.getStandardResultStatusParts(pending);
     return {
       title: `${pending.pouchType === 'charged' ? '⚡ ' : ''}${family?.name[language] ?? pending.standard.familyId}`,

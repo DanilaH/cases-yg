@@ -119,45 +119,61 @@ export const createContentRegistry = (families: readonly GadgetFamilyDefinition[
   };
 };
 
-export const SLICE_LOOT_POOL_ID = 'y2k-essentials';
+export const DEFAULT_LOOT_POOL_ID = 'y2k-essentials';
 
-export const SLICE_FAMILIES: readonly GadgetFamilyDefinition[] = [
-  {
-    id: 'camera',
-    dropId: SLICE_LOOT_POOL_ID,
-    name: { en: 'Digital Camera', ru: 'Цифровая камера' },
-    standard: {
-      common: standard('camera', 'common'),
-      rare: standard('camera', 'rare'),
-      epic: standard('camera', 'epic'),
-      legendary: standard('camera', 'legendary'),
-    },
-    secrets: [
-      {
-        id: 'camera-secret-cosmic',
-        assetPath: 'assets/collectibles/camera-secret-cosmic.webp',
-        secret: true,
-      },
-    ],
-  },
-  {
-    id: 'flip-phone',
-    dropId: SLICE_LOOT_POOL_ID,
-    name: { en: 'Flip Phone', ru: 'Раскладушка' },
-    standard: {
-      common: standard('flip-phone', 'common'),
-      rare: standard('flip-phone', 'rare'),
-      epic: standard('flip-phone', 'epic'),
-      legendary: standard('flip-phone', 'legendary'),
-    },
-    secrets: [
-      {
-        id: 'flip-phone-secret-noir',
-        assetPath: 'assets/collectibles/flip-phone-secret-noir.webp',
-        secret: true,
-      },
-    ],
-  },
+export const GAME_LOOT_POOL_IDS = [
+  DEFAULT_LOOT_POOL_ID,
+  'video-link',
+  'pocket-office',
+  'pocket-audio',
+  'game-zone',
+  'analog-nights',
 ] as const;
 
+const secret = (id: string): CollectibleDefinition => ({
+  id,
+  assetPath: `assets/collectibles/${id}.webp`,
+  secret: true,
+});
+
+const family = (
+  id: string,
+  dropId: LootPoolId,
+  name: Readonly<Record<'en' | 'ru', string>>,
+  secretId: string,
+): GadgetFamilyDefinition => ({
+  id,
+  dropId,
+  name,
+  standard: {
+    common: standard(id, 'common'),
+    rare: standard(id, 'rare'),
+    epic: standard(id, 'epic'),
+    legendary: standard(id, 'legendary'),
+  },
+  secrets: [secret(secretId)],
+});
+
+export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
+  family('camera', DEFAULT_LOOT_POOL_ID, { en: 'Digital Camera', ru: 'Цифровая камера' }, 'camera-secret-cosmic'),
+  family('flip-phone', DEFAULT_LOOT_POOL_ID, { en: 'Flip Phone', ru: 'Раскладушка' }, 'flip-phone-secret-noir'),
+  family('mini-camcorder', 'video-link', { en: 'Mini Camcorder', ru: 'Мини-камкордер' }, 'mini-camcorder-secret-prototype'),
+  family('webcam', 'video-link', { en: 'Webcam', ru: 'Веб-камера' }, 'webcam-secret-stereo'),
+  family('pda', 'pocket-office', { en: 'PDA / Pocket Organizer', ru: 'КПК / Карманный органайзер' }, 'pda-secret-flip'),
+  family('pager', 'pocket-office', { en: 'Pager / Pocket Communicator', ru: 'Пейджер / Карманный коммуникатор' }, 'pager-secret-flip'),
+  family('mp3-player', 'pocket-audio', { en: 'MP3 Player', ru: 'MP3-плеер' }, 'mp3-player-secret-pearl'),
+  family('portable-disc-player', 'pocket-audio', { en: 'Portable Disc Player', ru: 'Портативный дисковый плеер' }, 'portable-disc-player-secret-remote'),
+  family('handheld-console', 'game-zone', { en: 'Handheld Console', ru: 'Портативная консоль' }, 'handheld-console-secret-phone'),
+  family('home-console', 'game-zone', { en: 'Home Console', ru: 'Домашняя консоль' }, 'home-console-secret-noir'),
+  family('cassette-player', 'analog-nights', { en: 'Cassette Player', ru: 'Кассетный плеер' }, 'cassette-player-secret-remote'),
+  family('crt-tv', 'analog-nights', { en: 'Pocket CRT TV', ru: 'Карманный ЭЛТ-телевизор' }, 'crt-tv-secret-communicator'),
+] as const;
+
+export const GAME_REGISTRY = createContentRegistry(GAME_FAMILIES);
+
+/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_REGISTRY. */
+export const SLICE_LOOT_POOL_ID = DEFAULT_LOOT_POOL_ID;
+/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_FAMILIES. */
+export const SLICE_FAMILIES = GAME_FAMILIES.filter((familyDefinition) => familyDefinition.dropId === DEFAULT_LOOT_POOL_ID);
+/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_REGISTRY. */
 export const SLICE_REGISTRY = createContentRegistry(SLICE_FAMILIES);

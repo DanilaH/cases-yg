@@ -89,7 +89,7 @@ describe('slice reward transaction integration', () => {
     const state: SaveState = {
       ...createInitialSaveState(),
       totalOpens: 3,
-      discoveredStandard: ['camera-common'],
+      discoveredStandard: ['flip-phone-common', 'flip-phone-rare', 'flip-phone-legendary', 'camera-common'],
     };
     const pending = createPending(state, 'duplicate', [0, 0, 0, 0, 0.999]);
 
@@ -208,6 +208,7 @@ describe('slice reward transaction integration', () => {
     const state: SaveState = {
       ...createInitialSaveState(),
       totalOpens: 3,
+      discoveredStandard: ['flip-phone-common', 'flip-phone-rare', 'flip-phone-legendary'],
     };
     const pending = createPendingReveal({
       state,

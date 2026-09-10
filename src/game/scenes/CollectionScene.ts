@@ -3,12 +3,12 @@ import Phaser from 'phaser';
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
-import { SLICE_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
+import { GAME_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
 import {
   buildCollectionSnapshot,
   getShelfFeaturedOwned,
-  getStandardNearCompletion,
+  getStandardLootPoolNearCompletion,
   type CollectionSnapshot,
 } from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
@@ -48,7 +48,7 @@ export class CollectionScene extends Phaser.Scene {
   private async initialize(): Promise<void> {
     try {
       this.saveState = await new SaveRepository(getPlatformRuntime().storage).load();
-      this.snapshot = buildCollectionSnapshot(SLICE_REGISTRY, this.saveState);
+      this.snapshot = buildCollectionSnapshot(GAME_REGISTRY, this.saveState);
     } catch (error: unknown) {
       console.error(error);
       this.renderFailure();
@@ -230,14 +230,14 @@ export class CollectionScene extends Phaser.Scene {
 
   private visibleFamilies(): readonly GadgetFamilyDefinition[] {
     const start = this.page * FAMILIES_PER_PAGE;
-    return SLICE_REGISTRY.families.slice(start, start + FAMILIES_PER_PAGE);
+    return GAME_REGISTRY.families.slice(start, start + FAMILIES_PER_PAGE);
   }
 
   private renderShelf(root: Phaser.GameObjects.Container): void {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const nearCompletion = this.saveState ? getStandardNearCompletion(SLICE_REGISTRY, this.saveState) : null;
+    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.saveState.activeLootPoolId, this.saveState) : null;
     const cardWidth = Math.min(300, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 28);
     const gap = 44;
     const totalWidth = cardWidth * families.length + gap * Math.max(0, families.length - 1);
@@ -343,7 +343,7 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const nearCompletion = this.saveState ? getStandardNearCompletion(SLICE_REGISTRY, this.saveState) : null;
+    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.saveState.activeLootPoolId, this.saveState) : null;
     const rowStartY = families.length === 1 ? 330 : 270;
     const rowGap = 245;
 
@@ -442,7 +442,7 @@ export class CollectionScene extends Phaser.Scene {
 
   private renderPager(root: Phaser.GameObjects.Container): void {
     if (!this.metrics) return;
-    const pageCount = Math.ceil(SLICE_REGISTRY.families.length / FAMILIES_PER_PAGE);
+    const pageCount = Math.ceil(GAME_REGISTRY.families.length / FAMILIES_PER_PAGE);
     if (pageCount <= 1) return;
 
     const y = 640;

@@ -1,6 +1,6 @@
 import type { StorageAdapter } from '../../platform/storage';
 import { CHIPS_CACHE_TIER_IDS, POUCH_TYPES, type ChipsCacheTierId, type PouchType } from '../data/balance';
-import { SLICE_LOOT_POOL_ID, STANDARD_RARITIES, type StandardRarity } from '../data/collectibles';
+import { DEFAULT_LOOT_POOL_ID as GAME_DEFAULT_LOOT_POOL_ID, STANDARD_RARITIES, type StandardRarity } from '../data/collectibles';
 import type { PendingReveal } from './drops';
 import { LITE_SIGNAL_THRESHOLD, migrateLegacySignal } from './signal';
 
@@ -8,7 +8,7 @@ export const SAVE_VERSION = 4;
 export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';
 export const DEFAULT_CHIPS = 0;
 export const DEFAULT_OVERCHARGE_HUNDREDTHS = 100;
-export const DEFAULT_LOOT_POOL_ID = SLICE_LOOT_POOL_ID;
+export const DEFAULT_LOOT_POOL_ID = GAME_DEFAULT_LOOT_POOL_ID;
 
 export interface ProgressStats {
   duplicates: number;

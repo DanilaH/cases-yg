@@ -35,6 +35,14 @@ const basicRaritySample: Readonly<Record<Exclude<StandardRarity, 'legendary'>, n
   epic: 0.99,
 };
 
+const DEBUG_REVEAL_BALANCE = {
+  ...LITE_V2_BALANCE,
+  onboarding: {
+    ...LITE_V2_BALANCE.onboarding,
+    protectedOpenings: 0,
+  },
+};
+
 const cameraItemId = (rarity: StandardRarity): string => `camera-${rarity}`;
 const phoneItemId = (rarity: StandardRarity): string => `flip-phone-${rarity}`;
 
@@ -197,7 +205,7 @@ export const stageDebugReveal = async (
   const pending = createPendingReveal({
     state: prepared.state,
     registry: SLICE_REGISTRY,
-    balance: LITE_V2_BALANCE,
+    balance: DEBUG_REVEAL_BALANCE,
     random: prepared.random,
     transactionId: `debug-${scenario}-${Date.now()}`,
     pouchType: prepared.pouchType,
