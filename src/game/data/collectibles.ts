@@ -172,9 +172,3 @@ export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
 
 export const GAME_REGISTRY = createContentRegistry(GAME_FAMILIES);
 
-/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_REGISTRY. */
-export const SLICE_LOOT_POOL_ID = DEFAULT_LOOT_POOL_ID;
-/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_FAMILIES. */
-export const SLICE_FAMILIES = GAME_FAMILIES.filter((familyDefinition) => familyDefinition.dropId === DEFAULT_LOOT_POOL_ID);
-/** @deprecated Compatibility-only first-Drop slice. Production runtime uses GAME_REGISTRY. */
-export const SLICE_REGISTRY = createContentRegistry(SLICE_FAMILIES);

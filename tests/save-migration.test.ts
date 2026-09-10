@@ -1,7 +1,8 @@
+import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
-import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+
 import { createPendingReveal } from '../src/game/systems/drops';
 import {
   DEFAULT_SAVE_KEY,
@@ -35,7 +36,7 @@ const currentPendingState = () => {
   };
   const pending = createPendingReveal({
     state: base,
-    registry: SLICE_REGISTRY,
+    registry: DEFAULT_DROP_REGISTRY,
     balance: LITE_V2_BALANCE,
     random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     transactionId: 'validation-pending',

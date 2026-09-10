@@ -1,7 +1,10 @@
+import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
-import { SLICE_LOOT_POOL_ID, SLICE_REGISTRY } from '../src/game/data/collectibles';
+import {
+  DEFAULT_LOOT_POOL_ID,
+} from '../src/game/data/collectibles';
 import { createPendingReveal } from '../src/game/systems/drops';
 import {
   canAffordPouch,
@@ -15,7 +18,7 @@ import { SequenceRandom } from './helpers';
 const baseState = () => ({
   chips: 0,
   signal: 0,
-  activeLootPoolId: SLICE_LOOT_POOL_ID,
+  activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   discoveredStandard: [] as string[],
 });
 
@@ -27,7 +30,7 @@ describe('Opening economy presentation state', () => {
   });
 
   it('shows SIGNAL LOCK · CHARGED only when Basic has no eligible NEW but Charged does', () => {
-    const allExceptLegendary = SLICE_REGISTRY.standardItems
+    const allExceptLegendary = DEFAULT_DROP_REGISTRY.standardItems
       .filter(({ rarity }) => rarity !== 'legendary')
       .map(({ collectible }) => collectible.id);
     const waiting = {
@@ -37,12 +40,12 @@ describe('Opening economy presentation state', () => {
     };
     const complete = {
       ...waiting,
-      discoveredStandard: SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id),
+      discoveredStandard: DEFAULT_DROP_REGISTRY.standardItems.map(({ collectible }) => collectible.id),
     };
 
-    expect(isSignalWaitingForCharged(waiting, SLICE_REGISTRY, LITE_V2_BALANCE)).toBe(true);
-    expect(isSignalWaitingForCharged({ ...waiting, signal: 3 }, SLICE_REGISTRY, LITE_V2_BALANCE)).toBe(false);
-    expect(isSignalWaitingForCharged(complete, SLICE_REGISTRY, LITE_V2_BALANCE)).toBe(false);
+    expect(isSignalWaitingForCharged(waiting, DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE)).toBe(true);
+    expect(isSignalWaitingForCharged({ ...waiting, signal: 3 }, DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE)).toBe(false);
+    expect(isSignalWaitingForCharged(complete, DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE)).toBe(false);
   });
 
   it('separates prelude CHIPS from duplicate recycle and detects a Basic threshold crossing', () => {
@@ -54,7 +57,7 @@ describe('Opening economy presentation state', () => {
     };
     const pending = createPendingReveal({
       state,
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
       transactionId: 'opening-economy',

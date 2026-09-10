@@ -1,12 +1,13 @@
+import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
-import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+
 import { resolveCollectionMilestone } from '../src/game/systems/collectionMilestones';
 import type { PendingReveal } from '../src/game/systems/drops';
 import { createInitialSaveState, type SaveState } from '../src/game/systems/save';
 
-const standardIds = SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
-const secretIds = SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id);
+const standardIds = DEFAULT_DROP_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
+const secretIds = DEFAULT_DROP_REGISTRY.secrets.map(({ collectible }) => collectible.id);
 
 const itemAt = (items: readonly string[], index: number): string => {
   const item = items[index];
@@ -32,7 +33,7 @@ const makePending = ({
   secretId?: string | null;
   secretIsNew?: boolean;
 }): PendingReveal => {
-  const familyId = SLICE_REGISTRY.collectibleFamilyById.get(standardId) ?? 'camera';
+  const familyId = DEFAULT_DROP_REGISTRY.collectibleFamilyById.get(standardId) ?? 'camera';
   return {
     id: 'milestone-test',
     baseTotalOpens: 9,
@@ -77,7 +78,7 @@ const makePending = ({
     hiddenPocket: secretId
       ? {
           collectibleId: secretId,
-          familyId: SLICE_REGISTRY.collectibleFamilyById.get(secretId) ?? 'camera',
+          familyId: DEFAULT_DROP_REGISTRY.collectibleFamilyById.get(secretId) ?? 'camera',
           isNew: secretIsNew,
           bonusChips: 40,
         }
@@ -90,7 +91,7 @@ describe('collection milestones', () => {
   it('fires the halfway standard beat exactly on 3→4', () => {
     const committed = makeCommitted(standardIds.slice(0, 4), []);
     const pending = makePending({ standardId: itemAt(standardIds, 3) });
-    expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+    expect(resolveCollectionMilestone(DEFAULT_DROP_REGISTRY, pending, committed)).toEqual({
       kind: 'standards-half', current: 4, total: 8,
     });
   });
@@ -98,12 +99,12 @@ describe('collection milestones', () => {
   it('does not replay halfway on later standard discoveries or duplicates', () => {
     const five = makeCommitted(standardIds.slice(0, 5), []);
     expect(resolveCollectionMilestone(
-      SLICE_REGISTRY,
+      DEFAULT_DROP_REGISTRY,
       makePending({ standardId: itemAt(standardIds, 4) }),
       five,
     )).toBeNull();
     expect(resolveCollectionMilestone(
-      SLICE_REGISTRY,
+      DEFAULT_DROP_REGISTRY,
       makePending({ standardId: itemAt(standardIds, 0), standardIsNew: false }),
       five,
     )).toBeNull();
@@ -116,7 +117,7 @@ describe('collection milestones', () => {
       secretId: itemAt(secretIds, 0),
       secretIsNew: true,
     });
-    expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+    expect(resolveCollectionMilestone(DEFAULT_DROP_REGISTRY, pending, committed)).toEqual({
       kind: 'standards-complete', current: 8, total: 8,
     });
   });
@@ -129,7 +130,7 @@ describe('collection milestones', () => {
       secretId: itemAt(secretIds, 0),
       secretIsNew: true,
     });
-    expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+    expect(resolveCollectionMilestone(DEFAULT_DROP_REGISTRY, pending, committed)).toEqual({
       kind: 'first-secret', current: 1, total: 2,
     });
   });
@@ -141,7 +142,7 @@ describe('collection milestones', () => {
       secretId: itemAt(secretIds, 1),
       secretIsNew: true,
     });
-    expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toEqual({
+    expect(resolveCollectionMilestone(DEFAULT_DROP_REGISTRY, pending, committed)).toEqual({
       kind: 'secrets-complete', current: 2, total: 2,
     });
   });
@@ -149,6 +150,6 @@ describe('collection milestones', () => {
   it('ignores unknown ids and already-complete collections', () => {
     const committed = makeCommitted([...standardIds, 'unknown-standard'], [...secretIds, 'unknown-secret']);
     const pending = makePending({ standardId: itemAt(standardIds, 0), standardIsNew: false });
-    expect(resolveCollectionMilestone(SLICE_REGISTRY, pending, committed)).toBeNull();
+    expect(resolveCollectionMilestone(DEFAULT_DROP_REGISTRY, pending, committed)).toBeNull();
   });
 });

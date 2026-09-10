@@ -109,18 +109,3 @@ export const LITE_V2_BALANCE: LiteBalanceConfig = {
   },
 };
 
-/**
- * Compatibility aliases for older call sites that still read the Basic profile through
- * the pre-Lite `SLICE_BALANCE` shape. All values resolve from the active Lite V2 config.
- */
-export const SLICE_BALANCE = {
-  ...LITE_V2_BALANCE,
-  standardRarityWeights: LITE_V2_BALANCE.pouchProfiles.basic.rarityWeights,
-  signal: {
-    threshold: LITE_V2_BALANCE.signalThreshold,
-  },
-  hiddenPocket: {
-    startOpening: LITE_V2_BALANCE.hiddenPocketStartOpening,
-    chance: LITE_V2_BALANCE.pouchProfiles.basic.hiddenPocketChance,
-  },
-} as const;
