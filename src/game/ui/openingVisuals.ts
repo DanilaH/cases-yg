@@ -7,6 +7,7 @@ import {
   getDropPouchSkin,
   MOTION_PRESENTATION,
   POUCH_PRESENTATION,
+  POUCH_VARIANT_PRESENTATION,
   type CollectiblePresentation,
   type PouchLayerPresentation,
 } from '../data/presentation';
@@ -142,16 +143,26 @@ export const createPouchVisual = (
 
   const bodyLayer = scene.add.container(0, 0);
   const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
+  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
+  const bodyPresentation = {
+    ...POUCH_PRESENTATION.body,
+    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
+    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,
+  };
+  const stripPresentation = {
+    ...POUCH_PRESENTATION.strip,
+    x: POUCH_PRESENTATION.strip.x + variantPresentation.stripOffsetX,
+    y: POUCH_PRESENTATION.strip.y + variantPresentation.stripOffsetY,
+  };
+  const tabPresentation = {
+    ...POUCH_PRESENTATION.tab,
+    x: POUCH_PRESENTATION.tab.x + variantPresentation.tabOffsetX,
+    y: POUCH_PRESENTATION.tab.y + variantPresentation.tabOffsetY,
+  };
+
   const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body'));
   if (scene.textures.exists(bodyTexture)) {
     bodyLayer.add(body);
-    const bodyPresentation = variant === 'charged'
-      ? {
-          ...POUCH_PRESENTATION.body,
-          x: POUCH_PRESENTATION.body.x + POUCH_PRESENTATION.chargedBodyOpticalOffsetX,
-          y: POUCH_PRESENTATION.body.y + POUCH_PRESENTATION.chargedBodyOpticalOffsetY,
-        }
-      : POUCH_PRESENTATION.body;
     addPouchLayer(scene, bodyLayer, bodyTexture, bodyPresentation).setTint(skin.tint);
   } else {
     addProceduralBody(scene, bodyLayer, body);
@@ -159,7 +170,7 @@ export const createPouchVisual = (
 
   // Drop identity is a lightweight skin layer over the shared pouch geometry.
   // It deliberately does not affect tear geometry, hitboxes or reward mechanics.
-  const skinLayer = scene.add.container(0, POUCH_PRESENTATION.body.y + 18);
+  const skinLayer = scene.add.container(bodyPresentation.x, bodyPresentation.y + 18);
   const skinFrame = scene.add
     .rectangle(0, 0, 282, 210, skin.accent, 0.035)
     .setStrokeStyle(2, skin.accent, 0.2);
@@ -226,7 +237,7 @@ export const createPouchVisual = (
   const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip'));
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
-    stripImage = addPouchLayer(scene, strip, stripTexture, POUCH_PRESENTATION.strip);
+    stripImage = addPouchLayer(scene, strip, stripTexture, stripPresentation);
     stripImage.setTint(skin.tint);
   } else {
     addProceduralStrip(scene, strip);
@@ -237,7 +248,7 @@ export const createPouchVisual = (
   const tab = scene.add.container(tabStartX, 0);
   const tabTexture = staticTextureKey(pouchStaticArtId(variant, 'star-tab'));
   if (scene.textures.exists(tabTexture)) {
-    addPouchLayer(scene, tab, tabTexture, POUCH_PRESENTATION.tab).setTint(skin.tint);
+    addPouchLayer(scene, tab, tabTexture, tabPresentation).setTint(skin.tint);
   } else {
     tab.add(
       scene.add

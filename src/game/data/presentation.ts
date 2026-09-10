@@ -145,6 +145,36 @@ export const DROP_POUCH_SKINS: Readonly<Record<GameLootPoolId, DropPouchSkin>> =
 export const getDropPouchSkin = (lootPoolId: GameLootPoolId): DropPouchSkin =>
   DROP_POUCH_SKINS[lootPoolId];
 
+export interface PouchVariantPresentation {
+  bodyOffsetX: number;
+  bodyOffsetY: number;
+  stripOffsetX: number;
+  stripOffsetY: number;
+  tabOffsetX: number;
+  tabOffsetY: number;
+}
+
+// Optical offsets are intentionally variant-specific: Basic and Charged use
+// different authored rasters and should be hand-tuned independently.
+export const POUCH_VARIANT_PRESENTATION = {
+  basic: {
+    bodyOffsetX: 0,
+    bodyOffsetY: 0,
+    stripOffsetX: -4,
+    stripOffsetY: 0,
+    tabOffsetX: 0,
+    tabOffsetY: 0,
+  },
+  charged: {
+    bodyOffsetX: -7,
+    bodyOffsetY: -2,
+    stripOffsetX: -7,
+    stripOffsetY: 0,
+    tabOffsetX: 0,
+    tabOffsetY: 0,
+  },
+} as const satisfies Readonly<Record<'basic' | 'charged', PouchVariantPresentation>>;
+
 export const POUCH_PRESENTATION = {
   // Keep the pouch body at the established reveal center while tucking its upper
   // silver shoulders farther behind the authored tear strip. The group moves up
@@ -152,10 +182,10 @@ export const POUCH_PRESENTATION = {
   // center continuity is unchanged.
   groupY: 260,
   body: { x: 0, y: 98, displayWidth: 420 } satisfies PouchLayerPresentation,
-  // Authored Charged body has its visible mass ~17 source px to the right of
-  // Basic. Counter-shift optically aligns the two skins without rotating the pouch.
-  chargedBodyOpticalOffsetX: -7,
-  chargedBodyOpticalOffsetY: -2,
+  // Compatibility aliases for the existing presentation contract. Edit the
+  // variant table above when visually tuning the pouch.
+  chargedBodyOpticalOffsetX: POUCH_VARIANT_PRESENTATION.charged.bodyOffsetX,
+  chargedBodyOpticalOffsetY: POUCH_VARIANT_PRESENTATION.charged.bodyOffsetY,
   // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
   // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
   strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,
