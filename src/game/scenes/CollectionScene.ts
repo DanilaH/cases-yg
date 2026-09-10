@@ -66,6 +66,8 @@ export class CollectionScene extends Phaser.Scene {
       console.warn('[art] Collection active Drop art failed to load; using fallbacks', error);
     }
 
+    if (!this.sys.isActive()) return;
+
     getPlatformRuntime().analytics.track('collection_open', {
       standardCount: this.snapshot.standardCount,
       standardTotal: this.snapshot.standardTotal,
