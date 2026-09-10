@@ -1,6 +1,6 @@
 # Yandex Games public-release checklist
 
-This checklist is for the **expanded public release**, not the current two-family development build.
+This checklist is for the current **expanded six-Drop public-release candidate**.
 
 Platform requirements were re-checked against current Yandex Games documentation on **2026-09-10**. Re-check again immediately before public moderation if requirements change.
 
@@ -113,7 +113,7 @@ Before Game Ready / moderation:
 - active Drop content is complete and deterministic;
 - switching Drops cannot corrupt pending rewards or Signal targeting.
 
-Do not blindly preload every 1024 texture merely because the current small catalog can.
+Do not blindly preload every 1024 texture; keep active-Drop/on-demand loading unless hosted profiling demonstrates a better strategy.
 
 ---
 
@@ -184,7 +184,7 @@ Current planning targets:
 - optional hero 1560×520;
 - required landscape screenshots 16:9 within current allowed long-side range.
 
-Produce these from the **expanded release key visual/content**, not automatically from the current two-family catalog unless Camera/Flip Phone still happen to be the strongest marketing heroes.
+Produce these from the **actual expanded six-Drop release build/key visual**. Camera/Flip Phone may still appear only if they are genuinely the strongest marketing heroes.
 
 Screenshots must show the actual release build. Real gameplay should occupy the required majority of screenshot composition under current Yandex moderation rules, and localization must match the selected language.
 

@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. Final direct hands-on exposed a bounded remaining finding set; current work is Phase 2.6: those fixes plus the explicitly approved Signal Overcharge extension, then exact/direct regression before Yandex DRAFT.
+The project is deliberately **not** a full idle/incremental economy. Phase 2.6 Signal Overcharge, the bounded feel corrections, final repeated-use regression, six-Drop content expansion and content-scale economy audit are complete. The next evidence gate is the real hosted Yandex DRAFT.
 
 ---
 
@@ -63,7 +63,7 @@ Implementation, repeated-use follow-up fixes, exact-revision video/screenshot au
 
 ### Stage B3 — final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED
 
-Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Current validation tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`. One final direct repeated-use regression remains before Yandex DRAFT. The future expensive pouch remains a hypothesis only.
+Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Final direct repeated-use regression is accepted. Current tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`; the later six-Drop economy audit also accepted these values unchanged. The future expensive pouch remains a hypothesis only.
 
 ### Stage C — expanded content + economy scale — COMPLETE / AUDITED
 
@@ -145,7 +145,7 @@ The durable Overcharge transition remains part of the atomic reveal transaction,
 
 ---
 
-## 6. Current provisional tuning — UNCHANGED THROUGH CORRECTION
+## 6. Current release-candidate tuning — ECONOMY-AUDITED
 
 ### Basic
 
@@ -163,9 +163,9 @@ The durable Overcharge transition remains part of the atomic reveal transaction,
 
 Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15 CHIPS`.
 
-Cache remains independent; Mega pays `120–180 CHIPS` at current provisional tuning.
+Cache remains independent; Mega pays `120–180 CHIPS` at current release-candidate tuning.
 
-No legacy balance tuning was mixed into Phase 2.6. Existing pouch costs/base/cache/rarity/recycle values remain unchanged. The current candidate locks only the new Overcharge parameters at Basic `+0.10`, Charged `+0.50`, cap `x1.50`; later content-scale evidence may reopen them.
+No legacy balance tuning was mixed into Phase 2.6. Existing pouch costs/base/cache/rarity/recycle values remain unchanged. The six-Drop content-scale audit accepted the complete current balance, including Overcharge at Basic `+0.10`, Charged `+0.50`, cap `x1.50`. Reopen balance only from hosted/player evidence or a material mechanic/content change.
 
 ---
 
@@ -226,9 +226,9 @@ Hands-on also produced a desire to see:
 
 This is a valid progression-comprehension surface but is **not core feel choreography**.
 
-After Phase 2.6 + hosted DRAFT evidence, consider one on-demand Drop info drawer sourced from typed balance/content config. Avoid a permanent giant sidebar or permanently visible probability table.
+After hosted DRAFT evidence, consider one on-demand Drop info drawer sourced from typed balance/content config. Avoid a permanent giant sidebar or permanently visible probability table.
 
-Player-facing Drop selector waits for Drop #2.
+Player-facing six-Drop navigation already exists; richer odds/content-detail surfaces remain deferred until hosted/player evidence justifies them.
 
 ---
 
@@ -244,11 +244,10 @@ Ads remain optional/reasonable: rewarded explicit, interstitial outside active r
 
 ## 11. Scope guardrails
 
-Explicitly excluded from the current correction:
+Still excluded from the current pre-DRAFT scope:
 
-- balance changes;
-- new family/Drop content;
-- Drop selector;
+- speculative balance changes without new evidence;
+- more family/Drop content beyond the current six-Drop candidate;
 - permanent odds/collection sidebar;
 - Basic energy/timers;
 - offline/passive income;
