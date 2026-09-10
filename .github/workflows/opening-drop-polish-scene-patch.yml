@@ -19,6 +19,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: python3 tools/opening-drop-polish-scene-patch.py
+      - run: python3 tools/opening-drop-polish-scene-typefix.py
       - name: Assert scene contract
         shell: bash
         run: |
@@ -27,10 +28,10 @@ jobs:
           grep -q 'dropSwitchGeneration' src/game/scenes/OpeningScene.ts
           grep -q 'reconcileDropSelection' src/game/scenes/OpeningScene.ts
           grep -q 'dropSelectorArrowHitWidth' src/game/scenes/OpeningScene.ts
-          grep -q 'STANDARD.*SECRET' src/game/scenes/OpeningScene.ts || true
           grep -q 'hideDropSelectorForReveal' src/game/scenes/OpeningScene.ts
           grep -q 'scheduleTearHint' src/game/scenes/OpeningScene.ts
           grep -q 'addPersistentStandardSilhouetteAccent' src/game/scenes/OpeningScene.ts
+          grep -q 'copies: number = OPENING_FEEL_PRESENTATION.discoveryOutlineCopies' src/game/scenes/OpeningScene.ts
           ! grep -q "this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight || !this.session" src/game/scenes/OpeningScene.ts
       - run: npm ci
       - run: npm run typecheck
