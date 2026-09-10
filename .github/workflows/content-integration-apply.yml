@@ -19,7 +19,9 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Apply registry and pool semantics pass
-        run: python3 tools/content-integration-pass.py
+        run: |
+          python3 tools/content-integration-pass.py
+          python3 tools/content-integration-fixture-pass.py
       - name: Install
         run: npm ci
       - name: Typecheck
