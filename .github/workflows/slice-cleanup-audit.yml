@@ -1,0 +1,22 @@
+name: Audit legacy slice symbols
+
+on:
+  push:
+    branches:
+      - cleanup/remove-slice-compat
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Find SLICE compatibility usages
+        shell: bash
+        run: |
+          echo '--- src/tests SLICE_ usages ---'
+          grep -R -n --include='*.ts' 'SLICE_' src tests || true
+          echo '--- slice wording in debug code ---'
+          grep -R -n --include='*.ts' -i 'slice' src/debug tests/debug-scenarios.test.ts || true
