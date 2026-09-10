@@ -16,6 +16,7 @@ describe('debug reveal scenarios', () => {
     expect(pending.standard.rarity).toBe(rarity);
     expect(pending.standard.isNew).toBe(true);
     expect(pending.hiddenPocket).toBeNull();
+    expect(pending.commit.discoveredStandard).toEqual([pending.standard.collectibleId]);
   });
 
   it('forces Legendary through Charged rather than bypassing the Basic gate', async () => {
