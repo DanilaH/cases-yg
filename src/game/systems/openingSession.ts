@@ -1,5 +1,5 @@
 import type { LiteBalanceConfig, PouchType } from '../data/balance';
-import type { ContentRegistry } from '../data/collectibles';
+import type { ContentRegistry, LootPoolId } from '../data/collectibles';
 import { createPendingReveal, type PendingReveal } from './drops';
 import type { RandomSource } from './random';
 import { SaveRepository, type SaveState } from './save';
@@ -37,6 +37,20 @@ const matchesCommittedPending = (state: SaveState, pending: PendingReveal): bool
   sameStrings(state.discoveredStandard, pending.commit.discoveredStandard) &&
   sameStrings(state.discoveredSecrets, pending.commit.discoveredSecrets);
 
+const matchesLootPoolSwitch = (before: SaveState, after: SaveState, lootPoolId: LootPoolId): boolean =>
+  after.pendingReveal === null &&
+  after.version === before.version &&
+  after.muted === before.muted &&
+  after.activeLootPoolId === lootPoolId &&
+  after.totalOpens === before.totalOpens &&
+  after.chips === before.chips &&
+  after.signal === before.signal &&
+  after.overchargeHundredths === before.overchargeHundredths &&
+  after.stats.duplicates === before.stats.duplicates &&
+  after.stats.hiddenPockets === before.stats.hiddenPockets &&
+  sameStrings(after.discoveredStandard, before.discoveredStandard) &&
+  sameStrings(after.discoveredSecrets, before.discoveredSecrets);
+
 export class OpeningSession {
   private state: SaveState | null = null;
   private readonly createTransactionId: TransactionIdFactory;
@@ -59,6 +73,35 @@ export class OpeningSession {
 
   public getPendingReveal(): PendingReveal | null {
     return this.getState().pendingReveal;
+  }
+
+  public async selectLootPool(lootPoolId: LootPoolId): Promise<SaveState> {
+    const current = this.getState();
+    if (!this.options.registry.lootPoolById.has(lootPoolId)) {
+      throw new Error(`Unknown loot pool: ${lootPoolId}`);
+    }
+    if (current.pendingReveal) {
+      throw new Error('Cannot switch loot pool while a reveal is pending');
+    }
+    if (current.activeLootPoolId === lootPoolId) return current;
+
+    const next: SaveState = { ...current, activeLootPoolId: lootPoolId };
+    try {
+      await this.options.repository.write(next);
+      this.state = next;
+      return next;
+    } catch (error: unknown) {
+      // A storage promise can reject after the write became durable. Reload and
+      // accept only the exact pool-only transition we attempted.
+      try {
+        const reloaded = await this.options.repository.load();
+        this.state = reloaded;
+        if (matchesLootPoolSwitch(current, reloaded, lootPoolId)) return reloaded;
+      } catch {
+        // Preserve the original write error.
+      }
+      throw error;
+    }
   }
 
   public async prepareReveal(pouchType: PouchType = 'basic'): Promise<PendingReveal> {

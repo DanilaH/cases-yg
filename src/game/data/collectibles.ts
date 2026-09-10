@@ -129,6 +129,7 @@ export const GAME_LOOT_POOL_IDS = [
   'game-zone',
   'analog-nights',
 ] as const;
+export type GameLootPoolId = (typeof GAME_LOOT_POOL_IDS)[number];
 
 const secret = (id: string): CollectibleDefinition => ({
   id,

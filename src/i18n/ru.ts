@@ -3,6 +3,8 @@ export const ru = {
   rotateDevice: 'Поверните устройство',
   opening: {
     collection: 'Коллекция →',
+    drop: 'DROP',
+    dropSwitchError: 'Не удалось переключить Drop. Попробуйте ещё раз.',
     tearHint: 'Потяни звезду вправо →',
     resultLocked: 'Результат зафиксирован',
     tapToSpeedUp: 'Нажми, чтобы ускорить',
@@ -60,6 +62,14 @@ export const ru = {
     loadError: 'Не удалось загрузить коллекцию. Перезагрузите игру и попробуйте снова.',
     nearCompletionOneLeft: 'ОСТАЛСЯ 1',
     lastStandard: 'ПОСЛЕДНИЙ',
+  },
+  drops: {
+    'y2k-essentials': 'Y2K Essentials',
+    'video-link': 'Видео-связь',
+    'pocket-office': 'Карманный офис',
+    'pocket-audio': 'Карманное аудио',
+    'game-zone': 'Игровая зона',
+    'analog-nights': 'Аналоговые ночи',
   },
   audio: {
     mute: 'Выключить звук',

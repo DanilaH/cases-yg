@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
-import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+import { GAME_REGISTRY } from '../src/game/data/collectibles';
 import { OpeningSession } from '../src/game/systems/openingSession';
 import { SaveRepository } from '../src/game/systems/save';
 import type { StorageAdapter } from '../src/platform/storage';
@@ -38,7 +38,7 @@ const createSession = (
   let idIndex = 0;
   return new OpeningSession({
     repository: new SaveRepository(storage),
-    registry: SLICE_REGISTRY,
+    registry: GAME_REGISTRY,
     balance: LITE_V2_BALANCE,
     random,
     createTransactionId: () => ids[idIndex++] ?? `tx-${idIndex}`,
@@ -46,6 +46,59 @@ const createSession = (
 };
 
 describe('OpeningSession', () => {
+  it('persists a valid Drop switch without changing economy or collection progress', async () => {
+    const storage = new MemoryStorageAdapter();
+    const repository = new SaveRepository(storage);
+    const initial = await repository.load();
+    await repository.write({
+      ...initial,
+      chips: 77,
+      signal: LITE_V2_BALANCE.signalThreshold,
+      overchargeHundredths: 130,
+      totalOpens: 9,
+      discoveredStandard: ['camera-common'],
+    });
+    const session = createSession(storage);
+    const before = await session.load();
+
+    const switched = await session.selectLootPool('video-link');
+    const persisted = await repository.load();
+
+    expect(switched.activeLootPoolId).toBe('video-link');
+    expect(switched).toMatchObject({
+      chips: before.chips,
+      signal: before.signal,
+      overchargeHundredths: before.overchargeHundredths,
+      totalOpens: before.totalOpens,
+      discoveredStandard: before.discoveredStandard,
+    });
+    expect(persisted).toEqual(switched);
+  });
+
+  it('rejects unknown Drops and refuses to switch while a reveal is pending', async () => {
+    const storage = new MemoryStorageAdapter();
+    const session = createSession(storage);
+    const initial = await session.load();
+
+    await expect(session.selectLootPool('not-a-drop')).rejects.toThrow('Unknown loot pool');
+    expect(session.getState()).toEqual(initial);
+
+    const pending = await session.prepareReveal();
+    await expect(session.selectLootPool('video-link')).rejects.toThrow('Cannot switch loot pool while a reveal is pending');
+    expect(session.getPendingReveal()).toEqual(pending);
+  });
+
+  it('accepts an ambiguous Drop-switch write only when reload proves the exact switch is durable', async () => {
+    const storage = new WriteThenThrowStorage(1);
+    const session = createSession(storage);
+    await session.load();
+
+    const switched = await session.selectLootPool('video-link');
+
+    expect(switched.activeLootPoolId).toBe('video-link');
+    expect(session.getState()).toEqual(switched);
+  });
+
   it('persists the full pending transaction before returning a newly prepared reward', async () => {
     const storage = new MemoryStorageAdapter();
     const session = createSession(storage);
@@ -73,7 +126,7 @@ describe('OpeningSession', () => {
     let idCalls = 0;
     const recovered = new OpeningSession({
       repository: new SaveRepository(storage),
-      registry: SLICE_REGISTRY,
+      registry: GAME_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0.99, 0.99, 0.99]),
       createTransactionId: () => {
