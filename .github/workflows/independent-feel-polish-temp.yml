@@ -1,0 +1,46 @@
+name: Temporary independent feel polish
+
+on:
+  push:
+    branches:
+      - polish/independent-feel-pass-2026-09-10
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/independent-feel-pass-2026-09-10
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply production polish
+        run: python3 tools/review/apply-independent-feel-polish.py
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Asset self-test
+        run: npm run assets:selftest
+      - name: Validate collectible assets
+        run: npm run assets:validate
+      - name: Production build
+        run: npm run build
+      - name: Commit only production changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm tools/review/apply-independent-feel-polish.py .github/workflows/independent-feel-polish-temp.yml
+          git status --short
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/CollectionScene.ts src/game/scenes/OpeningScene.ts src/game/systems/audio.ts
+          git commit -m "Polish collection navigation feel"
+          git push origin HEAD:polish/independent-feel-pass-2026-09-10
