@@ -1,0 +1,22 @@
+name: Full-game economy audit
+
+on:
+  push:
+    branches:
+      - balance/full-game-economy-audit
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run production-resolver economy simulation
+        run: npx vitest run tools/full-game-economy-audit.test.ts --reporter=verbose
