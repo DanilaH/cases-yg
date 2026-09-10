@@ -1,0 +1,47 @@
+name: Validate opening Drop polish UI patch
+
+on:
+  push:
+    branches:
+      - polish/opening-drop-selector
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[opening-drop-polish-ui]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python3 tools/opening-drop-polish-ui-patch.py
+      - name: Assert UI contract patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'DROP_POUCH_SKINS' src/game/data/presentation.ts
+          grep -q 'chargedBodyOpticalOffsetX: -7' src/game/data/presentation.ts
+          grep -q 'tearHintIdleDelayMs: 5500' src/game/data/presentation.ts
+          grep -q 'lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID' src/game/ui/openingVisuals.ts
+          ! grep -q 'restoreHintAfterCancelledDrag' src/game/ui/openingVisuals.ts
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit UI contract
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/presentation.ts src/game/ui/openingVisuals.ts src/i18n/en.ts src/i18n/ru.ts tests/drop-pouch-presentation.test.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m '[opening-drop-polish-ui] add Drop skin and presentation contract'
+          git push origin HEAD:polish/opening-drop-selector
