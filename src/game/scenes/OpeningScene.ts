@@ -1008,7 +1008,7 @@ export class OpeningScene extends Phaser.Scene {
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, tearHintY + 38, message, {
+          .text(metrics.centerX, metrics.safeTop + 120, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
@@ -1355,29 +1355,23 @@ export class OpeningScene extends Phaser.Scene {
     const dotWidths = GAME_LOOT_POOL_IDS.map((_, dotIndex) => dotIndex === index ? activeDotWidth : dotSize);
     const dotRailWidth = dotWidths.reduce((sum, dotWidth) => sum + dotWidth, 0) + dotGap * (dotWidths.length - 1);
     const dotY = height - OPENING_FEEL_PRESENTATION.dropSelectorDotBottomInset - dotHeight / 2;
-    const dropDots: Phaser.GameObjects.Rectangle[] = [];
+    const dropDots: Phaser.GameObjects.Graphics[] = [];
     let dotCursorX = -dotRailWidth / 2;
     for (let dotIndex = 0; dotIndex < dotWidths.length; dotIndex += 1) {
       const isActive = dotIndex === index;
       const dotWidth = dotWidths[dotIndex] ?? dotSize;
-      const dot = this.add
-        .rectangle(
-          dotCursorX + dotWidth / 2,
-          dotY,
-          dotWidth,
-          dotHeight,
-          isActive ? 0x8df8ff : 0xdccdf0,
-          isActive
-            ? OPENING_FEEL_PRESENTATION.dropSelectorDotActiveAlpha
-            : OPENING_FEEL_PRESENTATION.dropSelectorDotInactiveAlpha,
-        )
-        .setOrigin(0.5);
+      const dotAlpha = isActive
+        ? OPENING_FEEL_PRESENTATION.dropSelectorDotActiveAlpha
+        : OPENING_FEEL_PRESENTATION.dropSelectorDotInactiveAlpha;
+      const dot = this.add.graphics();
+      dot.fillStyle(isActive ? 0x8df8ff : 0xdccdf0, dotAlpha);
+      dot.fillRoundedRect(-dotWidth / 2, -dotHeight / 2, dotWidth, dotHeight, dotHeight / 2);
+      dot.setPosition(dotCursorX + dotWidth / 2, dotY);
       if (isActive) {
         dot.setScale(0.88, 1);
         this.tweens.add({
           targets: dot,
           scaleX: 1,
-          alpha: OPENING_FEEL_PRESENTATION.dropSelectorDotActiveAlpha,
           duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,
           ease: 'Cubic.Out',
         });
