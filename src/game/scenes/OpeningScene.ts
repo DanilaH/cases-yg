@@ -22,6 +22,7 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
+import { ensureLootPoolCollectibleArt } from '../systems/artLoading';
 import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
@@ -215,6 +216,12 @@ export class OpeningScene extends Phaser.Scene {
         idleMessage = getMessages(platform.language).opening.dropSwitchError;
         console.error('[drop] failed to apply Collection Drop selection', error);
       }
+    }
+
+    try {
+      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, this.saveState.activeLootPoolId);
+    } catch (error: unknown) {
+      console.warn('[art] active Drop collectible art failed to load; using fallbacks', error);
     }
 
     if (this.isSceneShutdown()) return;
@@ -1243,6 +1250,11 @@ export class OpeningScene extends Phaser.Scene {
 
     this.dropSwitchInFlight = true;
     getGameAudio().play('ui-click');
+    try {
+      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, nextPoolId);
+    } catch (error: unknown) {
+      console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
+    }
     try {
       this.saveState = await this.session.selectLootPool(nextPoolId);
       getPlatformRuntime().analytics.track('drop_selected', {

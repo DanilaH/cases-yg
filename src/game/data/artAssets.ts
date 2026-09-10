@@ -1,4 +1,4 @@
-import type { ContentRegistry } from './collectibles';
+import { GAME_REGISTRY, type ContentRegistry, type LootPoolId } from './collectibles';
 
 const COLLECTIBLE_TEXTURE_PREFIX = 'art:collectible:';
 const STATIC_TEXTURE_PREFIX = 'art:static:';
@@ -38,18 +38,9 @@ const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
  * 404s while allowing reviewed exports to replace procedural fallbacks without
  * changing scene code.
  */
-export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
-  'flip-phone-common',
-  'flip-phone-rare',
-  'flip-phone-epic',
-  'flip-phone-legendary',
-  'flip-phone-secret-noir',
-  'camera-common',
-  'camera-rare',
-  'camera-epic',
-  'camera-legendary',
-  'camera-secret-cosmic',
-]);
+export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>(
+  [...GAME_REGISTRY.standardItems, ...GAME_REGISTRY.secrets].map(({ collectible }) => collectible.id),
+);
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
   'pouch-tear-strip',
@@ -64,10 +55,11 @@ export const collectibleTextureKey = (collectibleId: string): string =>
 
 export const staticTextureKey = (id: StaticArtId): string => `${STATIC_TEXTURE_PREFIX}${id}`;
 
-export const getRuntimeCollectibleArt = (registry: ContentRegistry): readonly RuntimeCollectibleArt[] => [
+const toRuntimeCollectibleArt = (registry: ContentRegistry, lootPoolId?: LootPoolId): readonly RuntimeCollectibleArt[] => [
   ...registry.standardItems,
   ...registry.secrets,
 ]
+  .filter((record) => lootPoolId === undefined || record.lootPoolId === lootPoolId)
   .map(({ collectible }) => collectible)
   .filter(({ id }) => AVAILABLE_COLLECTIBLE_ART_IDS.has(id))
   .map((collectible) => ({
@@ -75,6 +67,19 @@ export const getRuntimeCollectibleArt = (registry: ContentRegistry): readonly Ru
     textureKey: collectibleTextureKey(collectible.id),
     assetPath: collectible.assetPath,
   }));
+
+export const getRuntimeCollectibleArt = (registry: ContentRegistry): readonly RuntimeCollectibleArt[] =>
+  toRuntimeCollectibleArt(registry);
+
+export const getRuntimeCollectibleArtForLootPool = (
+  registry: ContentRegistry,
+  lootPoolId: LootPoolId,
+): readonly RuntimeCollectibleArt[] => {
+  if (!registry.lootPoolById.has(lootPoolId)) {
+    throw new Error(`Unknown loot pool: ${lootPoolId}`);
+  }
+  return toRuntimeCollectibleArt(registry, lootPoolId);
+};
 
 export const getRuntimeStaticArt = (): readonly RuntimeStaticArt[] =>
   (Object.keys(STATIC_ART_PATHS) as StaticArtId[])
