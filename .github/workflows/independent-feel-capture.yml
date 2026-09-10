@@ -22,10 +22,16 @@ jobs:
       - name: Install review browser and capture dependencies
         shell: bash
         run: |
+          mkdir -p review-artifacts /tmp/mpt-review-runner
           sudo apt-get update
           sudo apt-get install -y ffmpeg pulseaudio xvfb
-          npm install --no-save --package-lock=false playwright@1.55.0
-          npx playwright install --with-deps chromium
+          cd /tmp/mpt-review-runner
+          npm init -y >/dev/null
+          npm install playwright@1.55.0
+          cd "$GITHUB_WORKSPACE"
+          ln -s /tmp/mpt-review-runner/node_modules/playwright node_modules/playwright
+          ln -s /tmp/mpt-review-runner/node_modules/playwright-core node_modules/playwright-core
+          test -x /usr/bin/google-chrome
       - name: Start virtual display and audio sink
         shell: bash
         run: |
@@ -67,10 +73,26 @@ jobs:
               ffmpeg -hide_banner -nostats -i "$f" -filter_complex ebur128=peak=true -f null - 2>&1 | grep -E 'I:|Peak:' | tail -2
             done
           } > review-artifacts/audio/measurements.txt
+      - name: Measure captured session loudness
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p review-artifacts/audio
+          {
+            echo '# Captured session measurements'
+            for f in review-artifacts/*.mp4; do
+              [ -e "$f" ] || continue
+              echo
+              echo "## $f"
+              ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$f" | sed 's/^/duration_seconds=/'
+              ffmpeg -hide_banner -nostats -i "$f" -filter_complex ebur128=peak=true -f null - 2>&1 | grep -E 'I:|Peak:' | tail -2
+            done
+          } > review-artifacts/audio/session-measurements.txt
       - name: Capture runtime logs
         if: always()
         shell: bash
         run: |
+          mkdir -p review-artifacts
           cp /tmp/vite.log review-artifacts/vite.log || true
           cp /tmp/xvfb.log review-artifacts/xvfb.log || true
       - uses: actions/upload-artifact@v4
