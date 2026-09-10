@@ -59,7 +59,9 @@ jobs:
         env:
           DISPLAY: ':99'
           PULSE_SINK: review_sink
-        run: node tools/review/capture-feel-review.mjs
+        run: |
+          sed -i "s/{ name: label })/{ name: label, exact: true })/" tools/review/capture-feel-review.mjs
+          node tools/review/capture-feel-review.mjs
       - name: Analyze reviewed MP3 loudness and durations
         shell: bash
         run: |
