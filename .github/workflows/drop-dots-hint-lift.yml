@@ -1,0 +1,46 @@
+name: Validate Drop dots and hint lift
+
+on:
+  push:
+    branches:
+      - polish/drop-dots-hint-lift
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[drop-dots-hint-lift]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python3 tools/drop-dots-hint-lift.py
+      - name: Assert focused UI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'tearHintTopOffset: 62' src/game/data/presentation.ts
+          grep -q 'dropSelectorDotActiveWidth: 16' src/game/data/presentation.ts
+          grep -q 'const dotWidths = GAME_LOOT_POOL_IDS.map' src/game/scenes/OpeningScene.ts
+          grep -q 'six-position dot rail' docs/OPENING_DROP_POLISH_2026-09-10.md
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit validated source changes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts tests/drop-pouch-presentation.test.ts docs/OPENING_DROP_POLISH_2026-09-10.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m '[drop-dots-hint-lift] add carousel cue and lift tear hint'
+          git push origin HEAD:polish/drop-dots-hint-lift
