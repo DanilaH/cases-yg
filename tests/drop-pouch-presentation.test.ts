@@ -22,11 +22,17 @@ describe('Drop pouch presentation contract', () => {
     expect(OPENING_FEEL_PRESENTATION.dropSelectorArrowHitWidth).toBeGreaterThanOrEqual(48);
     expect(OPENING_FEEL_PRESENTATION.dropSelectorSwipeThreshold).toBeGreaterThanOrEqual(24);
     expect(OPENING_FEEL_PRESENTATION.dropSelectorHeight).toBeGreaterThanOrEqual(72);
+    expect(OPENING_FEEL_PRESENTATION.dropSelectorDotSize).toBeGreaterThan(0);
+    expect(OPENING_FEEL_PRESENTATION.dropSelectorDotActiveWidth).toBeGreaterThan(
+      OPENING_FEEL_PRESENTATION.dropSelectorDotSize,
+    );
+    expect(OPENING_FEEL_PRESENTATION.dropSelectorDotBottomInset).toBeGreaterThanOrEqual(8);
   });
 
-  it('delays the tear hint until genuine inactivity', () => {
+  it('delays the tear hint until genuine inactivity and keeps it clear of the pouch', () => {
     expect(OPENING_FEEL_PRESENTATION.tearHintIdleDelayMs).toBeGreaterThanOrEqual(4_000);
     expect(OPENING_FEEL_PRESENTATION.tearHintNudgeRepeats).toBeGreaterThanOrEqual(2);
+    expect(OPENING_FEEL_PRESENTATION.tearHintTopOffset).toBeLessThanOrEqual(62);
   });
 
   it('optically counter-shifts the authored Charged body without rotation', () => {

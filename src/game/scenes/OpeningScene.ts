@@ -983,7 +983,7 @@ export class OpeningScene extends Phaser.Scene {
       this.showChargedReadyOnSelector();
     }
 
-    const tearHintY = metrics.safeTop + 82;
+    const tearHintY = metrics.safeTop + OPENING_FEEL_PRESENTATION.tearHintTopOffset;
     const tearHint = this.add
       .text(metrics.centerX, tearHintY, getMessages(getPlatformRuntime().language).opening.tearHint, {
         color: '#efe7f6',
@@ -1008,7 +1008,7 @@ export class OpeningScene extends Phaser.Scene {
     if (message) {
       root.add(
         this.add
-          .text(metrics.centerX, tearHintY + 38, message, {
+          .text(metrics.centerX, metrics.safeTop + 120, message, {
             color: '#ffb7c8',
             fontFamily: 'system-ui, sans-serif',
             fontSize: '15px',
@@ -1346,6 +1346,40 @@ export class OpeningScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
+    // Six-position carousel cue. It is deliberately presentation-only: arrows
+    // and swipe remain the navigation targets, while the active Drop becomes a pill.
+    const dotGap = OPENING_FEEL_PRESENTATION.dropSelectorDotGap;
+    const dotSize = OPENING_FEEL_PRESENTATION.dropSelectorDotSize;
+    const activeDotWidth = OPENING_FEEL_PRESENTATION.dropSelectorDotActiveWidth;
+    const dotHeight = OPENING_FEEL_PRESENTATION.dropSelectorDotHeight;
+    const dotWidths = GAME_LOOT_POOL_IDS.map((_, dotIndex) => dotIndex === index ? activeDotWidth : dotSize);
+    const dotRailWidth = dotWidths.reduce((sum, dotWidth) => sum + dotWidth, 0) + dotGap * (dotWidths.length - 1);
+    const dotY = height - OPENING_FEEL_PRESENTATION.dropSelectorDotBottomInset - dotHeight / 2;
+    const dropDots: Phaser.GameObjects.Graphics[] = [];
+    let dotCursorX = -dotRailWidth / 2;
+    for (let dotIndex = 0; dotIndex < dotWidths.length; dotIndex += 1) {
+      const isActive = dotIndex === index;
+      const dotWidth = dotWidths[dotIndex] ?? dotSize;
+      const dotAlpha = isActive
+        ? OPENING_FEEL_PRESENTATION.dropSelectorDotActiveAlpha
+        : OPENING_FEEL_PRESENTATION.dropSelectorDotInactiveAlpha;
+      const dot = this.add.graphics();
+      dot.fillStyle(isActive ? 0x8df8ff : 0xdccdf0, dotAlpha);
+      dot.fillRoundedRect(-dotWidth / 2, -dotHeight / 2, dotWidth, dotHeight, dotHeight / 2);
+      dot.setPosition(dotCursorX + dotWidth / 2, dotY);
+      if (isActive) {
+        dot.setScale(0.88, 1);
+        this.tweens.add({
+          targets: dot,
+          scaleX: 1,
+          duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,
+          ease: 'Cubic.Out',
+        });
+      }
+      dropDots.push(dot);
+      dotCursorX += dotWidth + dotGap;
+    }
+
     const previousBack = this.add
       .circle(-width / 2 + 34, height / 2, 25, 0x332742, 0.96)
       .setStrokeStyle(1.5, 0xdccdf0, 0.28);
@@ -1417,7 +1451,7 @@ export class OpeningScene extends Phaser.Scene {
       this.dropSelectorDrag = null;
     });
 
-    panel.add([background, inner, label, progress, previousBack, nextBack, previous, next, previousHit, nextHit, swipeHit]);
+    panel.add([background, inner, label, progress, ...dropDots, previousBack, nextBack, previous, next, previousHit, nextHit, swipeHit]);
     root.add(panel);
     this.dropSelectorInteractiveZones = [previousHit, nextHit, swipeHit];
 

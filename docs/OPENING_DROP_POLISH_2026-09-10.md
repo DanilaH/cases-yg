@@ -11,6 +11,7 @@ The Drop selector is a primary Opening control, not a passive status label.
 - Its progress line is explicit: `STANDARD x/8 · SECRET y/2` (localized labels are used in runtime).
 - Previous/next arrows have large touch targets; the center area also supports horizontal swipe.
 - The panel has a filled surface, bordered/inner treatment, restrained idle shimmer/pulse, and short press/switch motion.
+- A six-position dot rail sits at the bottom of the panel as a carousel affordance: inactive positions are small dots and the displayed Drop is a short active pill. The rail is visual only; arrows and swipe remain the interaction targets.
 - A successful full tear disables the selector and fades it out before result presentation. A partial/cancelled tear does not permanently remove it.
 - When the last missing standard in a Drop is collected, the next-Drop affordance receives a one-time contextual nudge. This does not label the Drop fully complete while Secrets remain.
 
@@ -46,6 +47,7 @@ The active Basic/Charged type is preserved while switching Drops. Charged uses t
 `DRAG THE STAR TO TEAR` / localized copy is contextual help, not permanent chrome.
 
 - It is hidden on initial idle render.
+- Its idle position is lifted above the pouch top/handle area so the label does not visually collide with the authored package.
 - It appears only after about 5.5 seconds without useful interaction.
 - When shown, the hint and star give a short finite directional nudge instead of an endless pulse.
 - Any relevant pointer interaction hides it immediately and restarts the idle timer when appropriate.
