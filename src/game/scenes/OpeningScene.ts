@@ -1536,7 +1536,7 @@ export class OpeningScene extends Phaser.Scene {
     this.dropSwitchGeneration += 1;
     this.dropCompletionNudgePoolId = null;
     this.hideTearHint();
-    getGameAudio().play('ui-click');
+    getGameAudio().play('carousel-switch');
 
     // Preview is immediate: pouch skin + selector follow the user's latest intent.
     // Durable storage remains serialized in reconcileDropSelection().
