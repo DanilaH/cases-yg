@@ -1,4 +1,4 @@
-import type { StandardRarity } from './collectibles';
+import type { GameLootPoolId, StandardRarity } from './collectibles';
 
 export type RevealRarity = StandardRarity | 'secret';
 
@@ -124,6 +124,27 @@ export interface PouchLayerPresentation {
   displayWidth: number;
 }
 
+export type DropPouchMotif = 'spark' | 'video' | 'grid' | 'wave' | 'game' | 'scan';
+
+export interface DropPouchSkin {
+  tint: number;
+  accent: number;
+  secondary: number;
+  motif: DropPouchMotif;
+}
+
+export const DROP_POUCH_SKINS: Readonly<Record<GameLootPoolId, DropPouchSkin>> = {
+  'y2k-essentials': { tint: 0xffffff, accent: 0x9c7cff, secondary: 0x67e8ff, motif: 'spark' },
+  'video-link': { tint: 0xdff9ff, accent: 0x55e4ff, secondary: 0xff7ad9, motif: 'video' },
+  'pocket-office': { tint: 0xe8ffef, accent: 0x72f2ae, secondary: 0x8aa6ff, motif: 'grid' },
+  'pocket-audio': { tint: 0xffe7f3, accent: 0xff79bd, secondary: 0x8df8ff, motif: 'wave' },
+  'game-zone': { tint: 0xeee6ff, accent: 0xa985ff, secondary: 0x7bffcf, motif: 'game' },
+  'analog-nights': { tint: 0xffe8c8, accent: 0xffb65d, secondary: 0xff6f9f, motif: 'scan' },
+} as const;
+
+export const getDropPouchSkin = (lootPoolId: GameLootPoolId): DropPouchSkin =>
+  DROP_POUCH_SKINS[lootPoolId];
+
 export const POUCH_PRESENTATION = {
   // Keep the pouch body at the established reveal center while tucking its upper
   // silver shoulders farther behind the authored tear strip. The group moves up
@@ -131,6 +152,10 @@ export const POUCH_PRESENTATION = {
   // center continuity is unchanged.
   groupY: 260,
   body: { x: 0, y: 98, displayWidth: 420 } satisfies PouchLayerPresentation,
+  // Authored Charged body has its visible mass ~17 source px to the right of
+  // Basic. Counter-shift optically aligns the two skins without rotating the pouch.
+  chargedBodyOpticalOffsetX: -7,
+  chargedBodyOpticalOffsetY: -2,
   // The reviewed tear-strip artwork is pre-cropped to its visible bounds,
   // so runtime placement uses normal visual coordinates instead of source-canvas offsets.
   strip: { x: 0, y: -108, displayWidth: 360 } satisfies PouchLayerPresentation,
@@ -351,21 +376,39 @@ export const OPENING_FEEL_PRESENTATION = {
   railTopOffset: 8,
   bottomActionInset: 24,
   selectorTopOffset: 164,
+  dropSelectorBottomInset: 18,
+  dropSelectorHeight: 84,
+  dropSelectorMinWidth: 360,
+  dropSelectorMaxWidth: 470,
+  dropSelectorArrowHitWidth: 68,
+  dropSelectorSwipeThreshold: 34,
+  dropSelectorSwitchMs: 120,
+  tearHintIdleDelayMs: 5500,
+  tearHintNudgeAngle: 6,
+  tearHintNudgeRepeats: 2,
   bankLegMinDuration: 320,
   bankLegMaxDuration: 900,
   uiFadeInMs: 220,
   uiFadeOutMs: 180,
   uiPressMs: 70,
-  discoveryPopScale: 1.035,
+  // Every standard result gets a quiet silhouette presence. A NEW discovery
+  // layers the stronger transient discovery beat on top.
+  standardOutlineCopies: 4,
+  standardOutlineRadius: 2.2,
+  standardOutlineAlpha: 0.12,
+  standardOutlinePeakAlpha: 0.22,
+  newPersistentOutlineAlpha: 0.2,
+  newPersistentOutlinePeakAlpha: 0.34,
+  discoveryPopScale: 1.06,
   discoveryFrameWidth: 288,
   discoveryFrameHeight: 208,
-  discoveryOutlineCopies: 8,
-  discoveryOutlineRadius: 3.2,
-  discoveryOutlineAlpha: 0.62,
+  discoveryOutlineCopies: 12,
+  discoveryOutlineRadius: 4.8,
+  discoveryOutlineAlpha: 0.86,
   discoveryLabelOffsetY: 120,
-  discoveryIntroMs: 220,
-  discoveryHoldMs: 90,
-  discoverySettleMs: 250,
+  discoveryIntroMs: 250,
+  discoveryHoldMs: 150,
+  discoverySettleMs: 290,
   revealBackdropFadeInMs: 280,
   revealBackdropFadeOutMs: 300,
   duplicateConversionAccentMs: 260,

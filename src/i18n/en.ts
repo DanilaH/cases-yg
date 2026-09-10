@@ -5,6 +5,7 @@ export const en = {
     collection: 'Collection →',
     drop: 'DROP',
     dropSwitchError: 'Could not switch Drop. Try again.',
+    nextDrop: 'NEXT DROP →',
     tearHint: 'Drag the star to tear →',
     resultLocked: 'Result locked',
     tapToSpeedUp: 'Tap to speed up',

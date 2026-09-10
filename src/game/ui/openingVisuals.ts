@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 
 import { collectibleTextureKey, pouchStaticArtId, staticTextureKey, type PouchArtVariant } from '../data/artAssets';
-import type { StandardRarity } from '../data/collectibles';
+import { DEFAULT_LOOT_POOL_ID, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import {
   getCollectiblePresentation,
+  getDropPouchSkin,
   MOTION_PRESENTATION,
   POUCH_PRESENTATION,
   type CollectiblePresentation,
@@ -119,19 +120,16 @@ const addProceduralStrip = (scene: Phaser.Scene, strip: Phaser.GameObjects.Conta
   strip.add([stripPlate, tearLine, arrow]);
 };
 
-const findTearHint = (root: Phaser.GameObjects.Container): Phaser.GameObjects.Text | null => {
-  const hint = root.getData('tearHint') as Phaser.GameObjects.Text | undefined;
-  return hint?.active ? hint : null;
-};
-
 export const createPouchVisual = (
   scene: Phaser.Scene,
   root: Phaser.GameObjects.Container,
   x: number,
   y: number,
   variant: PouchArtVariant = 'basic',
+  lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID,
 ): PouchVisual => {
   const group = scene.add.container(x, y);
+  const skin = getDropPouchSkin(lootPoolId);
   const shadow = scene.add.ellipse(
     0,
     POUCH_PRESENTATION.shadowY,
@@ -147,10 +145,64 @@ export const createPouchVisual = (
   const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body'));
   if (scene.textures.exists(bodyTexture)) {
     bodyLayer.add(body);
-    addPouchLayer(scene, bodyLayer, bodyTexture, POUCH_PRESENTATION.body);
+    const bodyPresentation = variant === 'charged'
+      ? {
+          ...POUCH_PRESENTATION.body,
+          x: POUCH_PRESENTATION.body.x + POUCH_PRESENTATION.chargedBodyOpticalOffsetX,
+          y: POUCH_PRESENTATION.body.y + POUCH_PRESENTATION.chargedBodyOpticalOffsetY,
+        }
+      : POUCH_PRESENTATION.body;
+    addPouchLayer(scene, bodyLayer, bodyTexture, bodyPresentation).setTint(skin.tint);
   } else {
     addProceduralBody(scene, bodyLayer, body);
   }
+
+  // Drop identity is a lightweight skin layer over the shared pouch geometry.
+  // It deliberately does not affect tear geometry, hitboxes or reward mechanics.
+  const skinLayer = scene.add.container(0, POUCH_PRESENTATION.body.y + 18);
+  const skinFrame = scene.add
+    .rectangle(0, 0, 282, 210, skin.accent, 0.035)
+    .setStrokeStyle(2, skin.accent, 0.2);
+  skinLayer.add(skinFrame);
+  const motif = scene.add.graphics().setAlpha(0.34);
+  motif.lineStyle(3, skin.accent, 0.72);
+  motif.fillStyle(skin.secondary, 0.55);
+  if (skin.motif === 'spark') {
+    motif.strokeCircle(0, -8, 45);
+    motif.lineBetween(-60, -8, 60, -8);
+    motif.lineBetween(0, -68, 0, 52);
+  } else if (skin.motif === 'video') {
+    motif.strokeRoundedRect(-58, -42, 116, 84, 12);
+    motif.fillTriangle(74, -26, 74, 26, 112, 0);
+  } else if (skin.motif === 'grid') {
+    for (let line = -54; line <= 54; line += 27) {
+      motif.lineBetween(line, -54, line, 54);
+      motif.lineBetween(-54, line, 54, line);
+    }
+  } else if (skin.motif === 'wave') {
+    motif.beginPath();
+    motif.moveTo(-86, 4);
+    motif.lineTo(-58, -22);
+    motif.lineTo(-30, 28);
+    motif.lineTo(0, -36);
+    motif.lineTo(30, 28);
+    motif.lineTo(58, -22);
+    motif.lineTo(86, 4);
+    motif.strokePath();
+  } else if (skin.motif === 'game') {
+    motif.strokeRoundedRect(-76, -38, 152, 76, 30);
+    motif.lineBetween(-48, 0, -18, 0);
+    motif.lineBetween(-33, -15, -33, 15);
+    motif.fillCircle(38, -10, 7);
+    motif.fillCircle(58, 10, 7);
+  } else {
+    for (let line = -54; line <= 54; line += 18) {
+      motif.lineBetween(-82, line, 82, line);
+    }
+    motif.strokeRoundedRect(-46, -58, 92, 116, 8);
+  }
+  skinLayer.add(motif);
+  bodyLayer.add(skinLayer);
 
   // There is deliberately no dark synthetic mouth. Opening is represented by
   // the real background gap created as the body separates from the removable
@@ -175,6 +227,7 @@ export const createPouchVisual = (
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
     stripImage = addPouchLayer(scene, strip, stripTexture, POUCH_PRESENTATION.strip);
+    stripImage.setTint(skin.tint);
   } else {
     addProceduralStrip(scene, strip);
   }
@@ -184,7 +237,7 @@ export const createPouchVisual = (
   const tab = scene.add.container(tabStartX, 0);
   const tabTexture = staticTextureKey(pouchStaticArtId(variant, 'star-tab'));
   if (scene.textures.exists(tabTexture)) {
-    addPouchLayer(scene, tab, tabTexture, POUCH_PRESENTATION.tab);
+    addPouchLayer(scene, tab, tabTexture, POUCH_PRESENTATION.tab).setTint(skin.tint);
   } else {
     tab.add(
       scene.add
@@ -254,25 +307,6 @@ export const createPouchVisual = (
   scene.events.on(Phaser.Scenes.Events.UPDATE, syncTearVisual);
   group.once('destroy', () => {
     scene.events.off(Phaser.Scenes.Events.UPDATE, syncTearVisual);
-  });
-
-  const hideHint = (): void => {
-    const hint = findTearHint(root);
-    if (!hint) return;
-    scene.tweens.killTweensOf(hint);
-    scene.tweens.add({ targets: hint, alpha: 0, duration: 90, ease: 'Sine.Out' });
-  };
-  const restoreHintAfterCancelledDrag = (): void => {
-    if (!group.active || tab.x >= tabEndX - 1) return;
-    const hint = findTearHint(root);
-    if (!hint) return;
-    scene.tweens.killTweensOf(hint);
-    scene.tweens.add({ targets: hint, alpha: 1, delay: 150, duration: 130, ease: 'Sine.Out' });
-  };
-  dragZone.on('pointerdown', hideHint);
-  scene.input.on('pointerup', restoreHintAfterCancelledDrag);
-  group.once('destroy', () => {
-    scene.input.off('pointerup', restoreHintAfterCancelledDrag);
   });
 
   return visual;

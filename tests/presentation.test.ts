@@ -186,14 +186,14 @@ describe('reveal presentation', () => {
       OPENING_FEEL_PRESENTATION.discoveryHoldMs +
       OPENING_FEEL_PRESENTATION.discoverySettleMs;
     expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeGreaterThanOrEqual(1.02);
-    expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeLessThanOrEqual(1.04);
+    expect(OPENING_FEEL_PRESENTATION.discoveryPopScale).toBeLessThanOrEqual(1.07);
     expect(discoveryDuration).toBeGreaterThanOrEqual(350);
-    expect(discoveryDuration).toBeLessThanOrEqual(600);
+    expect(discoveryDuration).toBeLessThanOrEqual(720);
     expect(OPENING_FEEL_PRESENTATION.discoveryOutlineCopies).toBeGreaterThanOrEqual(6);
     expect(OPENING_FEEL_PRESENTATION.discoveryOutlineCopies).toBeLessThanOrEqual(12);
     expect(OPENING_FEEL_PRESENTATION.discoveryOutlineRadius).toBeGreaterThanOrEqual(2);
-    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineRadius).toBeLessThanOrEqual(4);
-    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineAlpha).toBeLessThanOrEqual(0.7);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineRadius).toBeLessThanOrEqual(5);
+    expect(OPENING_FEEL_PRESENTATION.discoveryOutlineAlpha).toBeLessThanOrEqual(0.9);
     expect(OPENING_FEEL_PRESENTATION.revealBackdropFadeInMs).toBeGreaterThanOrEqual(240);
     expect(OPENING_FEEL_PRESENTATION.revealBackdropFadeOutMs).toBeGreaterThanOrEqual(260);
     expect(OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs).toBeGreaterThanOrEqual(200);

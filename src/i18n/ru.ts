@@ -5,6 +5,7 @@ export const ru = {
     collection: 'Коллекция →',
     drop: 'DROP',
     dropSwitchError: 'Не удалось переключить Drop. Попробуйте ещё раз.',
+    nextDrop: 'СЛЕДУЮЩИЙ DROP →',
     tearHint: 'Потяни звезду вправо →',
     resultLocked: 'Результат зафиксирован',
     tapToSpeedUp: 'Нажми, чтобы ускорить',
