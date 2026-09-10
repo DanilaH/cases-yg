@@ -82,8 +82,7 @@ write(path, text)
 
 # Unit tests intentionally exercise the compact first-Drop fixture. Keep that
 # fixture test-local so production exports no longer carry vertical-slice debt.
-fixture_path = Path('tests/defaultDropFixture.ts')
-fixture_path.write_text("""import {
+Path('tests/defaultDropFixture.ts').write_text("""import {
   DEFAULT_LOOT_POOL_ID,
   GAME_FAMILIES,
   createContentRegistry,
@@ -114,35 +113,38 @@ collectibles_import_re = re.compile(
 
 for path in affected_tests:
     text = read(path)
-    needed_fixture = set()
+    needed_fixture: set[str] = set()
     if 'SLICE_REGISTRY' in text:
-        text = text.replace('SLICE_REGISTRY', 'DEFAULT_DROP_REGISTRY')
         needed_fixture.add('DEFAULT_DROP_REGISTRY')
     if 'SLICE_FAMILIES' in text:
-        text = text.replace('SLICE_FAMILIES', 'DEFAULT_DROP_FAMILIES')
         needed_fixture.add('DEFAULT_DROP_FAMILIES')
-    if 'SLICE_LOOT_POOL_ID' in text:
-        text = text.replace('SLICE_LOOT_POOL_ID', 'DEFAULT_LOOT_POOL_ID')
 
+    # Rewrite the production import while names are still unambiguous. Fixture
+    # symbols are removed; the legacy pool-id alias becomes the real default ID.
     match = collectibles_import_re.search(text)
     if match:
         raw_parts = [part.strip() for part in match.group('body').split(',') if part.strip()]
-        fixture_names = {'DEFAULT_DROP_REGISTRY', 'DEFAULT_DROP_FAMILIES'}
-        raw_parts = [part for part in raw_parts if part not in fixture_names]
-        if 'DEFAULT_LOOT_POOL_ID' in text and 'DEFAULT_LOOT_POOL_ID' not in raw_parts:
-            raw_parts.append('DEFAULT_LOOT_POOL_ID')
-        if raw_parts:
-            replacement = "import {\n  " + ",\n  ".join(raw_parts) + ",\n} from '../src/game/data/collectibles';"
+        normalized: list[str] = []
+        for part in raw_parts:
+            if part in {'SLICE_REGISTRY', 'SLICE_FAMILIES'}:
+                continue
+            if part == 'SLICE_LOOT_POOL_ID':
+                part = 'DEFAULT_LOOT_POOL_ID'
+            if part not in normalized:
+                normalized.append(part)
+        if normalized:
+            replacement = "import {\n  " + ",\n  ".join(normalized) + ",\n} from '../src/game/data/collectibles';"
         else:
             replacement = ''
         text = text[:match.start()] + replacement + text[match.end():]
-    elif 'DEFAULT_LOOT_POOL_ID' in text:
-        text = "import { DEFAULT_LOOT_POOL_ID } from '../src/game/data/collectibles';\n" + text
+
+    # Rename only usage sites after the import source has been normalized.
+    text = text.replace('SLICE_REGISTRY', 'DEFAULT_DROP_REGISTRY')
+    text = text.replace('SLICE_FAMILIES', 'DEFAULT_DROP_FAMILIES')
+    text = text.replace('SLICE_LOOT_POOL_ID', 'DEFAULT_LOOT_POOL_ID')
 
     if needed_fixture:
         fixture_import = "import { " + ', '.join(sorted(needed_fixture)) + " } from './defaultDropFixture';\n"
-        # Insert after the final top-level import declaration block by placing it
-        # before the first relative systems/test-helper import when possible.
         text = fixture_import + text
 
     if 'SLICE_' in text:
