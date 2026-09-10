@@ -17,4 +17,15 @@ for old, new, label in [
         raise SystemExit(f'drop-ui-pass.py: expected {label} not found')
     source = source.replace(old, new)
 
+strict_replacements = {
+    "    const poolId = GAME_LOOT_POOL_IDS[index];":
+        "    const poolId: GameLootPoolId = GAME_LOOT_POOL_IDS[index] ?? GAME_LOOT_POOL_IDS[0];",
+    "    const nextPoolId = GAME_LOOT_POOL_IDS[nextIndex];":
+        "    const nextPoolId: GameLootPoolId = GAME_LOOT_POOL_IDS[nextIndex] ?? GAME_LOOT_POOL_IDS[0];",
+}
+for old, new in strict_replacements.items():
+    if source.count(old) != 1:
+        raise SystemExit(f'drop-ui-pass.py: strict replacement not found: {old}')
+    source = source.replace(old, new)
+
 exec(compile(source, str(source_path), 'exec'))
