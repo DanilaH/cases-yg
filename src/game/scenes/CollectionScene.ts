@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
-import { GAME_REGISTRY, type GadgetFamilyDefinition, type StandardRarity } from '../data/collectibles';
+import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GadgetFamilyDefinition, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
 import {
   buildCollectionSnapshot,
@@ -49,6 +49,8 @@ export class CollectionScene extends Phaser.Scene {
     try {
       this.saveState = await new SaveRepository(getPlatformRuntime().storage).load();
       this.snapshot = buildCollectionSnapshot(GAME_REGISTRY, this.saveState);
+      const activeDropIndex = GAME_LOOT_POOL_IDS.indexOf(this.saveState.activeLootPoolId as GameLootPoolId);
+      this.page = activeDropIndex >= 0 ? activeDropIndex : 0;
     } catch (error: unknown) {
       console.error(error);
       this.renderFailure();
@@ -126,12 +128,13 @@ export class CollectionScene extends Phaser.Scene {
         .setShadow(0, 2, '#120d19', 4, true, true),
     );
 
+    const poolProgress = this.selectedPoolProgress();
     root.add(
       this.add
         .text(
           metrics.centerX,
           86,
-          `${messages.collection.standards} ${this.snapshot.standardCount}/${this.snapshot.standardTotal}   ·   ${messages.collection.secrets} ${this.snapshot.secretCount}/${this.snapshot.secretTotal}`,
+          `${messages.collection.standards} ${poolProgress.standardCount}/${poolProgress.standardTotal}   ·   ${messages.collection.secrets} ${poolProgress.secretCount}/${poolProgress.secretTotal}`,
           {
             color: '#cfc3dd',
             fontFamily: 'monospace',
@@ -161,12 +164,15 @@ export class CollectionScene extends Phaser.Scene {
     back.on('pointerdown', () => {
       getGameAudio().play('ui-click');
       back.disableInteractive().setAlpha(0.65);
+      const lootPoolId = this.selectedLootPoolId();
       getPlatformRuntime().analytics.track('collection_return', {
         view: this.view,
-        standardCount: this.snapshot?.standardCount ?? 0,
+        lootPoolId,
+        standardCount: this.selectedPoolProgress().standardCount,
       });
+      // Collection browsing is local. OpeningSession owns the durable switch.
       // Defer scene replacement until the current pointer dispatch has completed.
-      this.time.delayedCall(0, () => this.scene.start('OpeningScene'));
+      this.time.delayedCall(0, () => this.scene.start('OpeningScene', { lootPoolId }));
     });
     root.add(back);
   }
@@ -228,16 +234,39 @@ export class CollectionScene extends Phaser.Scene {
     root.add(button);
   }
 
+  private selectedLootPoolId(): GameLootPoolId {
+    return GAME_LOOT_POOL_IDS[this.page] ?? GAME_LOOT_POOL_IDS[0];
+  }
+
+  private selectedPoolProgress(): { standardCount: number; standardTotal: number; secretCount: number; secretTotal: number } {
+    const poolId = this.selectedLootPoolId();
+    const familyIds = new Set(GAME_REGISTRY.lootPoolById.get(poolId)?.familyIds ?? []);
+    const families = this.snapshot?.families.filter(({ familyId }) => familyIds.has(familyId)) ?? [];
+    return families.reduce(
+      (progress, family) => ({
+        standardCount: progress.standardCount + family.standardCount,
+        standardTotal: progress.standardTotal + family.standardTotal,
+        secretCount: progress.secretCount + family.secretOwned.length,
+        secretTotal: progress.secretTotal + family.secretTotal,
+      }),
+      { standardCount: 0, standardTotal: 0, secretCount: 0, secretTotal: 0 },
+    );
+  }
+
   private visibleFamilies(): readonly GadgetFamilyDefinition[] {
-    const start = this.page * FAMILIES_PER_PAGE;
-    return GAME_REGISTRY.families.slice(start, start + FAMILIES_PER_PAGE);
+    const pool = GAME_REGISTRY.lootPoolById.get(this.selectedLootPoolId());
+    if (!pool) return [];
+    return pool.familyIds
+      .map((familyId) => GAME_REGISTRY.familyById.get(familyId))
+      .filter((family): family is GadgetFamilyDefinition => Boolean(family))
+      .slice(0, FAMILIES_PER_PAGE);
   }
 
   private renderShelf(root: Phaser.GameObjects.Container): void {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.saveState.activeLootPoolId, this.saveState) : null;
+    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.selectedLootPoolId(), this.saveState) : null;
     const cardWidth = Math.min(300, (metrics.logicalWidth - 150) / Math.max(1, families.length) - 28);
     const gap = 44;
     const totalWidth = cardWidth * families.length + gap * Math.max(0, families.length - 1);
@@ -343,7 +372,7 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
     const families = this.visibleFamilies();
-    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.saveState.activeLootPoolId, this.saveState) : null;
+    const nearCompletion = this.saveState ? getStandardLootPoolNearCompletion(GAME_REGISTRY, this.selectedLootPoolId(), this.saveState) : null;
     const rowStartY = families.length === 1 ? 330 : 270;
     const rowGap = 245;
 
@@ -442,7 +471,7 @@ export class CollectionScene extends Phaser.Scene {
 
   private renderPager(root: Phaser.GameObjects.Container): void {
     if (!this.metrics) return;
-    const pageCount = Math.ceil(GAME_REGISTRY.families.length / FAMILIES_PER_PAGE);
+    const pageCount = GAME_LOOT_POOL_IDS.length;
     if (pageCount <= 1) return;
 
     const y = 640;
@@ -461,7 +490,7 @@ export class CollectionScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const pageLabel = this.add
-      .text(this.metrics.centerX, y, `${this.page + 1}/${pageCount}`, {
+      .text(this.metrics.centerX, y, `${getMessages(getPlatformRuntime().language).drops[this.selectedLootPoolId()]} · ${this.page + 1}/${pageCount}`, {
         color: '#a99bb5',
         fontFamily: 'monospace',
         fontSize: '13px',

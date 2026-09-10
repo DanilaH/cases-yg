@@ -3,6 +3,8 @@ export const en = {
   rotateDevice: 'Rotate your device',
   opening: {
     collection: 'Collection →',
+    drop: 'DROP',
+    dropSwitchError: 'Could not switch Drop. Try again.',
     tearHint: 'Drag the star to tear →',
     resultLocked: 'Result locked',
     tapToSpeedUp: 'Tap to speed up',
@@ -60,6 +62,14 @@ export const en = {
     loadError: 'Collection data could not be loaded. Reload to retry.',
     nearCompletionOneLeft: '1 LEFT',
     lastStandard: 'LAST STANDARD',
+  },
+  drops: {
+    'y2k-essentials': 'Y2K Essentials',
+    'video-link': 'Video Link',
+    'pocket-office': 'Pocket Office',
+    'pocket-audio': 'Pocket Audio',
+    'game-zone': 'Game Zone',
+    'analog-nights': 'Analog Nights',
   },
   audio: {
     mute: 'Sound off',

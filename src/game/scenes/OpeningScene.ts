@@ -4,7 +4,7 @@ import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { LITE_V2_BALANCE, type ChipsCacheTierId, type PouchType } from '../data/balance';
-import { GAME_REGISTRY, type StandardRarity } from '../data/collectibles';
+import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import {
   AMBIENT_PRESENTATION,
   COLLECTION_MILESTONE_PRESENTATION,
@@ -75,6 +75,10 @@ const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;
 
 type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'banking' | 'failed' | 'shutdown';
 
+interface OpeningSceneData {
+  lootPoolId?: GameLootPoolId;
+}
+
 interface DragState {
   pointerId: number;
   startPointerX: number;
@@ -124,6 +128,8 @@ export class OpeningScene extends Phaser.Scene {
   private resultBreathTarget: Phaser.GameObjects.Container | null = null;
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
+  private requestedLootPoolId: GameLootPoolId | null = null;
+  private dropSwitchInFlight = false;
   private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
   private pouchSelectorLabel: Phaser.GameObjects.Text | null = null;
   private chipsHudContainer: Phaser.GameObjects.Container | null = null;
@@ -143,6 +149,10 @@ export class OpeningScene extends Phaser.Scene {
     super('OpeningScene');
   }
 
+  public init(data: OpeningSceneData = {}): void {
+    this.requestedLootPoolId = data.lootPoolId ?? null;
+  }
+
   public create(): void {
     // Phaser reuses the Scene instance after Collection -> Opening. Shutdown is
     // terminal only for the previous activation, so reset activation state here.
@@ -153,6 +163,7 @@ export class OpeningScene extends Phaser.Scene {
     this.deferredResize = false;
     this.ignoreNextResultTap = false;
     this.chargedReadyPulsePending = false;
+    this.dropSwitchInFlight = false;
     this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
@@ -178,6 +189,11 @@ export class OpeningScene extends Phaser.Scene {
 
     try {
       this.saveState = await this.session.load();
+      const requestedLootPoolId = this.requestedLootPoolId;
+      this.requestedLootPoolId = null;
+      if (requestedLootPoolId && !this.saveState.pendingReveal) {
+        this.saveState = await this.session.selectLootPool(requestedLootPoolId);
+      }
     } catch (error: unknown) {
       this.phase = 'failed';
       this.renderFailure(getMessages(platform.language).opening.saveLoadError);
@@ -823,6 +839,7 @@ export class OpeningScene extends Phaser.Scene {
       this.createCollectionButton(root, true);
     }
     this.createMuteButton(root);
+    this.renderDropSelector(root);
 
     if (this.selectedPouchType === 'charged') this.renderChargedPouchAura(root);
     this.pouch = createPouchVisual(this, root, metrics.centerX, POUCH_Y);
@@ -1140,6 +1157,90 @@ export class OpeningScene extends Phaser.Scene {
     container.bringToTop(shimmer);
     root.add(container);
     this.signalHudContainer = container;
+  }
+
+  private getActiveDropIndex(): number {
+    if (!this.saveState) return 0;
+    const index = GAME_LOOT_POOL_IDS.indexOf(this.saveState.activeLootPoolId as GameLootPoolId);
+    return index >= 0 ? index : 0;
+  }
+
+  private renderDropSelector(root: Phaser.GameObjects.Container): void {
+    if (!this.metrics || !this.saveState) return;
+    const messages = getMessages(getPlatformRuntime().language);
+    const index = this.getActiveDropIndex();
+    const poolId: GameLootPoolId = GAME_LOOT_POOL_IDS[index] ?? GAME_LOOT_POOL_IDS[0];
+    const owned = new Set(this.saveState.discoveredStandard);
+    const standards = GAME_REGISTRY.standardItems.filter((item) => item.lootPoolId === poolId);
+    const standardCount = standards.filter(({ collectible }) => owned.has(collectible.id)).length;
+    const width = Math.min(360, Math.max(270, this.metrics.logicalWidth * 0.34));
+    const height = 54;
+    const x = this.metrics.centerX;
+    const y = this.metrics.safeTop + 10;
+    const panel = this.add.container(x, y);
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.84);
+    background.fillRoundedRect(-width / 2, 0, width, height, 18);
+    background.lineStyle(1.5, 0x8df8ff, 0.28);
+    background.strokeRoundedRect(-width / 2, 0, width, height, 18);
+    const label = this.add
+      .text(0, 10, `${messages.opening.drop} · ${messages.drops[poolId]}`, {
+        color: '#f7f2ff',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: getPlatformRuntime().language === 'ru' ? '9px' : '10px',
+      })
+      .setOrigin(0.5, 0);
+    const progress = this.add
+      .text(0, 34, `${standardCount}/${standards.length}   ·   ${index + 1}/${GAME_LOOT_POOL_IDS.length}`, {
+        color: '#9fdfe8',
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '8px',
+      })
+      .setOrigin(0.5, 0);
+    const previous = this.add
+      .text(-width / 2 + 20, height / 2, '‹', {
+        color: '#e9e0f4',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '28px',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    const next = this.add
+      .text(width / 2 - 20, height / 2, '›', {
+        color: '#e9e0f4',
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '28px',
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    previous.on('pointerup', () => void this.switchDrop(-1));
+    next.on('pointerup', () => void this.switchDrop(1));
+    panel.add([background, label, progress, previous, next]);
+    root.add(panel);
+  }
+
+  private async switchDrop(direction: -1 | 1): Promise<void> {
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || !this.session || !this.saveState) return;
+    const currentIndex = this.getActiveDropIndex();
+    const nextIndex = (currentIndex + direction + GAME_LOOT_POOL_IDS.length) % GAME_LOOT_POOL_IDS.length;
+    const nextPoolId: GameLootPoolId = GAME_LOOT_POOL_IDS[nextIndex] ?? GAME_LOOT_POOL_IDS[0];
+    if (nextPoolId === this.saveState.activeLootPoolId) return;
+
+    this.dropSwitchInFlight = true;
+    getGameAudio().play('ui-click');
+    try {
+      this.saveState = await this.session.selectLootPool(nextPoolId);
+      getPlatformRuntime().analytics.track('drop_selected', {
+        lootPoolId: nextPoolId,
+        source: 'opening',
+      });
+      this.dropSwitchInFlight = false;
+      this.renderIdle();
+    } catch (error: unknown) {
+      this.dropSwitchInFlight = false;
+      console.error('[drop] failed to switch Drop', error);
+      this.renderIdle(getMessages(getPlatformRuntime().language).opening.dropSwitchError);
+    }
   }
 
   private renderPouchSelector(root: Phaser.GameObjects.Container): void {
