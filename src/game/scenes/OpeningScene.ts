@@ -2189,6 +2189,7 @@ export class OpeningScene extends Phaser.Scene {
     this.phase = 'revealing';
     this.setChromeEnabled(false);
     this.pouch.dragZone.disableInteractive();
+    if (recovered) this.hideDropSelectorForReveal();
     if (this.tearHint) {
       this.tweens.killTweensOf(this.tearHint);
       this.tearHint.setAlpha(0);
