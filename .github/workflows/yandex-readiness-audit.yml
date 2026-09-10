@@ -1,0 +1,45 @@
+name: Audit Yandex draft candidate
+
+on:
+  push:
+    branches:
+      - release/yandex-draft-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Candidate archive and integration report
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '--- ad call sites ---'
+          grep -R -n --include='*.ts' -E 'showRewarded\(|showInterstitial\(|setStickyBannerVisible\(' src || true
+          echo '--- gameplay marker call sites ---'
+          grep -R -n --include='*.ts' 'setGameplayDesired' src || true
+          echo '--- direct YaGames / adv usage outside platform adapter ---'
+          grep -R -n --include='*.ts' -E 'YaGames|\.adv\.' src | grep -v 'src/platform/' || true
+          echo '--- source external URLs ---'
+          grep -R -n --include='*.ts' --include='*.html' -E 'https?://' src index.html || true
+          echo '--- dist summary ---'
+          printf 'files='; find dist -type f | wc -l
+          printf 'bytes='; du -sb dist | cut -f1
+          printf 'collectible_assets='; find dist/assets/collectibles -type f 2>/dev/null | wc -l
+          (cd dist && zip -qr ../yandex-draft.zip .)
+          printf 'zip_bytes='; stat -c '%s' yandex-draft.zip
+          echo '--- largest dist files ---'
+          find dist -type f -printf '%s %p\n' | sort -nr | head -20
