@@ -170,7 +170,9 @@ export class OpeningScene extends Phaser.Scene {
     this.presentationSkip.reset();
 
     const platform = getPlatformRuntime();
-    platform.activity.setGameplayDesired(true);
+    // Scene construction/async save + art initialization is still loading, not gameplay.
+    // Keep Yandex GameplayAPI stopped until the first playable/recoverable frame is rendered.
+    platform.activity.setGameplayDesired(false);
 
     this.input.on('pointerdown', this.handlePointerDown, this);
     this.input.on('pointermove', this.handlePointerMove, this);
@@ -248,6 +250,10 @@ export class OpeningScene extends Phaser.Scene {
       }
     }
     this.renderIdle(idleMessage);
+    // Gameplay becomes active only after save recovery + required active art are ready
+    // and the first usable Opening frame exists. This keeps GameplayAPI.start aligned
+    // with actual gameplay and makes it precede the idempotent Game Ready signal.
+    platform.activity.setGameplayDesired(true);
     platform.markReady();
 
     if (pending) {
