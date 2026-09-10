@@ -62,8 +62,8 @@ const CUES: Readonly<Record<SfxCue, readonly ToneSpec[]>> = {
     { frequency: 1840, duration: 0.026, type: 'triangle', gain: 0.015, delay: 0.018 },
   ],
   'carousel-switch': [
-    { frequency: 720, endFrequency: 810, duration: 0.038, type: 'triangle', gain: 0.014 },
-    { frequency: 1080, endFrequency: 980, duration: 0.026, type: 'sine', gain: 0.008, delay: 0.012 },
+    { frequency: 720, endFrequency: 810, duration: 0.038, type: 'triangle', gain: 0.028 },
+    { frequency: 1080, endFrequency: 980, duration: 0.026, type: 'sine', gain: 0.016, delay: 0.012 },
   ],
   'pouch-select': [
     { frequency: 520, endFrequency: 720, duration: 0.055, type: 'triangle', gain: 0.026 },
