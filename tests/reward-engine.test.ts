@@ -1,11 +1,10 @@
+import { DEFAULT_DROP_FAMILIES, DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
 import {
   createContentRegistry,
-  SLICE_FAMILIES,
-  SLICE_LOOT_POOL_ID,
-  SLICE_REGISTRY,
+  DEFAULT_LOOT_POOL_ID,
   type GadgetFamilyDefinition,
 } from '../src/game/data/collectibles';
 import { buildCollectionSnapshot, getShelfFeaturedOwned } from '../src/game/systems/collection';
@@ -27,7 +26,7 @@ const createPending = (
 ) =>
   createPendingReveal({
     state,
-    registry: SLICE_REGISTRY,
+    registry: DEFAULT_DROP_REGISTRY,
     balance: LITE_V2_BALANCE,
     random: new SequenceRandom(randomValues),
     transactionId,
@@ -39,7 +38,7 @@ const commit = (state: SaveState, transactionId: string, randomValues: readonly 
 
 const allStandardIdsExcept = (...excluded: readonly string[]): string[] => {
   const omitted = new Set(excluded);
-  return SLICE_REGISTRY.standardItems
+  return DEFAULT_DROP_REGISTRY.standardItems
     .map(({ collectible }) => collectible.id)
     .filter((collectibleId) => !omitted.has(collectibleId));
 };
@@ -49,11 +48,11 @@ describe('slice reward transaction integration', () => {
     let state = createInitialSaveState();
     state = commit(state, 'tx-1', [0, 0, 0, 0]);
     const firstId = state.discoveredStandard[0]!;
-    const firstFamily = SLICE_REGISTRY.collectibleFamilyById.get(firstId);
+    const firstFamily = DEFAULT_DROP_REGISTRY.collectibleFamilyById.get(firstId);
 
     state = commit(state, 'tx-2', [0, 0, 0, 0]);
     const secondId = state.discoveredStandard[1]!;
-    const secondFamily = SLICE_REGISTRY.collectibleFamilyById.get(secondId);
+    const secondFamily = DEFAULT_DROP_REGISTRY.collectibleFamilyById.get(secondId);
 
     state = commit(state, 'tx-3', [0, 0, 0, 0]);
 
@@ -73,7 +72,7 @@ describe('slice reward transaction integration', () => {
     const pending = createPending(state, 'charged-atomic', [0, 0, 0, 0, 0.999], 'charged');
 
     expect(pending.pouchType).toBe('charged');
-    expect(pending.lootPoolId).toBe(SLICE_LOOT_POOL_ID);
+    expect(pending.lootPoolId).toBe(DEFAULT_LOOT_POOL_ID);
     expect(pending.chips.before).toBe(60);
     expect(pending.chips.cost).toBe(60);
     expect(pending.chips.base).toBe(18);
@@ -183,13 +182,13 @@ describe('slice reward transaction integration', () => {
 
     expect(pending.signal.lockConsumed).toBe(true);
     expect(pending.standard.isNew).toBe(true);
-    expect(SLICE_REGISTRY.collectibleFamilyById.has(pending.standard.collectibleId)).toBe(true);
+    expect(DEFAULT_DROP_REGISTRY.collectibleFamilyById.has(pending.standard.collectibleId)).toBe(true);
   });
 
   it('supports another family in the active Drop without special-case transaction or Collection code', () => {
     const mp3: GadgetFamilyDefinition = {
       id: 'mp3-player',
-      dropId: SLICE_LOOT_POOL_ID,
+      dropId: DEFAULT_LOOT_POOL_ID,
       name: { en: 'MP3 Player', ru: 'MP3-плеер' },
       standard: {
         common: { id: 'mp3-player-common', assetPath: 'mp3-common.webp', rarity: 'common', secret: false },
@@ -204,7 +203,7 @@ describe('slice reward transaction integration', () => {
       },
       secrets: [],
     };
-    const registry = createContentRegistry([...SLICE_FAMILIES, mp3]);
+    const registry = createContentRegistry([...DEFAULT_DROP_FAMILIES, mp3]);
     const state: SaveState = {
       ...createInitialSaveState(),
       totalOpens: 3,
@@ -226,13 +225,13 @@ describe('slice reward transaction integration', () => {
   });
 
   it('features an owned Secret on the shelf ahead of Legendary', () => {
-    const family = SLICE_REGISTRY.families[0]!;
+    const family = DEFAULT_DROP_REGISTRY.families[0]!;
     const state: SaveState = {
       ...createInitialSaveState(),
       discoveredStandard: [family.standard.legendary.id],
       discoveredSecrets: [family.secrets[0]!.id],
     };
-    const snapshot = buildCollectionSnapshot(SLICE_REGISTRY, state);
+    const snapshot = buildCollectionSnapshot(DEFAULT_DROP_REGISTRY, state);
     const familySnapshot = snapshot.families.find(({ familyId }) => familyId === family.id)!;
 
     expect(getShelfFeaturedOwned(family, familySnapshot)).toEqual({

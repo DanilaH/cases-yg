@@ -1,14 +1,15 @@
+import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
-import { SLICE_REGISTRY } from '../src/game/data/collectibles';
+
 import { createPendingReveal } from '../src/game/systems/drops';
 import { resolveLitePouchReward, type LiteRewardState } from '../src/game/systems/pouches';
 import { SAVE_VERSION, createInitialSaveState, parseSaveState, stagePendingReveal } from '../src/game/systems/save';
 import { SequenceRandom } from './helpers';
 
-const allStandardIds = SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
-const allSecretIds = SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id);
+const allStandardIds = DEFAULT_DROP_REGISTRY.standardItems.map(({ collectible }) => collectible.id);
+const allSecretIds = DEFAULT_DROP_REGISTRY.secrets.map(({ collectible }) => collectible.id);
 
 const makeState = (overrides: Partial<LiteRewardState> = {}): LiteRewardState => ({
   chips: 0,
@@ -28,7 +29,7 @@ describe('Secret reward correction economy', () => {
     const result = resolveLitePouchReward({
       state: makeState(),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: hiddenRandom(),
     });
@@ -42,7 +43,7 @@ describe('Secret reward correction economy', () => {
     const result = resolveLitePouchReward({
       state: makeState({ discoveredSecrets: allSecretIds }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: hiddenRandom(),
     });
@@ -61,7 +62,7 @@ describe('Secret reward correction economy', () => {
         discoveredSecrets: allSecretIds,
       }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: hiddenRandom(),
     });
@@ -80,7 +81,7 @@ describe('Secret reward correction economy', () => {
     };
     const pending = createPendingReveal({
       state: base,
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: hiddenRandom(),
       transactionId: 'secret-duplicate',
@@ -95,7 +96,7 @@ describe('Secret reward correction economy', () => {
     const base = { ...createInitialSaveState(), totalOpens: 3 };
     const pending = createPendingReveal({
       state: base,
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: hiddenRandom(),
       transactionId: 'v3-hidden-pocket',

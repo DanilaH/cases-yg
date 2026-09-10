@@ -1,3 +1,4 @@
+import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -13,7 +14,10 @@ import {
   staticTextureKey,
 } from '../src/game/data/artAssets';
 import { AVAILABLE_SFX_CUES, getRuntimeSfxAssets } from '../src/game/data/audioAssets';
-import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, SLICE_REGISTRY } from '../src/game/data/collectibles';
+import {
+  GAME_LOOT_POOL_IDS,
+  GAME_REGISTRY,
+} from '../src/game/data/collectibles';
 
 const defaultCollectibleArtIds = [...AVAILABLE_COLLECTIBLE_ART_IDS];
 const defaultStaticArtIds = [...AVAILABLE_STATIC_ART_IDS];
@@ -57,7 +61,7 @@ describe('runtime asset manifests', () => {
   it('exposes reviewed collectible art using registry paths and stable texture keys', () => {
     AVAILABLE_COLLECTIBLE_ART_IDS.add('camera-common');
 
-    expect(getRuntimeCollectibleArt(SLICE_REGISTRY)).toEqual([
+    expect(getRuntimeCollectibleArt(DEFAULT_DROP_REGISTRY)).toEqual([
       {
         collectibleId: 'camera-common',
         textureKey: collectibleTextureKey('camera-common'),
@@ -67,7 +71,7 @@ describe('runtime asset manifests', () => {
   });
 
   it('keeps unreviewed collectible art out of preload', () => {
-    expect(getRuntimeCollectibleArt(SLICE_REGISTRY)).toEqual([]);
+    expect(getRuntimeCollectibleArt(DEFAULT_DROP_REGISTRY)).toEqual([]);
   });
 
   it('keeps authored Charged Pouch art out of boot preload and maps all three layers', () => {

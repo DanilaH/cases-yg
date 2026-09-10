@@ -1,11 +1,10 @@
+import { DEFAULT_DROP_FAMILIES, DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { describe, expect, it } from 'vitest';
 
 import { LITE_V2_BALANCE } from '../src/game/data/balance';
 import {
   createContentRegistry,
-  SLICE_FAMILIES,
-  SLICE_LOOT_POOL_ID,
-  SLICE_REGISTRY,
+  DEFAULT_LOOT_POOL_ID,
   type GadgetFamilyDefinition,
 } from '../src/game/data/collectibles';
 import { analyzePouchEconomy, resolveLitePouchReward, type LiteRewardState } from '../src/game/systems/pouches';
@@ -18,7 +17,7 @@ const makeState = (overrides: Partial<LiteRewardState> = {}): LiteRewardState =>
   signal: 0,
   overchargeHundredths: 100,
   totalOpens: 3,
-  activeLootPoolId: SLICE_LOOT_POOL_ID,
+  activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS],
   discoveredSecrets: [],
   ...overrides,
@@ -26,7 +25,7 @@ const makeState = (overrides: Partial<LiteRewardState> = {}): LiteRewardState =>
 
 const allStandardIdsExcept = (...excluded: readonly string[]): string[] => {
   const omitted = new Set(excluded);
-  return SLICE_REGISTRY.standardItems
+  return DEFAULT_DROP_REGISTRY.standardItems
     .map(({ collectible }) => collectible.id)
     .filter((collectibleId) => !omitted.has(collectibleId));
 };
@@ -71,7 +70,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state: makeState(),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0.999, 0, 0, 0.999]),
     });
@@ -85,7 +84,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state: makeState({ chips: 60 }),
       pouchType: 'charged',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0.999, 0, 0, 0.999]),
     });
@@ -99,7 +98,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state: makeState(),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0.999, 0.5, 0.999]),
     });
@@ -116,7 +115,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state: makeState({ discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -132,14 +131,14 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const reachesLock = resolveLitePouchReward({
       state: makeState({ signal: 3, discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
     const staysLocked = resolveLitePouchReward({
       state: makeState({ signal: 4, discoveredStandard: allStandardIdsExcept('flip-phone-legendary') }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -155,7 +154,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: allStandardIdsExcept('camera-common', 'flip-phone-common', 'camera-epic'),
       }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0.97, 0, 0, 0, 0.999]),
     });
@@ -173,7 +172,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state,
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -197,7 +196,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: allStandardIdsExcept('flip-phone-legendary'),
       }),
       pouchType: 'charged',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0.999]),
     });
@@ -211,7 +210,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state: makeState({ signal: 3, discoveredStandard: [...POST_ONBOARDING_STANDARD_IDS, 'camera-common'] }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -234,7 +233,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
     const result = resolveLitePouchReward({
       state,
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -260,7 +259,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: allStandardIdsExcept('flip-phone-legendary'),
       }),
       pouchType: 'charged',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0.999]),
     });
@@ -285,7 +284,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: allStandardIdsExcept(),
       }),
       pouchType: 'charged',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -303,7 +302,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: allStandardIdsExcept(),
       }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
@@ -325,7 +324,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
         discoveredStandard: ['camera-common'],
       }),
       pouchType: 'basic',
-      registry: SLICE_REGISTRY,
+      registry: DEFAULT_DROP_REGISTRY,
       balance: LITE_V2_BALANCE,
       random: new SequenceRandom([0, 0, 0]),
     });
@@ -336,7 +335,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
   });
 
   it('scopes standard rewards to the active Drop without changing the resolver', () => {
-    const registry = createContentRegistry([...SLICE_FAMILIES, mp3Family]);
+    const registry = createContentRegistry([...DEFAULT_DROP_FAMILIES, mp3Family]);
     const result = resolveLitePouchReward({
       state: makeState({ activeLootPoolId: 'music-tech' }),
       pouchType: 'basic',
@@ -345,7 +344,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
       random: new SequenceRandom([0, 0, 0, 0, 0.999]),
     });
 
-    expect(registry.lootPools.map(({ id }) => id)).toEqual([SLICE_LOOT_POOL_ID, 'music-tech']);
+    expect(registry.lootPools.map(({ id }) => id)).toEqual([DEFAULT_LOOT_POOL_ID, 'music-tech']);
     expect(result.lootPoolId).toBe('music-tech');
     expect(result.standard.collectibleId).toBe('mp3-player-common');
   });
@@ -355,7 +354,7 @@ describe('Gameplay Loop Lite V2 pure pouch resolver', () => {
       resolveLitePouchReward({
         state: makeState({ chips: 59 }),
         pouchType: 'charged',
-        registry: SLICE_REGISTRY,
+        registry: DEFAULT_DROP_REGISTRY,
         balance: LITE_V2_BALANCE,
         random: new SequenceRandom([]),
       }),

@@ -1,7 +1,7 @@
 import { LITE_V2_BALANCE, OVERCHARGE_BASE_HUNDREDTHS, type PouchType } from '../game/data/balance';
 import {
-  SLICE_LOOT_POOL_ID,
-  SLICE_REGISTRY,
+  DEFAULT_LOOT_POOL_ID,
+  GAME_REGISTRY,
   STANDARD_RARITIES,
   type StandardRarity,
 } from '../game/data/collectibles';
@@ -46,6 +46,13 @@ const DEBUG_REVEAL_BALANCE = {
 const cameraItemId = (rarity: StandardRarity): string => `camera-${rarity}`;
 const phoneItemId = (rarity: StandardRarity): string => `flip-phone-${rarity}`;
 
+const defaultDropStandardItems = GAME_REGISTRY.standardItems.filter(
+  ({ lootPoolId }) => lootPoolId === DEFAULT_LOOT_POOL_ID,
+);
+const defaultDropSecrets = GAME_REGISTRY.secrets.filter(
+  ({ lootPoolId }) => lootPoolId === DEFAULT_LOOT_POOL_ID,
+);
+
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 
 const without = (values: readonly string[], removed: readonly string[]): string[] => {
@@ -55,7 +62,7 @@ const without = (values: readonly string[], removed: readonly string[]): string[
 
 const baseDebugState = (state: SaveState): SaveState => ({
   ...state,
-  activeLootPoolId: SLICE_LOOT_POOL_ID,
+  activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   totalOpens: Math.max(3, state.totalOpens),
   pendingReveal: null,
   // Debug scenarios must never inherit an incompatible armed Overcharge state.
@@ -65,12 +72,12 @@ const baseDebugState = (state: SaveState): SaveState => ({
 });
 
 const allBasicEligibleIds = (): string[] =>
-  SLICE_REGISTRY.standardItems
+  defaultDropStandardItems
     .filter(({ rarity }) => LITE_V2_BALANCE.pouchProfiles.basic.rarityWeights[rarity] > 0)
     .map(({ collectible }) => collectible.id);
 
 const allSecretIds = (): string[] =>
-  SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id);
+  defaultDropSecrets.map(({ collectible }) => collectible.id);
 
 const prepareScenario = (
   state: SaveState,
@@ -204,7 +211,7 @@ export const stageDebugReveal = async (
 
   const pending = createPendingReveal({
     state: prepared.state,
-    registry: SLICE_REGISTRY,
+    registry: GAME_REGISTRY,
     balance: DEBUG_REVEAL_BALANCE,
     random: prepared.random,
     transactionId: `debug-${scenario}-${Date.now()}`,
@@ -227,9 +234,9 @@ export const seedDebugCollection = async (
     ...current,
     totalOpens: Math.max(1, current.totalOpens),
     pendingReveal: null,
-    discoveredStandard: SLICE_REGISTRY.standardItems.map(({ collectible }) => collectible.id),
+    discoveredStandard: defaultDropStandardItems.map(({ collectible }) => collectible.id),
     discoveredSecrets:
-      mode === 'all' ? SLICE_REGISTRY.secrets.map(({ collectible }) => collectible.id) : current.discoveredSecrets,
+      mode === 'all' ? defaultDropSecrets.map(({ collectible }) => collectible.id) : current.discoveredSecrets,
   };
   await repository.write(next);
   return next;
