@@ -19,6 +19,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: python3 tools/opening-drop-polish-ui-patch.py
+      - run: python3 tools/opening-drop-polish-test-bounds.py
       - name: Assert UI contract patch
         shell: bash
         run: |
@@ -28,6 +29,7 @@ jobs:
           grep -q 'tearHintIdleDelayMs: 5500' src/game/data/presentation.ts
           grep -q 'lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID' src/game/ui/openingVisuals.ts
           ! grep -q 'restoreHintAfterCancelledDrag' src/game/ui/openingVisuals.ts
+          grep -q 'discoveryPopScale).toBeLessThanOrEqual(1.07)' tests/presentation.test.ts
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -39,7 +41,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/game/data/presentation.ts src/game/ui/openingVisuals.ts src/i18n/en.ts src/i18n/ru.ts tests/drop-pouch-presentation.test.ts
+          git add src/game/data/presentation.ts src/game/ui/openingVisuals.ts src/i18n/en.ts src/i18n/ru.ts tests/drop-pouch-presentation.test.ts tests/presentation.test.ts
           if git diff --cached --quiet; then
             exit 0
           fi
