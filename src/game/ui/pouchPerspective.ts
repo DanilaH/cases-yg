@@ -48,7 +48,7 @@ export class PouchPerspectiveController extends Phaser.Filters.Controller {
 
 class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilterShader {
   public constructor(manager: Phaser.Renderer.WebGL.RenderNodes.RenderNodeManager) {
-    super(FILTER_NODE, manager, null, FRAGMENT_SHADER);
+    super(FILTER_NODE, manager, undefined, FRAGMENT_SHADER);
   }
 
   public setupUniforms(controller: Phaser.Filters.Controller): void {
@@ -69,17 +69,15 @@ export const attachPouchPerspective = (
     renderer.renderNodes.addNodeConstructor(FILTER_NODE, FilterPouchPerspective);
   }
 
-  // The authored pouch occupies roughly 420x430 logical pixels, but the tear tab
-  // and lower shadow need a little breathing room. The filter target is the art
-  // container only, so the interaction geometry remains unchanged.
-  target.setSize(500, 560);
+  // Give the filtered art enough room for the full body + tear strip + moving tab.
+  // The shadow and input geometry remain outside this filtered render target.
+  target.setSize(520, 620);
   target.enableFilters();
   const camera = target.filterCamera;
   const filters = target.filters;
   if (!camera || !filters) return null;
 
   const controller = new PouchPerspectiveController(camera);
-  controller.setPaddingOverride(8, 8, 8, 8);
   filters.internal.add(controller);
   return controller;
 };
