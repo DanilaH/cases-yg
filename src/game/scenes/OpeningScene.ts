@@ -22,7 +22,7 @@ import {
   resolveCarouselIndex,
 } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
-import { ensureLootPoolCollectibleArt, ensurePouchArt } from '../systems/artLoading';
+import { ensureLootPoolArt, ensurePouchArt } from '../systems/artLoading';
 import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
@@ -228,9 +228,9 @@ export class OpeningScene extends Phaser.Scene {
         : this.saveState.activeLootPoolId;
 
     try {
-      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, targetLootPoolId);
+      await ensureLootPoolArt(this, GAME_REGISTRY, targetLootPoolId);
     } catch (error: unknown) {
-      console.warn('[art] active Drop collectible art failed to load; using fallbacks', error);
+      console.warn('[art] active Drop art failed to load; using fallbacks', error);
     }
 
     if (this.isSceneShutdown()) return;
@@ -259,7 +259,7 @@ export class OpeningScene extends Phaser.Scene {
       this.selectedPouchType = pending.pouchType;
       if (pending.pouchType === 'charged') {
         try {
-          await ensurePouchArt(this, 'charged');
+          await ensurePouchArt(this, 'charged', targetLootPoolId);
         } catch (error: unknown) {
           console.warn('[art] recovered Charged Pouch art failed to load; using fallbacks', error);
         }
@@ -1626,9 +1626,9 @@ export class OpeningScene extends Phaser.Scene {
         }
 
         try {
-          await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, target);
+          await ensureLootPoolArt(this, GAME_REGISTRY, target);
         } catch (error: unknown) {
-          console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
+          console.warn('[art] target Drop art failed to load; using fallbacks', error);
         }
         if (this.isSceneShutdown() || this.phase !== 'idle') return;
 
@@ -1950,7 +1950,7 @@ export class OpeningScene extends Phaser.Scene {
 
     this.pouchArtLoadInFlight = true;
     try {
-      await ensurePouchArt(this, pouchType);
+      await ensurePouchArt(this, pouchType, this.getDisplayedLootPoolId());
     } catch (error: unknown) {
       console.warn(`[art] ${pouchType} Pouch art failed to load; using fallbacks`, error);
     }

@@ -49,26 +49,40 @@ Per-family source workflow remains:
 
 # 2. Mystery Pouch — INTEGRATED
 
-Runtime mapping:
+Y2K Essentials keeps the original authored Basic/Charged pouch set. Video Link, Pocket Office, Pocket Audio, Game Zone and Analog Nights each use their own authored Basic/Charged set.
+
+Generic Y2K Essentials runtime mapping:
 
 ```text
 public/assets/package/pouch-body.webp
 public/assets/package/pouch-tear-strip-compact.webp
 public/assets/package/pouch-star-tab.webp
+public/assets/package/charged-pouch-body.webp
+public/assets/package/charged-pouch-tear-strip-compact.webp
+public/assets/package/charged-pouch-star-tab.webp
 ```
 
-The source/original full strip also exists as `public/assets/package/pouch-tear-strip.webp`, but runtime uses the compact authored strip.
+Themed Drop mapping:
+
+```text
+public/assets/package/<drop>-basic-pouch-body.webp
+public/assets/package/<drop>-basic-pouch-tear-strip-compact.webp
+public/assets/package/<drop>-basic-pouch-star-tab.webp
+public/assets/package/<drop>-charged-pouch-body.webp
+public/assets/package/<drop>-charged-pouch-tear-strip-compact.webp
+public/assets/package/<drop>-charged-pouch-star-tab.webp
+```
 
 Accepted contract:
 
-- independent reviewed transforms;
-- body owns main silhouette;
-- compact tear strip preserves authored art while trimming transparent padding;
-- star tab has independent placement/scale + generous hit area;
-- runtime owns shadow/highlight/motion;
-- no synthetic dark slit/mouth.
+- body is transparent 1024×1024 WebP with the established authored alignment;
+- star tab is transparent 1024×1024 padded WebP with the established tab alignment;
+- runtime tear strip is compact transparent 984×235 WebP;
+- Drop skins change authored material/theme only; tear geometry, drag travel, threshold and hit area remain unchanged;
+- body, strip and star stay independent layers;
+- runtime owns shadow/highlight/motion and contains no synthetic dark slit/mouth.
 
-Opening Feel Correction keeps this geometry and interaction contract.
+The temporary source PNG intake is removed after promotion; reviewed WebPs are the committed runtime artifacts.
 
 ---
 
@@ -171,18 +185,16 @@ Reason: the visual hypothesis was proved cheaply without creating a new mobile/W
 
 A single local shader may be reconsidered later only if a reviewed no-shader result proves a specific effect cannot be sold convincingly.
 
-## 6.4 Charged pouch raster fallback — NOT REQUIRED NOW
+## 6.4 Authored Drop-specific pouch rasters — INTEGRATED
 
-Default: reuse current pouch assets with much stronger runtime cyan/violet/iridescent treatment.
+The earlier runtime-only Charged treatment is superseded by reviewed authored Basic/Charged pouch sets per themed Drop while retaining the same interaction geometry.
 
-The label-hidden r3 audit passed with runtime treatment, so no recolored Charged pouch asset variant is required now. Re-open only if later hands-on contradicts that evidence.
+Current policy:
 
-Fallback constraints:
-
-- exact same silhouette/geometry;
-- same tear strip/tab mechanics;
-- material/color treatment only;
-- no new pouch redesign pipeline.
+- Y2K Essentials keeps the original authored Basic/Charged set;
+- Video Link, Pocket Office, Pocket Audio, Game Zone and Analog Nights use their own authored Basic/Charged body, compact tear strip and star tab;
+- Phaser continues to own glow/rings/sparks/selection feedback on top of the rasters;
+- no Drop may introduce a different tear mechanic, hitbox, drag distance or pouch silhouette contract.
 
 ---
 
