@@ -23,7 +23,8 @@ new_anchor = """    void this.initialize();
       this.phase === 'idle' &&
       !this.dropSwitchInFlight &&
       !this.pouchArtLoadInFlight &&
-      pointer.withinGame &&
+      Boolean(pointer.event) &&
+      this.game.canvas.matches(':hover') &&
       !pointer.isDown &&
       (pointerType === undefined || pointerType === 'mouse');
 
