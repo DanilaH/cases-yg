@@ -1,0 +1,91 @@
+name: Add pouch pointer tilt
+
+on:
+  push:
+    branches:
+      - feature/pouch-pointer-tilt
+    paths:
+      - .github/workflows/add-pouch-pointer-tilt.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/pouch-pointer-tilt
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Add subtle desktop pointer tilt
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+
+          old_constants = "const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;\n"
+          new_constants = old_constants + "const POUCH_POINTER_TILT_MAX_DEG = 2.2;\nconst POUCH_POINTER_TILT_RESPONSE_MS = 85;\n"
+          if old_constants not in text:
+              raise SystemExit('constant anchor missing')
+          text = text.replace(old_constants, new_constants, 1)
+
+          old_anchor = "    void this.initialize();\n  }\n\n  private async initialize(): Promise<void> {"
+          new_anchor = """    void this.initialize();
+  }
+
+  public update(_time: number, delta: number): void {
+    const pouch = this.pouch;
+    if (!pouch?.group.active) return;
+
+    const pointer = this.input.activePointer;
+    const pointerType = (pointer.event as PointerEvent | undefined)?.pointerType;
+    const canTilt =
+      this.phase === 'idle' &&
+      !this.dropSwitchInFlight &&
+      !this.pouchArtLoadInFlight &&
+      pointer.withinGame &&
+      !pointer.isDown &&
+      (pointerType === undefined || pointerType === 'mouse');
+
+    let targetAngle = 0;
+    if (canTilt) {
+      const halfWidth = Math.max(1, this.scale.width * 0.5);
+      const normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
+      targetAngle = normalizedX * POUCH_POINTER_TILT_MAX_DEG;
+    }
+
+    const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_TILT_RESPONSE_MS);
+    pouch.group.angle = Phaser.Math.Linear(pouch.group.angle, targetAngle, response);
+    if (Math.abs(pouch.group.angle - targetAngle) < 0.01) pouch.group.angle = targetAngle;
+  }
+
+  private async initialize(): Promise<void> {"""
+          if old_anchor not in text:
+              raise SystemExit('create/initialize anchor missing')
+          text = text.replace(old_anchor, new_anchor, 1)
+
+          path.write_text(text)
+          PY
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit feature and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/add-pouch-pointer-tilt.yml
+          git add src/game/scenes/OpeningScene.ts
+          git commit -m 'Add subtle pouch pointer tilt'
+          git push origin HEAD:feature/pouch-pointer-tilt
