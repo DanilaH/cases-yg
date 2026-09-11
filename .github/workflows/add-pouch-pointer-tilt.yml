@@ -39,3 +39,5 @@ jobs:
           git add src/game/scenes/OpeningScene.ts
           git commit -m 'Add subtle pouch pointer tilt'
           git push origin HEAD:feature/pouch-pointer-tilt
+
+# v2 pointer hover guard
