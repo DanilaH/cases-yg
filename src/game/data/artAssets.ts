@@ -235,65 +235,65 @@ const POUCH_STATIC_ART_IDS: PouchVariantIds = {
 
 const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVariantIds>>> = {
   'video-link': {
-  basic: {
-    body: 'video-link-basic-pouch-body',
-    'tear-strip': 'video-link-basic-pouch-tear-strip',
-    'star-tab': 'video-link-basic-pouch-star-tab',
+    basic: {
+      body: 'video-link-basic-pouch-body',
+      'tear-strip': 'video-link-basic-pouch-tear-strip',
+      'star-tab': 'video-link-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'video-link-charged-pouch-body',
+      'tear-strip': 'video-link-charged-pouch-tear-strip',
+      'star-tab': 'video-link-charged-pouch-star-tab',
+    },
   },
-  charged: {
-    body: 'video-link-charged-pouch-body',
-    'tear-strip': 'video-link-charged-pouch-tear-strip',
-    'star-tab': 'video-link-charged-pouch-star-tab',
-  },
-},
   'pocket-office': {
-  basic: {
-    body: 'pocket-office-basic-pouch-body',
-    'tear-strip': 'pocket-office-basic-pouch-tear-strip',
-    'star-tab': 'pocket-office-basic-pouch-star-tab',
+    basic: {
+      body: 'pocket-office-basic-pouch-body',
+      'tear-strip': 'pocket-office-basic-pouch-tear-strip',
+      'star-tab': 'pocket-office-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'pocket-office-charged-pouch-body',
+      'tear-strip': 'pocket-office-charged-pouch-tear-strip',
+      'star-tab': 'pocket-office-charged-pouch-star-tab',
+    },
   },
-  charged: {
-    body: 'pocket-office-charged-pouch-body',
-    'tear-strip': 'pocket-office-charged-pouch-tear-strip',
-    'star-tab': 'pocket-office-charged-pouch-star-tab',
-  },
-},
   'pocket-audio': {
-  basic: {
-    body: 'pocket-audio-basic-pouch-body',
-    'tear-strip': 'pocket-audio-basic-pouch-tear-strip',
-    'star-tab': 'pocket-audio-basic-pouch-star-tab',
+    basic: {
+      body: 'pocket-audio-basic-pouch-body',
+      'tear-strip': 'pocket-audio-basic-pouch-tear-strip',
+      'star-tab': 'pocket-audio-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'pocket-audio-charged-pouch-body',
+      'tear-strip': 'pocket-audio-charged-pouch-tear-strip',
+      'star-tab': 'pocket-audio-charged-pouch-star-tab',
+    },
   },
-  charged: {
-    body: 'pocket-audio-charged-pouch-body',
-    'tear-strip': 'pocket-audio-charged-pouch-tear-strip',
-    'star-tab': 'pocket-audio-charged-pouch-star-tab',
-  },
-},
   'game-zone': {
-  basic: {
-    body: 'game-zone-basic-pouch-body',
-    'tear-strip': 'game-zone-basic-pouch-tear-strip',
-    'star-tab': 'game-zone-basic-pouch-star-tab',
+    basic: {
+      body: 'game-zone-basic-pouch-body',
+      'tear-strip': 'game-zone-basic-pouch-tear-strip',
+      'star-tab': 'game-zone-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'game-zone-charged-pouch-body',
+      'tear-strip': 'game-zone-charged-pouch-tear-strip',
+      'star-tab': 'game-zone-charged-pouch-star-tab',
+    },
   },
-  charged: {
-    body: 'game-zone-charged-pouch-body',
-    'tear-strip': 'game-zone-charged-pouch-tear-strip',
-    'star-tab': 'game-zone-charged-pouch-star-tab',
-  },
-},
   'analog-nights': {
-  basic: {
-    body: 'analog-nights-basic-pouch-body',
-    'tear-strip': 'analog-nights-basic-pouch-tear-strip',
-    'star-tab': 'analog-nights-basic-pouch-star-tab',
+    basic: {
+      body: 'analog-nights-basic-pouch-body',
+      'tear-strip': 'analog-nights-basic-pouch-tear-strip',
+      'star-tab': 'analog-nights-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'analog-nights-charged-pouch-body',
+      'tear-strip': 'analog-nights-charged-pouch-tear-strip',
+      'star-tab': 'analog-nights-charged-pouch-star-tab',
+    },
   },
-  charged: {
-    body: 'analog-nights-charged-pouch-body',
-    'tear-strip': 'analog-nights-charged-pouch-tear-strip',
-    'star-tab': 'analog-nights-charged-pouch-star-tab',
-  },
-},
 };
 
 const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = [
