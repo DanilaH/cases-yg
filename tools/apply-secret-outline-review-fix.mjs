@@ -18,7 +18,7 @@ const replaceOnce = (source, search, replacement, label) => {
   source = replaceOnce(
     source,
     `    targets.forEach((target, index) => {\n      this.trackSecretPremiumTarget(target);\n      target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);`,
-    `    targets.forEach((target, index) => {\n      this.trackSecretPremiumTarget(target);\n      if (target instanceof Phaser.GameObjects.Image) {\n        target.setTintFill(SECRET_REVEAL_COLOR);\n        target.setBlendMode(Phaser.BlendModes.NORMAL);\n      }\n      target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);`,
+    `    targets.forEach((target, index) => {\n      this.trackSecretPremiumTarget(target);\n      if (target instanceof Phaser.GameObjects.Image) {\n        target.setTint(SECRET_REVEAL_COLOR);\n        target.setTintFill();\n        target.setBlendMode(Phaser.BlendModes.NORMAL);\n      }\n      target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);`,
     'secret outline rendering',
   );
   await writeFile(path, source);
