@@ -1,0 +1,115 @@
+name: Format authored Drop pouch map
+
+on:
+  push:
+    branches:
+      - content/authored-drop-pouch-skins-v2
+    paths:
+      - .github/workflows/format-authored-drop-pouch-map.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: content/authored-drop-pouch-skins-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - run: npm ci
+
+      - name: Normalize Drop pouch mapping formatting
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          start = text.index('const DROP_POUCH_STATIC_ART_IDS:')
+          end = text.index('const BOOT_STATIC_ART_IDS', start)
+          block = """const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVariantIds>>> = {
+            'video-link': {
+              basic: {
+                body: 'video-link-basic-pouch-body',
+                'tear-strip': 'video-link-basic-pouch-tear-strip',
+                'star-tab': 'video-link-basic-pouch-star-tab',
+              },
+              charged: {
+                body: 'video-link-charged-pouch-body',
+                'tear-strip': 'video-link-charged-pouch-tear-strip',
+                'star-tab': 'video-link-charged-pouch-star-tab',
+              },
+            },
+            'pocket-office': {
+              basic: {
+                body: 'pocket-office-basic-pouch-body',
+                'tear-strip': 'pocket-office-basic-pouch-tear-strip',
+                'star-tab': 'pocket-office-basic-pouch-star-tab',
+              },
+              charged: {
+                body: 'pocket-office-charged-pouch-body',
+                'tear-strip': 'pocket-office-charged-pouch-tear-strip',
+                'star-tab': 'pocket-office-charged-pouch-star-tab',
+              },
+            },
+            'pocket-audio': {
+              basic: {
+                body: 'pocket-audio-basic-pouch-body',
+                'tear-strip': 'pocket-audio-basic-pouch-tear-strip',
+                'star-tab': 'pocket-audio-basic-pouch-star-tab',
+              },
+              charged: {
+                body: 'pocket-audio-charged-pouch-body',
+                'tear-strip': 'pocket-audio-charged-pouch-tear-strip',
+                'star-tab': 'pocket-audio-charged-pouch-star-tab',
+              },
+            },
+            'game-zone': {
+              basic: {
+                body: 'game-zone-basic-pouch-body',
+                'tear-strip': 'game-zone-basic-pouch-tear-strip',
+                'star-tab': 'game-zone-basic-pouch-star-tab',
+              },
+              charged: {
+                body: 'game-zone-charged-pouch-body',
+                'tear-strip': 'game-zone-charged-pouch-tear-strip',
+                'star-tab': 'game-zone-charged-pouch-star-tab',
+              },
+            },
+            'analog-nights': {
+              basic: {
+                body: 'analog-nights-basic-pouch-body',
+                'tear-strip': 'analog-nights-basic-pouch-tear-strip',
+                'star-tab': 'analog-nights-basic-pouch-star-tab',
+              },
+              charged: {
+                body: 'analog-nights-charged-pouch-body',
+                'tear-strip': 'analog-nights-charged-pouch-tear-strip',
+                'star-tab': 'analog-nights-charged-pouch-star-tab',
+              },
+            },
+          };
+
+          """.replace('          ', '')
+          path.write_text(text[:start] + block + text[end:])
+
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Commit formatting cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/artAssets.ts
+          git commit -m 'Clean up Drop pouch asset mapping'
+          git push origin HEAD:content/authored-drop-pouch-skins-v2
