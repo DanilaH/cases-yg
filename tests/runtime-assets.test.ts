@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+
 import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -131,6 +133,14 @@ describe('runtime asset manifests', () => {
         assetPath: 'assets/package/video-link-charged-pouch-star-tab.webp',
       },
     ]);
+  });
+
+  it('keeps every reviewed static-art path backed by a committed public asset', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+    for (const { id, assetPath } of getRuntimeStaticArt()) {
+      expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
+    }
   });
 
   it('maps reviewed pouch/background layers without scene-specific file knowledge', () => {
