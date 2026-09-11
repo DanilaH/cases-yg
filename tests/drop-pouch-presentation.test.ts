@@ -1,21 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { GAME_LOOT_POOL_IDS } from '../src/game/data/collectibles';
 import {
-  DROP_POUCH_SKINS,
   OPENING_FEEL_PRESENTATION,
   POUCH_PRESENTATION,
+  POUCH_VARIANT_PRESENTATION,
 } from '../src/game/data/presentation';
 
 describe('Drop pouch presentation contract', () => {
-  it('defines a distinct skin identity for every production Drop', () => {
-    const skins = GAME_LOOT_POOL_IDS.map((id) => DROP_POUCH_SKINS[id]);
-
-    expect(skins).toHaveLength(6);
-    expect(new Set(skins.map((skin) => skin.motif)).size).toBe(GAME_LOOT_POOL_IDS.length);
-    expect(new Set(skins.map((skin) => `${skin.tint}:${skin.accent}:${skin.secondary}`)).size).toBe(
-      GAME_LOOT_POOL_IDS.length,
-    );
+  it('keeps authored Basic and Charged pouches neutral and independently tunable', () => {
+    expect(POUCH_VARIANT_PRESENTATION.basic.stripWidthOffset).toBe(-8);
+    expect(POUCH_VARIANT_PRESENTATION.charged.bodyOffsetX).toBe(-7);
+    expect(POUCH_VARIANT_PRESENTATION.charged.bodyWidthOffset).toBe(-7);
+    expect(POUCH_VARIANT_PRESENTATION.charged.stripWidthOffset).toBe(4);
   });
 
   it('keeps the Drop selector touch-friendly and swipeable', () => {

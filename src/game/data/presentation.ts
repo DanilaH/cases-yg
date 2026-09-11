@@ -1,4 +1,4 @@
-import type { GameLootPoolId, StandardRarity } from './collectibles';
+import type { StandardRarity } from './collectibles';
 
 export type RevealRarity = StandardRarity | 'secret';
 
@@ -124,27 +124,6 @@ export interface PouchLayerPresentation {
   displayWidth: number;
 }
 
-export type DropPouchMotif = 'spark' | 'video' | 'grid' | 'wave' | 'game' | 'scan';
-
-export interface DropPouchSkin {
-  tint: number;
-  accent: number;
-  secondary: number;
-  motif: DropPouchMotif;
-}
-
-export const DROP_POUCH_SKINS: Readonly<Record<GameLootPoolId, DropPouchSkin>> = {
-  'y2k-essentials': { tint: 0xffffff, accent: 0x9c7cff, secondary: 0x67e8ff, motif: 'spark' },
-  'video-link': { tint: 0xdff9ff, accent: 0x55e4ff, secondary: 0xff7ad9, motif: 'video' },
-  'pocket-office': { tint: 0xe8ffef, accent: 0x72f2ae, secondary: 0x8aa6ff, motif: 'grid' },
-  'pocket-audio': { tint: 0xffe7f3, accent: 0xff79bd, secondary: 0x8df8ff, motif: 'wave' },
-  'game-zone': { tint: 0xeee6ff, accent: 0xa985ff, secondary: 0x7bffcf, motif: 'game' },
-  'analog-nights': { tint: 0xffe8c8, accent: 0xffb65d, secondary: 0xff6f9f, motif: 'scan' },
-} as const;
-
-export const getDropPouchSkin = (lootPoolId: GameLootPoolId): DropPouchSkin =>
-  DROP_POUCH_SKINS[lootPoolId];
-
 export interface PouchVariantPresentation {
   bodyOffsetX: number;
   bodyOffsetY: number;
@@ -224,7 +203,7 @@ export const COLLECTION_MILESTONE_PRESENTATION = {
   introOffsetX: 10,
   introOffsetY: 2,
   introMs: 240,
-  holdMs: 1850,
+  holdMs: 2400,
   exitOffsetY: -4,
   exitMs: 320,
 } as const;
@@ -454,11 +433,28 @@ export const OPENING_FEEL_PRESENTATION = {
   discoveryOutlineAlpha: 0.86,
   discoveryLabelOffsetY: 120,
   discoveryIntroMs: 250,
-  discoveryHoldMs: 150,
+  discoveryHoldMs: 650,
   discoverySettleMs: 290,
   revealBackdropFadeInMs: 280,
   revealBackdropFadeOutMs: 300,
-  duplicateConversionAccentMs: 260,
+  persistentFxIntroOffsetY: 8,
+  persistentFxIntroScale: 0.9,
+  persistentFxOvershootScale: 1.04,
+  persistentFxIntroMs: 280,
+  persistentFxSettleMs: 160,
+  persistentFxExitOffsetY: -8,
+  persistentFxExitScale: 1.14,
+  persistentFxExitMs: 240,
+  secretOutlineCopies: 12,
+  secretOutlineRadius: 6.2,
+  secretOutlineAlpha: 0.64,
+  secretOutlinePeakAlpha: 0.94,
+  secretOutlinePulseMs: 720,
+  revealInfoBadgeSideOffset: 150,
+  revealInfoBadgeIntroMs: 220,
+  revealInfoBadgeHoldMs: 620,
+  revealInfoBadgeExitMs: 260,
+  duplicateConversionAccentMs: 720,
   collectAcknowledgeMs: 160,
   collectItemScale: 0.94,
   collectItemShiftX: 12,

@@ -19,7 +19,7 @@ The Drop selector is a primary Opening control, not a passive status label.
 
 Drop paging must feel immediate even though the active Drop is durable save state.
 
-- Arrow/swipe input updates the displayed Drop and pouch skin immediately.
+- Arrow/swipe input updates the displayed Drop immediately while the selected Basic/Charged authored pouch remains visually stable.
 - Rapid repeated input is allowed; the latest selection wins.
 - A generation token invalidates stale async preload continuations before they can persist or repaint an obsolete target.
 - Durable `activeLootPoolId` writes remain serialized. If a newer selection arrives after an older write has already started, that completed write is treated only as an intermediate state and the latest target is written next.
@@ -27,20 +27,11 @@ Drop paging must feel immediate even though the active Drop is durable save stat
 - While durable reconciliation is outstanding, starting a pouch tear or leaving for Collection remains blocked so reward resolution cannot observe an intermediate Drop.
 - During optimistic preview, Drop-dependent HUD presentation uses the preview Drop as well, so pouch, selector, Signal/Overcharge messaging, and active-Drop semantics stay visually atomic.
 
-## Drop-specific pouch skins
+## Pouch art while authored Drop skins are pending
 
-All six Drops share the same pouch geometry, tear line, star-tab mechanics, hitboxes, and opening choreography. Drop identity is a lightweight runtime skin over those shared authored assets, not six independent pouch mechanics or six complete raster packages.
+All six Drops currently share the same neutral authored Basic/Charged pouch art, geometry, tear line, star-tab mechanics, hitboxes, and opening choreography. The former runtime tint/motif overlay has been removed: Drop identity must not be simulated by recoloring or procedural symbols while dedicated authored skins are pending.
 
-Each Drop has a distinct tint/accent/secondary palette and motif:
-
-- Y2K Essentials — spark;
-- Video Link — video;
-- Pocket Office — grid;
-- Pocket Audio — wave;
-- Game Zone — game-controller motif;
-- Analog Nights — scan-line motif.
-
-The active Basic/Charged type is preserved while switching Drops. Charged uses the same Drop identity layer over the Charged authored base. The Charged body also receives a small optical offset correction so its visible mass aligns with Basic without rotating the pouch.
+The active Basic/Charged type is preserved while switching Drops. Charged keeps its independent optical offsets so its visible mass aligns with Basic without rotating the pouch. Future per-Drop skins should replace authored art only; they must not fork tear mechanics or reward logic.
 
 ## Tear hint
 
@@ -67,9 +58,9 @@ The NEW beat must remain visibly stronger than a duplicate without making every 
 
 The merged code still requires hands-on visual validation before rebuilding the hosted DRAFT archive. At minimum verify:
 
-1. Page through all six Drops with arrows and swipe; confirm name, index, standard count, Secret count, and pouch identity agree.
+1. Page through all six Drops with arrows and swipe; confirm name, index, standard count, and Secret count agree while the neutral authored pouch is not recolored or stamped with runtime motifs.
 2. Stress rapid switching with repeated direction changes and wrap-around; confirm there is no stale rollback, wrong final persisted Drop, broken pouch, or stuck interaction.
-3. Repeat the switching stress while Charged is selected; confirm Charged remains selected when affordable and receives the correct Drop skin immediately.
+3. Repeat the switching stress while Charged is selected; confirm Charged remains selected when affordable and keeps the neutral authored Charged presentation without Drop tint/motif overlays.
 4. Confirm the bottom selector is readable and comfortably tappable in representative desktop/mobile portrait/landscape layouts and EN/RU.
 5. Confirm the selector remains through partial drag, then begins fading only after a successful full tear and never overlaps the reward tray.
 6. Leave Opening idle for roughly 5.5 seconds; confirm the top tear hint appears with a short star nudge, then disappears on interaction and does not become permanent noise.
