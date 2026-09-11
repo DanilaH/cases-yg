@@ -1,0 +1,62 @@
+name: Fix authored Drop pouch integration workflow r2
+
+on:
+  push:
+    branches:
+      - content/authored-drop-pouch-skins-v2
+    paths:
+      - .github/workflows/fix-authored-drop-pouch-integration-r2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: content/authored-drop-pouch-skins-v2
+          fetch-depth: 0
+
+      - name: Scope static-art allowlist edit
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('.github/workflows/integrate-authored-drop-pouches.yml')
+          lines = path.read_text().splitlines()
+          matches = [i for i, line in enumerate(lines) if "'AVAILABLE_STATIC_ART_IDS expansion'" in line]
+          if len(matches) != 1:
+              raise SystemExit(f'expected one allowlist patch block, got {len(matches)}')
+          label_index = matches[0]
+          start = label_index - 4
+          end = label_index + 2
+          if 'text = replace_once(' not in lines[start]:
+              raise SystemExit('unexpected allowlist patch block shape')
+          replacement = [
+              "          available_start = text.index('export const AVAILABLE_STATIC_ART_IDS')",
+              "          available_end = text.index(']);', available_start)",
+              "          available_block = text[available_start:available_end]",
+              "          available_block = replace_once(",
+              "              available_block,",
+              "              \"  'charged-pouch-star-tab',\\n  'opening-bg'\",",
+              "              \"  'charged-pouch-star-tab',\\n\" + '\\n'.join(available_lines) + \"\\n  'opening-bg'\",",
+              "              'AVAILABLE_STATIC_ART_IDS expansion',",
+              "          )",
+              "          text = text[:available_start] + available_block + text[available_end:]",
+          ]
+          lines[start:end] = replacement
+          path.write_text('\n'.join(lines) + '\n')
+
+      - name: Commit patcher correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-authored-drop-pouch-integration.yml
+          git rm .github/workflows/fix-authored-drop-pouch-integration-r2.yml
+          git add .github/workflows/integrate-authored-drop-pouches.yml
+          git commit -m 'Correct Drop pouch integration workflow'
+          git push origin HEAD:content/authored-drop-pouch-skins-v2
