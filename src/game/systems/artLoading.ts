@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {
   getRuntimeCollectibleArtForLootPool,
   getRuntimePouchArt,
+  getRuntimePouchArtForLootPool,
   type PouchArtVariant,
   type RuntimeCollectibleArt,
   type RuntimeStaticArt,
@@ -70,7 +71,14 @@ export const ensureLootPoolCollectibleArt = (
   registry: ContentRegistry,
   lootPoolId: LootPoolId,
 ): Promise<void> =>
-  ensureRuntimeImageArt(scene, getRuntimeCollectibleArtForLootPool(registry, lootPoolId), 'collectible art');
+  ensureRuntimeImageArt(
+    scene,
+    [
+      ...getRuntimeCollectibleArtForLootPool(registry, lootPoolId),
+      ...getRuntimePouchArtForLootPool(lootPoolId),
+    ],
+    'Drop art',
+  );
 
 export const ensurePouchArt = (scene: Phaser.Scene, variant: PouchArtVariant): Promise<void> =>
   ensureRuntimeImageArt(scene, getRuntimePouchArt(variant), `${variant} pouch art`);
