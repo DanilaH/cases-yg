@@ -2,6 +2,11 @@ export const STANDARD_RARITIES = ['common', 'rare', 'epic', 'legendary'] as cons
 export type StandardRarity = (typeof STANDARD_RARITIES)[number];
 export type LootPoolId = string;
 
+// Result headings share one row with the rarity badge. Keep authored display
+// names concise so every locale starts from a safe, readable baseline; the UI
+// still performs pixel-width fitting as a second line of defense.
+export const MAX_FAMILY_DISPLAY_NAME_LENGTH = 16;
+
 export interface CollectibleDefinition {
   id: string;
   assetPath: string;
@@ -73,6 +78,15 @@ export const createContentRegistry = (families: readonly GadgetFamilyDefinition[
     }
     if (!family.dropId.trim()) {
       throw new Error(`Gadget family ${family.id} requires a non-empty dropId`);
+    }
+    for (const language of ['en', 'ru'] as const) {
+      const displayName = family.name[language].trim();
+      const displayLength = Array.from(displayName).length;
+      if (!displayName || displayLength > MAX_FAMILY_DISPLAY_NAME_LENGTH) {
+        throw new Error(
+          `Gadget family ${family.id} ${language} name must be 1-${MAX_FAMILY_DISPLAY_NAME_LENGTH} characters`,
+        );
+      }
     }
     familyById.set(family.id, family);
 
@@ -160,14 +174,14 @@ export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
   family('flip-phone', DEFAULT_LOOT_POOL_ID, { en: 'Flip Phone', ru: 'Раскладушка' }, 'flip-phone-secret-noir'),
   family('mini-camcorder', 'video-link', { en: 'Mini Camcorder', ru: 'Мини-камкордер' }, 'mini-camcorder-secret-prototype'),
   family('webcam', 'video-link', { en: 'Webcam', ru: 'Веб-камера' }, 'webcam-secret-stereo'),
-  family('pda', 'pocket-office', { en: 'PDA / Pocket Organizer', ru: 'КПК' }, 'pda-secret-flip'),
-  family('pager', 'pocket-office', { en: 'Pager / Pocket Communicator', ru: 'Пейджер' }, 'pager-secret-flip'),
+  family('pda', 'pocket-office', { en: 'PDA', ru: 'КПК' }, 'pda-secret-flip'),
+  family('pager', 'pocket-office', { en: 'Pager', ru: 'Пейджер' }, 'pager-secret-flip'),
   family('mp3-player', 'pocket-audio', { en: 'MP3 Player', ru: 'MP3-плеер' }, 'mp3-player-secret-pearl'),
-  family('portable-disc-player', 'pocket-audio', { en: 'Portable Disc Player', ru: 'Портативный дисковый плеер' }, 'portable-disc-player-secret-remote'),
-  family('handheld-console', 'game-zone', { en: 'Handheld Console', ru: 'Портативная консоль' }, 'handheld-console-secret-phone'),
+  family('portable-disc-player', 'pocket-audio', { en: 'Disc Player', ru: 'Дисковый плеер' }, 'portable-disc-player-secret-remote'),
+  family('handheld-console', 'game-zone', { en: 'Handheld Console', ru: 'Портативка' }, 'handheld-console-secret-phone'),
   family('home-console', 'game-zone', { en: 'Home Console', ru: 'Домашняя консоль' }, 'home-console-secret-noir'),
   family('cassette-player', 'analog-nights', { en: 'Cassette Player', ru: 'Кассетный плеер' }, 'cassette-player-secret-remote'),
-  family('crt-tv', 'analog-nights', { en: 'Pocket CRT TV', ru: 'Карманный ЭЛТ-телевизор' }, 'crt-tv-secret-communicator'),
+  family('crt-tv', 'analog-nights', { en: 'Pocket CRT TV', ru: 'ЭЛТ-телевизор' }, 'crt-tv-secret-communicator'),
 ] as const;
 
 export const GAME_REGISTRY = createContentRegistry(GAME_FAMILIES);

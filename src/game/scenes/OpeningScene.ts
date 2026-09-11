@@ -4736,7 +4736,30 @@ export class OpeningScene extends Phaser.Scene {
   ): void {
     const headingGap = 12;
     const diamondTextOffset = 11;
+    const headingSidePadding = 24;
+    const titleMaxFontSize = 21;
+    const titleMinFontSize = 17;
+    const logicalWidth = this.metrics?.logicalWidth ?? RESULT_PRESENTATION.panelMaxWidth + 120;
+    const panelWidth = Math.max(
+      RESULT_PRESENTATION.panelMinWidth,
+      Math.min(RESULT_PRESENTATION.panelMaxWidth, logicalWidth - 120),
+    );
+    const availableWidth = Math.max(1, panelWidth - headingSidePadding * 2);
+
+    // Rarity badges keep a stable visual size. If a localized item name plus the
+    // badge would overflow the result card, fit only the title by measured pixel
+    // width instead of relying on character count or wrapping the heading.
+    title.setFontSize(titleMaxFontSize);
     const badgeContentWidth = diamondTextOffset + rarity.width;
+    const maxTitleWidth = Math.max(1, availableWidth - headingGap - badgeContentWidth);
+    if (title.width > maxTitleWidth) {
+      const fittedFontSize = Math.max(
+        titleMinFontSize,
+        Math.floor(titleMaxFontSize * (maxTitleWidth / Math.max(1, title.width))),
+      );
+      title.setFontSize(fittedFontSize);
+    }
+
     const totalWidth = title.width + headingGap + badgeContentWidth;
     const startX = -totalWidth / 2;
     const headingY = RESULT_PRESENTATION.headingY;
