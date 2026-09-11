@@ -23,15 +23,15 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Apply opening QA fixes
-        run: node tools/opening-qa-fix-temp.mjs
+        run: node tools/opening-qa-fix-temp-v2.mjs
       - run: npm run typecheck
       - run: npm test
       - run: npm run assets:selftest
       - run: npm run assets:validate
       - run: npm run build
-      - name: Remove temporary patcher and commit production diff
+      - name: Remove temporary patchers and commit production diff
         run: |
-          git rm tools/opening-qa-fix-temp.mjs .github/workflows/opening-qa-fix-temp.yml
+          git rm tools/opening-qa-fix-temp.mjs tools/opening-qa-fix-temp-v2.mjs .github/workflows/opening-qa-fix-temp.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/game/data/artAssets.ts src/game/scenes/OpeningScene.ts src/i18n/en.ts src/i18n/ru.ts tests/runtime-assets.test.ts
