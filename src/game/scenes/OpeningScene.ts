@@ -1614,7 +1614,9 @@ export class OpeningScene extends Phaser.Scene {
             this.saveState = this.session.getState();
             this.previewLootPoolId = null;
             this.dropSwitchInFlight = false;
-            this.renderIdle();
+            // The preview already renders the durable target. Re-rendering here
+            // would destroy the active switch tween and make the selector feel dead.
+            this.scheduleTearHint();
             return;
           }
           continue;
@@ -1656,7 +1658,8 @@ export class OpeningScene extends Phaser.Scene {
         });
         this.previewLootPoolId = null;
         this.dropSwitchInFlight = false;
-        this.renderIdle();
+        // Keep the already-correct preview tree alive so its motion completes.
+        this.scheduleTearHint();
         return;
       }
     } finally {
@@ -1785,9 +1788,115 @@ export class OpeningScene extends Phaser.Scene {
         : `${this.saveState.chips}/${cost} ${messages.opening.chips}`,
       chargedAvailable,
     );
+    this.renderPouchOdds(
+      root,
+      railX,
+      firstCardY + height * 2 + OPENING_FEEL_PRESENTATION.railGap + 14,
+      width,
+    );
     if (chargedAvailable && this.selectedPouchType !== 'charged') {
       this.startPaidPouchAvailabilityPulse(chargedCard, this.saveState.signal >= LITE_V2_BALANCE.signalThreshold);
     }
+  }
+
+  private renderPouchOdds(
+    root: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    width: number,
+  ): void {
+    const messages = getMessages(getPlatformRuntime().language);
+    const basic = LITE_V2_BALANCE.pouchProfiles.basic;
+    const charged = LITE_V2_BALANCE.pouchProfiles.charged;
+    const rarities: readonly StandardRarity[] = ['common', 'rare', 'epic', 'legendary'];
+    const rarityColors: Readonly<Record<StandardRarity, string>> = {
+      common: '#e8e5ee',
+      rare: '#8df8ff',
+      epic: '#c7b8ff',
+      legendary: '#ffd98a',
+    };
+    const panelHeight = 104;
+    const panel = this.add.container(x, y);
+    const background = this.add.graphics();
+    background.fillStyle(0x17101f, 0.78);
+    background.fillRoundedRect(0, 0, width, panelHeight, 14);
+    background.lineStyle(1, 0xbda7d6, 0.22);
+    background.strokeRoundedRect(0, 0, width, panelHeight, 14);
+    panel.add(background);
+
+    const title = this.add.text(10, 8, messages.opening.dropRates, {
+      color: '#a99ab8',
+      fontFamily: DIGITAL_FONT_FAMILY,
+      fontSize: '7px',
+    });
+    panel.add(title);
+
+    const columnX = [88, 120, 152, 184] as const;
+    rarities.forEach((rarity, index) => {
+      const header = this.add
+        .text(columnX[index] ?? 88, 25, messages.rarity[rarity].toUpperCase().slice(0, 3), {
+          color: rarityColors[rarity],
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '5px',
+        })
+        .setOrigin(0.5);
+      panel.add(header);
+    });
+
+    const addRateRow = (
+      rowY: number,
+      label: string,
+      weights: Readonly<Record<StandardRarity, number>>,
+      accent: string,
+    ): void => {
+      panel.add(
+        this.add
+          .text(10, rowY, label, {
+            color: accent,
+            fontFamily: DIGITAL_FONT_FAMILY,
+            fontSize: getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+          })
+          .setOrigin(0, 0.5),
+      );
+      rarities.forEach((rarity, index) => {
+        panel.add(
+          this.add
+            .text(columnX[index] ?? 88, rowY, `${weights[rarity]}%`, {
+              color: rarityColors[rarity],
+              fontFamily: DIGITAL_FONT_FAMILY,
+              fontSize: '7px',
+            })
+            .setOrigin(0.5),
+        );
+      });
+    };
+
+    addRateRow(43, messages.opening.basicPouch, basic.rarityWeights, '#f7f2ff');
+    addRateRow(61, messages.opening.chargedPouch, charged.rarityWeights, CHARGED_TEXT_COLOR);
+
+    const formatChance = (chance: number): string => {
+      const percent = chance * 100;
+      return `${Number.isInteger(percent) ? percent.toFixed(0) : percent.toFixed(1)}%`;
+    };
+    panel.add(
+      this.add
+        .text(10, 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
+          color: '#ffb4dc',
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '6px',
+        })
+        .setOrigin(0, 0.5),
+    );
+    panel.add(
+      this.add
+        .text(10, 94, messages.opening.fromFourthOpen, {
+          color: '#81758f',
+          fontFamily: DIGITAL_FONT_FAMILY,
+          fontSize: '5px',
+        })
+        .setOrigin(0, 0.5),
+    );
+    root.add(panel);
   }
 
   private startPaidPouchAvailabilityPulse(card: Phaser.GameObjects.Container, linkedToSignal: boolean): void {
@@ -1830,7 +1939,6 @@ export class OpeningScene extends Phaser.Scene {
   private async selectPouchType(pouchType: PouchType, sourceCard?: Phaser.GameObjects.Container): Promise<void> {
     if (
       this.phase !== 'idle' ||
-      this.dropSwitchInFlight ||
       this.pouchArtLoadInFlight ||
       !this.saveState ||
       this.selectedPouchType === pouchType

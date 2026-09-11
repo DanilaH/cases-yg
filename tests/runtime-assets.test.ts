@@ -74,12 +74,14 @@ describe('runtime asset manifests', () => {
     expect(getRuntimeCollectibleArt(DEFAULT_DROP_REGISTRY)).toEqual([]);
   });
 
-  it('keeps authored Charged Pouch art out of boot preload and maps all three layers', () => {
+  it('preloads both pouch variants and maps all Charged layers', () => {
     replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
 
     const bootIds = getRuntimeBootStaticArt().map(({ id }) => id);
     expect(bootIds).toContain('pouch-body');
-    expect(bootIds).not.toContain('charged-pouch-body');
+    expect(bootIds).toContain('charged-pouch-body');
+    expect(bootIds).toContain('charged-pouch-tear-strip');
+    expect(bootIds).toContain('charged-pouch-star-tab');
     expect(getRuntimePouchArt('charged')).toEqual([
       {
         id: 'charged-pouch-body',
