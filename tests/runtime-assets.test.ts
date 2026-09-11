@@ -107,41 +107,40 @@ describe('runtime asset manifests', () => {
   });
 
   it('maps authored Basic and Charged pouch layers for every themed Drop', () => {
-  replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
 
-  expect(getRuntimePouchArtForLootPool('y2k-essentials').map(({ id }) => id)).toEqual([
-    'pouch-body',
-    'pouch-tear-strip',
-    'pouch-star-tab',
-    'charged-pouch-body',
-    'charged-pouch-tear-strip',
-    'charged-pouch-star-tab',
-  ]);
-
-  for (const lootPoolId of GAME_LOOT_POOL_IDS.filter((id) => id !== 'y2k-essentials')) {
-    expect(getRuntimePouchArtForLootPool(lootPoolId).map(({ id }) => id)).toEqual([
-      `${lootPoolId}-basic-pouch-body`,
-      `${lootPoolId}-basic-pouch-tear-strip`,
-      `${lootPoolId}-basic-pouch-star-tab`,
-      `${lootPoolId}-charged-pouch-body`,
-      `${lootPoolId}-charged-pouch-tear-strip`,
-      `${lootPoolId}-charged-pouch-star-tab`,
+    expect(getRuntimePouchArtForLootPool('y2k-essentials').map(({ id }) => id)).toEqual([
+      'pouch-body',
+      'pouch-tear-strip',
+      'pouch-star-tab',
+      'charged-pouch-body',
+      'charged-pouch-tear-strip',
+      'charged-pouch-star-tab',
     ]);
-  }
 
-  expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
-  expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe(
-    'analog-nights-charged-pouch-star-tab',
-  );
-});
+    for (const lootPoolId of GAME_LOOT_POOL_IDS.filter((id) => id !== 'y2k-essentials')) {
+      expect(getRuntimePouchArtForLootPool(lootPoolId).map(({ id }) => id)).toEqual([
+        `${lootPoolId}-basic-pouch-body`,
+        `${lootPoolId}-basic-pouch-tear-strip`,
+        `${lootPoolId}-basic-pouch-star-tab`,
+        `${lootPoolId}-charged-pouch-body`,
+        `${lootPoolId}-charged-pouch-tear-strip`,
+        `${lootPoolId}-charged-pouch-star-tab`,
+      ]);
+    }
 
-it('keeps every reviewed static-art path backed by a committed public asset', () => {
-  replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
-  for (const { id, assetPath } of getRuntimeStaticArt()) {
-    expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
-  }
-});
+    expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
+    expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe(
+      'analog-nights-charged-pouch-star-tab',
+    );
+  });
 
+  it('keeps every reviewed static-art path backed by a committed public asset', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+    for (const { id, assetPath } of getRuntimeStaticArt()) {
+      expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
+    }
+  });
   it('maps reviewed pouch/background layers without scene-specific file knowledge', () => {
     AVAILABLE_STATIC_ART_IDS.add('pouch-body');
     AVAILABLE_STATIC_ART_IDS.add('collection-foreground');
