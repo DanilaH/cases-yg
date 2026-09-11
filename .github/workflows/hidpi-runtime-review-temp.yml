@@ -1,0 +1,47 @@
+name: HiDPI runtime review
+
+on:
+  push:
+    branches:
+      - review/hidpi-ui-sharpness
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: review/hidpi-ui-sharpness
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install isolated browser driver
+        run: |
+          mkdir -p /tmp/hidpi-playwright
+          cd /tmp/hidpi-playwright
+          npm init -y >/dev/null 2>&1
+          npm install playwright-core@1.55.0 >/dev/null 2>&1
+      - name: Start preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/hidpi-preview.log 2>&1 &
+          echo $! >/tmp/hidpi-preview.pid
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/hidpi-preview.log
+          exit 1
+      - name: Run DPR and pointer matrix
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+          BASE_URL: http://127.0.0.1:4173
+        run: node tools/hidpi-runtime-review-temp.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hidpi-runtime-review
+          path: artifacts/hidpi-runtime
+          if-no-files-found: warn
