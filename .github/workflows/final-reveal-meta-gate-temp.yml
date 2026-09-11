@@ -60,7 +60,8 @@ jobs:
           DISPLAY: ':99'
           PULSE_SINK: review_sink
         run: |
-          cat > /tmp/final-gate.mjs <<'EOF'
+          mkdir -p tools/review
+          cat > tools/review/final-gate-temp.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { spawn } from 'node:child_process';
           import { once } from 'node:events';
@@ -126,7 +127,7 @@ jobs:
           await browser.close();
           if (errors.length) { console.error(errors.join('\n')); process.exitCode = 2; }
           EOF
-          node /tmp/final-gate.mjs
+          node tools/review/final-gate-temp.mjs
       - name: Build review sheets
         if: always()
         shell: bash
