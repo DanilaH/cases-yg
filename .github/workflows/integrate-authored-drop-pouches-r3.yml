@@ -1,0 +1,353 @@
+name: Integrate authored Drop pouches r3
+
+on:
+  push:
+    branches:
+      - content/authored-drop-pouch-skins-v2
+    paths:
+      - .github/workflows/integrate-authored-drop-pouches-r3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: content/authored-drop-pouch-skins-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - run: npm ci
+
+      - name: Wire Drop-specific pouch art
+        shell: python
+        run: |
+          from pathlib import Path
+
+          DROPS = ['video-link', 'pocket-office', 'pocket-audio', 'game-zone', 'analog-nights']
+          VARIANTS = ['basic', 'charged']
+          LAYERS = ['body', 'tear-strip', 'star-tab']
+
+          def require_once(text: str, needle: str, label: str) -> None:
+              count = text.count(needle)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, got {count}')
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              require_once(text, old, label)
+              return text.replace(old, new, 1)
+
+          def art_id(drop: str, variant: str, layer: str) -> str:
+              return f'{drop}-{variant}-pouch-{layer}'
+
+          # artAssets.ts
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "import type { ContentRegistry, LootPoolId } from './collectibles';",
+              "import type { ContentRegistry, GameLootPoolId, LootPoolId } from './collectibles';\nimport { DEFAULT_LOOT_POOL_ID } from './collectibles';",
+              'artAssets import',
+          )
+
+          ids = [art_id(drop, variant, layer) for drop in DROPS for variant in VARIANTS for layer in LAYERS]
+
+          type_marker = "  | 'charged-pouch-star-tab'\n"
+          require_once(text, type_marker, 'StaticArtId marker')
+          text = text.replace(type_marker, type_marker + ''.join(f"  | '{item}'\n" for item in ids), 1)
+
+          path_marker = "  'charged-pouch-star-tab': 'assets/package/charged-pouch-star-tab.webp',\n"
+          require_once(text, path_marker, 'STATIC_ART_PATHS marker')
+          generated_paths = []
+          for drop in DROPS:
+              for variant in VARIANTS:
+                  for layer in LAYERS:
+                      item = art_id(drop, variant, layer)
+                      suffix = 'tear-strip-compact' if layer == 'tear-strip' else layer
+                      generated_paths.append(f"  '{item}': 'assets/package/{drop}-{variant}-pouch-{suffix}.webp',\n")
+          text = text.replace(path_marker, path_marker + ''.join(generated_paths), 1)
+
+          available_start = text.index('export const AVAILABLE_STATIC_ART_IDS')
+          available_end = text.index(']);', available_start)
+          available_block = text[available_start:available_end]
+          allow_marker = "  'charged-pouch-star-tab',\n"
+          require_once(available_block, allow_marker, 'AVAILABLE_STATIC_ART_IDS marker')
+          available_block = available_block.replace(allow_marker, allow_marker + ''.join(f"  '{item}',\n" for item in ids), 1)
+          text = text[:available_start] + available_block + text[available_end:]
+
+          map_start = text.index("export type PouchArtVariant = 'basic' | 'charged';")
+          map_end = text.index('const BOOT_STATIC_ART_IDS', map_start)
+          drop_blocks = []
+          for drop in DROPS:
+              drop_blocks.append(f"""  '{drop}': {{
+            basic: {{
+              body: '{drop}-basic-pouch-body',
+              'tear-strip': '{drop}-basic-pouch-tear-strip',
+              'star-tab': '{drop}-basic-pouch-star-tab',
+            }},
+            charged: {{
+              body: '{drop}-charged-pouch-body',
+              'tear-strip': '{drop}-charged-pouch-tear-strip',
+              'star-tab': '{drop}-charged-pouch-star-tab',
+            }},
+          }},
+          """)
+          new_map = """export type PouchArtVariant = 'basic' | 'charged';
+          export type PouchArtLayer = 'body' | 'tear-strip' | 'star-tab';
+
+          type PouchLayerIds = Readonly<Record<PouchArtLayer, StaticArtId>>;
+          type PouchVariantIds = Readonly<Record<PouchArtVariant, PouchLayerIds>>;
+
+          const POUCH_STATIC_ART_IDS: PouchVariantIds = {
+            basic: {
+              body: 'pouch-body',
+              'tear-strip': 'pouch-tear-strip',
+              'star-tab': 'pouch-star-tab',
+            },
+            charged: {
+              body: 'charged-pouch-body',
+              'tear-strip': 'charged-pouch-tear-strip',
+              'star-tab': 'charged-pouch-star-tab',
+            },
+          };
+
+          const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVariantIds>>> = {
+          DROP_BLOCKS};
+
+          """.replace('          ', '').replace('DROP_BLOCKS', ''.join(drop_blocks))
+          text = text[:map_start] + new_map + text[map_end:]
+
+          selector_start = text.index('export const pouchStaticArtId =')
+          selector_end = text.index('const toRuntimeCollectibleArt', selector_start)
+          selector = """const dropPouchIds = (lootPoolId: LootPoolId): PouchVariantIds =>
+            DROP_POUCH_STATIC_ART_IDS[lootPoolId as GameLootPoolId] ?? POUCH_STATIC_ART_IDS;
+
+          export const pouchStaticArtId = (
+            variant: PouchArtVariant,
+            layer: PouchArtLayer,
+            lootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
+          ): StaticArtId => dropPouchIds(lootPoolId)[variant][layer];
+
+          """.replace('          ', '')
+          text = text[:selector_start] + selector + text[selector_end:]
+
+          tail_start = text.index('export const getRuntimePouchArt =')
+          tail = """export const getRuntimePouchArt = (
+            variant: PouchArtVariant,
+            lootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
+          ): readonly RuntimeStaticArt[] =>
+            toRuntimeStaticArt(Object.values(dropPouchIds(lootPoolId)[variant]));
+
+          export const getRuntimePouchArtForLootPool = (
+            lootPoolId: LootPoolId,
+          ): readonly RuntimeStaticArt[] => [
+            ...getRuntimePouchArt('basic', lootPoolId),
+            ...getRuntimePouchArt('charged', lootPoolId),
+          ];
+          """.replace('          ', '')
+          text = text[:tail_start] + tail
+          path.write_text(text)
+
+          # artLoading.ts
+          path = Path('src/game/systems/artLoading.ts')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "  getRuntimePouchArt,\n  type PouchArtVariant,",
+              "  getRuntimePouchArt,\n  getRuntimePouchArtForLootPool,\n  type PouchArtVariant,",
+              'artLoading import',
+          )
+          tail_start = text.index('export const ensureLootPoolCollectibleArt =')
+          tail = """export const ensureLootPoolCollectibleArt = (
+            scene: Phaser.Scene,
+            registry: ContentRegistry,
+            lootPoolId: LootPoolId,
+          ): Promise<void> =>
+            ensureRuntimeImageArt(scene, getRuntimeCollectibleArtForLootPool(registry, lootPoolId), 'collectible art');
+
+          export const ensureLootPoolArt = (
+            scene: Phaser.Scene,
+            registry: ContentRegistry,
+            lootPoolId: LootPoolId,
+          ): Promise<void> =>
+            ensureRuntimeImageArt(
+              scene,
+              [
+                ...getRuntimeCollectibleArtForLootPool(registry, lootPoolId),
+                ...getRuntimePouchArtForLootPool(lootPoolId),
+              ],
+              'Drop art',
+            );
+
+          export const ensurePouchArt = (
+            scene: Phaser.Scene,
+            variant: PouchArtVariant,
+            lootPoolId: LootPoolId,
+          ): Promise<void> =>
+            ensureRuntimeImageArt(scene, getRuntimePouchArt(variant, lootPoolId), `${variant} pouch art`);
+          """.replace('          ', '')
+          text = text[:tail_start] + tail
+          path.write_text(text)
+
+          # openingVisuals.ts — only route existing layers through Drop-aware ids.
+          path = Path('src/game/ui/openingVisuals.ts')
+          text = path.read_text()
+          text = replace_once(text, '  _lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID,', '  lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID,', 'openingVisuals lootPool arg')
+          text = replace_once(text, "pouchStaticArtId(variant, 'body')", "pouchStaticArtId(variant, 'body', lootPoolId)", 'openingVisuals body')
+          text = replace_once(text, "pouchStaticArtId(variant, 'tear-strip')", "pouchStaticArtId(variant, 'tear-strip', lootPoolId)", 'openingVisuals strip')
+          text = replace_once(text, "pouchStaticArtId(variant, 'star-tab')", "pouchStaticArtId(variant, 'star-tab', lootPoolId)", 'openingVisuals star')
+          path.write_text(text)
+
+          # OpeningScene.ts — preload the active Drop's collectible + pouch art together.
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "import { ensureLootPoolCollectibleArt, ensurePouchArt } from '../systems/artLoading';",
+              "import { ensureLootPoolArt, ensurePouchArt } from '../systems/artLoading';",
+              'OpeningScene artLoading import',
+          )
+          text = replace_once(text, 'await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, targetLootPoolId);', 'await ensureLootPoolArt(this, GAME_REGISTRY, targetLootPoolId);', 'OpeningScene initial Drop preload')
+          text = replace_once(text, 'await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, target);', 'await ensureLootPoolArt(this, GAME_REGISTRY, target);', 'OpeningScene switch Drop preload')
+          text = replace_once(text, "await ensurePouchArt(this, 'charged');", "await ensurePouchArt(this, 'charged', targetLootPoolId);", 'OpeningScene recovered Charged preload')
+          text = replace_once(text, 'await ensurePouchArt(this, pouchType);', 'await ensurePouchArt(this, pouchType, this.getDisplayedLootPoolId());', 'OpeningScene variant preload')
+          path.write_text(text)
+
+          # runtime-assets.test.ts
+          path = Path('tests/runtime-assets.test.ts')
+          text = path.read_text()
+          if not text.startswith("import { existsSync } from 'node:fs';"):
+              text = "import { existsSync } from 'node:fs';\n\n" + text
+          text = replace_once(
+              text,
+              '  getRuntimePouchArt,\n  getRuntimeStaticArt,',
+              '  getRuntimePouchArt,\n  getRuntimePouchArtForLootPool,\n  getRuntimeStaticArt,',
+              'runtime asset test import',
+          )
+          insert_at = text.index("  it('maps reviewed pouch/background layers without scene-specific file knowledge'")
+          tests = """  it('maps authored Basic and Charged pouch layers for every themed Drop', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+            expect(getRuntimePouchArtForLootPool('y2k-essentials').map(({ id }) => id)).toEqual([
+              'pouch-body',
+              'pouch-tear-strip',
+              'pouch-star-tab',
+              'charged-pouch-body',
+              'charged-pouch-tear-strip',
+              'charged-pouch-star-tab',
+            ]);
+
+            for (const lootPoolId of GAME_LOOT_POOL_IDS.filter((id) => id !== 'y2k-essentials')) {
+              expect(getRuntimePouchArtForLootPool(lootPoolId).map(({ id }) => id)).toEqual([
+                `${lootPoolId}-basic-pouch-body`,
+                `${lootPoolId}-basic-pouch-tear-strip`,
+                `${lootPoolId}-basic-pouch-star-tab`,
+                `${lootPoolId}-charged-pouch-body`,
+                `${lootPoolId}-charged-pouch-tear-strip`,
+                `${lootPoolId}-charged-pouch-star-tab`,
+              ]);
+            }
+
+            expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
+            expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe('analog-nights-charged-pouch-star-tab');
+          });
+
+          it('keeps every reviewed static-art path backed by a committed public asset', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+            for (const { id, assetPath } of getRuntimeStaticArt()) {
+              expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
+            }
+          });
+
+          """.replace('          ', '')
+          text = text[:insert_at] + tests + text[insert_at:]
+          path.write_text(text)
+
+          # Keep asset documentation in sync with the reviewed runtime state.
+          path = Path('docs/ASSET_MANIFEST.md')
+          text = path.read_text()
+          section2_start = text.index('# 2. Mystery Pouch — INTEGRATED')
+          section3_start = text.index('# 3. Environment art — INTEGRATED')
+          section2 = """# 2. Mystery Pouch — INTEGRATED
+
+          Y2K Essentials keeps the original authored Basic/Charged pouch set. Video Link, Pocket Office, Pocket Audio, Game Zone and Analog Nights each use their own authored Basic/Charged set.
+
+          Generic Y2K Essentials runtime mapping:
+
+          ```text
+          public/assets/package/pouch-body.webp
+          public/assets/package/pouch-tear-strip-compact.webp
+          public/assets/package/pouch-star-tab.webp
+          public/assets/package/charged-pouch-body.webp
+          public/assets/package/charged-pouch-tear-strip-compact.webp
+          public/assets/package/charged-pouch-star-tab.webp
+          ```
+
+          Themed Drop mapping:
+
+          ```text
+          public/assets/package/<drop>-basic-pouch-body.webp
+          public/assets/package/<drop>-basic-pouch-tear-strip-compact.webp
+          public/assets/package/<drop>-basic-pouch-star-tab.webp
+          public/assets/package/<drop>-charged-pouch-body.webp
+          public/assets/package/<drop>-charged-pouch-tear-strip-compact.webp
+          public/assets/package/<drop>-charged-pouch-star-tab.webp
+          ```
+
+          Accepted contract:
+
+          - body is transparent 1024×1024 WebP with the established authored alignment;
+          - star tab is transparent 1024×1024 padded WebP with the established tab alignment;
+          - runtime tear strip is compact transparent 984×235 WebP;
+          - Drop skins change authored material/theme only; tear geometry, drag travel, threshold and hit area remain unchanged;
+          - body, strip and star stay independent layers;
+          - runtime owns shadow/highlight/motion and contains no synthetic dark slit/mouth.
+
+          The temporary source PNG intake is removed after promotion; reviewed WebPs are the committed runtime artifacts.
+
+          ---
+
+          """.replace('          ', '')
+          text = text[:section2_start] + section2 + text[section3_start:]
+
+          section64_start = text.index('## 6.4 Charged pouch raster fallback')
+          section7_start = text.index('# 7. Corrected runtime UI / FX — CURRENT')
+          section64 = """## 6.4 Authored Drop-specific pouch rasters — INTEGRATED
+
+          The earlier runtime-only Charged treatment is superseded by reviewed authored Basic/Charged pouch sets per themed Drop while retaining the same interaction geometry.
+
+          Current policy:
+
+          - Y2K Essentials keeps the original authored Basic/Charged set;
+          - Video Link, Pocket Office, Pocket Audio, Game Zone and Analog Nights use their own authored Basic/Charged body, compact tear strip and star tab;
+          - Phaser continues to own glow/rings/sparks/selection feedback on top of the rasters;
+          - no Drop may introduce a different tear mechanic, hitbox, drag distance or pouch silhouette contract.
+
+          ---
+
+          """.replace('          ', '')
+          text = text[:section64_start] + section64 + text[section7_start:]
+          path.write_text(text)
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+
+      - name: Commit integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/artAssets.ts src/game/systems/artLoading.ts src/game/ui/openingVisuals.ts src/game/scenes/OpeningScene.ts tests/runtime-assets.test.ts docs/ASSET_MANIFEST.md
+          git commit -m 'Integrate authored Drop-specific pouch skins'
+          git push origin HEAD:content/authored-drop-pouch-skins-v2
