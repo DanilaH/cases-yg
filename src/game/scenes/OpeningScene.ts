@@ -2781,6 +2781,11 @@ export class OpeningScene extends Phaser.Scene {
     );
     targets.forEach((target, index) => {
       this.trackSecretPremiumTarget(target);
+      if (target instanceof Phaser.GameObjects.Image) {
+        target.setTint(SECRET_REVEAL_COLOR);
+        target.setTintFill();
+        target.setBlendMode(Phaser.BlendModes.NORMAL);
+      }
       target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);
       this.tweens.add({
         targets: target,
