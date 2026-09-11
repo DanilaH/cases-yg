@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 
+import { attachPouchPerspective, type PouchPerspectiveController } from './pouchPerspective';
+
 import { collectibleTextureKey, pouchStaticArtId, staticTextureKey, type PouchArtVariant } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import {
@@ -28,6 +30,7 @@ export interface PouchVisual {
   strip: Phaser.GameObjects.Container;
   tab: Phaser.GameObjects.Container;
   dragZone: Phaser.GameObjects.Zone;
+  perspective: PouchPerspectiveController | null;
   revealOcclusionUsed: boolean;
   tabStartX: number;
   tabEndX: number;
@@ -139,6 +142,11 @@ export const createPouchVisual = (
   );
   group.add(shadow);
 
+  // Only the authored pouch art is perspective-warped. The shadow and all input
+  // geometry stay in ordinary 2D space, so this effect cannot move the tear rail.
+  const perspectiveGroup = scene.add.container(0, 0);
+  group.add(perspectiveGroup);
+
   const bodyLayer = scene.add.container(0, 0);
   const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
   const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
@@ -185,7 +193,7 @@ export const createPouchVisual = (
     .setOrigin(0, 0.5)
     .setAlpha(0);
   bodyLayer.add([lowerLip, innerGlow]);
-  group.add(bodyLayer);
+  perspectiveGroup.add(bodyLayer);
 
   const strip = scene.add.container(0, 0);
 
@@ -226,8 +234,10 @@ export const createPouchVisual = (
     .setInteractive({ useHandCursor: true });
   tab.add(dragZone);
   strip.add(tab);
-  group.add(strip);
+  perspectiveGroup.add(strip);
   root.add(group);
+
+  const perspective = attachPouchPerspective(scene, perspectiveGroup);
 
   const visual: PouchVisual = {
     group,
@@ -236,6 +246,7 @@ export const createPouchVisual = (
     strip,
     tab,
     dragZone,
+    perspective,
     revealOcclusionUsed: false,
     tabStartX,
     tabEndX,
