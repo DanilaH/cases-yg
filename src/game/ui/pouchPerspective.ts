@@ -126,7 +126,9 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
 
   public setupUniforms(controller: Phaser.Filters.Controller): void {
     const perspective = controller as PouchPerspectiveController;
-    const [invH0, invH1, invH2] = buildInverseHomography(perspective.yaw, perspective.pitch);
+    // Horizontal mouse-follow felt mirrored in the planar projection. Keep the
+    // vertical response untouched and flip only X/yaw at the projection boundary.
+    const [invH0, invH1, invH2] = buildInverseHomography(-perspective.yaw, perspective.pitch);
     this.programManager.setUniform('invH0', invH0);
     this.programManager.setUniform('invH1', invH1);
     this.programManager.setUniform('invH2', invH2);
