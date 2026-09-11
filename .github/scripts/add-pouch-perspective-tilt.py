@@ -3,6 +3,12 @@ from pathlib import Path
 visuals_path = Path('src/game/ui/openingVisuals.ts')
 visuals = visuals_path.read_text()
 
+import_anchor = "import Phaser from 'phaser';\n\n"
+import_replacement = "import Phaser from 'phaser';\n\nimport { attachPouchPerspective, type PouchPerspectiveController } from './pouchPerspective';\n\n"
+if import_anchor not in visuals:
+    raise SystemExit('openingVisuals import anchor missing')
+visuals = visuals.replace(import_anchor, import_replacement, 1)
+
 old_interface = """export interface PouchVisual {
   group: Phaser.GameObjects.Container;
   body: Phaser.GameObjects.Rectangle;
@@ -22,7 +28,7 @@ new_interface = """export interface PouchVisual {
   strip: Phaser.GameObjects.Container;
   tab: Phaser.GameObjects.Container;
   dragZone: Phaser.GameObjects.Zone;
-  perspectiveLayers: Phaser.GameObjects.Plane[];
+  perspective: PouchPerspectiveController | null;
   revealOcclusionUsed: boolean;
   tabStartX: number;
   tabEndX: number;
@@ -32,85 +38,32 @@ if old_interface not in visuals:
     raise SystemExit('PouchVisual interface anchor missing')
 visuals = visuals.replace(old_interface, new_interface, 1)
 
-old_add_layer = """const addPouchLayer = (
-  scene: Phaser.Scene,
-  container: Phaser.GameObjects.Container,
-  textureKey: string,
-  presentation: PouchLayerPresentation,
-): Phaser.GameObjects.Image => {
-  const image = scene.add.image(presentation.x, presentation.y, textureKey).setOrigin(0.5);
-  image.setScale(presentation.displayWidth / Math.max(1, image.width));
-  container.add(image);
-  return image;
-};
-"""
-new_add_layer = """const addPouchLayer = (
-  scene: Phaser.Scene,
-  container: Phaser.GameObjects.Container,
-  textureKey: string,
-  presentation: PouchLayerPresentation,
-  perspectiveLayers: Phaser.GameObjects.Plane[],
-): Phaser.GameObjects.Image | Phaser.GameObjects.Plane => {
-  if (scene.game.renderer.type === Phaser.WEBGL) {
-    const frame = scene.textures.getFrame(textureKey);
-    const plane = scene.add.plane(presentation.x, presentation.y, textureKey, undefined, 1, 1, false);
-    plane.setViewHeight(frame.height);
-    plane.setScale(presentation.displayWidth / Math.max(1, frame.width));
-    plane.hideCCW = false;
-    perspectiveLayers.push(plane);
-    container.add(plane);
-    return plane;
-  }
+old_shadow_add = """  group.add(shadow);
 
-  const image = scene.add.image(presentation.x, presentation.y, textureKey).setOrigin(0.5);
-  image.setScale(presentation.displayWidth / Math.max(1, image.width));
-  container.add(image);
-  return image;
-};
+  const bodyLayer = scene.add.container(0, 0);
 """
-if old_add_layer not in visuals:
-    raise SystemExit('addPouchLayer anchor missing')
-visuals = visuals.replace(old_add_layer, new_add_layer, 1)
+new_shadow_add = """  group.add(shadow);
 
-old_group = """  const group = scene.add.container(x, y);
-  const shadow = scene.add.ellipse(
-"""
-new_group = """  const group = scene.add.container(x, y);
-  const perspectiveLayers: Phaser.GameObjects.Plane[] = [];
-  const shadow = scene.add.ellipse(
-"""
-if old_group not in visuals:
-    raise SystemExit('group anchor missing')
-visuals = visuals.replace(old_group, new_group, 1)
+  // Only the authored pouch art is perspective-warped. The shadow and all input
+  // geometry stay in ordinary 2D space, so this effect cannot move the tear rail.
+  const perspectiveGroup = scene.add.container(0, 0);
+  group.add(perspectiveGroup);
 
+  const bodyLayer = scene.add.container(0, 0);
+"""
+if old_shadow_add not in visuals:
+    raise SystemExit('shadow/body anchor missing')
+visuals = visuals.replace(old_shadow_add, new_shadow_add, 1)
+
+if "  group.add(bodyLayer);\n" not in visuals:
+    raise SystemExit('bodyLayer parent anchor missing')
+visuals = visuals.replace("  group.add(bodyLayer);\n", "  perspectiveGroup.add(bodyLayer);\n", 1)
+
+if "  group.add(strip);\n  root.add(group);\n" not in visuals:
+    raise SystemExit('strip/root anchor missing')
 visuals = visuals.replace(
-    "addPouchLayer(scene, bodyLayer, bodyTexture, bodyPresentation);",
-    "addPouchLayer(scene, bodyLayer, bodyTexture, bodyPresentation, perspectiveLayers);",
-    1,
-)
-
-old_strip = """  const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip', lootPoolId));
-  let stripImage: Phaser.GameObjects.Image | null = null;
-  if (scene.textures.exists(stripTexture)) {
-    stripImage = addPouchLayer(scene, strip, stripTexture, stripPresentation);
-  } else {
-    addProceduralStrip(scene, strip);
-  }
-"""
-new_strip = """  const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip', lootPoolId));
-  if (scene.textures.exists(stripTexture)) {
-    addPouchLayer(scene, strip, stripTexture, stripPresentation, perspectiveLayers);
-  } else {
-    addProceduralStrip(scene, strip);
-  }
-"""
-if old_strip not in visuals:
-    raise SystemExit('strip anchor missing')
-visuals = visuals.replace(old_strip, new_strip, 1)
-
-visuals = visuals.replace(
-    "addPouchLayer(scene, tab, tabTexture, tabPresentation);",
-    "addPouchLayer(scene, tab, tabTexture, tabPresentation, perspectiveLayers);",
+    "  group.add(strip);\n  root.add(group);\n",
+    "  perspectiveGroup.add(strip);\n  root.add(group);\n\n  const perspective = attachPouchPerspective(scene, perspectiveGroup);\n",
     1,
 )
 
@@ -122,7 +75,7 @@ old_visual = """    strip,
 new_visual = """    strip,
     tab,
     dragZone,
-    perspectiveLayers,
+    perspective,
     revealOcclusionUsed: false,
 """
 if old_visual not in visuals:
@@ -139,8 +92,8 @@ const POUCH_POINTER_TILT_MAX_DEG = 2.2;
 const POUCH_POINTER_TILT_RESPONSE_MS = 85;
 """
 new_constants = """const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;
-const POUCH_POINTER_PERSPECTIVE_YAW_MAX_DEG = 8;
-const POUCH_POINTER_PERSPECTIVE_PITCH_MAX_DEG = 4;
+const POUCH_POINTER_PERSPECTIVE_YAW_MAX = 1;
+const POUCH_POINTER_PERSPECTIVE_PITCH_MAX = 0.65;
 const POUCH_POINTER_PERSPECTIVE_RESPONSE_MS = 105;
 """
 if old_constants not in scene:
@@ -178,15 +131,16 @@ new_update = """  public update(_time: number, delta: number): void {
     const pouch = this.pouch;
     if (!pouch?.group.active) return;
 
-    // Perspective is applied to the authored raster layers themselves instead of
-    // rotating the whole pouch container. This keeps the tear hitbox and drag rail
-    // in stable 2D coordinates while the foil art appears to turn toward the mouse.
+    // PR #123 used ordinary 2D rotation. Keep the pouch itself unrotated now and
+    // drive a projective shader on the art container instead.
     pouch.group.angle = 0;
+
+    const perspective = pouch.perspective;
+    if (!perspective) return;
 
     const pointer = this.input.activePointer;
     const pointerType = (pointer.event as PointerEvent | undefined)?.pointerType;
     const canTilt =
-      pouch.perspectiveLayers.length > 0 &&
       this.phase === 'idle' &&
       !this.dropSwitchInFlight &&
       !this.pouchArtLoadInFlight &&
@@ -202,17 +156,15 @@ new_update = """  public update(_time: number, delta: number): void {
       const halfHeight = Math.max(1, this.scale.height * 0.5);
       const normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
       const normalizedY = Phaser.Math.Clamp((pointer.y - halfHeight) / halfHeight, -1, 1);
-      targetYaw = normalizedX * POUCH_POINTER_PERSPECTIVE_YAW_MAX_DEG;
-      targetPitch = -normalizedY * POUCH_POINTER_PERSPECTIVE_PITCH_MAX_DEG;
+      targetYaw = normalizedX * POUCH_POINTER_PERSPECTIVE_YAW_MAX;
+      targetPitch = -normalizedY * POUCH_POINTER_PERSPECTIVE_PITCH_MAX;
     }
 
     const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_PERSPECTIVE_RESPONSE_MS);
-    for (const layer of pouch.perspectiveLayers) {
-      layer.rotateY = Phaser.Math.Linear(layer.rotateY, targetYaw, response);
-      layer.rotateX = Phaser.Math.Linear(layer.rotateX, targetPitch, response);
-      if (Math.abs(layer.rotateY - targetYaw) < 0.01) layer.rotateY = targetYaw;
-      if (Math.abs(layer.rotateX - targetPitch) < 0.01) layer.rotateX = targetPitch;
-    }
+    perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
+    perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
+    if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
+    if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
   }
 """
 if old_update not in scene:
