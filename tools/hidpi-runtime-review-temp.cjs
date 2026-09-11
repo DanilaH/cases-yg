@@ -18,6 +18,15 @@ const waitForAnalytics = async (events, name, timeoutMs = 2500) => {
   throw new Error(`Timed out waiting for analytics event: ${name}\nSeen:\n${events.join('\n')}`);
 };
 
+const waitForPlayableReload = async (page, analytics) => {
+  analytics.length = 0;
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#game canvas');
+  await waitForAnalytics(analytics, 'platform_ready', 4000);
+  await page.waitForTimeout(120);
+  analytics.length = 0;
+};
+
 const run = async () => {
   const browser = await chromium.launch({
     executablePath: chromePath,
@@ -96,11 +105,8 @@ const run = async () => {
         save.pendingReveal = null;
         window.localStorage.setItem(key, JSON.stringify(save));
       });
-      await page.reload({ waitUntil: 'networkidle' });
-      await page.waitForSelector('#game canvas');
-      await page.waitForTimeout(300);
+      await waitForPlayableReload(page, analytics);
 
-      analytics.length = 0;
       await page.mouse.click(160, 309);
       await waitForAnalytics(analytics, 'pouch_selected');
       await page.waitForTimeout(220);
@@ -121,11 +127,8 @@ const run = async () => {
         save.totalOpens = Math.max(1, Number(save.totalOpens) || 0);
         window.localStorage.setItem(key, JSON.stringify(save));
       });
-      await page.reload({ waitUntil: 'networkidle' });
-      await page.waitForSelector('#game canvas');
-      await page.waitForTimeout(300);
+      await waitForPlayableReload(page, analytics);
 
-      analytics.length = 0;
       await page.mouse.click(1170, 668);
       await waitForAnalytics(analytics, 'collection_open');
       await page.waitForTimeout(300);
