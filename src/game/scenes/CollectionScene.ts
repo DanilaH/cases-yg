@@ -13,6 +13,8 @@ import {
   type CollectionSnapshot,
 } from '../systems/collection';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import { getRenderPixelRatio } from '../systems/renderDensity';
+import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { persistMutedPreference } from '../systems/settings';
 import { createCollectibleVisual, RARITY_REVEAL_COLORS, SECRET_REVEAL_COLOR } from '../ui/openingVisuals';
@@ -38,6 +40,7 @@ export class CollectionScene extends Phaser.Scene {
   }
 
   public create(): void {
+    installSceneTextSharpness(this);
     const platform = getPlatformRuntime();
     this.dropBrowseInFlight = false;
     platform.activity.setGameplayDesired(false);
@@ -79,7 +82,7 @@ export class CollectionScene extends Phaser.Scene {
 
   private createRoot(): Phaser.GameObjects.Container {
     this.root?.destroy(true);
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(getRenderPixelRatio()));
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     this.root = root;

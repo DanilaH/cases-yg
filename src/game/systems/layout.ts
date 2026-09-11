@@ -1,3 +1,5 @@
+import { resolveRenderPixelRatio } from './renderDensity';
+
 export type LayoutMode = 'compact' | 'standard' | 'wide';
 
 export interface SafeAreaInsets {
@@ -31,14 +33,15 @@ const readCssPixels = (styles: CSSStyleDeclaration, name: string): number => {
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 };
 
-export const readSafeAreaInsets = (): SafeAreaInsets => {
+export const readSafeAreaInsets = (pixelRatio = 1): SafeAreaInsets => {
   if (typeof document === 'undefined') return ZERO_INSETS;
   const styles = window.getComputedStyle(document.documentElement);
+  const ratio = resolveRenderPixelRatio(pixelRatio);
   return {
-    left: readCssPixels(styles, '--safe-area-left'),
-    right: readCssPixels(styles, '--safe-area-right'),
-    top: readCssPixels(styles, '--safe-area-top'),
-    bottom: readCssPixels(styles, '--safe-area-bottom'),
+    left: readCssPixels(styles, '--safe-area-left') * ratio,
+    right: readCssPixels(styles, '--safe-area-right') * ratio,
+    top: readCssPixels(styles, '--safe-area-top') * ratio,
+    bottom: readCssPixels(styles, '--safe-area-bottom') * ratio,
   };
 };
 

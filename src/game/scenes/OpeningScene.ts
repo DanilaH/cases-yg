@@ -27,6 +27,8 @@ import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import { getRenderPixelRatio } from '../systems/renderDensity';
+import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { computeRewardTrayPlacement } from '../systems/rewardLayout';
 import { createRewardBankingPlan, type RewardBankingOwner } from '../systems/rewardBanking';
 import {
@@ -164,6 +166,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   public create(): void {
+    installSceneTextSharpness(this);
     // Phaser reuses the Scene instance after Collection -> Opening. Shutdown is
     // terminal only for the previous activation, so reset activation state here.
     this.phase = 'booting';
@@ -364,7 +367,7 @@ export class OpeningScene extends Phaser.Scene {
     this.rewardTrayContainer = null;
     this.collectionMilestoneTarget = null;
     this.tearHint = null;
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets());
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(getRenderPixelRatio()));
     this.metrics = metrics;
     this.ensureEnvironment(metrics);
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);

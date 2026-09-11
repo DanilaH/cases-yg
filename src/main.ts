@@ -9,12 +9,22 @@ import { CollectionScene } from './game/scenes/CollectionScene';
 import { BootScene } from './game/scenes/BootScene';
 import { OpeningScene } from './game/scenes/OpeningScene';
 import { getGameAudio } from './game/systems/audio';
+import { getBackingStoreSize } from './game/systems/renderDensity';
 import { loadSettingsSafe } from './game/systems/settings';
 import { getMessages } from './i18n';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
+
+const readGameCssSize = (): { width: number; height: number } => {
+  const host = document.querySelector<HTMLElement>('#game');
+  const bounds = host?.getBoundingClientRect();
+  return {
+    width: Math.max(1, bounds?.width || window.innerWidth || 1),
+    height: Math.max(1, bounds?.height || window.innerHeight || 1),
+  };
+};
 
 const preloadAccentFont = async (): Promise<void> => {
   if (!('fonts' in document)) return;
@@ -60,18 +70,38 @@ const boot = async (): Promise<void> => {
   // buffered and applied before the game gets a chance to run normally.
   const removeBlockedListener = platform.activity.onBlockedChange(applyBlockedState);
 
+  const initialCssSize = readGameCssSize();
+  const initialBackingSize = getBackingStoreSize(initialCssSize.width, initialCssSize.height);
   game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
+    width: initialBackingSize.width,
+    height: initialBackingSize.height,
     backgroundColor: '#171421',
     scene: [BootScene, OpeningScene, CollectionScene],
+    render: {
+      antialias: true,
+      antialiasGL: true,
+      pixelArt: false,
+      roundPixels: false,
+    },
+    // Phaser RESIZE uses CSS pixels for the backing store. Keep CSS sizing in
+    // the page and drive a denser backing canvas ourselves for HiDPI UI.
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.NO_CENTER,
     },
   });
   game.sound.mute = blocked;
   if (blocked) game.loop.sleep();
+
+  const syncBackingStore = (): void => {
+    if (!game) return;
+    const cssSize = readGameCssSize();
+    const backingSize = getBackingStoreSize(cssSize.width, cssSize.height);
+    if (game.scale.width === backingSize.width && game.scale.height === backingSize.height) return;
+    game.scale.resize(backingSize.width, backingSize.height);
+  };
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
   if (gate) gate.textContent = messages.rotateDevice;
@@ -82,15 +112,27 @@ const boot = async (): Promise<void> => {
   };
   const preventContextMenu = (event: Event): void => event.preventDefault();
 
+  const handleViewportChange = (): void => {
+    syncBackingStore();
+    updateOrientationGate();
+  };
+  const resizeObserver = typeof ResizeObserver === 'undefined'
+    ? null
+    : new ResizeObserver(() => syncBackingStore());
+  const gameHost = document.querySelector<HTMLElement>('#game');
+  if (gameHost) resizeObserver?.observe(gameHost);
+
   updateOrientationGate();
-  window.addEventListener('resize', updateOrientationGate);
+  syncBackingStore();
+  window.addEventListener('resize', handleViewportChange);
   document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);
 
   window.addEventListener(
     'beforeunload',
     () => {
       if (blocked) game?.loop.wake();
-      window.removeEventListener('resize', updateOrientationGate);
+      window.removeEventListener('resize', handleViewportChange);
+      resizeObserver?.disconnect();
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();
       removeDebugPanel();
