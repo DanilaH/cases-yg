@@ -1853,6 +1853,11 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     this.selectedPouchType = pouchType;
+    getPlatformRuntime().analytics.track('pouch_selected', {
+      pouchType,
+      lootPoolId: this.getDisplayedLootPoolId(),
+      chips: this.saveState.chips,
+    });
     getGameAudio().play('pouch-select');
     if (sourceCard?.active) {
       this.tweens.killTweensOf(sourceCard);
@@ -2259,6 +2264,11 @@ export class OpeningScene extends Phaser.Scene {
       const pending = await this.session.prepareReveal(this.selectedPouchType);
       if (this.isSceneShutdown()) return;
       this.lastReveal = pending;
+      getPlatformRuntime().analytics.track('opening_started', {
+        openingNumber: pending.openingNumber,
+        lootPoolId: pending.lootPoolId,
+        pouchType: pending.pouchType,
+      });
       if (firstInteraction && pending.openingNumber === 1) {
         this.firstInteractionTracked = true;
         getPlatformRuntime().analytics.track('first_package_interaction');
@@ -4841,6 +4851,15 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().play('ui-click');
     this.resultCarouselDrag = null;
     const pending = this.lastReveal;
+    getPlatformRuntime().analytics.track('result_collected', {
+      openingNumber: pending.openingNumber,
+      lootPoolId: pending.lootPoolId,
+      pouchType: pending.pouchType,
+      rarity: pending.standard.rarity,
+      isNew: pending.standard.isNew,
+      hiddenPocket: pending.hiddenPocket !== null,
+      startPage: pending.hiddenPocket && this.resultCarouselIndex === 1 ? 'secret' : 'standard',
+    });
     void this.animateRewardBanking(pending).catch((error: unknown) => {
       console.error('[opening] reward banking presentation failed', error);
       getGameAudio().clearResultAmbience();
