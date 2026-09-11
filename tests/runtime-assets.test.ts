@@ -9,6 +9,7 @@ import {
   getRuntimeBootStaticArt,
   getRuntimeCollectibleArtForLootPool,
   getRuntimePouchArt,
+  getRuntimePouchArtForLootPool,
   getRuntimeStaticArt,
   pouchStaticArtId,
   staticTextureKey,
@@ -101,6 +102,35 @@ describe('runtime asset manifests', () => {
     ]);
     expect(pouchStaticArtId('basic', 'body')).toBe('pouch-body');
     expect(pouchStaticArtId('charged', 'body')).toBe('charged-pouch-body');
+  });
+
+  it('maps reviewed authored pouch layers per Drop and keeps generic fallback', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+    expect(pouchStaticArtId('basic', 'body', 'video-link')).toBe('video-link-basic-pouch-body');
+    expect(pouchStaticArtId('charged', 'star-tab', 'pocket-office')).toBe(
+      'pocket-office-charged-pouch-star-tab',
+    );
+    expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('pouch-body');
+
+    expect(getRuntimePouchArtForLootPool('video-link')).toHaveLength(6);
+    expect(getRuntimePouchArt('charged', 'video-link')).toEqual([
+      {
+        id: 'video-link-charged-pouch-body',
+        textureKey: staticTextureKey('video-link-charged-pouch-body'),
+        assetPath: 'assets/package/video-link-charged-pouch-body.webp',
+      },
+      {
+        id: 'video-link-charged-pouch-tear-strip',
+        textureKey: staticTextureKey('video-link-charged-pouch-tear-strip'),
+        assetPath: 'assets/package/video-link-charged-pouch-tear-strip-compact.webp',
+      },
+      {
+        id: 'video-link-charged-pouch-star-tab',
+        textureKey: staticTextureKey('video-link-charged-pouch-star-tab'),
+        assetPath: 'assets/package/video-link-charged-pouch-star-tab.webp',
+      },
+    ]);
   });
 
   it('maps reviewed pouch/background layers without scene-specific file knowledge', () => {
