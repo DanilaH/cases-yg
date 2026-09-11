@@ -126,7 +126,7 @@ export const createPouchVisual = (
   x: number,
   y: number,
   variant: PouchArtVariant = 'basic',
-  _lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID,
+  lootPoolId: GameLootPoolId = DEFAULT_LOOT_POOL_ID,
 ): PouchVisual => {
   const group = scene.add.container(x, y);
   const shadow = scene.add.ellipse(
@@ -161,7 +161,7 @@ export const createPouchVisual = (
     displayWidth: POUCH_PRESENTATION.tab.displayWidth + variantPresentation.tabWidthOffset,
   };
 
-  const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body'));
+  const bodyTexture = staticTextureKey(pouchStaticArtId(variant, 'body', lootPoolId));
   if (scene.textures.exists(bodyTexture)) {
     bodyLayer.add(body);
     addPouchLayer(scene, bodyLayer, bodyTexture, bodyPresentation);
@@ -189,7 +189,7 @@ export const createPouchVisual = (
 
   const strip = scene.add.container(0, 0);
 
-  const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip'));
+  const stripTexture = staticTextureKey(pouchStaticArtId(variant, 'tear-strip', lootPoolId));
   let stripImage: Phaser.GameObjects.Image | null = null;
   if (scene.textures.exists(stripTexture)) {
     stripImage = addPouchLayer(scene, strip, stripTexture, stripPresentation);
@@ -200,7 +200,7 @@ export const createPouchVisual = (
   const tabStartX = 0;
   const tabEndX = POUCH_PRESENTATION.tabTravel;
   const tab = scene.add.container(tabStartX, 0);
-  const tabTexture = staticTextureKey(pouchStaticArtId(variant, 'star-tab'));
+  const tabTexture = staticTextureKey(pouchStaticArtId(variant, 'star-tab', lootPoolId));
   if (scene.textures.exists(tabTexture)) {
     addPouchLayer(scene, tab, tabTexture, tabPresentation);
   } else {
