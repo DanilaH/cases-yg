@@ -130,7 +130,9 @@ describe('runtime asset manifests', () => {
   }
 
   expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
-  expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe('analog-nights-charged-pouch-star-tab');
+  expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe(
+    'analog-nights-charged-pouch-star-tab',
+  );
 });
 
 it('keeps every reviewed static-art path backed by a committed public asset', () => {

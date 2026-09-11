@@ -230,7 +230,7 @@ export class OpeningScene extends Phaser.Scene {
     try {
       await ensureLootPoolArt(this, GAME_REGISTRY, targetLootPoolId);
     } catch (error: unknown) {
-      console.warn('[art] active Drop collectible art failed to load; using fallbacks', error);
+      console.warn('[art] active Drop art failed to load; using fallbacks', error);
     }
 
     if (this.isSceneShutdown()) return;
@@ -1628,7 +1628,7 @@ export class OpeningScene extends Phaser.Scene {
         try {
           await ensureLootPoolArt(this, GAME_REGISTRY, target);
         } catch (error: unknown) {
-          console.warn('[art] target Drop collectible art failed to load; using fallbacks', error);
+          console.warn('[art] target Drop art failed to load; using fallbacks', error);
         }
         if (this.isSceneShutdown() || this.phase !== 'idle') return;
 

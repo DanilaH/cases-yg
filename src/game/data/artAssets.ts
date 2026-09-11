@@ -167,6 +167,7 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
   'crt-tv-legendary',
   'crt-tv-secret-communicator',
 ]);
+
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
   'pouch-tear-strip',
