@@ -1,0 +1,56 @@
+name: Debug pouch source classification
+
+on:
+  push:
+    branches:
+      - debug/pouch-source-classify
+    paths:
+      - .github/workflows/debug-pouch-source-classify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: debug/pouch-source-classify
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Print source geometry and alpha stats
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs/promises';
+          import path from 'node:path';
+          import sharp from 'sharp';
+
+          const dir = 'biba';
+          const names = (await fs.readdir(dir)).filter((name) => name.endsWith('.png')).sort();
+          for (const name of names) {
+            const input = path.join(dir, name);
+            const meta = await sharp(input).metadata();
+            const stats = await sharp(input).stats();
+            const { info } = await sharp(input)
+              .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 8 })
+              .png()
+              .toBuffer({ resolveWithObject: true });
+            const alpha = stats.channels[3];
+            const rgb = stats.channels.slice(0, 3).map((c) => Math.round(c.mean));
+            console.log(JSON.stringify({
+              name,
+              source: `${meta.width}x${meta.height}`,
+              trimmed: `${info.width}x${info.height}`,
+              trimAspect: Number((info.width / info.height).toFixed(3)),
+              alphaMin: alpha?.min,
+              alphaMax: alpha?.max,
+              alphaMean: alpha ? Number(alpha.mean.toFixed(2)) : null,
+              rgbMean: rgb,
+            }));
+          }
+          NODE
