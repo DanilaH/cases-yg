@@ -160,8 +160,8 @@ export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
   family('flip-phone', DEFAULT_LOOT_POOL_ID, { en: 'Flip Phone', ru: 'Раскладушка' }, 'flip-phone-secret-noir'),
   family('mini-camcorder', 'video-link', { en: 'Mini Camcorder', ru: 'Мини-камкордер' }, 'mini-camcorder-secret-prototype'),
   family('webcam', 'video-link', { en: 'Webcam', ru: 'Веб-камера' }, 'webcam-secret-stereo'),
-  family('pda', 'pocket-office', { en: 'PDA / Pocket Organizer', ru: 'КПК / Карманный органайзер' }, 'pda-secret-flip'),
-  family('pager', 'pocket-office', { en: 'Pager / Pocket Communicator', ru: 'Пейджер / Карманный коммуникатор' }, 'pager-secret-flip'),
+  family('pda', 'pocket-office', { en: 'PDA / Pocket Organizer', ru: 'КПК' }, 'pda-secret-flip'),
+  family('pager', 'pocket-office', { en: 'Pager / Pocket Communicator', ru: 'Пейджер' }, 'pager-secret-flip'),
   family('mp3-player', 'pocket-audio', { en: 'MP3 Player', ru: 'MP3-плеер' }, 'mp3-player-secret-pearl'),
   family('portable-disc-player', 'pocket-audio', { en: 'Portable Disc Player', ru: 'Портативный дисковый плеер' }, 'portable-disc-player-secret-remote'),
   family('handheld-console', 'game-zone', { en: 'Handheld Console', ru: 'Портативная консоль' }, 'handheld-console-secret-phone'),
@@ -171,4 +171,3 @@ export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
 ] as const;
 
 export const GAME_REGISTRY = createContentRegistry(GAME_FAMILIES);
-
