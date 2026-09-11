@@ -1,4 +1,5 @@
-import type { ContentRegistry, LootPoolId } from './collectibles';
+import type { ContentRegistry, GameLootPoolId, LootPoolId } from './collectibles';
+import { DEFAULT_LOOT_POOL_ID } from './collectibles';
 
 const COLLECTIBLE_TEXTURE_PREFIX = 'art:collectible:';
 const STATIC_TEXTURE_PREFIX = 'art:static:';
@@ -10,6 +11,18 @@ export type StaticArtId =
   | 'charged-pouch-body'
   | 'charged-pouch-tear-strip'
   | 'charged-pouch-star-tab'
+  | 'video-link-basic-pouch-body'
+  | 'video-link-basic-pouch-tear-strip'
+  | 'video-link-basic-pouch-star-tab'
+  | 'video-link-charged-pouch-body'
+  | 'video-link-charged-pouch-tear-strip'
+  | 'video-link-charged-pouch-star-tab'
+  | 'pocket-office-basic-pouch-body'
+  | 'pocket-office-basic-pouch-tear-strip'
+  | 'pocket-office-basic-pouch-star-tab'
+  | 'pocket-office-charged-pouch-body'
+  | 'pocket-office-charged-pouch-tear-strip'
+  | 'pocket-office-charged-pouch-star-tab'
   | 'opening-bg'
   | 'collection-bg'
   | 'collection-foreground';
@@ -33,6 +46,18 @@ const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'charged-pouch-body': 'assets/package/charged-pouch-body.webp',
   'charged-pouch-tear-strip': 'assets/package/charged-pouch-tear-strip-compact.webp',
   'charged-pouch-star-tab': 'assets/package/charged-pouch-star-tab.webp',
+  'video-link-basic-pouch-body': 'assets/package/video-link-basic-pouch-body.webp',
+  'video-link-basic-pouch-tear-strip': 'assets/package/video-link-basic-pouch-tear-strip-compact.webp',
+  'video-link-basic-pouch-star-tab': 'assets/package/video-link-basic-pouch-star-tab.webp',
+  'video-link-charged-pouch-body': 'assets/package/video-link-charged-pouch-body.webp',
+  'video-link-charged-pouch-tear-strip': 'assets/package/video-link-charged-pouch-tear-strip-compact.webp',
+  'video-link-charged-pouch-star-tab': 'assets/package/video-link-charged-pouch-star-tab.webp',
+  'pocket-office-basic-pouch-body': 'assets/package/pocket-office-basic-pouch-body.webp',
+  'pocket-office-basic-pouch-tear-strip': 'assets/package/pocket-office-basic-pouch-tear-strip-compact.webp',
+  'pocket-office-basic-pouch-star-tab': 'assets/package/pocket-office-basic-pouch-star-tab.webp',
+  'pocket-office-charged-pouch-body': 'assets/package/pocket-office-charged-pouch-body.webp',
+  'pocket-office-charged-pouch-tear-strip': 'assets/package/pocket-office-charged-pouch-tear-strip-compact.webp',
+  'pocket-office-charged-pouch-star-tab': 'assets/package/pocket-office-charged-pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
   'collection-bg': 'assets/backgrounds/collection-bg.webp',
   'collection-foreground': 'assets/backgrounds/collection-foreground.webp',
@@ -106,6 +131,7 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
   'crt-tv-legendary',
   'crt-tv-secret-communicator',
 ]);
+
 export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'pouch-body',
   'pouch-tear-strip',
@@ -113,6 +139,18 @@ export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
   'charged-pouch-body',
   'charged-pouch-tear-strip',
   'charged-pouch-star-tab',
+  'video-link-basic-pouch-body',
+  'video-link-basic-pouch-tear-strip',
+  'video-link-basic-pouch-star-tab',
+  'video-link-charged-pouch-body',
+  'video-link-charged-pouch-tear-strip',
+  'video-link-charged-pouch-star-tab',
+  'pocket-office-basic-pouch-body',
+  'pocket-office-basic-pouch-tear-strip',
+  'pocket-office-basic-pouch-star-tab',
+  'pocket-office-charged-pouch-body',
+  'pocket-office-charged-pouch-tear-strip',
+  'pocket-office-charged-pouch-star-tab',
   'opening-bg',
   'collection-bg',
   'collection-foreground',
@@ -126,7 +164,10 @@ export const staticTextureKey = (id: StaticArtId): string => `${STATIC_TEXTURE_P
 export type PouchArtVariant = 'basic' | 'charged';
 export type PouchArtLayer = 'body' | 'tear-strip' | 'star-tab';
 
-const POUCH_STATIC_ART_IDS: Readonly<Record<PouchArtVariant, Readonly<Record<PouchArtLayer, StaticArtId>>>> = {
+type PouchLayerIds = Readonly<Record<PouchArtLayer, StaticArtId>>;
+type PouchVariantIds = Readonly<Record<PouchArtVariant, PouchLayerIds>>;
+
+const POUCH_STATIC_ART_IDS: PouchVariantIds = {
   basic: {
     body: 'pouch-body',
     'tear-strip': 'pouch-tear-strip',
@@ -136,6 +177,33 @@ const POUCH_STATIC_ART_IDS: Readonly<Record<PouchArtVariant, Readonly<Record<Pou
     body: 'charged-pouch-body',
     'tear-strip': 'charged-pouch-tear-strip',
     'star-tab': 'charged-pouch-star-tab',
+  },
+};
+
+const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVariantIds>>> = {
+  'video-link': {
+    basic: {
+      body: 'video-link-basic-pouch-body',
+      'tear-strip': 'video-link-basic-pouch-tear-strip',
+      'star-tab': 'video-link-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'video-link-charged-pouch-body',
+      'tear-strip': 'video-link-charged-pouch-tear-strip',
+      'star-tab': 'video-link-charged-pouch-star-tab',
+    },
+  },
+  'pocket-office': {
+    basic: {
+      body: 'pocket-office-basic-pouch-body',
+      'tear-strip': 'pocket-office-basic-pouch-tear-strip',
+      'star-tab': 'pocket-office-basic-pouch-star-tab',
+    },
+    charged: {
+      body: 'pocket-office-charged-pouch-body',
+      'tear-strip': 'pocket-office-charged-pouch-tear-strip',
+      'star-tab': 'pocket-office-charged-pouch-star-tab',
+    },
   },
 };
 
@@ -151,8 +219,14 @@ const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = [
   'collection-foreground',
 ];
 
-export const pouchStaticArtId = (variant: PouchArtVariant, layer: PouchArtLayer): StaticArtId =>
-  POUCH_STATIC_ART_IDS[variant][layer];
+const dropPouchIds = (lootPoolId: LootPoolId): PouchVariantIds =>
+  DROP_POUCH_STATIC_ART_IDS[lootPoolId as GameLootPoolId] ?? POUCH_STATIC_ART_IDS;
+
+export const pouchStaticArtId = (
+  variant: PouchArtVariant,
+  layer: PouchArtLayer,
+  lootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
+): StaticArtId => dropPouchIds(lootPoolId)[variant][layer];
 
 const toRuntimeCollectibleArt = (
   registry: ContentRegistry,
@@ -198,5 +272,15 @@ export const getRuntimeStaticArt = (): readonly RuntimeStaticArt[] =>
 export const getRuntimeBootStaticArt = (): readonly RuntimeStaticArt[] =>
   toRuntimeStaticArt(BOOT_STATIC_ART_IDS);
 
-export const getRuntimePouchArt = (variant: PouchArtVariant): readonly RuntimeStaticArt[] =>
-  toRuntimeStaticArt(Object.values(POUCH_STATIC_ART_IDS[variant]));
+export const getRuntimePouchArt = (
+  variant: PouchArtVariant,
+  lootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
+): readonly RuntimeStaticArt[] =>
+  toRuntimeStaticArt(Object.values(dropPouchIds(lootPoolId)[variant]));
+
+export const getRuntimePouchArtForLootPool = (
+  lootPoolId: LootPoolId,
+): readonly RuntimeStaticArt[] => [
+  ...getRuntimePouchArt('basic', lootPoolId),
+  ...getRuntimePouchArt('charged', lootPoolId),
+];
