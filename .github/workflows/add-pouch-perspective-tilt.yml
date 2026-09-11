@@ -1,0 +1,42 @@
+name: Add pouch perspective tilt
+
+on:
+  push:
+    branches:
+      - feature/pouch-perspective-tilt
+    paths:
+      - .github/workflows/add-pouch-perspective-tilt.yml
+      - .github/scripts/add-pouch-perspective-tilt.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/pouch-perspective-tilt
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: python3 .github/scripts/add-pouch-perspective-tilt.py
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run build
+      - name: Commit perspective feature and remove temporary patch files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/add-pouch-perspective-tilt.yml .github/scripts/add-pouch-perspective-tilt.py
+          git add src/game/scenes/OpeningScene.ts src/game/ui/openingVisuals.ts
+          git commit -m 'Replace pouch rotation with perspective tilt'
+          git push origin HEAD:feature/pouch-perspective-tilt
