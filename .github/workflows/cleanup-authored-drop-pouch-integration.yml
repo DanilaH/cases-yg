@@ -1,0 +1,165 @@
+name: Clean authored Drop pouch integration
+
+on:
+  push:
+    branches:
+      - content/authored-drop-pouch-skins-v2
+    paths:
+      - .github/workflows/cleanup-authored-drop-pouch-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: content/authored-drop-pouch-skins-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - run: npm ci
+
+      - name: Clean integration source formatting and labels
+        shell: python
+        run: |
+          from pathlib import Path
+
+          # Keep manifest declarations visually separated.
+          path = Path('src/game/data/artAssets.ts')
+          text = path.read_text()
+          marker = "]);\nexport const AVAILABLE_STATIC_ART_IDS"
+          if text.count(marker) != 1:
+              raise SystemExit(f'artAssets spacing marker count: {text.count(marker)}')
+          path.write_text(text.replace(marker, "]);\n\nexport const AVAILABLE_STATIC_ART_IDS", 1))
+
+          # The loader now handles the whole Drop, not only collectibles.
+          path = Path('src/game/scenes/OpeningScene.ts')
+          text = path.read_text()
+          replacements = {
+              "[art] active Drop collectible art failed to load; using fallbacks": "[art] active Drop art failed to load; using fallbacks",
+              "[art] target Drop collectible art failed to load; using fallbacks": "[art] target Drop art failed to load; using fallbacks",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'OpeningScene label marker count for {old}: {text.count(old)}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+
+          # Normalize the two new test blocks to the repository's existing indentation.
+          path = Path('tests/runtime-assets.test.ts')
+          text = path.read_text()
+          start = text.index("  it('maps authored Basic and Charged pouch layers for every themed Drop'")
+          end = text.index("  it('maps reviewed pouch/background layers without scene-specific file knowledge'", start)
+          block = """  it('maps authored Basic and Charged pouch layers for every themed Drop', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+            expect(getRuntimePouchArtForLootPool('y2k-essentials').map(({ id }) => id)).toEqual([
+              'pouch-body',
+              'pouch-tear-strip',
+              'pouch-star-tab',
+              'charged-pouch-body',
+              'charged-pouch-tear-strip',
+              'charged-pouch-star-tab',
+            ]);
+
+            for (const lootPoolId of GAME_LOOT_POOL_IDS.filter((id) => id !== 'y2k-essentials')) {
+              expect(getRuntimePouchArtForLootPool(lootPoolId).map(({ id }) => id)).toEqual([
+                `${lootPoolId}-basic-pouch-body`,
+                `${lootPoolId}-basic-pouch-tear-strip`,
+                `${lootPoolId}-basic-pouch-star-tab`,
+                `${lootPoolId}-charged-pouch-body`,
+                `${lootPoolId}-charged-pouch-tear-strip`,
+                `${lootPoolId}-charged-pouch-star-tab`,
+              ]);
+            }
+
+            expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
+            expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe(
+              'analog-nights-charged-pouch-star-tab',
+            );
+          });
+
+          it('keeps every reviewed static-art path backed by a committed public asset', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+            for (const { id, assetPath } of getRuntimeStaticArt()) {
+              expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
+            }
+          });
+
+          """.replace('          ', '')
+          # The literal above intentionally removes the helper-source indentation;
+          # restore the exact repository indentation after dedent.
+          block_lines = block.splitlines()
+          formatted = []
+          in_test = False
+          for line in block_lines:
+              formatted.append(line)
+          block = '\n'.join(formatted) + '\n'
+          # Write explicit desired formatting instead of relying on an external formatter.
+          block = block.replace("\nreplaceSetContents", "\n    replaceSetContents")
+          block = block.replace("\nexpect(", "\n    expect(")
+          block = block.replace("\nfor (", "\n    for (")
+          block = block.replace("\n  expect(getRuntimePouchArtForLootPool", "\n      expect(getRuntimePouchArtForLootPool")
+          block = block.replace("\n  expect(pouchStaticArtId", "\n    expect(pouchStaticArtId")
+          block = block.replace("\n  'analog-nights", "\n      'analog-nights")
+          block = block.replace("\n);\n});", "\n    );\n  });")
+          # Simpler final canonical block, avoiding formatter dependency.
+          block = '''  it('maps authored Basic and Charged pouch layers for every themed Drop', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+            expect(getRuntimePouchArtForLootPool('y2k-essentials').map(({ id }) => id)).toEqual([
+              'pouch-body',
+              'pouch-tear-strip',
+              'pouch-star-tab',
+              'charged-pouch-body',
+              'charged-pouch-tear-strip',
+              'charged-pouch-star-tab',
+            ]);
+
+            for (const lootPoolId of GAME_LOOT_POOL_IDS.filter((id) => id !== 'y2k-essentials')) {
+              expect(getRuntimePouchArtForLootPool(lootPoolId).map(({ id }) => id)).toEqual([
+                `${lootPoolId}-basic-pouch-body`,
+                `${lootPoolId}-basic-pouch-tear-strip`,
+                `${lootPoolId}-basic-pouch-star-tab`,
+                `${lootPoolId}-charged-pouch-body`,
+                `${lootPoolId}-charged-pouch-tear-strip`,
+                `${lootPoolId}-charged-pouch-star-tab`,
+              ]);
+            }
+
+            expect(pouchStaticArtId('basic', 'body', 'game-zone')).toBe('game-zone-basic-pouch-body');
+            expect(pouchStaticArtId('charged', 'star-tab', 'analog-nights')).toBe(
+              'analog-nights-charged-pouch-star-tab',
+            );
+          });
+
+          it('keeps every reviewed static-art path backed by a committed public asset', () => {
+            replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+            for (const { id, assetPath } of getRuntimeStaticArt()) {
+              expect(existsSync(`public/${assetPath}`), `missing reviewed static art for ${id}: ${assetPath}`).toBe(true);
+            }
+          });
+
+          '''
+          path.write_text(text[:start] + block + text[end:])
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/artAssets.ts src/game/scenes/OpeningScene.ts tests/runtime-assets.test.ts
+          git commit -m 'Polish Drop pouch integration code'
+          git push origin HEAD:content/authored-drop-pouch-skins-v2
