@@ -40,3 +40,4 @@ jobs:
           git add src/game/scenes/OpeningScene.ts src/game/ui/openingVisuals.ts src/game/ui/pouchPerspective.ts
           git commit -m 'Replace pouch rotation with perspective tilt'
           git push origin HEAD:feature/pouch-perspective-tilt
+# rerun after Phaser 4 filter typing fix
