@@ -250,6 +250,10 @@ export class CollectionScene extends Phaser.Scene {
       }
       getGameAudio().play('ui-click');
       this.view = view;
+      getPlatformRuntime().analytics.track('collection_view_changed', {
+        view,
+        lootPoolId: this.selectedLootPoolId(),
+      });
       this.render();
     });
     root.add(tab);
@@ -638,6 +642,11 @@ export class CollectionScene extends Phaser.Scene {
     }
     this.page = nextPage;
     this.dropBrowseInFlight = false;
+    getPlatformRuntime().analytics.track('collection_drop_browsed', {
+      lootPoolId: nextPoolId,
+      view: this.view,
+      direction,
+    });
     this.render();
   }
 

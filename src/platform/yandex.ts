@@ -31,6 +31,7 @@ const createMockPlatform = (): PlatformRuntime => {
   const activity = new GameplayActivityCoordinator(() => undefined, () => undefined);
   const analytics = new ConsoleAnalyticsAdapter();
   const removeVisibilityBridge = installVisibilityBridge(activity);
+  let readySent = false;
 
   return {
     kind: 'mock',
@@ -39,7 +40,11 @@ const createMockPlatform = (): PlatformRuntime => {
     analytics,
     ads: new MockAdsAdapter(activity, { analytics }),
     activity,
-    markReady: () => analytics.track('platform_ready', { platform: 'mock' }),
+    markReady: () => {
+      if (readySent) return;
+      readySent = true;
+      analytics.track('platform_ready', { platform: 'mock' });
+    },
     destroy: removeVisibilityBridge,
   };
 };
