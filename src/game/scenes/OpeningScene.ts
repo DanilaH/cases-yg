@@ -75,6 +75,8 @@ const LOGICAL_HEIGHT = 720;
 const POUCH_Y = POUCH_PRESENTATION.groupY;
 const DRAG_THRESHOLD = POUCH_PRESENTATION.dragThreshold;
 const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;
+const POUCH_POINTER_TILT_MAX_DEG = 2.2;
+const POUCH_POINTER_TILT_RESPONSE_MS = 85;
 
 type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'banking' | 'failed' | 'shutdown';
 
@@ -198,6 +200,33 @@ export class OpeningScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
     void this.initialize();
+  }
+
+  public update(_time: number, delta: number): void {
+    const pouch = this.pouch;
+    if (!pouch?.group.active) return;
+
+    const pointer = this.input.activePointer;
+    const pointerType = (pointer.event as PointerEvent | undefined)?.pointerType;
+    const canTilt =
+      this.phase === 'idle' &&
+      !this.dropSwitchInFlight &&
+      !this.pouchArtLoadInFlight &&
+      Boolean(pointer.event) &&
+      this.game.canvas.matches(':hover') &&
+      !pointer.isDown &&
+      (pointerType === undefined || pointerType === 'mouse');
+
+    let targetAngle = 0;
+    if (canTilt) {
+      const halfWidth = Math.max(1, this.scale.width * 0.5);
+      const normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
+      targetAngle = normalizedX * POUCH_POINTER_TILT_MAX_DEG;
+    }
+
+    const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_TILT_RESPONSE_MS);
+    pouch.group.angle = Phaser.Math.Linear(pouch.group.angle, targetAngle, response);
+    if (Math.abs(pouch.group.angle - targetAngle) < 0.01) pouch.group.angle = targetAngle;
   }
 
   private async initialize(): Promise<void> {
