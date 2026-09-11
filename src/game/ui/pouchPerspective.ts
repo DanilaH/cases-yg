@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 
 const FILTER_NODE = 'FilterPouchPerspective';
+const FILTER_BASE_WIDTH = 520;
+const FILTER_BASE_HEIGHT = 620;
+const FILTER_MAX_SUPERSAMPLE = 3;
 
 const FRAGMENT_SHADER = [
   '#pragma phaserTemplate(shaderName)',
@@ -110,6 +113,40 @@ const buildInverseHomography = (yaw: number, pitch: number): HomographyRows => {
   ];
 };
 
+const resolveFilterSupersample = (target: Phaser.GameObjects.Container): number => {
+  const world = target.getWorldTransformMatrix().decomposeMatrix();
+  const displayScale = Math.max(Math.abs(world.scaleX), Math.abs(world.scaleY));
+  if (!Number.isFinite(displayScale)) return 1;
+  return Phaser.Math.Clamp(displayScale, 1, FILTER_MAX_SUPERSAMPLE);
+};
+
+const supersampleFilterTarget = (
+  target: Phaser.GameObjects.Container,
+  supersample: number,
+): void => {
+  if (supersample <= 1.001) {
+    target.setSize(FILTER_BASE_WIDTH, FILTER_BASE_HEIGHT);
+    return;
+  }
+
+  // Phaser internal GameObject filters rasterize at the object's raw bounds and
+  // only then apply parent/world scaling. Opening's logical root is commonly
+  // scaled above 1x (and can reach ~3x on HiDPI displays), so the old 520x620
+  // framebuffer was being enlarged after the homography and looked soft.
+  //
+  // Render the same visual hierarchy at a larger local scale, then cancel that
+  // scale on the filtered parent. The on-screen geometry and drag hitbox remain
+  // unchanged, while the internal filter framebuffer gets `supersample` times
+  // more pixels in each dimension before being composited back to the scene.
+  for (const child of target.list) {
+    if (child instanceof Phaser.GameObjects.Container) {
+      child.setScale(child.scaleX * supersample, child.scaleY * supersample);
+    }
+  }
+  target.setScale(target.scaleX / supersample, target.scaleY / supersample);
+  target.setSize(FILTER_BASE_WIDTH * supersample, FILTER_BASE_HEIGHT * supersample);
+};
+
 export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public yaw = 0;
   public pitch = 0;
@@ -146,9 +183,10 @@ export const attachPouchPerspective = (
     renderer.renderNodes.addNodeConstructor(FILTER_NODE, FilterPouchPerspective);
   }
 
-  // Give the filtered art enough room for the full body + tear strip + moving tab.
-  // The shadow and input geometry remain outside this filtered render target.
-  target.setSize(520, 620);
+  // Match the internal framebuffer density to the pouch's actual on-screen
+  // scale, capped to keep the transient WebGL targets bounded on large/HiDPI
+  // displays. This preserves the existing visual size and interaction geometry.
+  supersampleFilterTarget(target, resolveFilterSupersample(target));
   target.enableFilters();
   const camera = target.filterCamera;
   const filters = target.filters;
