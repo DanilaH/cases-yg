@@ -38,7 +38,18 @@ jobs:
         env:
           CHROME_BIN: /usr/bin/google-chrome
           BASE_URL: http://127.0.0.1:4173
-        run: node tools/hidpi-runtime-review-temp.cjs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tools/hidpi-runtime-review-temp.cjs')
+          s = p.read_text()
+          old = """      await page.mouse.click(160, 241);\n      await waitForAnalytics(analytics, 'pouch_selected');\n      analytics.length = 0;\n      await page.mouse.click(160, 309);"""
+          new = """      await page.mouse.click(160, 241);\n      await waitForAnalytics(analytics, 'pouch_selected');\n      await page.waitForTimeout(140);\n      analytics.length = 0;\n      await page.mouse.click(160, 309);"""
+          if s.count(old) != 1:
+              raise SystemExit('repeat pouch probe block not found uniquely')
+          p.write_text(s.replace(old, new))
+          PY
+          node tools/hidpi-runtime-review-temp.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
