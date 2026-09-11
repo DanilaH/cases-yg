@@ -2264,15 +2264,15 @@ export class OpeningScene extends Phaser.Scene {
       const pending = await this.session.prepareReveal(this.selectedPouchType);
       if (this.isSceneShutdown()) return;
       this.lastReveal = pending;
+      if (firstInteraction && pending.openingNumber === 1) {
+        this.firstInteractionTracked = true;
+        getPlatformRuntime().analytics.track('first_package_interaction');
+      }
       getPlatformRuntime().analytics.track('opening_started', {
         openingNumber: pending.openingNumber,
         lootPoolId: pending.lootPoolId,
         pouchType: pending.pouchType,
       });
-      if (firstInteraction && pending.openingNumber === 1) {
-        this.firstInteractionTracked = true;
-        getPlatformRuntime().analytics.track('first_package_interaction');
-      }
       await this.playReveal(pending, false);
     } catch (error: unknown) {
       if (this.isSceneShutdown()) return;
