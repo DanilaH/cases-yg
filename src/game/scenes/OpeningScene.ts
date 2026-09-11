@@ -2783,7 +2783,7 @@ export class OpeningScene extends Phaser.Scene {
       this.trackSecretPremiumTarget(target);
       if (target instanceof Phaser.GameObjects.Image) {
         target.setTint(SECRET_REVEAL_COLOR);
-        target.setTintFill();
+        target.setTintMode(Phaser.TintModes.FILL);
         target.setBlendMode(Phaser.BlendModes.NORMAL);
       }
       target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);
