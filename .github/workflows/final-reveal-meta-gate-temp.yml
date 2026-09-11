@@ -1,0 +1,148 @@
+name: Final reveal meta runtime gate
+
+on:
+  push:
+    branches:
+      - review/reveal-meta-feel-2026-09-11
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: polish/reveal-meta-feel-2026-09-11
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install capture dependencies
+        shell: bash
+        run: |
+          mkdir -p review-artifacts/screens review-artifacts/sheets review-artifacts/logs /tmp/mpt-review-runner
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg pulseaudio xvfb
+          cd /tmp/mpt-review-runner
+          npm init -y >/dev/null
+          npm install playwright@1.55.0
+          cd "$GITHUB_WORKSPACE"
+          ln -s /tmp/mpt-review-runner/node_modules/playwright node_modules/playwright
+          ln -s /tmp/mpt-review-runner/node_modules/playwright-core node_modules/playwright-core
+          test -x /usr/bin/google-chrome
+      - name: Start virtual display and audio
+        shell: bash
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension RANDR > /tmp/xvfb.log 2>&1 &
+          pulseaudio --start --exit-idle-time=-1 || true
+          pactl load-module module-null-sink sink_name=review_sink sink_properties=device.description=ReviewSink
+          pactl set-default-sink review_sink
+      - name: Start game
+        shell: bash
+        env:
+          DISPLAY: ':99'
+          PULSE_SINK: review_sink
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+      - name: Capture exact production-head scenarios
+        shell: bash
+        env:
+          DISPLAY: ':99'
+          PULSE_SINK: review_sink
+        run: |
+          cat > /tmp/final-gate.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+          import { once } from 'node:events';
+          import { writeFile } from 'node:fs/promises';
+
+          const OUT = 'review-artifacts';
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+          const ffmpegArgs = (name) => [
+            '-y','-thread_queue_size','512','-f','x11grab','-video_size','1280x720','-framerate','30','-i',':99.0+0,0',
+            '-thread_queue_size','512','-f','pulse','-i','review_sink.monitor','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-c:a','aac','-b:a','160k',`${OUT}/${name}.mp4`,
+          ];
+          const browser = await chromium.launch({
+            executablePath: '/usr/bin/google-chrome', headless: false,
+            args: ['--no-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required','--disable-gpu-sandbox','--window-size=1280,720','--window-position=0,0'],
+          });
+          const context = await browser.newContext({ viewport: null, locale: 'en-US' });
+          const page = await context.newPage();
+          const errors = [];
+          page.on('console', (m) => { if (m.type() === 'error') errors.push(`[console] ${m.text()}`); });
+          page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
+          const waitGame = async () => { await page.waitForSelector('canvas', { state: 'visible', timeout: 15000 }); await sleep(1200); };
+          const revealDebugPanel = async () => { const b = page.getByRole('button', { name: 'DEBUG' }); if (await b.count()) await b.click(); };
+          const triggerReloadingDebugAction = async (label) => {
+            await revealDebugPanel();
+            await page.evaluate(() => sessionStorage.setItem('mystery-pocket-tech.debug-panel-collapsed', '1'));
+            const nav = page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
+            await page.getByRole('button', { name: label, exact: true }).click();
+            await nav; await waitGame();
+          };
+          const layout = async () => {
+            const box = await page.locator('canvas').boundingBox(); if (!box) throw new Error('Canvas missing');
+            const scale = box.height / 720; const logicalWidth = clamp((box.width / box.height) * 720, 900, 1728); const offsetX = (box.width - logicalWidth * scale) / 2;
+            return { box, scale, logicalWidth, offsetX, centerX: logicalWidth / 2 };
+          };
+          const p = (m, x, y) => ({ x: m.box.x + m.offsetX + x * m.scale, y: m.box.y + y * m.scale });
+          const dragPouch = async (duration = 1050) => {
+            const m = await layout(); const start = p(m, m.centerX - 158, 177); const end = p(m, m.centerX + 164, 177);
+            await page.mouse.move(start.x, start.y); await page.mouse.down();
+            for (let i = 1; i <= 28; i += 1) { const t = i / 28; await page.mouse.move(start.x + (end.x - start.x) * t, start.y + Math.sin(t * Math.PI) * 2 * m.scale); await sleep(duration / 28); }
+            await page.mouse.up();
+          };
+          const record = async (name, action) => {
+            const cap = spawn('ffmpeg', ffmpegArgs(name), { stdio: ['ignore','ignore','inherit'] }); await sleep(700);
+            try { await action(); } finally { await sleep(800); cap.kill('SIGINT'); await once(cap, 'close'); }
+          };
+
+          await page.goto('http://127.0.0.1:4173/?debug', { waitUntil: 'domcontentloaded' }); await waitGame();
+          await triggerReloadingDebugAction('Reset save');
+          await record('01_first_basic_new_badge', async () => {
+            await dragPouch();
+            for (let i = 0; i < 8; i += 1) { await sleep(350); await page.screenshot({ path: `${OUT}/screens/basic-new-${i + 1}.png` }); }
+            await sleep(1700);
+          });
+
+          await triggerReloadingDebugAction('Reset save');
+          await record('02_secret_outline_final', async () => {
+            await triggerReloadingDebugAction('Force Hidden Pocket');
+            for (let i = 0; i < 8; i += 1) { await sleep(500); await page.screenshot({ path: `${OUT}/screens/secret-${i + 1}.png` }); }
+            await sleep(1200);
+          });
+          await writeFile(`${OUT}/logs/browser-errors.txt`, errors.join('\n'));
+          await browser.close();
+          if (errors.length) { console.error(errors.join('\n')); process.exitCode = 2; }
+          EOF
+          node /tmp/final-gate.mjs
+      - name: Build review sheets
+        if: always()
+        shell: bash
+        run: |
+          for f in review-artifacts/*.mp4; do
+            [ -e "$f" ] || continue
+            n="$(basename "$f" .mp4)"
+            ffmpeg -y -hide_banner -loglevel error -i "$f" -vf "fps=2,scale=320:180,tile=5x4:padding=4:margin=4" -frames:v 1 "review-artifacts/sheets/${n}.jpg" || true
+          done
+          cp /tmp/vite.log review-artifacts/logs/vite.log || true
+          cp /tmp/xvfb.log review-artifacts/logs/xvfb.log || true
+          git rev-parse HEAD > review-artifacts/logs/production-head.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-reveal-meta-gate
+          path: review-artifacts
+          if-no-files-found: error
+          retention-days: 2
