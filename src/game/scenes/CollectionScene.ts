@@ -156,8 +156,14 @@ export class CollectionScene extends Phaser.Scene {
         .setShadow(0, 2, '#120d19', 3, true, true),
     );
 
-    this.createTab(root, metrics.centerX - 78, 128, 'shelf', messages.collection.shelf);
-    this.createTab(root, metrics.centerX + 78, 128, 'library', messages.collection.library);
+    const viewSwitcher = this.add.graphics();
+    viewSwitcher.fillStyle(0x120d19, 0.9);
+    viewSwitcher.fillRoundedRect(metrics.centerX - 166, 104, 332, 50, 18);
+    viewSwitcher.lineStyle(2, 0xbda7d6, 0.42);
+    viewSwitcher.strokeRoundedRect(metrics.centerX - 166, 104, 332, 50, 18);
+    root.add(viewSwitcher);
+    this.createTab(root, metrics.centerX - 78, 129, 'shelf', messages.collection.shelf);
+    this.createTab(root, metrics.centerX + 78, 129, 'library', messages.collection.library);
     this.createMuteButton(root);
 
     this.renderPager(root);
@@ -196,19 +202,52 @@ export class CollectionScene extends Phaser.Scene {
     label: string,
   ): void {
     const active = this.view === view;
-    const tab = this.add
-      .text(x, y, label, {
-        color: active ? '#211b2c' : '#e7def0',
-        backgroundColor: active ? '#e4d7f2' : '#3a3049',
-        padding: { x: 18, y: 8 },
+    const width = 148;
+    const height = 42;
+    const tab = this.add.container(x, y);
+    const background = this.add.graphics();
+    background.fillStyle(active ? 0xf0e7fa : 0x251b33, active ? 0.98 : 0.96);
+    background.fillRoundedRect(-width / 2, -height / 2, width, height, 14);
+    background.lineStyle(
+      active ? 2.5 : 1.5,
+      active ? 0x8df8ff : 0xbda7d6,
+      active ? 0.86 : 0.52,
+    );
+    background.strokeRoundedRect(-width / 2, -height / 2, width, height, 14);
+    const marker = this.add
+      .rectangle(-width / 2 + 19, 0, 8, 8, active ? 0x8df8ff : 0x7f6f91, active ? 1 : 0.72)
+      .setRotation(Math.PI / 4)
+      .setStrokeStyle(1, active ? 0x211b2c : 0xe9ddf6, active ? 0.36 : 0.3);
+    const text = this.add
+      .text(8, 0, label, {
+        color: active ? '#211b2c' : '#fff8ff',
         fontFamily: 'system-ui, sans-serif',
         fontSize: '16px',
-        fontStyle: active ? 'bold' : 'normal',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
+      .setShadow(0, 1, active ? '#ffffff' : '#120d19', active ? 1 : 3, true, true);
+    const zone = this.add
+      .zone(0, 0, width, height)
       .setInteractive({ useHandCursor: true });
-    tab.on('pointerup', () => {
-      if (this.view === view) return;
+    tab.add([background, marker, text, zone]);
+    zone.on('pointerover', () => {
+      this.tweens.killTweensOf(tab);
+      this.tweens.add({ targets: tab, scale: 1.025, duration: 90, ease: 'Sine.Out' });
+    });
+    zone.on('pointerout', () => {
+      this.tweens.killTweensOf(tab);
+      this.tweens.add({ targets: tab, scale: 1, duration: 110, ease: 'Sine.Out' });
+    });
+    zone.on('pointerdown', () => {
+      this.tweens.killTweensOf(tab);
+      this.tweens.add({ targets: tab, scale: 0.975, duration: 60, ease: 'Sine.Out' });
+    });
+    zone.on('pointerup', () => {
+      if (this.view === view) {
+        this.tweens.add({ targets: tab, scale: 1, duration: 90, ease: 'Sine.Out' });
+        return;
+      }
       getGameAudio().play('ui-click');
       this.view = view;
       this.render();

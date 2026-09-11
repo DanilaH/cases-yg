@@ -443,6 +443,59 @@ export class OpeningScene extends Phaser.Scene {
     return target;
   }
 
+  private animatePersistentRevealFxEntrance(
+    parent: Phaser.GameObjects.Container,
+    layer: Phaser.GameObjects.Container,
+  ): void {
+    const baseY = layer.y;
+    layer.setData('persistentRevealFxBaseY', baseY);
+    parent.setData('persistentRevealFxLayer', layer);
+    layer
+      .setAlpha(0)
+      .setY(baseY + OPENING_FEEL_PRESENTATION.persistentFxIntroOffsetY)
+      .setScale(OPENING_FEEL_PRESENTATION.persistentFxIntroScale);
+    this.tweens.add({
+      targets: layer,
+      alpha: 1,
+      y: baseY,
+      scale: OPENING_FEEL_PRESENTATION.persistentFxOvershootScale,
+      duration: OPENING_FEEL_PRESENTATION.persistentFxIntroMs,
+      ease: 'Back.Out',
+      onComplete: () => {
+        if (!layer.active) return;
+        this.tweens.add({
+          targets: layer,
+          scale: 1,
+          duration: OPENING_FEEL_PRESENTATION.persistentFxSettleMs,
+          ease: 'Sine.Out',
+        });
+      },
+    });
+  }
+
+  private getActivePersistentRevealFxLayer(): Phaser.GameObjects.Container | null {
+    const activePage = this.resultCarouselItems[this.resultCarouselIndex];
+    const pageLayer = activePage?.getData('persistentRevealFxLayer') as Phaser.GameObjects.Container | undefined;
+    if (pageLayer?.active) return pageLayer;
+    const rootLayer = this.root?.getData('persistentRevealFxLayer') as Phaser.GameObjects.Container | undefined;
+    return rootLayer?.active ? rootLayer : null;
+  }
+
+  private animatePersistentRevealFxExit(layer: Phaser.GameObjects.Container): Promise<void> {
+    if (!layer.active) return Promise.resolve();
+    const baseY = Number(layer.getData('persistentRevealFxBaseY') ?? layer.y);
+    this.tweens.killTweensOf(layer);
+    return this.runSkippableTween({
+      targets: layer,
+      y: baseY + OPENING_FEEL_PRESENTATION.persistentFxExitOffsetY,
+      scale: OPENING_FEEL_PRESENTATION.persistentFxExitScale,
+      alpha: 0,
+      angle: 1.4,
+      duration: OPENING_FEEL_PRESENTATION.persistentFxExitMs,
+      ease: 'Cubic.In',
+    });
+  }
+
   private addPersistentStandardRarityState(
     parent: Phaser.GameObjects.Container,
     rarity: StandardRarity,
@@ -522,6 +575,7 @@ export class OpeningScene extends Phaser.Scene {
     }
 
     parent.add(layer);
+    this.animatePersistentRevealFxEntrance(parent, layer);
   }
 
   private addPersistentSecretPremiumState(page: Phaser.GameObjects.Container): void {
@@ -581,6 +635,7 @@ export class OpeningScene extends Phaser.Scene {
 
     page.add(layer);
     page.sendToBack(layer);
+    this.animatePersistentRevealFxEntrance(page, layer);
   }
 
   private addAmbientMotion(root: Phaser.GameObjects.Container, metrics: LayoutMetrics): void {
@@ -2717,6 +2772,76 @@ export class OpeningScene extends Phaser.Scene {
     });
   }
 
+  private addPersistentSecretSilhouetteAccent(secretVisual: Phaser.GameObjects.Container): void {
+    const targets = this.createDiscoverySilhouetteAccent(
+      secretVisual,
+      SECRET_REVEAL_COLOR,
+      OPENING_FEEL_PRESENTATION.secretOutlineCopies,
+      OPENING_FEEL_PRESENTATION.secretOutlineRadius,
+    );
+    targets.forEach((target, index) => {
+      this.trackSecretPremiumTarget(target);
+      target.setAlpha(OPENING_FEEL_PRESENTATION.secretOutlineAlpha);
+      this.tweens.add({
+        targets: target,
+        alpha: OPENING_FEEL_PRESENTATION.secretOutlinePeakAlpha,
+        duration: OPENING_FEEL_PRESENTATION.secretOutlinePulseMs,
+        delay: index * 34,
+        yoyo: true,
+        repeat: -1,
+        repeatDelay: 90 + index * 8,
+        ease: 'Sine.InOut',
+      });
+    });
+  }
+
+  private createRevealInfoBadge(
+    text: string,
+    accent: number,
+    x: number,
+    y: number,
+  ): Phaser.GameObjects.Container {
+    const label = this.add
+      .text(0, 0, text, {
+        color: '#fffaff',
+        stroke: '#100b16',
+        strokeThickness: 2,
+        fontFamily: DIGITAL_FONT_FAMILY,
+        fontSize: '8px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
+    const width = Phaser.Math.Clamp(label.width + 56, 176, 308);
+    const height = 38;
+    const badge = this.add.container(x, y).setAlpha(0).setScale(0.96);
+    const glow = this.add.graphics().setAlpha(0.2);
+    glow.lineStyle(5, accent, 0.16);
+    glow.strokeRoundedRect(-width / 2 + 2, -height / 2 + 2, width - 4, height - 4, 12);
+    const background = this.add.graphics();
+    background.fillStyle(0x15101f, 0.93);
+    background.fillRoundedRect(-width / 2, -height / 2, width, height, 13);
+    background.lineStyle(2, accent, 0.68);
+    background.strokeRoundedRect(-width / 2, -height / 2, width, height, 13);
+    const diamond = this.add
+      .rectangle(-width / 2 + 19, 0, 8, 8, accent, 0.96)
+      .setRotation(Math.PI / 4)
+      .setStrokeStyle(1, 0xffffff, 0.34);
+    label.setX(-width / 2 + 36);
+    badge.add([glow, background, diamond, label]);
+    badge.setData('badgeAccent', accent);
+    badge.setData('badgeWidth', width);
+    return badge;
+  }
+
+  private getRevealInfoBadgeX(side: -1 | 1): number {
+    if (!this.metrics) return 450;
+    return Phaser.Math.Clamp(
+      this.metrics.centerX + side * OPENING_FEEL_PRESENTATION.revealInfoBadgeSideOffset,
+      this.metrics.safeLeft + 118,
+      this.metrics.safeRight - 118,
+    );
+  }
+
   private async animateDiscoveryBeat(
     pending: PendingReveal,
     standardVisual: Phaser.GameObjects.Container,
@@ -2729,20 +2854,13 @@ export class OpeningScene extends Phaser.Scene {
     const heroY = presentation.revealY;
     const rarityColor = RARITY_REVEAL_COLORS[pending.standard.rarity];
     const outlineTargets = this.createDiscoverySilhouetteAccent(standardVisual, rarityColor);
-    const label = this.add
-      .text(heroX, heroY + OPENING_FEEL_PRESENTATION.discoveryLabelOffsetY, messages.opening.addedToCollection, {
-        color: '#dffcff',
-        backgroundColor: '#182130',
-        padding: { x: 9, y: 5 },
-        stroke: '#100b16',
-        strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setScale(0.96);
+    const badgeSide: -1 | 1 = pending.openingNumber % 2 === 0 ? 1 : -1;
+    const label = this.createRevealInfoBadge(
+      messages.opening.addedToCollection,
+      0x8df8ff,
+      this.getRevealInfoBadgeX(badgeSide),
+      heroY + OPENING_FEEL_PRESENTATION.discoveryLabelOffsetY - 12,
+    );
     label.setData('rewardMeaning', 'discovery');
     this.root.add(label);
 
@@ -2824,39 +2942,40 @@ export class OpeningScene extends Phaser.Scene {
     if (!pending.standard.isNew && pending.chips.recycle > 0) {
       const messages = getMessages(getPlatformRuntime().language);
       getGameAudio().play('duplicate');
-      const conversionLabel = this.add
-        .text(
-          this.metrics.centerX,
-          heroY + 106,
-          `${messages.opening.recycled} +${pending.chips.recycle}`,
-          {
-            color: '#c8fbff',
-            backgroundColor: '#182431',
-            padding: { x: 8, y: 4 },
-            stroke: '#100b16',
-            strokeThickness: 2,
-            fontFamily: DIGITAL_FONT_FAMILY,
-            fontSize: '8px',
-            fontStyle: 'bold',
-          },
-        )
-        .setOrigin(0.5)
-        .setAlpha(0);
+      const traySide = String(tray.getData('side') ?? 'right');
+      const badgeSide: -1 | 1 = traySide === 'left' ? 1 : -1;
+      const conversionLabel = this.createRevealInfoBadge(
+        `${messages.opening.recycled} +${pending.chips.recycle}`,
+        0xffd36a,
+        this.getRevealInfoBadgeX(badgeSide),
+        heroY + 102,
+      );
       conversionLabel.setData('rewardMeaning', 'conversion');
       this.root.add(conversionLabel);
+      const conversionTargetY = conversionLabel.y;
+      conversionLabel.setY(conversionTargetY + 8);
       this.tweens.add({
         targets: conversionLabel,
-        y: heroY + 100,
+        y: conversionTargetY,
         alpha: 1,
-        duration: 90,
-        ease: 'Sine.Out',
+        scale: 1,
+        duration: OPENING_FEEL_PRESENTATION.revealInfoBadgeIntroMs,
+        ease: 'Back.Out',
         onComplete: () => {
           if (!conversionLabel.active) return;
+          const exitDelay = Math.max(
+            0,
+            OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs -
+              OPENING_FEEL_PRESENTATION.revealInfoBadgeIntroMs -
+              OPENING_FEEL_PRESENTATION.revealInfoBadgeExitMs,
+          );
           this.tweens.add({
             targets: conversionLabel,
-            y: heroY + 94,
+            y: conversionTargetY - 6,
             alpha: 0,
-            duration: OPENING_FEEL_PRESENTATION.duplicateConversionAccentMs - 90,
+            scale: 1.025,
+            delay: exitDelay,
+            duration: OPENING_FEEL_PRESENTATION.revealInfoBadgeExitMs,
             ease: 'Sine.In',
             onComplete: () => conversionLabel.destroy(),
           });
@@ -2900,7 +3019,7 @@ export class OpeningScene extends Phaser.Scene {
       }
     }
 
-    await this.waitPresentation(440);
+    await this.waitPresentation(OPENING_FEEL_PRESENTATION.revealInfoBadgeHoldMs);
   }
 
   private getResultPresentationState(pending: PendingReveal): SaveState | null {
@@ -3249,6 +3368,8 @@ export class OpeningScene extends Phaser.Scene {
     this.collectionButton?.disableInteractive();
 
     const motions: Promise<void>[] = [];
+    const persistentFxLayer = this.getActivePersistentRevealFxLayer();
+    if (persistentFxLayer) motions.push(this.animatePersistentRevealFxExit(persistentFxLayer));
     for (const target of collectTargets) {
       const currentScaleX = target.scaleX;
       const currentScaleY = target.scaleY;
@@ -3681,6 +3802,7 @@ export class OpeningScene extends Phaser.Scene {
       duration: 180,
       ease: 'Sine.Out',
     });
+    if (pending.hiddenPocket) this.addPersistentSecretSilhouetteAccent(visual.group);
     await this.waitPresentation(90);
   }
 
@@ -3918,6 +4040,7 @@ export class OpeningScene extends Phaser.Scene {
       duration: fx.settleDuration,
       ease: fx.settleEase,
     });
+    this.addPersistentSecretSilhouetteAccent(secret.group);
     this.cameras.main.shake(145, Math.min(0.0062, fx.shake * 1.35));
     await this.runSkippableTween({
       targets: secret.group,
@@ -3986,6 +4109,7 @@ export class OpeningScene extends Phaser.Scene {
       pending.hiddenPocket.collectibleId,
     );
     secretVisual.group.setScale(secretVisual.presentation.revealScale);
+    this.addPersistentSecretSilhouetteAccent(secretVisual.group);
     secretPage.setData('sideScale', secretVisual.presentation.carouselSideScale);
     secretPage.setData('breathTarget', secretVisual.group);
     secretPage.setData('breathBaseScale', secretVisual.presentation.revealScale);
