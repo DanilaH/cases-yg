@@ -70,6 +70,7 @@ import {
   createSignalToken,
 } from '../ui/openingEconomyVisuals';
 import { addCoverArt } from '../ui/staticArt';
+import type { PouchPerspectiveController } from '../ui/pouchPerspective';
 
 const LOGICAL_HEIGHT = 720;
 const POUCH_Y = POUCH_PRESENTATION.groupY;
@@ -78,6 +79,8 @@ const RESULT_HOLD_MS = OPENING_FEEL_PRESENTATION.resultReadHoldMs;
 const POUCH_POINTER_PERSPECTIVE_YAW_MAX = 1;
 const POUCH_POINTER_PERSPECTIVE_PITCH_MAX = 0.65;
 const POUCH_POINTER_PERSPECTIVE_RESPONSE_MS = 105;
+const COLLECTIBLE_POINTER_PERSPECTIVE_YAW_MAX = 0.85;
+const COLLECTIBLE_POINTER_PERSPECTIVE_PITCH_MAX = 0.55;
 
 type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'banking' | 'failed' | 'shutdown';
 
@@ -204,43 +207,64 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   public update(_time: number, delta: number): void {
-    const pouch = this.pouch;
-    if (!pouch?.group.active) return;
-
-    // PR #123 used ordinary 2D rotation. Keep the pouch itself unrotated now and
-    // drive a projective shader on the art container instead.
-    pouch.group.angle = 0;
-
-    const perspective = pouch.perspective;
-    if (!perspective) return;
-
     const pointer = this.input.activePointer;
     const pointerType = (pointer.event as PointerEvent | undefined)?.pointerType;
-    const canTilt =
-      this.phase === 'idle' &&
-      !this.dropSwitchInFlight &&
-      !this.pouchArtLoadInFlight &&
+    const canFollowPointer =
       Boolean(pointer.event) &&
       this.game.canvas.matches(':hover') &&
       !pointer.isDown &&
       (pointerType === undefined || pointerType === 'mouse');
 
-    let targetYaw = 0;
-    let targetPitch = 0;
-    if (canTilt) {
+    let normalizedX = 0;
+    let normalizedY = 0;
+    if (canFollowPointer) {
       const halfWidth = Math.max(1, this.scale.width * 0.5);
       const halfHeight = Math.max(1, this.scale.height * 0.5);
-      const normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
-      const normalizedY = Phaser.Math.Clamp((pointer.y - halfHeight) / halfHeight, -1, 1);
-      targetYaw = normalizedX * POUCH_POINTER_PERSPECTIVE_YAW_MAX;
-      targetPitch = -normalizedY * POUCH_POINTER_PERSPECTIVE_PITCH_MAX;
+      normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
+      normalizedY = Phaser.Math.Clamp((pointer.y - halfHeight) / halfHeight, -1, 1);
     }
 
     const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_PERSPECTIVE_RESPONSE_MS);
-    perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
-    perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
-    if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
-    if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
+    const drivePerspective = (
+      perspective: PouchPerspectiveController | null | undefined,
+      enabled: boolean,
+      yawMax: number,
+      pitchMax: number,
+    ): void => {
+      if (!perspective) return;
+      const targetYaw = enabled ? normalizedX * yawMax : 0;
+      const targetPitch = enabled ? -normalizedY * pitchMax : 0;
+      perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
+      perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
+      if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
+      if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
+    };
+
+    const pouch = this.pouch;
+    if (pouch?.group.active) {
+      drivePerspective(
+        pouch.perspective,
+        this.phase === 'idle' &&
+          !this.dropSwitchInFlight &&
+          !this.pouchArtLoadInFlight &&
+          canFollowPointer,
+        POUCH_POINTER_PERSPECTIVE_YAW_MAX,
+        POUCH_POINTER_PERSPECTIVE_PITCH_MAX,
+      );
+      pouch.group.angle = 0;
+    }
+
+    const resultTarget = this.resultBreathTarget;
+    const collectiblePerspective = resultTarget?.getData('perspective') as
+      | PouchPerspectiveController
+      | null
+      | undefined;
+    drivePerspective(
+      collectiblePerspective,
+      this.phase === 'result' && Boolean(resultTarget?.active) && canFollowPointer,
+      COLLECTIBLE_POINTER_PERSPECTIVE_YAW_MAX,
+      COLLECTIBLE_POINTER_PERSPECTIVE_PITCH_MAX,
+    );
   }
 
   private async initialize(): Promise<void> {
@@ -939,6 +963,14 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.resultBreathTarget) return;
     this.tweens.killTweensOf(this.resultBreathTarget);
     this.resultBreathTarget.setScale(this.resultBreathBaseScale);
+    const perspective = this.resultBreathTarget.getData('perspective') as
+      | PouchPerspectiveController
+      | null
+      | undefined;
+    if (perspective) {
+      perspective.yaw = 0;
+      perspective.pitch = 0;
+    }
     this.resultBreathTarget = null;
     this.resultBreathBaseScale = 1;
   }

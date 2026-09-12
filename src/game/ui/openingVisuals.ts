@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 
-import { attachPouchPerspective, type PouchPerspectiveController } from './pouchPerspective';
+import {
+  attachCollectiblePerspective,
+  attachPouchPerspective,
+  type PouchPerspectiveController,
+} from './pouchPerspective';
 
 import { collectibleTextureKey, pouchStaticArtId, staticTextureKey, type PouchArtVariant } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
@@ -292,6 +296,7 @@ export interface CollectibleVisual {
   group: Phaser.GameObjects.Container;
   accentColor: number;
   presentation: CollectiblePresentation;
+  perspective: PouchPerspectiveController | null;
 }
 
 const createCamera = (scene: Phaser.Scene, accentColor: number): Phaser.GameObjects.Container => {
@@ -344,12 +349,17 @@ const createAssetCollectible = (
   scene: Phaser.Scene,
   presentation: CollectiblePresentation,
   textureKey: string,
-): Phaser.GameObjects.Container => {
+): { group: Phaser.GameObjects.Container; perspective: PouchPerspectiveController | null } => {
   const group = scene.add.container(0, 0);
+  const artTarget = scene.add.container(0, 0);
+  const artContent = scene.add.container(0, 0);
   const image = scene.add
     .image(presentation.artOffsetX, presentation.artOffsetY, textureKey)
     .setOrigin(0.5);
   image.setScale(presentation.assetWidth / Math.max(1, image.width));
+  artContent.add(image);
+  artTarget.add(artContent);
+
   const visualBottom = presentation.artOffsetY + image.displayHeight / 2;
   const shadowWidth = presentation.assetWidth * 0.72;
   const shadow = scene.add.ellipse(
@@ -360,9 +370,13 @@ const createAssetCollectible = (
     0x050408,
     0.2,
   );
-  group.add([shadow, image]);
-  image.setDepth(1);
-  return group;
+  group.add([shadow, artTarget]);
+  artTarget.setDepth(1);
+
+  const filterWidth = Math.max(320, presentation.assetWidth + 72);
+  const filterHeight = Math.max(320, image.displayHeight + 72);
+  const perspective = attachCollectiblePerspective(scene, artTarget, filterWidth, filterHeight);
+  return { group, perspective };
 };
 
 export const createCollectibleVisual = (
@@ -377,14 +391,18 @@ export const createCollectibleVisual = (
   const accentColor = rarity === 'secret' ? SECRET_REVEAL_COLOR : RARITY_REVEAL_COLORS[rarity];
   const presentation = getCollectiblePresentation(familyId);
   const textureKey = collectibleId ? collectibleTextureKey(collectibleId) : null;
-  const group =
+  const assetVisual =
     textureKey && scene.textures.exists(textureKey)
       ? createAssetCollectible(scene, presentation, textureKey)
-      : familyId === 'camera'
-        ? createCamera(scene, accentColor)
-        : familyId === 'flip-phone'
-          ? createFlipPhone(scene, accentColor)
-          : createGenericDevice(scene, accentColor);
+      : null;
+  const group = assetVisual?.group
+    ?? (familyId === 'camera'
+      ? createCamera(scene, accentColor)
+      : familyId === 'flip-phone'
+        ? createFlipPhone(scene, accentColor)
+        : createGenericDevice(scene, accentColor));
+  const perspective = assetVisual?.perspective ?? null;
+  group.setData('perspective', perspective);
 
   group.setPosition(x, y);
   root.add(group);
@@ -403,7 +421,7 @@ export const createCollectibleVisual = (
     root.bringToTop(pouch.group);
   }
 
-  return { group, accentColor, presentation };
+  return { group, accentColor, presentation, perspective };
 };
 
 export const createRevealRing = (
