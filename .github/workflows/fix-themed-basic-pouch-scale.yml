@@ -1,0 +1,74 @@
+name: Fix themed basic pouch scale
+
+on:
+  push:
+    branches:
+      - fix/themed-basic-pouch-scale
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/themed-basic-pouch-scale
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply themed Basic pouch optical correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/ui/openingVisuals.ts')
+          text = path.read_text()
+          old = """  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
+  const bodyPresentation = {
+    ...POUCH_PRESENTATION.body,
+    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
+    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,
+    displayWidth: POUCH_PRESENTATION.body.displayWidth + variantPresentation.bodyWidthOffset,
+  };
+"""
+          new = """  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
+  // The five newer themed Basic body exports have a visibly denser crop than
+  // the original Y2K Basic raster. Apply one shared optical correction only to
+  // those themed Basic bodies; the original Y2K Basic and every Charged pouch
+  // keep their existing authored/runtime sizing.
+  const themedBasicBodyWidthOffset =
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;
+  const themedBasicBodyOffsetY =
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
+  const bodyPresentation = {
+    ...POUCH_PRESENTATION.body,
+    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
+    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY + themedBasicBodyOffsetY,
+    displayWidth:
+      POUCH_PRESENTATION.body.displayWidth
+      + variantPresentation.bodyWidthOffset
+      + themedBasicBodyWidthOffset,
+  };
+"""
+          if old not in text:
+              raise SystemExit('target snippet not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+      - name: Commit source changes and clean one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/ui/openingVisuals.ts
+          git rm .github/workflows/fix-themed-basic-pouch-scale.yml
+          git commit -m "Normalize themed Basic pouch body scale"
+          git push origin HEAD:fix/themed-basic-pouch-scale
