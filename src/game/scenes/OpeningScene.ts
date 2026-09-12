@@ -81,6 +81,15 @@ const POUCH_POINTER_PERSPECTIVE_PITCH_MAX = 0.65;
 const POUCH_POINTER_PERSPECTIVE_RESPONSE_MS = 105;
 const COLLECTIBLE_POINTER_PERSPECTIVE_YAW_MAX = 0.85;
 const COLLECTIBLE_POINTER_PERSPECTIVE_PITCH_MAX = 0.55;
+const POINTER_IDLE_DRIFT_DELAY_MS = 1800;
+const POINTER_IDLE_DRIFT_RAMP_MS = 1200;
+const HERO_IDLE_DRIFT_YAW = 0.085;
+const HERO_IDLE_DRIFT_PITCH = 0.055;
+const BACKGROUND_PARALLAX_X = 1.8;
+const BACKGROUND_PARALLAX_Y = 1.1;
+const AMBIENT_PARALLAX_X = 4.6;
+const AMBIENT_PARALLAX_Y = 2.8;
+const ENVIRONMENT_PARALLAX_RESPONSE_MS = 180;
 
 type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | 'banking' | 'failed' | 'shutdown';
 
@@ -109,8 +118,13 @@ export class OpeningScene extends Phaser.Scene {
   private phase: OpeningPhase = 'booting';
   private root: Phaser.GameObjects.Container | null = null;
   private environmentRoot: Phaser.GameObjects.Container | null = null;
+  private environmentBackgroundLayer: Phaser.GameObjects.Container | null = null;
+  private environmentAmbientLayer: Phaser.GameObjects.Container | null = null;
   private environmentLayoutKey = '';
   private environmentBaseLayerCount = 0;
+  private pointerLastX = Number.NaN;
+  private pointerLastY = Number.NaN;
+  private pointerLastMovedAt = 0;
   private metrics: LayoutMetrics | null = null;
   private pouch: PouchVisual | null = null;
   private collectionButton: Phaser.GameObjects.Text | null = null;
@@ -189,6 +203,9 @@ export class OpeningScene extends Phaser.Scene {
     this.dropSelectorDrag = null;
     this.dropCompletionNudgePoolId = null;
     this.pouchArtLoadInFlight = false;
+    this.pointerLastX = Number.NaN;
+    this.pointerLastY = Number.NaN;
+    this.pointerLastMovedAt = 0;
     this.clearTearHintTimer();
     this.presentationSkip.reset();
 
@@ -222,7 +239,30 @@ export class OpeningScene extends Phaser.Scene {
       const halfHeight = Math.max(1, this.scale.height * 0.5);
       normalizedX = Phaser.Math.Clamp((pointer.x - halfWidth) / halfWidth, -1, 1);
       normalizedY = Phaser.Math.Clamp((pointer.y - halfHeight) / halfHeight, -1, 1);
+
+      const moved =
+        !Number.isFinite(this.pointerLastX) ||
+        Math.hypot(pointer.x - this.pointerLastX, pointer.y - this.pointerLastY) > 0.35;
+      if (moved) this.pointerLastMovedAt = _time;
+      this.pointerLastX = pointer.x;
+      this.pointerLastY = pointer.y;
+    } else {
+      this.pointerLastX = Number.NaN;
+      this.pointerLastY = Number.NaN;
+      this.pointerLastMovedAt = _time;
     }
+
+    const idleWeight = canFollowPointer
+      ? Phaser.Math.Clamp(
+          (_time - this.pointerLastMovedAt - POINTER_IDLE_DRIFT_DELAY_MS) / POINTER_IDLE_DRIFT_RAMP_MS,
+          0,
+          1,
+        )
+      : 0;
+    const driftX = Math.sin(_time / 3180) * HERO_IDLE_DRIFT_YAW * idleWeight;
+    const driftY = Math.cos(_time / 4170) * HERO_IDLE_DRIFT_PITCH * idleWeight;
+    const heroX = Phaser.Math.Clamp(normalizedX + driftX, -1, 1);
+    const heroY = Phaser.Math.Clamp(normalizedY + driftY, -1, 1);
 
     const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_PERSPECTIVE_RESPONSE_MS);
     const drivePerspective = (
@@ -232,12 +272,31 @@ export class OpeningScene extends Phaser.Scene {
       pitchMax: number,
     ): void => {
       if (!perspective) return;
-      const targetYaw = enabled ? normalizedX * yawMax : 0;
-      const targetPitch = enabled ? -normalizedY * pitchMax : 0;
+      const targetYaw = enabled ? heroX * yawMax : 0;
+      const targetPitch = enabled ? -heroY * pitchMax : 0;
       perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
       perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
       if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
       if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
+    };
+
+    const syncDepthShadow = (
+      shadow: Phaser.GameObjects.Ellipse | null | undefined,
+      perspective: PouchPerspectiveController | null | undefined,
+      xAmount: number,
+      yAmount: number,
+    ): void => {
+      if (!shadow?.active || !perspective) return;
+      const baseX = Number(shadow.getData('depthBaseX') ?? shadow.x);
+      const baseY = Number(shadow.getData('depthBaseY') ?? shadow.y);
+      const baseAlpha = Number(shadow.getData('depthBaseAlpha') ?? shadow.alpha);
+      shadow
+        .setPosition(baseX - perspective.yaw * xAmount, baseY + perspective.pitch * yAmount)
+        .setScale(
+          1 - Math.min(0.045, Math.abs(perspective.yaw) * 0.035),
+          1 + Math.min(0.035, Math.abs(perspective.pitch) * 0.03),
+        )
+        .setAlpha(Math.max(0.1, baseAlpha - Math.abs(perspective.pitch) * 0.025));
     };
 
     const pouch = this.pouch;
@@ -251,6 +310,7 @@ export class OpeningScene extends Phaser.Scene {
         POUCH_POINTER_PERSPECTIVE_YAW_MAX,
         POUCH_POINTER_PERSPECTIVE_PITCH_MAX,
       );
+      syncDepthShadow(pouch.shadow, pouch.perspective, 5.5, 3.2);
       pouch.group.angle = 0;
     }
 
@@ -265,6 +325,36 @@ export class OpeningScene extends Phaser.Scene {
       COLLECTIBLE_POINTER_PERSPECTIVE_YAW_MAX,
       COLLECTIBLE_POINTER_PERSPECTIVE_PITCH_MAX,
     );
+    const collectibleShadow = resultTarget?.getData('depthShadow') as Phaser.GameObjects.Ellipse | null | undefined;
+    syncDepthShadow(collectibleShadow, collectiblePerspective, 4.2, 2.4);
+
+    const parallaxResponse = 1 - Math.exp(-Math.max(0, delta) / ENVIRONMENT_PARALLAX_RESPONSE_MS);
+    const environmentX = canFollowPointer ? heroX : 0;
+    const environmentY = canFollowPointer ? heroY : 0;
+    if (this.environmentBackgroundLayer?.active) {
+      this.environmentBackgroundLayer.x = Phaser.Math.Linear(
+        this.environmentBackgroundLayer.x,
+        -environmentX * BACKGROUND_PARALLAX_X,
+        parallaxResponse,
+      );
+      this.environmentBackgroundLayer.y = Phaser.Math.Linear(
+        this.environmentBackgroundLayer.y,
+        -environmentY * BACKGROUND_PARALLAX_Y,
+        parallaxResponse,
+      );
+    }
+    if (this.environmentAmbientLayer?.active) {
+      this.environmentAmbientLayer.x = Phaser.Math.Linear(
+        this.environmentAmbientLayer.x,
+        -environmentX * AMBIENT_PARALLAX_X,
+        parallaxResponse,
+      );
+      this.environmentAmbientLayer.y = Phaser.Math.Linear(
+        this.environmentAmbientLayer.y,
+        -environmentY * AMBIENT_PARALLAX_Y,
+        parallaxResponse,
+      );
+    }
   }
 
   private async initialize(): Promise<void> {
@@ -367,6 +457,8 @@ export class OpeningScene extends Phaser.Scene {
     this.clearAmbientMotion();
     if (this.environmentRoot?.active) this.environmentRoot.destroy(true);
     this.environmentRoot = null;
+    this.environmentBackgroundLayer = null;
+    this.environmentAmbientLayer = null;
     this.environmentLayoutKey = '';
     this.environmentBaseLayerCount = 0;
     this.tweens.killAll();
@@ -456,16 +548,29 @@ export class OpeningScene extends Phaser.Scene {
     if (this.environmentRoot?.active) this.environmentRoot.destroy(true);
 
     const environment = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
+    const backgroundLayer = this.add.container(0, 0);
+    const ambientLayer = this.add.container(0, 0);
+    environment.add([backgroundLayer, ambientLayer]);
+
     const background = addCoverArt(
       this,
-      environment,
+      backgroundLayer,
       staticTextureKey('opening-bg'),
       metrics.logicalWidth,
       LOGICAL_HEIGHT,
     );
-    if (!background) {
-      environment.add(
-        this.add.rectangle(metrics.logicalWidth / 2, LOGICAL_HEIGHT / 2, metrics.logicalWidth, LOGICAL_HEIGHT, 0x171421),
+    if (background) {
+      // Small overscan keeps the 1-2 px camera parallax from exposing canvas edges.
+      background.setScale(background.scaleX * 1.012, background.scaleY * 1.012);
+    } else {
+      backgroundLayer.add(
+        this.add.rectangle(
+          metrics.logicalWidth / 2,
+          LOGICAL_HEIGHT / 2,
+          metrics.logicalWidth + 16,
+          LOGICAL_HEIGHT + 16,
+          0x171421,
+        ),
       );
       const haze = this.add.ellipse(
         metrics.centerX,
@@ -475,12 +580,14 @@ export class OpeningScene extends Phaser.Scene {
         0x4b365e,
         0.22,
       );
-      environment.add(haze);
+      backgroundLayer.add(haze);
     }
 
     this.environmentBaseLayerCount = environment.list.length;
-    this.addAmbientMotion(environment, metrics);
+    this.addAmbientMotion(ambientLayer, metrics);
     this.environmentRoot = environment;
+    this.environmentBackgroundLayer = backgroundLayer;
+    this.environmentAmbientLayer = ambientLayer;
     this.environmentLayoutKey = layoutKey;
   }
 
@@ -970,6 +1077,16 @@ export class OpeningScene extends Phaser.Scene {
     if (perspective) {
       perspective.yaw = 0;
       perspective.pitch = 0;
+    }
+    const shadow = this.resultBreathTarget.getData('depthShadow') as Phaser.GameObjects.Ellipse | null | undefined;
+    if (shadow?.active) {
+      shadow
+        .setPosition(
+          Number(shadow.getData('depthBaseX') ?? shadow.x),
+          Number(shadow.getData('depthBaseY') ?? shadow.y),
+        )
+        .setScale(1)
+        .setAlpha(Number(shadow.getData('depthBaseAlpha') ?? shadow.alpha));
     }
     this.resultBreathTarget = null;
     this.resultBreathBaseScale = 1;

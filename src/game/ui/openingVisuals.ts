@@ -29,6 +29,7 @@ export const SECRET_PREMIUM_GOLD = 0xffd36a;
 
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Ellipse;
   body: Phaser.GameObjects.Rectangle;
   bodyLayer: Phaser.GameObjects.Container;
   strip: Phaser.GameObjects.Container;
@@ -243,8 +244,13 @@ export const createPouchVisual = (
 
   const perspective = attachPouchPerspective(scene, perspectiveGroup);
 
+  shadow.setData('depthBaseX', shadow.x);
+  shadow.setData('depthBaseY', shadow.y);
+  shadow.setData('depthBaseAlpha', shadow.alpha);
+
   const visual: PouchVisual = {
     group,
+    shadow,
     body,
     bodyLayer,
     strip,
@@ -294,6 +300,7 @@ export const createPouchVisual = (
 
 export interface CollectibleVisual {
   group: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Ellipse | null;
   accentColor: number;
   presentation: CollectiblePresentation;
   perspective: PouchPerspectiveController | null;
@@ -354,6 +361,7 @@ const createAssetCollectible = (
   artTarget: Phaser.GameObjects.Container;
   filterWidth: number;
   filterHeight: number;
+  shadow: Phaser.GameObjects.Ellipse;
 } => {
   const group = scene.add.container(0, 0);
   const artTarget = scene.add.container(0, 0);
@@ -378,9 +386,13 @@ const createAssetCollectible = (
   group.add([shadow, artTarget]);
   artTarget.setDepth(1);
 
+  shadow.setData('depthBaseX', shadow.x);
+  shadow.setData('depthBaseY', shadow.y);
+  shadow.setData('depthBaseAlpha', shadow.alpha);
+
   const filterWidth = Math.max(320, presentation.assetWidth + 72);
   const filterHeight = Math.max(320, image.displayHeight + 72);
-  return { group, artTarget, filterWidth, filterHeight };
+  return { group, artTarget, filterWidth, filterHeight, shadow };
 };
 
 export const createCollectibleVisual = (
@@ -419,7 +431,9 @@ export const createCollectibleVisual = (
         assetVisual.filterHeight,
       )
     : null;
+  const shadow = assetVisual?.shadow ?? null;
   group.setData('perspective', perspective);
+  group.setData('depthShadow', shadow);
 
   const pouch = root.getData('activePouchVisual') as PouchVisual | undefined;
   if (
@@ -435,7 +449,7 @@ export const createCollectibleVisual = (
     root.bringToTop(pouch.group);
   }
 
-  return { group, accentColor, presentation, perspective };
+  return { group, shadow, accentColor, presentation, perspective };
 };
 
 export const createRevealRing = (
