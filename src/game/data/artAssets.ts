@@ -4,60 +4,7 @@ import { DEFAULT_LOOT_POOL_ID } from './collectibles';
 const COLLECTIBLE_TEXTURE_PREFIX = 'art:collectible:';
 const STATIC_TEXTURE_PREFIX = 'art:static:';
 
-export type StaticArtId =
-  | 'pouch-body'
-  | 'pouch-tear-strip'
-  | 'pouch-star-tab'
-  | 'charged-pouch-body'
-  | 'charged-pouch-tear-strip'
-  | 'charged-pouch-star-tab'
-  | 'video-link-basic-pouch-body'
-  | 'video-link-basic-pouch-tear-strip'
-  | 'video-link-basic-pouch-star-tab'
-  | 'video-link-charged-pouch-body'
-  | 'video-link-charged-pouch-tear-strip'
-  | 'video-link-charged-pouch-star-tab'
-  | 'pocket-office-basic-pouch-body'
-  | 'pocket-office-basic-pouch-tear-strip'
-  | 'pocket-office-basic-pouch-star-tab'
-  | 'pocket-office-charged-pouch-body'
-  | 'pocket-office-charged-pouch-tear-strip'
-  | 'pocket-office-charged-pouch-star-tab'
-  | 'pocket-audio-basic-pouch-body'
-  | 'pocket-audio-basic-pouch-tear-strip'
-  | 'pocket-audio-basic-pouch-star-tab'
-  | 'pocket-audio-charged-pouch-body'
-  | 'pocket-audio-charged-pouch-tear-strip'
-  | 'pocket-audio-charged-pouch-star-tab'
-  | 'game-zone-basic-pouch-body'
-  | 'game-zone-basic-pouch-tear-strip'
-  | 'game-zone-basic-pouch-star-tab'
-  | 'game-zone-charged-pouch-body'
-  | 'game-zone-charged-pouch-tear-strip'
-  | 'game-zone-charged-pouch-star-tab'
-  | 'analog-nights-basic-pouch-body'
-  | 'analog-nights-basic-pouch-tear-strip'
-  | 'analog-nights-basic-pouch-star-tab'
-  | 'analog-nights-charged-pouch-body'
-  | 'analog-nights-charged-pouch-tear-strip'
-  | 'analog-nights-charged-pouch-star-tab'
-  | 'opening-bg'
-  | 'collection-bg'
-  | 'collection-foreground';
-
-export interface RuntimeCollectibleArt {
-  collectibleId: string;
-  textureKey: string;
-  assetPath: string;
-}
-
-export interface RuntimeStaticArt {
-  id: StaticArtId;
-  textureKey: string;
-  assetPath: string;
-}
-
-const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
+const STATIC_ART_PATHS = {
   'pouch-body': 'assets/package/pouch-body.webp',
   'pouch-tear-strip': 'assets/package/pouch-tear-strip-compact.webp',
   'pouch-star-tab': 'assets/package/pouch-star-tab.webp',
@@ -94,10 +41,30 @@ const STATIC_ART_PATHS: Readonly<Record<StaticArtId, string>> = {
   'analog-nights-charged-pouch-body': 'assets/package/analog-nights-charged-pouch-body.webp',
   'analog-nights-charged-pouch-tear-strip': 'assets/package/analog-nights-charged-pouch-tear-strip-compact.webp',
   'analog-nights-charged-pouch-star-tab': 'assets/package/analog-nights-charged-pouch-star-tab.webp',
+  'airwaves-basic-pouch-body': 'assets/package/airwaves-basic-pouch-body.webp',
+  'airwaves-basic-pouch-tear-strip': 'assets/package/airwaves-basic-pouch-tear-strip-compact.webp',
+  'airwaves-basic-pouch-star-tab': 'assets/package/airwaves-basic-pouch-star-tab.webp',
+  'airwaves-charged-pouch-body': 'assets/package/airwaves-charged-pouch-body.webp',
+  'airwaves-charged-pouch-tear-strip': 'assets/package/airwaves-charged-pouch-tear-strip-compact.webp',
+  'airwaves-charged-pouch-star-tab': 'assets/package/airwaves-charged-pouch-star-tab.webp',
   'opening-bg': 'assets/backgrounds/opening-bg.webp',
   'collection-bg': 'assets/backgrounds/collection-bg.webp',
   'collection-foreground': 'assets/backgrounds/collection-foreground.webp',
-};
+} as const;
+
+export type StaticArtId = keyof typeof STATIC_ART_PATHS;
+
+export interface RuntimeCollectibleArt {
+  collectibleId: string;
+  textureKey: string;
+  assetPath: string;
+}
+
+export interface RuntimeStaticArt {
+  id: StaticArtId;
+  textureKey: string;
+  assetPath: string;
+}
 
 /**
  * Add ids only after the matching export exists under public/ and has been
@@ -166,49 +133,21 @@ export const AVAILABLE_COLLECTIBLE_ART_IDS = new Set<string>([
   'crt-tv-epic',
   'crt-tv-legendary',
   'crt-tv-secret-communicator',
+  'portable-radio-common',
+  'portable-radio-rare',
+  'portable-radio-epic',
+  'portable-radio-legendary',
+  'portable-radio-secret-shortwave',
+  'walkie-talkie-common',
+  'walkie-talkie-rare',
+  'walkie-talkie-epic',
+  'walkie-talkie-legendary',
+  'walkie-talkie-secret-field-radio',
 ]);
 
-export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>([
-  'pouch-body',
-  'pouch-tear-strip',
-  'pouch-star-tab',
-  'charged-pouch-body',
-  'charged-pouch-tear-strip',
-  'charged-pouch-star-tab',
-  'video-link-basic-pouch-body',
-  'video-link-basic-pouch-tear-strip',
-  'video-link-basic-pouch-star-tab',
-  'video-link-charged-pouch-body',
-  'video-link-charged-pouch-tear-strip',
-  'video-link-charged-pouch-star-tab',
-  'pocket-office-basic-pouch-body',
-  'pocket-office-basic-pouch-tear-strip',
-  'pocket-office-basic-pouch-star-tab',
-  'pocket-office-charged-pouch-body',
-  'pocket-office-charged-pouch-tear-strip',
-  'pocket-office-charged-pouch-star-tab',
-  'pocket-audio-basic-pouch-body',
-  'pocket-audio-basic-pouch-tear-strip',
-  'pocket-audio-basic-pouch-star-tab',
-  'pocket-audio-charged-pouch-body',
-  'pocket-audio-charged-pouch-tear-strip',
-  'pocket-audio-charged-pouch-star-tab',
-  'game-zone-basic-pouch-body',
-  'game-zone-basic-pouch-tear-strip',
-  'game-zone-basic-pouch-star-tab',
-  'game-zone-charged-pouch-body',
-  'game-zone-charged-pouch-tear-strip',
-  'game-zone-charged-pouch-star-tab',
-  'analog-nights-basic-pouch-body',
-  'analog-nights-basic-pouch-tear-strip',
-  'analog-nights-basic-pouch-star-tab',
-  'analog-nights-charged-pouch-body',
-  'analog-nights-charged-pouch-tear-strip',
-  'analog-nights-charged-pouch-star-tab',
-  'opening-bg',
-  'collection-bg',
-  'collection-foreground',
-]);
+export const AVAILABLE_STATIC_ART_IDS = new Set<StaticArtId>(
+  Object.keys(STATIC_ART_PATHS) as StaticArtId[],
+);
 
 export const collectibleTextureKey = (collectibleId: string): string =>
   `${COLLECTIBLE_TEXTURE_PREFIX}${collectibleId}`;
@@ -234,67 +173,26 @@ const POUCH_STATIC_ART_IDS: PouchVariantIds = {
   },
 };
 
+const themedPouchIds = (dropId: Exclude<GameLootPoolId, typeof DEFAULT_LOOT_POOL_ID>): PouchVariantIds => ({
+  basic: {
+    body: `${dropId}-basic-pouch-body` as StaticArtId,
+    'tear-strip': `${dropId}-basic-pouch-tear-strip` as StaticArtId,
+    'star-tab': `${dropId}-basic-pouch-star-tab` as StaticArtId,
+  },
+  charged: {
+    body: `${dropId}-charged-pouch-body` as StaticArtId,
+    'tear-strip': `${dropId}-charged-pouch-tear-strip` as StaticArtId,
+    'star-tab': `${dropId}-charged-pouch-star-tab` as StaticArtId,
+  },
+});
+
 const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVariantIds>>> = {
-  'video-link': {
-    basic: {
-      body: 'video-link-basic-pouch-body',
-      'tear-strip': 'video-link-basic-pouch-tear-strip',
-      'star-tab': 'video-link-basic-pouch-star-tab',
-    },
-    charged: {
-      body: 'video-link-charged-pouch-body',
-      'tear-strip': 'video-link-charged-pouch-tear-strip',
-      'star-tab': 'video-link-charged-pouch-star-tab',
-    },
-  },
-  'pocket-office': {
-    basic: {
-      body: 'pocket-office-basic-pouch-body',
-      'tear-strip': 'pocket-office-basic-pouch-tear-strip',
-      'star-tab': 'pocket-office-basic-pouch-star-tab',
-    },
-    charged: {
-      body: 'pocket-office-charged-pouch-body',
-      'tear-strip': 'pocket-office-charged-pouch-tear-strip',
-      'star-tab': 'pocket-office-charged-pouch-star-tab',
-    },
-  },
-  'pocket-audio': {
-    basic: {
-      body: 'pocket-audio-basic-pouch-body',
-      'tear-strip': 'pocket-audio-basic-pouch-tear-strip',
-      'star-tab': 'pocket-audio-basic-pouch-star-tab',
-    },
-    charged: {
-      body: 'pocket-audio-charged-pouch-body',
-      'tear-strip': 'pocket-audio-charged-pouch-tear-strip',
-      'star-tab': 'pocket-audio-charged-pouch-star-tab',
-    },
-  },
-  'game-zone': {
-    basic: {
-      body: 'game-zone-basic-pouch-body',
-      'tear-strip': 'game-zone-basic-pouch-tear-strip',
-      'star-tab': 'game-zone-basic-pouch-star-tab',
-    },
-    charged: {
-      body: 'game-zone-charged-pouch-body',
-      'tear-strip': 'game-zone-charged-pouch-tear-strip',
-      'star-tab': 'game-zone-charged-pouch-star-tab',
-    },
-  },
-  'analog-nights': {
-    basic: {
-      body: 'analog-nights-basic-pouch-body',
-      'tear-strip': 'analog-nights-basic-pouch-tear-strip',
-      'star-tab': 'analog-nights-basic-pouch-star-tab',
-    },
-    charged: {
-      body: 'analog-nights-charged-pouch-body',
-      'tear-strip': 'analog-nights-charged-pouch-tear-strip',
-      'star-tab': 'analog-nights-charged-pouch-star-tab',
-    },
-  },
+  'video-link': themedPouchIds('video-link'),
+  'pocket-office': themedPouchIds('pocket-office'),
+  'pocket-audio': themedPouchIds('pocket-audio'),
+  'game-zone': themedPouchIds('game-zone'),
+  'analog-nights': themedPouchIds('analog-nights'),
+  airwaves: themedPouchIds('airwaves'),
 };
 
 const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = [
