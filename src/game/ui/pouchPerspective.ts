@@ -123,9 +123,11 @@ const resolveFilterSupersample = (target: Phaser.GameObjects.Container): number 
 const supersampleFilterTarget = (
   target: Phaser.GameObjects.Container,
   supersample: number,
+  baseWidth: number,
+  baseHeight: number,
 ): void => {
   if (supersample <= 1.001) {
-    target.setSize(FILTER_BASE_WIDTH, FILTER_BASE_HEIGHT);
+    target.setSize(baseWidth, baseHeight);
     return;
   }
 
@@ -144,7 +146,7 @@ const supersampleFilterTarget = (
     }
   }
   target.setScale(target.scaleX / supersample, target.scaleY / supersample);
-  target.setSize(FILTER_BASE_WIDTH * supersample, FILTER_BASE_HEIGHT * supersample);
+  target.setSize(baseWidth * supersample, baseHeight * supersample);
 };
 
 export class PouchPerspectiveController extends Phaser.Filters.Controller {
@@ -172,9 +174,12 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
   }
 }
 
-export const attachPouchPerspective = (
+const attachPlanarPerspective = (
   scene: Phaser.Scene,
   target: Phaser.GameObjects.Container,
+  baseWidth: number,
+  baseHeight: number,
+  supersampleBoost = 1,
 ): PouchPerspectiveController | null => {
   if (scene.game.renderer.type !== Phaser.WEBGL) return null;
 
@@ -186,7 +191,12 @@ export const attachPouchPerspective = (
   // Match the internal framebuffer density to the pouch's actual on-screen
   // scale, capped to keep the transient WebGL targets bounded on large/HiDPI
   // displays. This preserves the existing visual size and interaction geometry.
-  supersampleFilterTarget(target, resolveFilterSupersample(target));
+  const supersample = Phaser.Math.Clamp(
+    resolveFilterSupersample(target) * supersampleBoost,
+    1,
+    FILTER_MAX_SUPERSAMPLE,
+  );
+  supersampleFilterTarget(target, supersample, baseWidth, baseHeight);
   target.enableFilters();
   const camera = target.filterCamera;
   const filters = target.filters;
@@ -196,3 +206,18 @@ export const attachPouchPerspective = (
   filters.internal.add(controller);
   return controller;
 };
+
+
+export const attachPouchPerspective = (
+  scene: Phaser.Scene,
+  target: Phaser.GameObjects.Container,
+): PouchPerspectiveController | null =>
+  attachPlanarPerspective(scene, target, FILTER_BASE_WIDTH, FILTER_BASE_HEIGHT);
+
+export const attachCollectiblePerspective = (
+  scene: Phaser.Scene,
+  target: Phaser.GameObjects.Container,
+  width: number,
+  height: number,
+): PouchPerspectiveController | null =>
+  attachPlanarPerspective(scene, target, width, height, 1.25);
