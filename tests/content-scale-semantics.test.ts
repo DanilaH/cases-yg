@@ -24,12 +24,12 @@ const rewardState = (poolId: string, overrides: Partial<LiteRewardState> = {}): 
 });
 
 describe('production content registry and Drop semantics', () => {
-  it('contains exactly 6 Drops, 12 families, 48 standards and 12 Secrets', () => {
+  it('contains exactly 7 Drops, 14 families, 56 standards and 14 Secrets', () => {
     expect(GAME_REGISTRY.lootPools.map(({ id }) => id)).toEqual([...GAME_LOOT_POOL_IDS]);
-    expect(GAME_REGISTRY.families).toHaveLength(12);
-    expect(GAME_REGISTRY.standardItems).toHaveLength(48);
-    expect(GAME_REGISTRY.secrets).toHaveLength(12);
-    expect(GAME_REGISTRY.collectibleFamilyById.size).toBe(60);
+    expect(GAME_REGISTRY.families).toHaveLength(14);
+    expect(GAME_REGISTRY.standardItems).toHaveLength(56);
+    expect(GAME_REGISTRY.secrets).toHaveLength(14);
+    expect(GAME_REGISTRY.collectibleFamilyById.size).toBe(70);
 
     for (const poolId of GAME_LOOT_POOL_IDS) {
       expect(GAME_REGISTRY.lootPoolById.get(poolId)?.familyIds).toHaveLength(2);
@@ -82,7 +82,7 @@ describe('production content registry and Drop semantics', () => {
     });
   });
 
-  it('emits standard completion for the reveal Drop without requiring 48/48 globally', () => {
+  it('emits standard completion for the reveal Drop without requiring global completion', () => {
     const poolId = 'pocket-office';
     const items = poolItems(poolId);
     const missing = items.find(({ rarity }) => rarity === 'common');
