@@ -180,11 +180,22 @@ export const createPouchVisual = (
   const bodyLayer = scene.add.container(0, 0);
   const body = scene.add.rectangle(0, POUCH_PRESENTATION.body.y, 350, 340, 0xa89ebd, 0);
   const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
+  // The five newer themed Basic body exports have a visibly denser crop than
+  // the original Y2K Basic raster. Apply one shared optical correction only to
+  // those themed Basic bodies; the original Y2K Basic and every Charged pouch
+  // keep their existing authored/runtime sizing.
+  const themedBasicBodyWidthOffset =
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;
+  const themedBasicBodyOffsetY =
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
   const bodyPresentation = {
     ...POUCH_PRESENTATION.body,
     x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
-    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,
-    displayWidth: POUCH_PRESENTATION.body.displayWidth + variantPresentation.bodyWidthOffset,
+    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY + themedBasicBodyOffsetY,
+    displayWidth:
+      POUCH_PRESENTATION.body.displayWidth
+      + variantPresentation.bodyWidthOffset
+      + themedBasicBodyWidthOffset,
   };
   const stripPresentation = {
     ...POUCH_PRESENTATION.strip,
