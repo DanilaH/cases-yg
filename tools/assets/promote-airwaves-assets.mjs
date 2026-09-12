@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import sharp from 'sharp';
 
+// One-time source promotion for the reviewed Radio + Walkie-Talkie Drop art.
 const root = process.cwd();
 const resolve = (value) => path.resolve(root, value);
 
