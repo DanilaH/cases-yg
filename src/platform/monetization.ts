@@ -19,19 +19,27 @@ export const DEFAULT_RESULT_INTERSTITIAL_POLICY: Readonly<ResultInterstitialPoli
 };
 
 export class ResultInterstitialPolicy {
-  private nextEligibleAtMs: number;
+  private nextEligibleAtMs: number | null = null;
   private resultsSinceRequest = 0;
 
   public constructor(
     private readonly now: () => number = () => performance.now(),
     private readonly config: Readonly<ResultInterstitialPolicyConfig> = DEFAULT_RESULT_INTERSTITIAL_POLICY,
-  ) {
+  ) {}
+
+  public markGameReady(): void {
+    if (this.nextEligibleAtMs !== null) return;
     this.nextEligibleAtMs = this.now() + this.config.initialGraceMs;
   }
 
   public recordResultCollected(): boolean {
     this.resultsSinceRequest += 1;
     const now = this.now();
+    if (this.nextEligibleAtMs === null) {
+      // Defensive fallback for non-standard runtimes/tests. Production arms the
+      // grace period from the platform_ready event (after Game Ready).
+      this.nextEligibleAtMs = now + this.config.initialGraceMs;
+    }
 
     if (this.resultsSinceRequest < this.config.minResultsBetweenRequests) {
       return false;
@@ -60,6 +68,11 @@ export class MonetizedAnalyticsAdapter implements AnalyticsAdapter {
 
   public track(event: string, params?: AnalyticsParams): void {
     this.base.track(event, params);
+
+    if (event === 'platform_ready') {
+      this.interstitialPolicy.markGameReady();
+      return;
+    }
     if (event !== 'result_collected' || !this.interstitialPolicy.recordResultCollected()) {
       return;
     }
