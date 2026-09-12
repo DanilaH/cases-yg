@@ -186,11 +186,13 @@ export const createPouchVisual = (
   // keep their existing authored/runtime sizing.
   const themedBasicBodyWidthOffset =
     variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;
+  const themedBasicBodyOffsetX =
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? 0 : 0;
   const themedBasicBodyOffsetY =
     variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
   const bodyPresentation = {
     ...POUCH_PRESENTATION.body,
-    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
+    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX + themedBasicBodyOffsetX,
     y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY + themedBasicBodyOffsetY,
     displayWidth:
       POUCH_PRESENTATION.body.displayWidth
