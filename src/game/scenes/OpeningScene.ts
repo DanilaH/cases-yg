@@ -550,7 +550,7 @@ export class OpeningScene extends Phaser.Scene {
     const environment = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     const backgroundLayer = this.add.container(0, 0);
     const ambientLayer = this.add.container(0, 0);
-    environment.add([backgroundLayer, ambientLayer]);
+    environment.add(backgroundLayer);
 
     const background = addCoverArt(
       this,
@@ -583,7 +583,10 @@ export class OpeningScene extends Phaser.Scene {
       backgroundLayer.add(haze);
     }
 
+    // Reveal backdrops are inserted after the background but before ambient
+    // motes, matching the original compositing order.
     this.environmentBaseLayerCount = environment.list.length;
+    environment.add(ambientLayer);
     this.addAmbientMotion(ambientLayer, metrics);
     this.environmentRoot = environment;
     this.environmentBackgroundLayer = backgroundLayer;

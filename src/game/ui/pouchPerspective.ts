@@ -12,6 +12,11 @@ const FRAGMENT_SHADER = [
   'uniform vec3 invH0;',
   'uniform vec3 invH1;',
   'uniform vec3 invH2;',
+  'uniform float poseYaw;',
+  'uniform float posePitch;',
+  'uniform float sheenStrength;',
+  'uniform float rimStrength;',
+  'uniform vec3 materialTint;',
   'varying vec2 outTexCoord;',
   '#pragma phaserTemplate(fragmentHeader)',
   'void main()',
@@ -27,7 +32,20 @@ const FRAGMENT_SHADER = [
   '    }',
   '    else',
   '    {',
-  '        gl_FragColor = texture2D(uMainSampler, uv);',
+  '        vec4 sampled = texture2D(uMainSampler, uv);',
+  '        float motion = clamp(length(vec2(poseYaw, posePitch)), 0.0, 1.0);',
+  '        float sheenCoord = uv.x * 0.72 + uv.y * 0.28;',
+  '        float sheenCenter = 0.5 + clamp(poseYaw * 0.20 - posePitch * 0.14, -0.26, 0.26);',
+  '        float sheen = 1.0 - smoothstep(0.055, 0.18, abs(sheenCoord - sheenCenter));',
+  '        float edgeDistance = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));',
+  '        float rimMask = 1.0 - smoothstep(0.0, 0.075, edgeDistance);',
+  '        vec2 fromCenter = uv - vec2(0.5);',
+  '        float nearBias = clamp(0.5 + poseYaw * fromCenter.x * 2.2 - posePitch * fromCenter.y * 2.0, 0.0, 1.0);',
+  '        float alphaMask = sampled.a;',
+  '        float sheenAmount = sheenStrength * sheen * (0.08 + 0.92 * motion) * alphaMask;',
+  '        float rimAmount = rimStrength * rimMask * (0.25 + 0.75 * nearBias) * alphaMask;',
+  '        sampled.rgb += materialTint * (sheenAmount + rimAmount);',
+  '        gl_FragColor = sampled;',
   '    }',
   '}',
 ].join('\n');
@@ -149,9 +167,18 @@ const supersampleFilterTarget = (
   target.setSize(baseWidth * supersample, baseHeight * supersample);
 };
 
+export interface PerspectiveMaterialProfile {
+  sheenStrength: number;
+  rimStrength: number;
+  tint: readonly [number, number, number];
+}
+
 export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public yaw = 0;
   public pitch = 0;
+  public sheenStrength = 0;
+  public rimStrength = 0;
+  public materialTint: [number, number, number] = [1, 1, 1];
 
   public constructor(camera: Phaser.Cameras.Scene2D.Camera) {
     super(camera, FILTER_NODE);
@@ -167,10 +194,16 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
     const perspective = controller as PouchPerspectiveController;
     // Horizontal mouse-follow felt mirrored in the planar projection. Keep the
     // vertical response untouched and flip only X/yaw at the projection boundary.
-    const [invH0, invH1, invH2] = buildInverseHomography(-perspective.yaw, perspective.pitch);
+    const projectedYaw = -perspective.yaw;
+    const [invH0, invH1, invH2] = buildInverseHomography(projectedYaw, perspective.pitch);
     this.programManager.setUniform('invH0', invH0);
     this.programManager.setUniform('invH1', invH1);
     this.programManager.setUniform('invH2', invH2);
+    this.programManager.setUniform('poseYaw', projectedYaw);
+    this.programManager.setUniform('posePitch', perspective.pitch);
+    this.programManager.setUniform('sheenStrength', perspective.sheenStrength);
+    this.programManager.setUniform('rimStrength', perspective.rimStrength);
+    this.programManager.setUniform('materialTint', perspective.materialTint);
   }
 }
 
@@ -221,3 +254,18 @@ export const attachCollectiblePerspective = (
   height: number,
 ): PouchPerspectiveController | null =>
   attachPlanarPerspective(scene, target, width, height, 1.25);
+
+
+export const configurePerspectiveMaterial = (
+  controller: PouchPerspectiveController | null,
+  profile: PerspectiveMaterialProfile,
+): void => {
+  if (!controller) return;
+  controller.sheenStrength = Math.max(0, profile.sheenStrength);
+  controller.rimStrength = Math.max(0, profile.rimStrength);
+  controller.materialTint = [
+    Phaser.Math.Clamp(profile.tint[0], 0, 1),
+    Phaser.Math.Clamp(profile.tint[1], 0, 1),
+    Phaser.Math.Clamp(profile.tint[2], 0, 1),
+  ];
+};
