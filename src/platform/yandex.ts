@@ -3,6 +3,7 @@ import type { SDK } from 'ysdk';
 import { GameplayActivityCoordinator } from './activity';
 import { ConsoleAnalyticsAdapter, createYandexAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
 import { MockAdsAdapter, YandexAdsAdapter, type AdsAdapter } from './ads';
+import { MonetizedAnalyticsAdapter } from './monetization';
 import { WebStorageAdapter, type StorageAdapter } from './storage';
 
 export type AppLanguage = 'en' | 'ru';
@@ -29,7 +30,9 @@ const installVisibilityBridge = (activity: GameplayActivityCoordinator): (() => 
 
 const createMockPlatform = (): PlatformRuntime => {
   const activity = new GameplayActivityCoordinator(() => undefined, () => undefined);
-  const analytics = new ConsoleAnalyticsAdapter();
+  const baseAnalytics = new ConsoleAnalyticsAdapter();
+  const ads = new MockAdsAdapter(activity, { analytics: baseAnalytics });
+  const analytics = new MonetizedAnalyticsAdapter(baseAnalytics, ads);
   const removeVisibilityBridge = installVisibilityBridge(activity);
   let readySent = false;
 
@@ -38,7 +41,7 @@ const createMockPlatform = (): PlatformRuntime => {
     language: normalizeLanguage(navigator.language.split('-')[0]),
     storage: new WebStorageAdapter(window.localStorage),
     analytics,
-    ads: new MockAdsAdapter(activity, { analytics }),
+    ads,
     activity,
     markReady: () => {
       if (readySent) return;
@@ -70,11 +73,13 @@ const loadYandexSdk = async (): Promise<void> => {
 const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   await loadYandexSdk();
   const sdk: SDK = await YaGames.init();
-  const analytics = createYandexAnalyticsAdapter();
+  const baseAnalytics = createYandexAnalyticsAdapter();
   const activity = new GameplayActivityCoordinator(
     () => sdk.features.GameplayAPI?.start(),
     () => sdk.features.GameplayAPI?.stop(),
   );
+  const ads = new YandexAdsAdapter(sdk, activity, { analytics: baseAnalytics });
+  const analytics = new MonetizedAnalyticsAdapter(baseAnalytics, ads);
 
   const removeVisibilityBridge = installVisibilityBridge(activity);
   const handlePause = (): void => {
@@ -101,7 +106,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
       language: normalizeLanguage(sdk.environment.i18n.lang),
       storage: new WebStorageAdapter(storage),
       analytics,
-      ads: new YandexAdsAdapter(sdk, activity, { analytics }),
+      ads,
       activity,
       markReady: () => {
         if (readySent) return;
@@ -123,8 +128,5 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   }
 };
 
-export const bootstrapPlatform = async (): Promise<PlatformRuntime> => {
-  const params = new URLSearchParams(window.location.search);
-  const forceMock = import.meta.env.DEV || params.get('platform') === 'mock';
-  return forceMock ? createMockPlatform() : createYandexPlatform();
-};
+export const bootstrapPlatform = async (): Promise<PlatformRuntime> =>
+  import.meta.env.DEV ? createMockPlatform() : createYandexPlatform();
