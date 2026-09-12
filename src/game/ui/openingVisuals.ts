@@ -37,11 +37,11 @@ const POUCH_MATERIAL_PROFILES: Readonly<Record<PouchArtVariant, PerspectiveMater
 const COLLECTIBLE_MATERIAL_PROFILES: Readonly<
   Record<StandardRarity | 'secret', PerspectiveMaterialProfile>
 > = {
-  common: { sheenStrength: 0.014, rimStrength: 0.008, outlineStrength: 0.34, tint: [0.98, 0.97, 1] },
-  rare: { sheenStrength: 0.032, rimStrength: 0.016, outlineStrength: 0.42, tint: [0.70, 0.93, 1] },
-  epic: { sheenStrength: 0.050, rimStrength: 0.023, outlineStrength: 0.46, tint: [0.90, 0.72, 1] },
-  legendary: { sheenStrength: 0.070, rimStrength: 0.031, outlineStrength: 0.50, tint: [1, 0.83, 0.46] },
-  secret: { sheenStrength: 0.084, rimStrength: 0.038, outlineStrength: 0.54, tint: [1, 0.72, 0.86] },
+  common: { sheenStrength: 0.014, rimStrength: 0.008, outlineStrength: 0, tint: [0.98, 0.97, 1] },
+  rare: { sheenStrength: 0.032, rimStrength: 0.016, outlineStrength: 0, tint: [0.70, 0.93, 1] },
+  epic: { sheenStrength: 0.050, rimStrength: 0.023, outlineStrength: 0, tint: [0.90, 0.72, 1] },
+  legendary: { sheenStrength: 0.070, rimStrength: 0.031, outlineStrength: 0, tint: [1, 0.83, 0.46] },
+  secret: { sheenStrength: 0.084, rimStrength: 0.038, outlineStrength: 0, tint: [1, 0.72, 0.86] },
 };
 
 export interface PouchVisual {
@@ -374,6 +374,7 @@ const createAssetCollectible = (
   scene: Phaser.Scene,
   presentation: CollectiblePresentation,
   textureKey: string,
+  outlineColor: number,
 ): {
   group: Phaser.GameObjects.Container;
   artTarget: Phaser.GameObjects.Container;
@@ -388,6 +389,36 @@ const createAssetCollectible = (
     .image(presentation.artOffsetX, presentation.artOffsetY, textureKey)
     .setOrigin(0.5);
   image.setScale(presentation.assetWidth / Math.max(1, image.width));
+
+  // Build the rarity outline before the perspective filter. Eight slightly
+  // shifted copies form a stable 2D silhouette stroke that is then warped by
+  // exactly the same homography as the collectible. This avoids the old
+  // post-filter alpha-neighbour outline becoming subpixel after supersampling.
+  const outlineOffset = 2.4;
+  const diagonalOffset = outlineOffset * 0.72;
+  const outlineOffsets = [
+    [-outlineOffset, 0],
+    [outlineOffset, 0],
+    [0, -outlineOffset],
+    [0, outlineOffset],
+    [-diagonalOffset, -diagonalOffset],
+    [diagonalOffset, -diagonalOffset],
+    [-diagonalOffset, diagonalOffset],
+    [diagonalOffset, diagonalOffset],
+  ] as const;
+  for (const [offsetX, offsetY] of outlineOffsets) {
+    const outline = scene.add
+      .image(
+        presentation.artOffsetX + offsetX,
+        presentation.artOffsetY + offsetY,
+        textureKey,
+      )
+      .setOrigin(0.5)
+      .setTint(outlineColor)
+      .setAlpha(0.62);
+    outline.setScale(image.scaleX, image.scaleY);
+    artContent.add(outline);
+  }
   artContent.add(image);
   artTarget.add(artContent);
 
@@ -427,7 +458,7 @@ export const createCollectibleVisual = (
   const textureKey = collectibleId ? collectibleTextureKey(collectibleId) : null;
   const assetVisual =
     textureKey && scene.textures.exists(textureKey)
-      ? createAssetCollectible(scene, presentation, textureKey)
+      ? createAssetCollectible(scene, presentation, textureKey, accentColor)
       : null;
   const group = assetVisual?.group
     ?? (familyId === 'camera'
