@@ -42,8 +42,9 @@ const addDebugChips = (state: SaveState, amount: number): SaveState => {
 };
 
 export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
-  const params = new URLSearchParams(window.location.search);
-  if (!import.meta.env.DEV && !params.has('debug')) {
+  // Internal save/reveal/ad controls must never be reachable in a production
+  // moderation or public build through a query-string switch.
+  if (!import.meta.env.DEV) {
     return () => undefined;
   }
 

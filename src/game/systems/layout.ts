@@ -54,7 +54,9 @@ export const createLayoutMetrics = (
   const aspect = viewportWidth / height;
   const logicalHeight = 720 as const;
   const scale = height / logicalHeight;
-  const logicalWidth = clamp(aspect * logicalHeight, 900, 1728);
+  // Yandex Games desktop requirement 1.6.2.2 caps the active game's long side
+  // at 2x the short side. Keep the authored logical surface inside that limit.
+  const logicalWidth = clamp(aspect * logicalHeight, 900, logicalHeight * 2);
   const contentWidth = logicalWidth * scale;
   const offsetX = (viewportWidth - contentWidth) / 2;
   const mode: LayoutMode = aspect <= 1.5 ? 'compact' : aspect <= 1.95 ? 'standard' : 'wide';

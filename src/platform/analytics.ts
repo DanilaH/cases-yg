@@ -6,7 +6,7 @@ export interface AnalyticsAdapter {
 
 export class ConsoleAnalyticsAdapter implements AnalyticsAdapter {
   public track(event: string, params?: AnalyticsParams): void {
-    if (import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')) {
+    if (import.meta.env.DEV) {
       console.info('[analytics]', event, params ?? {});
     }
   }
