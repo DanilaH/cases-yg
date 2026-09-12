@@ -17,6 +17,7 @@ const FRAGMENT_SHADER = [
   'uniform float sheenStrength;',
   'uniform float rimStrength;',
   'uniform vec3 materialTint;',
+  'uniform vec2 texelSize;',
   'varying vec2 outTexCoord;',
   '#pragma phaserTemplate(fragmentHeader)',
   'void main()',
@@ -37,8 +38,13 @@ const FRAGMENT_SHADER = [
   '        float sheenCoord = uv.x * 0.72 + uv.y * 0.28;',
   '        float sheenCenter = 0.5 + clamp(poseYaw * 0.20 - posePitch * 0.14, -0.26, 0.26);',
   '        float sheen = 1.0 - smoothstep(0.055, 0.18, abs(sheenCoord - sheenCenter));',
-  '        float edgeDistance = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));',
-  '        float rimMask = 1.0 - smoothstep(0.0, 0.075, edgeDistance);',
+  '        vec2 edgeStep = texelSize * 2.0;',
+  '        float alphaLeft = texture2D(uMainSampler, clamp(uv - vec2(edgeStep.x, 0.0), vec2(0.0), vec2(1.0))).a;',
+  '        float alphaRight = texture2D(uMainSampler, clamp(uv + vec2(edgeStep.x, 0.0), vec2(0.0), vec2(1.0))).a;',
+  '        float alphaUp = texture2D(uMainSampler, clamp(uv - vec2(0.0, edgeStep.y), vec2(0.0), vec2(1.0))).a;',
+  '        float alphaDown = texture2D(uMainSampler, clamp(uv + vec2(0.0, edgeStep.y), vec2(0.0), vec2(1.0))).a;',
+  '        float alphaDrop = max(max(sampled.a - alphaLeft, sampled.a - alphaRight), max(sampled.a - alphaUp, sampled.a - alphaDown));',
+  '        float rimMask = smoothstep(0.04, 0.35, alphaDrop);',
   '        vec2 fromCenter = uv - vec2(0.5);',
   '        float nearBias = clamp(0.5 + poseYaw * fromCenter.x * 2.2 - posePitch * fromCenter.y * 2.0, 0.0, 1.0);',
   '        float alphaMask = sampled.a;',
@@ -179,6 +185,7 @@ export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public sheenStrength = 0;
   public rimStrength = 0;
   public materialTint: [number, number, number] = [1, 1, 1];
+  public texelSize: [number, number] = [1 / FILTER_BASE_WIDTH, 1 / FILTER_BASE_HEIGHT];
 
   public constructor(camera: Phaser.Cameras.Scene2D.Camera) {
     super(camera, FILTER_NODE);
@@ -204,6 +211,7 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
     this.programManager.setUniform('sheenStrength', perspective.sheenStrength);
     this.programManager.setUniform('rimStrength', perspective.rimStrength);
     this.programManager.setUniform('materialTint', perspective.materialTint);
+    this.programManager.setUniform('texelSize', perspective.texelSize);
   }
 }
 
@@ -236,6 +244,10 @@ const attachPlanarPerspective = (
   if (!camera || !filters) return null;
 
   const controller = new PouchPerspectiveController(camera);
+  controller.texelSize = [
+    1 / Math.max(1, target.width),
+    1 / Math.max(1, target.height),
+  ];
   filters.internal.add(controller);
   return controller;
 };
