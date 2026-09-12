@@ -23,7 +23,31 @@ export interface PlatformRuntime {
   destroy(): void;
 }
 
+const DEBUG_LANGUAGE_KEY = 'mystery-pocket-tech.debug-language';
+
 const normalizeLanguage = (language: string | undefined): AppLanguage => (language === 'ru' ? 'ru' : 'en');
+
+const readDebugLanguageOverride = (): AppLanguage | null => {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const value = window.sessionStorage.getItem(DEBUG_LANGUAGE_KEY);
+    return value === 'ru' || value === 'en' ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+export const setDebugLanguageOverride = (language: AppLanguage): void => {
+  if (!import.meta.env.DEV) return;
+  try {
+    window.sessionStorage.setItem(DEBUG_LANGUAGE_KEY, language);
+  } catch {
+    // Debug convenience only; storage restrictions must never affect the game.
+  }
+};
+
+const resolveLanguage = (detectedLanguage: string | undefined): AppLanguage =>
+  readDebugLanguageOverride() ?? normalizeLanguage(detectedLanguage);
 
 const installVisibilityBridge = (activity: GameplayActivityCoordinator): (() => void) => {
   const handleVisibility = (): void => activity.setBlocked('visibility', document.hidden);
@@ -42,7 +66,7 @@ const createMockPlatform = (): PlatformRuntime => {
 
   return {
     kind: 'mock',
-    language: normalizeLanguage(navigator.language.split('-')[0]),
+    language: resolveLanguage(navigator.language.split('-')[0]),
     storage: new WebStorageAdapter(window.localStorage),
     analytics,
     ads,
@@ -122,7 +146,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
 
     return {
       kind: 'yandex',
-      language: normalizeLanguage(sdk.environment.i18n.lang),
+      language: resolveLanguage(sdk.environment.i18n.lang),
       storage,
       analytics,
       ads,
