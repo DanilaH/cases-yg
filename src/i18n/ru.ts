@@ -74,6 +74,7 @@ export const ru = {
     'pocket-audio': 'Карманное аудио',
     'game-zone': 'Игровая зона',
     'analog-nights': 'Аналоговые ночи',
+    airwaves: 'Радиоволны',
   },
   audio: {
     mute: 'Выключить звук',
