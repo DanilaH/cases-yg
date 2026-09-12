@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 import {
   attachCollectiblePerspective,
   attachPouchPerspective,
+  configurePerspectiveMaterial,
+  type PerspectiveMaterialProfile,
   type PouchPerspectiveController,
 } from './pouchPerspective';
 
@@ -27,8 +29,24 @@ export const RARITY_REVEAL_COLORS: Readonly<Record<StandardRarity, number>> = {
 export const SECRET_REVEAL_COLOR = 0xff4d6d;
 export const SECRET_PREMIUM_GOLD = 0xffd36a;
 
+const POUCH_MATERIAL_PROFILES: Readonly<Record<PouchArtVariant, PerspectiveMaterialProfile>> = {
+  basic: { sheenStrength: 0.045, rimStrength: 0.022, tint: [0.96, 0.94, 1] },
+  charged: { sheenStrength: 0.072, rimStrength: 0.034, tint: [0.86, 0.95, 1] },
+};
+
+const COLLECTIBLE_MATERIAL_PROFILES: Readonly<
+  Record<StandardRarity | 'secret', PerspectiveMaterialProfile>
+> = {
+  common: { sheenStrength: 0.014, rimStrength: 0.008, tint: [0.98, 0.97, 1] },
+  rare: { sheenStrength: 0.032, rimStrength: 0.016, tint: [0.70, 0.93, 1] },
+  epic: { sheenStrength: 0.050, rimStrength: 0.023, tint: [0.90, 0.72, 1] },
+  legendary: { sheenStrength: 0.070, rimStrength: 0.031, tint: [1, 0.83, 0.46] },
+  secret: { sheenStrength: 0.084, rimStrength: 0.038, tint: [1, 0.72, 0.86] },
+};
+
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Ellipse;
   body: Phaser.GameObjects.Rectangle;
   bodyLayer: Phaser.GameObjects.Container;
   strip: Phaser.GameObjects.Container;
@@ -242,9 +260,15 @@ export const createPouchVisual = (
   root.add(group);
 
   const perspective = attachPouchPerspective(scene, perspectiveGroup);
+  configurePerspectiveMaterial(perspective, POUCH_MATERIAL_PROFILES[variant]);
+
+  shadow.setData('depthBaseX', shadow.x);
+  shadow.setData('depthBaseY', shadow.y);
+  shadow.setData('depthBaseAlpha', shadow.alpha);
 
   const visual: PouchVisual = {
     group,
+    shadow,
     body,
     bodyLayer,
     strip,
@@ -294,6 +318,7 @@ export const createPouchVisual = (
 
 export interface CollectibleVisual {
   group: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Ellipse | null;
   accentColor: number;
   presentation: CollectiblePresentation;
   perspective: PouchPerspectiveController | null;
@@ -354,6 +379,7 @@ const createAssetCollectible = (
   artTarget: Phaser.GameObjects.Container;
   filterWidth: number;
   filterHeight: number;
+  shadow: Phaser.GameObjects.Ellipse;
 } => {
   const group = scene.add.container(0, 0);
   const artTarget = scene.add.container(0, 0);
@@ -378,9 +404,13 @@ const createAssetCollectible = (
   group.add([shadow, artTarget]);
   artTarget.setDepth(1);
 
+  shadow.setData('depthBaseX', shadow.x);
+  shadow.setData('depthBaseY', shadow.y);
+  shadow.setData('depthBaseAlpha', shadow.alpha);
+
   const filterWidth = Math.max(320, presentation.assetWidth + 72);
   const filterHeight = Math.max(320, image.displayHeight + 72);
-  return { group, artTarget, filterWidth, filterHeight };
+  return { group, artTarget, filterWidth, filterHeight, shadow };
 };
 
 export const createCollectibleVisual = (
@@ -419,7 +449,10 @@ export const createCollectibleVisual = (
         assetVisual.filterHeight,
       )
     : null;
+  const shadow = assetVisual?.shadow ?? null;
+  configurePerspectiveMaterial(perspective, COLLECTIBLE_MATERIAL_PROFILES[rarity]);
   group.setData('perspective', perspective);
+  group.setData('depthShadow', shadow);
 
   const pouch = root.getData('activePouchVisual') as PouchVisual | undefined;
   if (
@@ -435,7 +468,7 @@ export const createCollectibleVisual = (
     root.bringToTop(pouch.group);
   }
 
-  return { group, accentColor, presentation, perspective };
+  return { group, shadow, accentColor, presentation, perspective };
 };
 
 export const createRevealRing = (
