@@ -349,7 +349,12 @@ const createAssetCollectible = (
   scene: Phaser.Scene,
   presentation: CollectiblePresentation,
   textureKey: string,
-): { group: Phaser.GameObjects.Container; perspective: PouchPerspectiveController | null } => {
+): {
+  group: Phaser.GameObjects.Container;
+  artTarget: Phaser.GameObjects.Container;
+  filterWidth: number;
+  filterHeight: number;
+} => {
   const group = scene.add.container(0, 0);
   const artTarget = scene.add.container(0, 0);
   const artContent = scene.add.container(0, 0);
@@ -375,8 +380,7 @@ const createAssetCollectible = (
 
   const filterWidth = Math.max(320, presentation.assetWidth + 72);
   const filterHeight = Math.max(320, image.displayHeight + 72);
-  const perspective = attachCollectiblePerspective(scene, artTarget, filterWidth, filterHeight);
-  return { group, perspective };
+  return { group, artTarget, filterWidth, filterHeight };
 };
 
 export const createCollectibleVisual = (
@@ -401,11 +405,21 @@ export const createCollectibleVisual = (
       : familyId === 'flip-phone'
         ? createFlipPhone(scene, accentColor)
         : createGenericDevice(scene, accentColor));
-  const perspective = assetVisual?.perspective ?? null;
-  group.setData('perspective', perspective);
-
   group.setPosition(x, y);
   root.add(group);
+
+  // Attach only after parenting so framebuffer density sees the real logical
+  // root/display scale. A small extra boost also covers the later reveal-scale
+  // tween without letting the filter become soft at its settled hero size.
+  const perspective = assetVisual
+    ? attachCollectiblePerspective(
+        scene,
+        assetVisual.artTarget,
+        assetVisual.filterWidth,
+        assetVisual.filterHeight,
+      )
+    : null;
+  group.setData('perspective', perspective);
 
   const pouch = root.getData('activePouchVisual') as PouchVisual | undefined;
   if (
