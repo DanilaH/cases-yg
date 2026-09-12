@@ -142,9 +142,9 @@ CI cannot validate perceived motion quality. Browser eyeball-check after each ph
 
 ## Execution / independent review outcome
 
-Implemented Phase A and Phase B, then re-reviewed the actual diff before opening the PR.
+Implemented Phase A and Phase B, then independently re-reviewed the actual diff before merge.
 
-Two issues were caught during that review and corrected before merge:
+Three issues were caught during that review and corrected:
 
 1. **Reveal backdrop compositing order**
    - Splitting the environment into background and ambient parallax containers initially made the reveal backdrop sit above the ambient layer.
@@ -153,5 +153,9 @@ Two issues were caught during that review and corrected before merge:
 2. **Edge-light implementation**
    - A first-pass rim based on render-target UV borders would only light the filter rectangle, not the actual collectible/pouch silhouette.
    - Replaced it with alpha-neighbour sampling around the warped source UV so rim light follows real transparent silhouette edges and internal cutouts.
+
+3. **Per-frame helper allocation**
+   - The first integration declared perspective/shadow helper closures inside `update()`.
+   - Moved those helpers to class methods so the liveness hot path does not allocate new functions every frame.
 
 Final scope remains intentionally limited to hero/material/depth cues. Extra particle systems and moving UI chrome remain rejected because the project already has sufficient rarity particles and stable UI anchors are more valuable than additional motion.
