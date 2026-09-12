@@ -185,9 +185,9 @@ export const createPouchVisual = (
   // those themed Basic bodies; the original Y2K Basic and every Charged pouch
   // keep their existing authored/runtime sizing.
   const themedBasicBodyWidthOffset =
-    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -20 : 0;
   const themedBasicBodyOffsetX =
-    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? 0 : 0;
+    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
   const themedBasicBodyOffsetY =
     variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
   const bodyPresentation = {
