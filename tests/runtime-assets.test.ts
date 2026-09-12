@@ -47,8 +47,8 @@ describe('runtime asset manifests', () => {
   it('covers all production collectible exports and slices them to 10 assets per Drop', () => {
     replaceSetContents(AVAILABLE_COLLECTIBLE_ART_IDS, defaultCollectibleArtIds);
 
-    expect(getRuntimeCollectibleArt(GAME_REGISTRY)).toHaveLength(60);
-    expect(AVAILABLE_COLLECTIBLE_ART_IDS.size).toBe(60);
+    expect(getRuntimeCollectibleArt(GAME_REGISTRY)).toHaveLength(70);
+    expect(AVAILABLE_COLLECTIBLE_ART_IDS.size).toBe(70);
     for (const lootPoolId of GAME_LOOT_POOL_IDS) {
       const art = getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, lootPoolId);
       expect(art).toHaveLength(10);
