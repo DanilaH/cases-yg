@@ -30,8 +30,8 @@ export const SECRET_REVEAL_COLOR = 0xff4d6d;
 export const SECRET_PREMIUM_GOLD = 0xffd36a;
 
 const POUCH_MATERIAL_PROFILES: Readonly<Record<PouchArtVariant, PerspectiveMaterialProfile>> = {
-  basic: { sheenStrength: 0.045, rimStrength: 0.022, outlineStrength: 0, tint: [0.96, 0.94, 1] },
-  charged: { sheenStrength: 0.072, rimStrength: 0.034, outlineStrength: 0, tint: [0.86, 0.95, 1] },
+  basic: { sheenStrength: 0.09, rimStrength: 0.028, outlineStrength: 0, tint: [0.96, 0.94, 1] },
+  charged: { sheenStrength: 0.14, rimStrength: 0.044, outlineStrength: 0, tint: [0.86, 0.95, 1] },
 };
 
 const COLLECTIBLE_MATERIAL_PROFILES: Readonly<
