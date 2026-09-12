@@ -4,7 +4,11 @@ import { GameplayActivityCoordinator } from './activity';
 import { ConsoleAnalyticsAdapter, createYandexAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
 import { MockAdsAdapter, YandexAdsAdapter, type AdsAdapter } from './ads';
 import { MonetizedAnalyticsAdapter } from './monetization';
-import { WebStorageAdapter, type StorageAdapter } from './storage';
+import {
+  WebStorageAdapter,
+  YandexCloudSaveStorageAdapter,
+  type StorageAdapter,
+} from './storage';
 
 export type AppLanguage = 'en' | 'ru';
 
@@ -92,19 +96,34 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   };
 
   // Subscribe immediately after YaGames.init(). A startup ad/pause can happen
-  // while getStorage() is still pending; the coordinator replays that state when
-  // the Phaser runtime later subscribes to blocked changes.
+  // while storage/player initialization is still pending; the coordinator replays
+  // that state when the Phaser runtime later subscribes to blocked changes.
   sdk.on('game_api_pause', handlePause);
   sdk.on('game_api_resume', handleResume);
 
   try {
-    const storage = await sdk.getStorage();
+    const safeStorage = await sdk.getStorage();
+    const localStorage = new WebStorageAdapter(safeStorage);
+    let storage: StorageAdapter = localStorage;
+
+    try {
+      const player = await sdk.getPlayer();
+      storage = new YandexCloudSaveStorageAdapter(localStorage, player, {
+        syncKey: 'mystery-pocket-tech.save',
+        cloudField: 'mysteryPocketTechSave',
+      });
+    } catch (error: unknown) {
+      // Player data is an enhancement over safeStorage. Never block game startup
+      // if Yandex account/cloud data is temporarily unavailable.
+      console.warn('[cloud-save] Yandex Player unavailable; continuing with safeStorage only', error);
+    }
+
     let readySent = false;
 
     return {
       kind: 'yandex',
       language: normalizeLanguage(sdk.environment.i18n.lang),
-      storage: new WebStorageAdapter(storage),
+      storage,
       analytics,
       ads,
       activity,
