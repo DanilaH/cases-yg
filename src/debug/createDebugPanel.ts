@@ -1,6 +1,10 @@
 import { LITE_V2_BALANCE } from '../game/data/balance';
 import { SaveRepository, type SaveState } from '../game/systems/save';
-import type { PlatformRuntime } from '../platform/yandex';
+import {
+  setDebugLanguageOverride,
+  type AppLanguage,
+  type PlatformRuntime,
+} from '../platform/yandex';
 import { resetDebugSave, seedDebugCollection, stageDebugReveal, type DebugRevealScenario } from './debugScenarios';
 
 const DEBUG_CHIPS_REWARD = LITE_V2_BALANCE.pouchProfiles.charged.chipsCost;
@@ -59,7 +63,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   const meta = document.createElement('div');
   meta.className = 'mpt-debug-panel__meta';
   const platformLabel = document.createElement('strong');
-  platformLabel.textContent = `Platform: ${platform.kind}`;
+  platformLabel.textContent = `Platform: ${platform.kind} · Lang: ${platform.language.toUpperCase()}`;
   const status = document.createElement('span');
   status.dataset.status = '';
   status.textContent = 'ready';
@@ -128,6 +132,16 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     window.setTimeout(() => window.location.reload(), 80);
     return { reload: true };
   };
+
+  const switchLanguage = async (language: AppLanguage): Promise<{ language: AppLanguage; reload: true }> => {
+    setDebugLanguageOverride(language);
+    window.setTimeout(() => window.location.reload(), 80);
+    return { language, reload: true };
+  };
+
+  addLabel('Language');
+  addButton('Русский', () => switchLanguage('ru'));
+  addButton('English', () => switchLanguage('en'));
 
   addLabel('Reveal scenarios');
   addButton('Force Common', () => stageAndReload('common'));
