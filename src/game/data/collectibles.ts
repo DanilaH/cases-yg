@@ -142,6 +142,7 @@ export const GAME_LOOT_POOL_IDS = [
   'pocket-audio',
   'game-zone',
   'analog-nights',
+  'airwaves',
 ] as const;
 export type GameLootPoolId = (typeof GAME_LOOT_POOL_IDS)[number];
 
@@ -182,6 +183,8 @@ export const GAME_FAMILIES: readonly GadgetFamilyDefinition[] = [
   family('home-console', 'game-zone', { en: 'Home Console', ru: 'Домашняя консоль' }, 'home-console-secret-noir'),
   family('cassette-player', 'analog-nights', { en: 'Cassette Player', ru: 'Кассетный плеер' }, 'cassette-player-secret-remote'),
   family('crt-tv', 'analog-nights', { en: 'Pocket CRT TV', ru: 'ЭЛТ-телевизор' }, 'crt-tv-secret-communicator'),
+  family('portable-radio', 'airwaves', { en: 'Radio', ru: 'Радио' }, 'portable-radio-secret-shortwave'),
+  family('walkie-talkie', 'airwaves', { en: 'Walkie-Talkie', ru: 'Рация' }, 'walkie-talkie-secret-field-radio'),
 ] as const;
 
 export const GAME_REGISTRY = createContentRegistry(GAME_FAMILIES);

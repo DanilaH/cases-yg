@@ -74,6 +74,7 @@ export const en = {
     'pocket-audio': 'Pocket Audio',
     'game-zone': 'Game Zone',
     'analog-nights': 'Analog Nights',
+    airwaves: 'Airwaves',
   },
   audio: {
     mute: 'Sound off',
