@@ -1,0 +1,39 @@
+name: Static liveness hot-path review
+
+on:
+  push:
+    branches:
+      - feature/static-scene-liveness
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/static-scene-liveness
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Apply hot-path cleanup
+        run: node scripts/review-static-liveness-hot-path.mjs
+      - name: Verify
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
+      - name: Commit source changes and clean one-shot files
+        run: |
+          rm -f scripts/review-static-liveness-hot-path.mjs .github/workflows/static-liveness-hot-path.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Keep Opening liveness hot path allocation-free"
+          git push origin HEAD:feature/static-scene-liveness
