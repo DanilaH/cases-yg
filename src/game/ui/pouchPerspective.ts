@@ -16,6 +16,7 @@ const FRAGMENT_SHADER = [
   'uniform float posePitch;',
   'uniform float sheenStrength;',
   'uniform float rimStrength;',
+  'uniform float outlineStrength;',
   'uniform vec3 materialTint;',
   'uniform vec2 texelSize;',
   'varying vec2 outTexCoord;',
@@ -43,14 +44,18 @@ const FRAGMENT_SHADER = [
   '        float alphaRight = texture2D(uMainSampler, clamp(uv + vec2(edgeStep.x, 0.0), vec2(0.0), vec2(1.0))).a;',
   '        float alphaUp = texture2D(uMainSampler, clamp(uv - vec2(0.0, edgeStep.y), vec2(0.0), vec2(1.0))).a;',
   '        float alphaDown = texture2D(uMainSampler, clamp(uv + vec2(0.0, edgeStep.y), vec2(0.0), vec2(1.0))).a;',
+  '        float neighbourAlpha = max(max(alphaLeft, alphaRight), max(alphaUp, alphaDown));',
   '        float alphaDrop = max(max(sampled.a - alphaLeft, sampled.a - alphaRight), max(sampled.a - alphaUp, sampled.a - alphaDown));',
   '        float rimMask = smoothstep(0.04, 0.35, alphaDrop);',
+  '        float outlineMask = smoothstep(0.04, 0.42, max(0.0, neighbourAlpha - sampled.a));',
   '        vec2 fromCenter = uv - vec2(0.5);',
   '        float nearBias = clamp(0.5 + poseYaw * fromCenter.x * 2.2 - posePitch * fromCenter.y * 2.0, 0.0, 1.0);',
   '        float alphaMask = sampled.a;',
   '        float sheenAmount = sheenStrength * sheen * (0.08 + 0.92 * motion) * alphaMask;',
   '        float rimAmount = rimStrength * rimMask * (0.25 + 0.75 * nearBias) * alphaMask;',
-  '        sampled.rgb += materialTint * (sheenAmount + rimAmount);',
+  '        float outlineAlpha = outlineStrength * outlineMask * (1.0 - sampled.a);',
+  '        sampled.rgb += materialTint * (sheenAmount + rimAmount + outlineAlpha);',
+  '        sampled.a = max(sampled.a, outlineAlpha);',
   '        gl_FragColor = sampled;',
   '    }',
   '}',
@@ -176,6 +181,7 @@ const supersampleFilterTarget = (
 export interface PerspectiveMaterialProfile {
   sheenStrength: number;
   rimStrength: number;
+  outlineStrength: number;
   tint: readonly [number, number, number];
 }
 
@@ -184,6 +190,7 @@ export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public pitch = 0;
   public sheenStrength = 0;
   public rimStrength = 0;
+  public outlineStrength = 0;
   public materialTint: [number, number, number] = [1, 1, 1];
   public texelSize: [number, number] = [1 / FILTER_BASE_WIDTH, 1 / FILTER_BASE_HEIGHT];
 
@@ -210,6 +217,7 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
     this.programManager.setUniform('posePitch', perspective.pitch);
     this.programManager.setUniform('sheenStrength', perspective.sheenStrength);
     this.programManager.setUniform('rimStrength', perspective.rimStrength);
+    this.programManager.setUniform('outlineStrength', perspective.outlineStrength);
     this.programManager.setUniform('materialTint', perspective.materialTint);
     this.programManager.setUniform('texelSize', perspective.texelSize);
   }
@@ -275,6 +283,7 @@ export const configurePerspectiveMaterial = (
   if (!controller) return;
   controller.sheenStrength = Math.max(0, profile.sheenStrength);
   controller.rimStrength = Math.max(0, profile.rimStrength);
+  controller.outlineStrength = Phaser.Math.Clamp(profile.outlineStrength, 0, 1);
   controller.materialTint = [
     Phaser.Math.Clamp(profile.tint[0], 0, 1),
     Phaser.Math.Clamp(profile.tint[1], 0, 1),
