@@ -715,25 +715,6 @@ export class OpeningScene extends Phaser.Scene {
       ease: 'Sine.InOut',
     });
 
-    if (profile.ringAlpha > 0) {
-      const ring = this.trackStandardPresenceTarget(
-        this.add
-          .circle(0, 2, Math.min(profile.glowWidth, profile.glowHeight) * 0.57, 0xffffff, 0)
-          .setStrokeStyle(2, color, profile.ringAlpha)
-          .setBlendMode(Phaser.BlendModes.ADD),
-      );
-      layer.add(ring);
-      this.tweens.add({
-        targets: ring,
-        scale: profile.pulseScale + 0.025,
-        alpha: 0.56,
-        duration: profile.pulseDurationMs + 260,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.InOut',
-      });
-    }
-
     for (let index = 0; index < profile.sparkleCount; index += 1) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       const radius = Phaser.Math.FloatBetween(92, 146);
