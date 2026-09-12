@@ -15,9 +15,10 @@ const TEST_POLICY: ResultInterstitialPolicyConfig = {
 };
 
 describe('ResultInterstitialPolicy', () => {
-  it('requires both the initial grace period and enough collected results', () => {
+  it('requires both the Game Ready grace period and enough collected results', () => {
     let now = 0;
     const policy = new ResultInterstitialPolicy(() => now, TEST_POLICY);
+    policy.markGameReady();
 
     expect(policy.recordResultCollected()).toBe(false);
     expect(policy.recordResultCollected()).toBe(false);
@@ -37,6 +38,7 @@ describe('ResultInterstitialPolicy', () => {
       ...TEST_POLICY,
       initialGraceMs: 0,
     });
+    policy.markGameReady();
 
     expect(policy.recordResultCollected()).toBe(false);
     expect(policy.recordResultCollected()).toBe(false);
@@ -53,6 +55,7 @@ describe('ResultInterstitialPolicy', () => {
   it('does not request early just because many results were collected quickly', () => {
     let now = 0;
     const policy = new ResultInterstitialPolicy(() => now, TEST_POLICY);
+    policy.markGameReady();
 
     for (let index = 0; index < 12; index += 1) {
       expect(policy.recordResultCollected()).toBe(false);
@@ -80,6 +83,7 @@ describe('MonetizedAnalyticsAdapter', () => {
     });
     const analytics = new MonetizedAnalyticsAdapter(base, ads, policy);
 
+    analytics.track('platform_ready', { platform: 'mock' });
     analytics.track('result_collected', { openingNumber: 1 });
     expect(showInterstitial).not.toHaveBeenCalled();
 
@@ -88,6 +92,6 @@ describe('MonetizedAnalyticsAdapter', () => {
 
     analytics.track('collection_open');
     expect(showInterstitial).toHaveBeenCalledTimes(1);
-    expect(base.track).toHaveBeenCalledTimes(3);
+    expect(base.track).toHaveBeenCalledTimes(4);
   });
 });
