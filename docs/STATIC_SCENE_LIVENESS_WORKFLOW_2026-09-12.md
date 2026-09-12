@@ -139,3 +139,19 @@ CI cannot validate perceived motion quality. Browser eyeball-check after each ph
 - banking/collection acceptance;
 - desktop at normal and HiDPI scaling;
 - verify no edge clipping, framebuffer softness, or background exposure.
+
+## Execution / independent review outcome
+
+Implemented Phase A and Phase B, then re-reviewed the actual diff before opening the PR.
+
+Two issues were caught during that review and corrected before merge:
+
+1. **Reveal backdrop compositing order**
+   - Splitting the environment into background and ambient parallax containers initially made the reveal backdrop sit above the ambient layer.
+   - The original visual hierarchy was restored: background → reveal backdrop → ambient motes.
+
+2. **Edge-light implementation**
+   - A first-pass rim based on render-target UV borders would only light the filter rectangle, not the actual collectible/pouch silhouette.
+   - Replaced it with alpha-neighbour sampling around the warped source UV so rim light follows real transparent silhouette edges and internal cutouts.
+
+Final scope remains intentionally limited to hero/material/depth cues. Extra particle systems and moving UI chrome remain rejected because the project already has sufficient rarity particles and stable UI anchors are more valuable than additional motion.
