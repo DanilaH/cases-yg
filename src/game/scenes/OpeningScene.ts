@@ -265,43 +265,10 @@ export class OpeningScene extends Phaser.Scene {
     const heroY = Phaser.Math.Clamp(normalizedY + driftY, -1, 1);
 
     const response = 1 - Math.exp(-Math.max(0, delta) / POUCH_POINTER_PERSPECTIVE_RESPONSE_MS);
-    const drivePerspective = (
-      perspective: PouchPerspectiveController | null | undefined,
-      enabled: boolean,
-      yawMax: number,
-      pitchMax: number,
-    ): void => {
-      if (!perspective) return;
-      const targetYaw = enabled ? heroX * yawMax : 0;
-      const targetPitch = enabled ? -heroY * pitchMax : 0;
-      perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
-      perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
-      if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
-      if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
-    };
-
-    const syncDepthShadow = (
-      shadow: Phaser.GameObjects.Ellipse | null | undefined,
-      perspective: PouchPerspectiveController | null | undefined,
-      xAmount: number,
-      yAmount: number,
-    ): void => {
-      if (!shadow?.active || !perspective) return;
-      const baseX = Number(shadow.getData('depthBaseX') ?? shadow.x);
-      const baseY = Number(shadow.getData('depthBaseY') ?? shadow.y);
-      const baseAlpha = Number(shadow.getData('depthBaseAlpha') ?? shadow.alpha);
-      shadow
-        .setPosition(baseX - perspective.yaw * xAmount, baseY + perspective.pitch * yAmount)
-        .setScale(
-          1 - Math.min(0.045, Math.abs(perspective.yaw) * 0.035),
-          1 + Math.min(0.035, Math.abs(perspective.pitch) * 0.03),
-        )
-        .setAlpha(Math.max(0.1, baseAlpha - Math.abs(perspective.pitch) * 0.025));
-    };
 
     const pouch = this.pouch;
     if (pouch?.group.active) {
-      drivePerspective(
+      this.drivePerspective(
         pouch.perspective,
         this.phase === 'idle' &&
           !this.dropSwitchInFlight &&
@@ -309,8 +276,11 @@ export class OpeningScene extends Phaser.Scene {
           canFollowPointer,
         POUCH_POINTER_PERSPECTIVE_YAW_MAX,
         POUCH_POINTER_PERSPECTIVE_PITCH_MAX,
+        heroX,
+        heroY,
+        response,
       );
-      syncDepthShadow(pouch.shadow, pouch.perspective, 5.5, 3.2);
+      this.syncDepthShadow(pouch.shadow, pouch.perspective, 5.5, 3.2);
       pouch.group.angle = 0;
     }
 
@@ -319,14 +289,17 @@ export class OpeningScene extends Phaser.Scene {
       | PouchPerspectiveController
       | null
       | undefined;
-    drivePerspective(
+    this.drivePerspective(
       collectiblePerspective,
       this.phase === 'result' && Boolean(resultTarget?.active) && canFollowPointer,
       COLLECTIBLE_POINTER_PERSPECTIVE_YAW_MAX,
       COLLECTIBLE_POINTER_PERSPECTIVE_PITCH_MAX,
+      heroX,
+      heroY,
+      response,
     );
     const collectibleShadow = resultTarget?.getData('depthShadow') as Phaser.GameObjects.Ellipse | null | undefined;
-    syncDepthShadow(collectibleShadow, collectiblePerspective, 4.2, 2.4);
+    this.syncDepthShadow(collectibleShadow, collectiblePerspective, 4.2, 2.4);
 
     const parallaxResponse = 1 - Math.exp(-Math.max(0, delta) / ENVIRONMENT_PARALLAX_RESPONSE_MS);
     const environmentX = canFollowPointer ? heroX : 0;
@@ -355,6 +328,43 @@ export class OpeningScene extends Phaser.Scene {
         parallaxResponse,
       );
     }
+  }
+
+  private drivePerspective(
+    perspective: PouchPerspectiveController | null | undefined,
+    enabled: boolean,
+    yawMax: number,
+    pitchMax: number,
+    heroX: number,
+    heroY: number,
+    response: number,
+  ): void {
+    if (!perspective) return;
+    const targetYaw = enabled ? heroX * yawMax : 0;
+    const targetPitch = enabled ? -heroY * pitchMax : 0;
+    perspective.yaw = Phaser.Math.Linear(perspective.yaw, targetYaw, response);
+    perspective.pitch = Phaser.Math.Linear(perspective.pitch, targetPitch, response);
+    if (Math.abs(perspective.yaw - targetYaw) < 0.001) perspective.yaw = targetYaw;
+    if (Math.abs(perspective.pitch - targetPitch) < 0.001) perspective.pitch = targetPitch;
+  }
+
+  private syncDepthShadow(
+    shadow: Phaser.GameObjects.Ellipse | null | undefined,
+    perspective: PouchPerspectiveController | null | undefined,
+    xAmount: number,
+    yAmount: number,
+  ): void {
+    if (!shadow?.active || !perspective) return;
+    const baseX = Number(shadow.getData('depthBaseX') ?? shadow.x);
+    const baseY = Number(shadow.getData('depthBaseY') ?? shadow.y);
+    const baseAlpha = Number(shadow.getData('depthBaseAlpha') ?? shadow.alpha);
+    shadow
+      .setPosition(baseX - perspective.yaw * xAmount, baseY + perspective.pitch * yAmount)
+      .setScale(
+        1 - Math.min(0.045, Math.abs(perspective.yaw) * 0.035),
+        1 + Math.min(0.035, Math.abs(perspective.pitch) * 0.03),
+      )
+      .setAlpha(Math.max(0.1, baseAlpha - Math.abs(perspective.pitch) * 0.025));
   }
 
   private async initialize(): Promise<void> {
