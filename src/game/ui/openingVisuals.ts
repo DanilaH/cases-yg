@@ -44,6 +44,14 @@ const COLLECTIBLE_MATERIAL_PROFILES: Readonly<
   secret: { sheenStrength: 0.084, rimStrength: 0.038, outlineStrength: 0, tint: [1, 0.72, 0.86] },
 };
 
+const COLLECTIBLE_OUTLINE_RADIUS: Readonly<Record<StandardRarity | 'secret', number>> = {
+  common: 1.4,
+  rare: 1.9,
+  epic: 2.5,
+  legendary: 3.2,
+  secret: 3.8,
+};
+
 export interface PouchVisual {
   group: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Ellipse;
@@ -375,6 +383,7 @@ const createAssetCollectible = (
   presentation: CollectiblePresentation,
   textureKey: string,
   outlineColor: number,
+  outlineOffset: number,
 ): {
   group: Phaser.GameObjects.Container;
   artTarget: Phaser.GameObjects.Container;
@@ -394,7 +403,6 @@ const createAssetCollectible = (
   // shifted copies form a stable 2D silhouette stroke that is then warped by
   // exactly the same homography as the collectible. This avoids the old
   // post-filter alpha-neighbour outline becoming subpixel after supersampling.
-  const outlineOffset = 2.4;
   const diagonalOffset = outlineOffset * 0.72;
   const outlineOffsets = [
     [-outlineOffset, 0],
@@ -458,7 +466,13 @@ export const createCollectibleVisual = (
   const textureKey = collectibleId ? collectibleTextureKey(collectibleId) : null;
   const assetVisual =
     textureKey && scene.textures.exists(textureKey)
-      ? createAssetCollectible(scene, presentation, textureKey, accentColor)
+      ? createAssetCollectible(
+          scene,
+          presentation,
+          textureKey,
+          accentColor,
+          COLLECTIBLE_OUTLINE_RADIUS[rarity],
+        )
       : null;
   const group = assetVisual?.group
     ?? (familyId === 'camera'
