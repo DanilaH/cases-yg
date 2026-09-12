@@ -25,33 +25,35 @@ jobs:
           from pathlib import Path
           path = Path('src/game/ui/openingVisuals.ts')
           text = path.read_text()
-          old = """  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
-  const bodyPresentation = {
-    ...POUCH_PRESENTATION.body,
-    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
-    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,
-    displayWidth: POUCH_PRESENTATION.body.displayWidth + variantPresentation.bodyWidthOffset,
-  };
-"""
-          new = """  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];
-  // The five newer themed Basic body exports have a visibly denser crop than
-  // the original Y2K Basic raster. Apply one shared optical correction only to
-  // those themed Basic bodies; the original Y2K Basic and every Charged pouch
-  // keep their existing authored/runtime sizing.
-  const themedBasicBodyWidthOffset =
-    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;
-  const themedBasicBodyOffsetY =
-    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;
-  const bodyPresentation = {
-    ...POUCH_PRESENTATION.body,
-    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,
-    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY + themedBasicBodyOffsetY,
-    displayWidth:
-      POUCH_PRESENTATION.body.displayWidth
-      + variantPresentation.bodyWidthOffset
-      + themedBasicBodyWidthOffset,
-  };
-"""
+          old = (
+              "  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];\n"
+              "  const bodyPresentation = {\n"
+              "    ...POUCH_PRESENTATION.body,\n"
+              "    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,\n"
+              "    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY,\n"
+              "    displayWidth: POUCH_PRESENTATION.body.displayWidth + variantPresentation.bodyWidthOffset,\n"
+              "  };\n"
+          )
+          new = (
+              "  const variantPresentation = POUCH_VARIANT_PRESENTATION[variant];\n"
+              "  // The five newer themed Basic body exports have a visibly denser crop than\n"
+              "  // the original Y2K Basic raster. Apply one shared optical correction only to\n"
+              "  // those themed Basic bodies; the original Y2K Basic and every Charged pouch\n"
+              "  // keep their existing authored/runtime sizing.\n"
+              "  const themedBasicBodyWidthOffset =\n"
+              "    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -36 : 0;\n"
+              "  const themedBasicBodyOffsetY =\n"
+              "    variant === 'basic' && lootPoolId !== DEFAULT_LOOT_POOL_ID ? -6 : 0;\n"
+              "  const bodyPresentation = {\n"
+              "    ...POUCH_PRESENTATION.body,\n"
+              "    x: POUCH_PRESENTATION.body.x + variantPresentation.bodyOffsetX,\n"
+              "    y: POUCH_PRESENTATION.body.y + variantPresentation.bodyOffsetY + themedBasicBodyOffsetY,\n"
+              "    displayWidth:\n"
+              "      POUCH_PRESENTATION.body.displayWidth\n"
+              "      + variantPresentation.bodyWidthOffset\n"
+              "      + themedBasicBodyWidthOffset,\n"
+              "  };\n"
+          )
           if old not in text:
               raise SystemExit('target snippet not found')
           path.write_text(text.replace(old, new, 1))
