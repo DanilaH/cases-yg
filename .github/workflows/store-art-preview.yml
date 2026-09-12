@@ -1,0 +1,28 @@
+name: Store Art Preview
+
+on:
+  pull_request:
+    paths:
+      - 'tools/promo/**'
+      - '.github/workflows/store-art-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-store-art:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: node tools/promo/build-yandex-store-assets.mjs
+      - run: node tools/promo/export-source-assets.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yandex-store-art
+          path: promo-output
+          if-no-files-found: error
