@@ -30,6 +30,13 @@ body {
 
 #game-shell {
   position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+#game {
+  max-width: 200vh;
 }
 
 #game canvas {
