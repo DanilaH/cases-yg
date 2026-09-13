@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. Phase 2.6 Signal Overcharge, the bounded feel corrections, final repeated-use regression, seven-Drop content expansion, content-scale economy audit and directed first-run onboarding design are complete/locked. The next evidence gate after the onboarding implementation is the real hosted Yandex DRAFT.
+The project is deliberately **not** a full idle/incremental economy. Phase 2.6 Signal Overcharge, the bounded feel corrections, final repeated-use regression, seven-Drop content expansion, content-scale economy audit and directed first-run onboarding implementation are merged. The next Signal-specific evidence gate is direct onboarding hands-on acceptance; the next external gate after that remains the real hosted Yandex DRAFT.
 
 ---
 
@@ -69,7 +69,7 @@ Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charg
 
 The runtime now contains seven themed Drops / fourteen families / seventy authored collectibles with Drop-aware Collection navigation and on-demand art loading. The historical six-Drop full-game economy audit accepted the existing steady-state balance unchanged after multi-strategy simulation and focused cross-Drop Signal/Overcharge stress; the later Airwaves content addition did not intentionally retune the core economy.
 
-### Stage C2 — directed onboarding — LOCKED NEXT
+### Stage C2 — directed onboarding — IMPLEMENTED / HANDS-ON PENDING
 
 Canonical contract: `ONBOARDING.md`.
 
@@ -88,7 +88,9 @@ Hidden Pocket, Overcharge, cache taxonomy and the rarity ladder remain discovery
 
 This is a bounded early-progression exception. Normal Basic/Charged costs, cache tables, rarity tables, Signal, Hidden Pocket and Overcharge remain unchanged after the two authored onboarding beats.
 
-### Stage D — real Yandex DRAFT validation — NEXT AFTER C2
+Implementation merged through PR #149 (`2f2a0dcad60e61896394c5f8ca831b374f5884ce`) after full CI. Independent review also hardened ambiguous-write recovery for the one-time starting grant and isolated guidance observers from the gameplay event path. Direct visual/hands-on acceptance is still required before this stage is marked complete.
+
+### Stage D — real Yandex DRAFT validation — NEXT AFTER C2 HANDS-ON
 
 Upload the exact expanded candidate and validate hosted SDK boot/Game Ready/gameplay markup, lifecycle/audio, onboarding refresh/recovery, safe storage, interrupted Basic/Charged recovery, seven-Drop loading/navigation, ads debug probes and analytics/Metrica where configured.
 
