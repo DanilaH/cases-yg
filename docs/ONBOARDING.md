@@ -1,6 +1,6 @@
 # Signal 2000 — onboarding
 
-**Status:** LOCKED NEXT — approved product flow for the immediate implementation pass.
+**Status:** CURRENT RUNTIME / HANDS-ON PENDING — implementation merged; direct visual/repeated-use acceptance is the remaining local gate before hosted Yandex DRAFT validation.
 
 This document is the canonical contract for first-run guidance. It intentionally keeps onboarding inside normal play instead of adding a separate tutorial UI or explanation screen.
 
@@ -82,6 +82,8 @@ Concrete cases:
 - `totalOpens >= 1`: primary onboarding is complete and must not restart.
 
 The existing durable `pendingReveal` / ambiguous-write recovery contract remains authoritative. Onboarding presentation is explicitly subordinate to it.
+
+The one-time 10-CHIPS starting grant is also treated as a durable write: if storage rejects after the underlying write may already have succeeded, the implementation reloads and accepts success only when the exact intended grant state is present.
 
 ---
 
@@ -165,6 +167,8 @@ Preferred copy:
 
 The existing `isSignalWaitingForCharged()` semantic condition remains the source of truth. The indicator must disappear when the condition is no longer true.
 
+Guidance observes existing game-authored lifecycle/analytics events. Local guidance observers are isolated from the gameplay emitter: a presentation observer failure must not propagate back into reward or interaction flow.
+
 ---
 
 ## 5. Explicit non-goals
@@ -220,13 +224,32 @@ Resolved tensions:
 - Durable transaction rules prohibit presentation-owned rewards or rerolls. The onboarding guarantees are resolved into the real pending transaction before reveal and therefore preserve the existing anti-reroll/recovery architecture.
 - Basic cannot produce a standard Legendary. That invariant makes standard-Legendary ownership a safe current marker for completion of the authored first-Charged milestone.
 
-The pass is therefore approved to implement without reopening the broader economy, pouch geometry, Signal rules, Hidden Pocket rules or the normal rarity tables.
+The implementation is merged without reopening the broader economy, pouch geometry, Signal rules, Hidden Pocket rules or the normal rarity tables.
 
 ---
 
-## 8. Acceptance checklist
+## 8. Implementation evidence
 
-The implementation is accepted only if all of the following hold:
+Merged implementation: PR #149, squash commit `2f2a0dcad60e61896394c5f8ca831b374f5884ce`.
+
+Automated gate is green:
+
+- `npm ci`;
+- `npm run typecheck`;
+- `npm test`;
+- `npm run assets:selftest`;
+- `npm run assets:validate`;
+- `npm run build`.
+
+Focused tests cover first-Basic recovery, first-Charged Legendary guarantee, armed-Signal interaction and ambiguous starting-grant recovery.
+
+Automated green does **not** complete the onboarding acceptance gate. The presentation-specific checks below still require direct hands-on review at real speed.
+
+---
+
+## 9. Acceptance checklist
+
+The onboarding is accepted only if all of the following hold:
 
 - brand-new save begins with 10 CHIPS;
 - no gameplay chrome is visible before the first tear completes;
