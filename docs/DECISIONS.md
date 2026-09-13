@@ -28,9 +28,9 @@ Status meanings:
 | Theme | LOCKED | Y2K / retro pocket gadgets |
 | Core fantasy | LOCKED | Open tiny mystery tech and build a visible nostalgic collection |
 | Core loop | CURRENT RUNTIME | **Basic → collectible + CHIPS → duplicate recycle + SIGNAL → Charged → better roll → repeat** |
-| Current stage | LOCKED | Phase 2.6 + Secret V4 correction + final result-choreography correction are implemented and locally accepted. PR #65 is the latest bounded presentation merge. Real Yandex DRAFT is the current next external gate |
-| Two-family build | CURRENT RUNTIME | private development base: Digital Camera + Flip Phone, 4 standard rarities each + 2 Secrets |
-| Public content direction | LOCKED | materially expand only after final hands-on acceptance + hosted draft validation |
+| Current stage | LOCKED | Seven-Drop production candidate and directed onboarding are merged. Onboarding implementation passed full CI; direct onboarding hands-on acceptance is the next local gate, then real Yandex DRAFT validation |
+| Historical two-family slice | COMPLETE | Digital Camera + Flip Phone established the original interaction/content-production baseline; it is no longer the full production roster |
+| Production content | CURRENT RUNTIME | seven themed Drops / fourteen families / seventy authored collectibles; no further content expansion before hosted/player evidence |
 | Expansion organization | LOCKED | themed Drops/loot pools; no global mega-pool |
 | Production philosophy | LOCKED | low production burden, repeatable content factory, minimal gameplay-system count |
 
@@ -58,11 +58,11 @@ The Lite V2 baseline remains accepted. Phase 2.6 contains one explicit bounded e
 | Overcharge tuning | CURRENT RUNTIME | Phase 2.6 validation candidate uses Basic `+0.10`, Charged `+0.50`, cap `x1.50`; reopen only from final hands-on, hosted, or content-scale evidence |
 | Basic-only zero-eligible edge | CURRENT RUNTIME | if only Legendary remains, Basic resolves normally and Signal stays `4/4`; UI communicates `SIGNAL LOCK · CHARGED` |
 | Reward transaction | CURRENT RUNTIME | pouch cost + base/cache/recycle + Signal + collectible + Hidden Pocket are one recoverable deterministic transaction |
-| Balance through feel correction | COMPLETE | no tuning-number changes occurred; current provisional values remain unchanged pending later evidence |
+| Balance through feel correction | COMPLETE | no steady-state tuning-number changes occurred; current provisional values remain unchanged pending later evidence |
 
-### Current provisional balance
+### Current provisional steady-state balance
 
-These values are implemented and remain **OPEN FOR TUNING**, not release-locked.
+These values are implemented and remain **OPEN FOR TUNING**, not release-locked. Directed onboarding exceptions are listed separately below and do not alter these ordinary tables.
 
 | Value | Basic | Charged |
 |---|---:|---:|
@@ -74,6 +74,30 @@ These values are implemented and remain **OPEN FOR TUNING**, not release-locked.
 | Hidden Pocket from opening #4 | `1.5%` | `6%` |
 
 Duplicate recycle CHIPS: Common/Rare/Epic/Legendary = `2 / 4 / 8 / 15`.
+
+---
+
+## Directed onboarding — CURRENT RUNTIME / HANDS-ON PENDING
+
+Canonical contract: `docs/ONBOARDING.md`.
+
+| Decision | Status | Current answer |
+|---|---|---|
+| First-run shell | CURRENT RUNTIME | before the first tear, show the authored environment + real Basic pouch only; no normal gameplay chrome or blocking tutorial UI |
+| Tear teaching | CURRENT RUNTIME | gesture pointer demonstrates the existing star tear interaction; tutorial-only geometry/thresholds are forbidden |
+| Starting wallet | CURRENT RUNTIME | untouched save receives one durable `10 CHIPS` grant; ambiguous write is reconciled by reload/exact-state verification |
+| First Basic | CURRENT RUNTIME | opening #1 resolves through the real transaction as NEW Rare + normal Basic `6–10` base + exact `cache +20` |
+| Primary recovery | CURRENT RUNTIME | tutorial presentation may restart, but persisted `pendingReveal` is reused exactly; no reroll or duplicate reward |
+| First Charged cue | CURRENT RUNTIME | when first affordable, point to Charged; first selection receives one short non-blocking premium emphasis |
+| First Charged reward | CURRENT RUNTIME | first Charged resolves as NEW Legendary when eligible; ordinary cost/base/cache/Hidden rules otherwise apply |
+| First Charged + Signal | CURRENT RUNTIME | authored Legendary may satisfy/consume an armed Signal in the same transaction; never create a second guaranteed item |
+| Milestone completion evidence | CURRENT RUNTIME | owning any standard Legendary currently proves first-Charged completion because Basic has zero standard-Legendary weight; revisit if another source can grant standard Legendaries |
+| Signal hints | CURRENT RUNTIME | first duplicate and first `4/4` use short contextual copy; `Signal is waiting for Charged` is recurring live-state communication |
+| Hint persistence | CURRENT RUNTIME | hint-seen state is separate cosmetic storage; losing it may repeat copy but cannot alter economy/progression |
+| Steady-state boundary | LOCKED | onboarding is a bounded new-player exception; normal Basic/Charged distributions, Signal, Hidden Pocket and Overcharge stay unchanged afterward |
+| Early economy audit relation | LOCKED | Sep-10 first-60/first-Charged timing is superseded for new players by the intentional +10 start/+20 first cache; do not treat this as steady-state balance evidence |
+| Implementation gate | COMPLETE | PR #149 merged at `2f2a0dcad60e61896394c5f8ca831b374f5884ce`; install/typecheck/tests/assets/build green |
+| Direct onboarding acceptance | OPEN | real-speed review still required for landing feel, pointer readability, first reveal handoff, refresh/recovery and first-Charged emphasis |
 
 ---
 
@@ -100,12 +124,12 @@ Detailed contract: `docs/OPENING_FEEL_CORRECTION_SCOPE.md`.
 | Charged-ready feedback | CURRENT RUNTIME | trigger when displayed wallet actually crosses cost during banking; activate CHIPS/Charged UI without a mandatory blocking banner |
 | Duplicate tactile conversion | CURRENT RUNTIME | duplicate visibly converts into rarity-aware recycle feedback; ordinary Signal transfers once during reward/result staging before acceptance, while recycle CHIPS bank later; collect never replays Signal/Overcharge |
 | Signal presentation | CURRENT RUNTIME | stronger segmented HUD; ordinary gain flies from reward staging to HUD, while a consumed lock flies pink/cyan from HUD into the unrevealed pouch with visible trail and resolves HUD state before collectible reveal |
-| Basic/Charged selector | CURRENT RUNTIME | move into clearer left-side gameplay rail; selected state must be obvious without relying on color |
+| Basic/Charged selector | CURRENT RUNTIME | clear left-side gameplay rail; selected state must be obvious without relying on color |
 | Unaffordable Charged attempt | CURRENT RUNTIME | acknowledge input with wiggle/cost flash/HUD response; no modal and no mutation |
 | Charged denial re-entry | CURRENT RUNTIME | rapid repeated denial input must kill/reset the previous denial tween to canonical transform; no cumulative x/y drift |
 | Available paid-pouch affordance | CURRENT RUNTIME | affordable non-selected paid pouches may use a rare subtle nudge/pulse; no permanent shake, no Basic/free attention loop |
 | Charged differentiation | CURRENT RUNTIME | substantially stronger runtime cyan/violet/iridescent treatment; same pouch geometry and tear mechanic |
-| Charged raster fallback | NOT REQUIRED NOW | r3 label-hidden review passed with runtime treatment; reopen only if later hands-on contradicts it |
+| Charged raster fallback | NOT REQUIRED NOW | label-hidden review passed with runtime treatment; reopen only if later hands-on contradicts it |
 | Callout readability | CURRENT RUNTIME | longer readable holds + semantic positions; experienced player can fast-forward |
 | Random callout positions | LOCKED OUT | no arbitrary random screen placement; only bounded decorative jitter |
 | Controlled micro-variation | CURRENT RUNTIME | small rotation/overshoot/spark/token-trajectory variation without changing learned rhythm |
@@ -136,9 +160,9 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Decision | Status | Current answer |
 |---|---|---|
 | Permanent odds on main screen | LOCKED OUT | would overload the opener and flatten surprise |
-| Permanent full collection sidebar | LOCKED OUT | does not scale to 15–25 items per Drop and competes with the hero reward |
-| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | revisit after Phase 2.6 + hosted DRAFT evidence; candidate remains one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
-| Player-facing Drop selector | OPEN FOR RELEASE | expose only when Drop #2 actually exists |
+| Permanent full collection sidebar | LOCKED OUT | does not scale well and competes with the hero reward |
+| Drop/odds/progress info surface | PARKED NEXT CANDIDATE | revisit after hosted DRAFT evidence; candidate remains one on-demand drawer reading exact odds from typed config and showing family/discovered/unknown state |
+| Player-facing Drop selector | CURRENT RUNTIME | seven-Drop selector is implemented in Opening and Collection with Drop-aware progress/navigation |
 
 ---
 
@@ -148,8 +172,8 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 |---|---|---|
 | Loot-pool identity | CURRENT RUNTIME | families/collectibles resolve through loot-pool membership |
 | Active Drop state | CURRENT RUNTIME | Basic/Charged/Signal resolve inside active `lootPoolId` |
-| One-Drop UI | CURRENT RUNTIME | selector hidden while one Drop exists |
-| Multi-Drop UI | OPEN FOR RELEASE | compact selector once Drop #2 exists |
+| Production roster | CURRENT RUNTIME | seven Drops / fourteen families / seventy collectibles |
+| Multi-Drop UI | CURRENT RUNTIME | compact selector/navigation exists; alternate Drop art/content loads on demand where applicable |
 | Wallet across Drops | LOCKED | CHIPS global |
 | Signal across Drops | LOCKED | meter global; lock applies inside selected active Drop and pouch eligibility |
 | Family targeting | PARKED | add only if real completion data proves Drop-level targeting insufficient |
@@ -165,8 +189,10 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Anti-reroll | CURRENT RUNTIME | full `pendingReveal` persisted before presentation and committed once |
 | Presentation ownership | LOCKED | tween completion, fast-forward and cosmetic banking never own durable economy state |
 | Recovery | CURRENT RUNTIME | original pouch/result/cache/Signal/Hidden outcome preserved; no duplicate reward |
+| Ambiguous-write recovery | CURRENT RUNTIME | staging/commit and onboarding starting grant reconcile rejected writes by reloading and accepting success only when the exact intended durable state is present |
 | Overcharge transaction extension | CURRENT RUNTIME | multiplier-before, bonus CHIPS, actual clamped gain/reset and multiplier-after are predetermined in `pendingReveal`; visual gain/discharge occurs later and never owns durable state |
-| Engineering scope | LOCKED | small presentation helpers are allowed; no generalized animation/economy framework |
+| Guidance observer isolation | CURRENT RUNTIME | local onboarding/presentation observers cannot throw back into the gameplay analytics/event path |
+| Engineering scope | LOCKED | small presentation helpers are allowed; no generalized animation/economy/onboarding framework |
 | React / physics / backend | LOCKED OUT | do not add without a concrete need |
 
 ---
@@ -178,7 +204,7 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Yandex SDK | CURRENT RUNTIME | thin platform adapter |
 | Ads | CURRENT RUNTIME | SDK-only; interstitial outside active reveal; rewarded voluntary/exactly-once; pause/resume safe |
 | Rewarded dev probe | CURRENT RUNTIME | clearly dev-only CHIPS grant; pity state is not manipulated |
-| Real hosted validation | OPEN | Yandex DRAFT follows Phase 2.6 implementation + exact audit + direct regression acceptance |
+| Real hosted validation | OPEN | Yandex DRAFT follows direct onboarding hands-on acceptance; actual SDK/storage/ad/device lifecycle remains unproven until hosted validation |
 
 ---
 
@@ -187,16 +213,18 @@ Hands-on also exposed a legitimate desire to understand the active pool, odds an
 | Decision | Status | Current answer |
 |---|---|---|
 | Existing Lite V2 technical/visual gate | COMPLETE | typecheck/tests/assets/build + exact-revision videos/screens reviewed |
-| First direct hands-on | COMPLETE WITH FINDINGS | exposed reward/input/UI feel problems; therefore DRAFT is not yet approved |
-| Feel correction exact-revision audit | COMPLETE | r3 exact-revision browser/video audit + manual artifact review passed on the audited product tree |
+| First direct hands-on | COMPLETE WITH FINDINGS | exposed reward/input/UI feel problems; therefore DRAFT was not approved at that point |
+| Feel correction exact-revision audit | COMPLETE | exact-revision browser/video audit + manual artifact review passed on the audited product tree |
 | Second repeated hands-on | COMPLETE WITH FINDINGS | repeated-use feedback exposed narrow UI/feel issues; no economy/content expansion was justified |
-| Post-hands-on follow-up polish | COMPLETE | transition/input/resize/error-state fixes plus reward continuity, `pouch-grab`, stronger rarity hierarchy and semantic reward colors were independently audited and merged through PR #45 |
+| Post-hands-on follow-up polish | COMPLETE | transition/input/resize/error-state fixes plus reward continuity, `pouch-grab`, stronger rarity hierarchy and semantic reward colors were independently audited and merged |
 | Final hands-on acceptance | COMPLETE WITH FINDINGS | direct play exposed rarity-badge styling, reward overflow, Charged denial drift, Signal/Secret clarity and completed-collection Signal-value issues |
-| Final hands-on correction + Signal Overcharge | COMPLETE | implemented and exact-audited; current suite is 114 tests plus typecheck/assets/build |
-| Final direct repeated-use regression | COMPLETE | accepted after PR #50 fixed the stale Overcharge reward-tag tween lifecycle race; exact fixed-tree regression passed 86/86 browser assertions with zero runtime/request/HTTP failures and manual artifact review |
-| Secret correction + merged-main regression | COMPLETE | Save V4 / fixed `+40` Secret jackpot / persistent Secret presentation merged through PR #57; fresh merged-main repeated-use regression passed 82/82 with manual artifact review |
-| Result choreography correction | COMPLETE | PR #65 merged after targeted Chromium evidence + manual review of Secret↔standard carousel chrome, dense reward bounds, real pre-reveal Signal-lock consumption, and Charged aura exit/teardown; runtime/economy unchanged |
-| Real Yandex DRAFT | OPEN | current next external gate; local/direct prerequisites are accepted, but actual Yandex SDK/storage/ad/device lifecycle remains unproven until hosted validation |
+| Final hands-on correction + Signal Overcharge | COMPLETE | implemented and exact-audited |
+| Final direct repeated-use regression | COMPLETE | accepted after stale Overcharge reward-tag tween lifecycle race was fixed; exact fixed-tree regression and manual artifact review passed |
+| Secret correction + merged-main regression | COMPLETE | Save V4 / fixed `+40` Secret jackpot / persistent Secret presentation merged and regression-reviewed |
+| Result choreography correction | COMPLETE | merged after targeted Chromium evidence + manual review of Secret↔standard carousel chrome, dense reward bounds, real pre-reveal Signal-lock consumption, and Charged aura exit/teardown |
+| Directed onboarding implementation | COMPLETE | PR #149 merged after full CI and independent compatibility/recovery review |
+| Directed onboarding hands-on | OPEN | verify first landing, pointer readability, first result collection guidance, refresh/recovery and first-Charged emphasis at real speed |
+| Real Yandex DRAFT | OPEN | next external gate after onboarding hands-on; actual Yandex SDK/storage/ad/device lifecycle remains unproven until hosted validation |
 
 Technical green ≠ visual approved ≠ hands-on approved ≠ hosted-platform approved.
 
@@ -218,7 +246,7 @@ PARKED:
 - prestige;
 - crafting/merge;
 - family-targeted pouch;
-- odds/Drop-info drawer until final hands-on acceptance.
+- odds/Drop-info drawer until hosted/player evidence.
 
 LOCKED OUT unless direction changes materially:
 
@@ -232,4 +260,4 @@ LOCKED OUT unless direction changes materially:
 
 ## Current stage
 
-> **GO: proceed to real Yandex DRAFT validation on the next explicitly built candidate. Local/direct prerequisites, Secret V4, and PR #65 result choreography are accepted. Do not add new pouch/content/meta scope before hosted evidence.**
+> **GO: run direct onboarding hands-on acceptance on the merged PR #149 runtime. If that passes, proceed to real Yandex DRAFT validation. Do not add new pouch/content/meta scope before those gates.**
