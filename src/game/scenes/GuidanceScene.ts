@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 
 import { onGameAnalyticsEvent, type GameAnalyticsEvent } from '../../app/analyticsEvents';
 import { getPlatformRuntime } from '../../app/runtime';
+import { getMessages } from '../../i18n';
 import { LITE_V2_BALANCE, type PouchType } from '../data/balance';
 import { GAME_REGISTRY } from '../data/collectibles';
 import { OPENING_FEEL_PRESENTATION, POUCH_PRESENTATION, RESULT_PRESENTATION } from '../data/presentation';
-import { getMessages } from '../../i18n';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
 import {
   hasCommittedStandardLegendary,
@@ -44,6 +44,8 @@ export class GuidanceScene extends Phaser.Scene {
   private removeAnalyticsListener: (() => void) | null = null;
   private resultPointerTimer: Phaser.Time.TimerEvent | null = null;
   private chargedEmphasisPlayed = false;
+  private openingTransactionActive = false;
+  private wasOpeningSceneActive = false;
 
   public constructor() {
     super('GuidanceScene');
@@ -59,9 +61,23 @@ export class GuidanceScene extends Phaser.Scene {
     void this.initializeState();
   }
 
+  public update(): void {
+    const openingSceneActive = this.scene.isActive('OpeningScene');
+    if (openingSceneActive === this.wasOpeningSceneActive) return;
+    this.wasOpeningSceneActive = openingSceneActive;
+
+    if (!openingSceneActive) {
+      this.hideOpeningGuidance();
+      return;
+    }
+
+    void this.refreshState();
+  }
+
   private async initializeState(): Promise<void> {
     const platform = getPlatformRuntime();
     this.hints = await loadOnboardingHintState(platform.storage);
+    this.wasOpeningSceneActive = this.scene.isActive('OpeningScene');
     await this.refreshState();
   }
 
@@ -98,6 +114,7 @@ export class GuidanceScene extends Phaser.Scene {
     }
 
     if (event === 'opening_started' || event === 'pending_reveal_recovered') {
+      this.openingTransactionActive = true;
       this.hideChargedPointer();
       this.hideWaitingLabel();
       return;
@@ -114,6 +131,9 @@ export class GuidanceScene extends Phaser.Scene {
 
       if (openingNumber === 1) this.scheduleResultPointer();
 
+      // The first duplicate necessarily gains Signal because no previous
+      // duplicate can have filled the lock. Keep the hint tied to that first
+      // causal experience instead of showing it on a later arbitrary duplicate.
       if (!isNew && !this.hints.signalGainSeen) {
         this.hints = { ...this.hints, signalGainSeen: true };
         void saveOnboardingHintState(getPlatformRuntime().storage, this.hints);
@@ -132,6 +152,7 @@ export class GuidanceScene extends Phaser.Scene {
     }
 
     if (event === 'result_collected') {
+      this.openingTransactionActive = false;
       this.hideResultPointer();
       void this.refreshState();
       return;
@@ -143,7 +164,10 @@ export class GuidanceScene extends Phaser.Scene {
   }
 
   private syncChargedPointer(): void {
-    if (!this.root || !this.metrics || !this.state) return;
+    if (!this.root || !this.metrics || !this.state || !this.isOpeningGuidanceAvailable()) {
+      this.hideChargedPointer();
+      return;
+    }
     const shouldShow = shouldShowChargedOnboardingPointer(
       this.state,
       this.selectedPouchType,
@@ -175,7 +199,7 @@ export class GuidanceScene extends Phaser.Scene {
     this.hideResultPointer();
     this.resultPointerTimer = this.time.delayedCall(1020, () => {
       this.resultPointerTimer = null;
-      if (!this.root || !this.metrics) return;
+      if (!this.root || !this.metrics || !this.scene.isActive('OpeningScene')) return;
       this.resultPointer = createGuidancePointer(
         this,
         this.root,
@@ -194,7 +218,7 @@ export class GuidanceScene extends Phaser.Scene {
   }
 
   private playFirstChargedEmphasis(): void {
-    if (this.chargedEmphasisPlayed || !this.root || !this.metrics) return;
+    if (this.chargedEmphasisPlayed || !this.root || !this.metrics || !this.scene.isActive('OpeningScene')) return;
     this.chargedEmphasisPlayed = true;
 
     const ringA = this.add.circle(this.metrics.centerX, POUCH_Y + 82, 168, 0x7eeaff, 0).setStrokeStyle(4, 0x7eeaff, 0.76);
@@ -228,7 +252,10 @@ export class GuidanceScene extends Phaser.Scene {
   }
 
   private showNextHint(): void {
-    if (!this.root || !this.metrics) return;
+    if (!this.root || !this.metrics || !this.scene.isActive('OpeningScene')) {
+      this.hintShowing = false;
+      return;
+    }
     const next = this.hintQueue.shift();
     if (!next) {
       this.hintShowing = false;
@@ -296,7 +323,7 @@ export class GuidanceScene extends Phaser.Scene {
   }
 
   private syncWaitingLabel(): void {
-    if (!this.root || !this.metrics || !this.state || this.state.pendingReveal !== null) {
+    if (!this.root || !this.metrics || !this.state || !this.isOpeningGuidanceAvailable() || this.state.pendingReveal !== null) {
       this.hideWaitingLabel();
       return;
     }
@@ -330,6 +357,19 @@ export class GuidanceScene extends Phaser.Scene {
     this.waitingLabel = null;
   }
 
+  private isOpeningGuidanceAvailable(): boolean {
+    return this.scene.isActive('OpeningScene') && !this.openingTransactionActive;
+  }
+
+  private hideOpeningGuidance(): void {
+    this.hideChargedPointer();
+    this.hideResultPointer();
+    this.hideWaitingLabel();
+    this.hintContainer?.destroy(true);
+    this.hintContainer = null;
+    this.hintShowing = false;
+  }
+
   private getChargedCardPointerPosition(): { x: number; y: number } {
     const metrics = this.metrics!;
     const labelY = metrics.safeTop + OPENING_FEEL_PRESENTATION.selectorTopOffset;
@@ -342,13 +382,7 @@ export class GuidanceScene extends Phaser.Scene {
   }
 
   private rebuildRoot(): void {
-    this.hideChargedPointer();
-    this.hideResultPointer();
-    this.hideWaitingLabel();
-    this.hintContainer?.destroy(true);
-    this.hintContainer = null;
-    this.hintShowing = false;
-
+    this.hideOpeningGuidance();
     this.root?.destroy(true);
     const ratio = getRenderPixelRatio();
     this.metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio));
@@ -365,11 +399,7 @@ export class GuidanceScene extends Phaser.Scene {
     this.removeAnalyticsListener?.();
     this.removeAnalyticsListener = null;
     this.scale.off('resize', this.handleResize, this);
-    this.hideChargedPointer();
-    this.hideResultPointer();
-    this.hideWaitingLabel();
-    this.hintContainer?.destroy(true);
-    this.hintContainer = null;
+    this.hideOpeningGuidance();
     this.root?.destroy(true);
     this.root = null;
   }
