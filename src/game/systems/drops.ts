@@ -1,5 +1,6 @@
 import type { LiteBalanceConfig, PouchType } from '../data/balance';
 import type { ContentRegistry, StandardRarity } from '../data/collectibles';
+import { getOnboardingBalanceForReveal } from './onboarding';
 import {
   resolveLitePouchReward,
   type LiteChipsReward,
@@ -51,6 +52,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
     throw new Error('Reveal transaction id is required');
   }
 
+  const transactionBalance = getOnboardingBalanceForReveal(state, pouchType, registry, balance);
   const resolved = resolveLitePouchReward({
     state: {
       chips: state.chips,
@@ -63,7 +65,7 @@ export const createPendingReveal = (input: CreatePendingRevealInput): PendingRev
     },
     pouchType,
     registry,
-    balance,
+    balance: transactionBalance,
     random,
   });
 
