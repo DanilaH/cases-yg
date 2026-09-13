@@ -2,11 +2,14 @@ import Phaser from 'phaser';
 import '@fontsource/press-start-2p/cyrillic-400.css';
 import '@fontsource/press-start-2p/latin-400.css';
 
+import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
 import { createDebugPanel } from './debug/createDebugPanel';
 import { getRuntimeSfxAssets } from './game/data/audioAssets';
-import { CollectionScene } from './game/scenes/CollectionScene';
 import { BootScene } from './game/scenes/BootScene';
+import { CollectionScene } from './game/scenes/CollectionScene';
+import { FirstRunScene } from './game/scenes/FirstRunScene';
+import { GuidanceScene } from './game/scenes/GuidanceScene';
 import { OpeningScene } from './game/scenes/OpeningScene';
 import { getGameAudio } from './game/systems/audio';
 import { getBackingStoreSize } from './game/systems/renderDensity';
@@ -40,6 +43,7 @@ const preloadAccentFont = async (): Promise<void> => {
 
 const boot = async (): Promise<void> => {
   const platform = await bootstrapPlatform();
+  platform.analytics = createObservableAnalyticsAdapter(platform.analytics);
   setPlatformRuntime(platform);
   const messages = getMessages(platform.language);
   const removeDebugPanel = createDebugPanel(platform);
@@ -78,7 +82,7 @@ const boot = async (): Promise<void> => {
     width: initialBackingSize.width,
     height: initialBackingSize.height,
     backgroundColor: '#171421',
-    scene: [BootScene, OpeningScene, CollectionScene],
+    scene: [BootScene, FirstRunScene, OpeningScene, GuidanceScene, CollectionScene],
     render: {
       antialias: true,
       antialiasGL: true,
