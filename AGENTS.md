@@ -10,8 +10,9 @@ For gameplay, architecture, feel, presentation or reusable-mechanics work:
 2. Read `Yandex Games/GAME_FEEL_DOCTRINE.md` there.
 3. Read the Signal 2000 entry in `Yandex Games/YANDEX_GAMES_DECISIONS.md` when scope/product direction is relevant.
 4. Load `FEEL_PATTERNS.md`, `POLISH_ACCEPTANCE.md`, `REUSABLE_MECHANICS.md` and prior project learnings only when the task needs them.
-5. For code-reuse work, inspect the current public surface and docs in `DanilaH/mini-games-kit` before proposing a new local implementation.
-6. Treat `docs/REUSABLE_MECHANICS_INVENTORY_2026-09-13.md` as the historical pre-kit inventory, not as current extraction policy.
+5. For first-run guidance, early progression or authored first-reward work, read `docs/ONBOARDING.md`. It is the canonical bounded exception to ordinary first-opening randomness/timing.
+6. For code-reuse work, inspect the current public surface and docs in `DanilaH/mini-games-kit` before proposing a new local implementation.
+7. Treat `docs/REUSABLE_MECHANICS_INVENTORY_2026-09-13.md` as the historical pre-kit inventory, not as current extraction policy.
 
 Do not duplicate the shared doctrine into this repository. Shared knowledge must remain canonical in `DanilaH/decisions`; reusable production code belongs in `DanilaH/mini-games-kit`; this repository records Signal-specific implementation evidence and constraints.
 
@@ -24,7 +25,7 @@ Unless the task explicitly reopens one of these decisions, preserve them:
 - Presentation, animation, audio and particles never own CHIPS, Signal, Overcharge, collection ownership, Hidden Pocket resolution or save mutation.
 - Cosmetic/presentation randomness must not consume or alter gameplay/economy randomness.
 - Skip, recovery, resize, mute and scene teardown must not duplicate acquisition or banking semantics.
-- Do not change reward probabilities, economy values, Signal/Overcharge rules, Hidden Pocket chances/rewards, pouch costs, tear geometry/thresholds or save semantics as a side effect of reuse/refactoring work.
+- Do not change reward probabilities, economy values, Signal/Overcharge rules, Hidden Pocket chances/rewards, pouch costs, tear geometry/thresholds or save semantics as a side effect of reuse/refactoring work. `docs/ONBOARDING.md` explicitly authorizes only its one-time new-player start grant, first-Basic reward profile and first-Charged reward profile; normal tables remain unchanged.
 - Do not perform a broad `OpeningScene` rewrite merely to create a reusable framework.
 - Preserve mobile/desktop frame stability and input responsiveness over decorative richness.
 
@@ -65,7 +66,7 @@ npm run build
 
 Use focused tests while iterating, but do not replace the full suite with focused tests before merge.
 
-For feel/presentation changes, automated green is necessary but not sufficient; apply the hands-on acceptance rules from `DanilaH/decisions`.
+For feel/presentation changes, automated green is necessary but not sufficient; apply the hands-on acceptance rules from `DanilaH/decisions`. For onboarding specifically, also execute the acceptance checklist in `docs/ONBOARDING.md`, including refresh during the first pending reveal and first-Charged recovery.
 
 ## Knowledge write-back
 
