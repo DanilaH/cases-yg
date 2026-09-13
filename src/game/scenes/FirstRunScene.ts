@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { getPlatformRuntime } from '../../app/runtime';
 import { staticTextureKey } from '../data/artAssets';
 import { LITE_V2_BALANCE } from '../data/balance';
-import { GAME_REGISTRY } from '../data/collectibles';
+import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY, type GameLootPoolId } from '../data/collectibles';
 import { POUCH_PRESENTATION } from '../data/presentation';
 import { getGameAudio } from '../systems/audio';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
@@ -88,12 +88,12 @@ export class FirstRunScene extends Phaser.Scene {
       platform.activity.setGameplayDesired(true);
       platform.markReady();
       await this.animateEntrance();
-      if (this.phase === 'shutdown') return;
+      if (this.isShutdown()) return;
       this.phase = 'idle';
       this.pouch?.dragZone.setInteractive({ useHandCursor: true });
       this.scheduleGesturePointer(120);
     } catch (error: unknown) {
-      if (this.phase === 'shutdown') return;
+      if (this.isShutdown()) return;
       this.phase = 'failed';
       console.error('[onboarding] failed to initialize first run', error);
       // Fall back to the mature Opening failure/recovery surface rather than
@@ -112,13 +112,14 @@ export class FirstRunScene extends Phaser.Scene {
     this.root = root;
     addCoverArt(this, root, staticTextureKey('opening-bg'), metrics.logicalWidth, LOGICAL_HEIGHT);
 
+    const activeLootPoolId = this.resolveActiveLootPoolId();
     const pouch = createPouchVisual(
       this,
       root,
       metrics.centerX,
       POUCH_Y,
       'basic',
-      this.saveState?.activeLootPoolId ?? GAME_REGISTRY.lootPools[0]!.id,
+      activeLootPoolId,
     );
     pouch.dragZone.disableInteractive();
     pouch.shadow.setAlpha(0);
@@ -138,6 +139,14 @@ export class FirstRunScene extends Phaser.Scene {
       .setScale(1.55, 1.34);
     root.addAt(groundShadow, 1);
     this.groundShadow = groundShadow;
+  }
+
+  private resolveActiveLootPoolId(): GameLootPoolId {
+    const candidate = this.saveState?.activeLootPoolId;
+    if (candidate && GAME_REGISTRY.lootPoolById.has(candidate)) {
+      return candidate as GameLootPoolId;
+    }
+    return DEFAULT_LOOT_POOL_ID;
   }
 
   private async animateEntrance(): Promise<void> {
@@ -166,7 +175,7 @@ export class FirstRunScene extends Phaser.Scene {
         ease: 'Sine.In',
       }),
     ]);
-    if (this.phase === 'shutdown') return;
+    if (this.isShutdown()) return;
 
     getGameAudio().play('pouch-grab');
     await this.tweenPromise({
@@ -177,7 +186,7 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 82,
       ease: 'Quad.Out',
     });
-    if (this.phase === 'shutdown') return;
+    if (this.isShutdown()) return;
 
     await this.tweenPromise({
       targets: pouch.group,
@@ -187,7 +196,7 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 118,
       ease: 'Sine.Out',
     });
-    if (this.phase === 'shutdown') return;
+    if (this.isShutdown()) return;
 
     await this.tweenPromise({
       targets: pouch.group,
@@ -197,7 +206,7 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 155,
       ease: 'Back.Out',
     });
-    if (this.phase === 'shutdown') return;
+    if (this.isShutdown()) return;
 
     pouch.shadow.setAlpha(0.28);
     shadow.destroy();
@@ -305,7 +314,7 @@ export class FirstRunScene extends Phaser.Scene {
 
     try {
       const pending = await this.session.prepareReveal('basic');
-      if (this.phase === 'shutdown') return;
+      if (this.isShutdown()) return;
       getPlatformRuntime().analytics.track('first_package_interaction');
       getPlatformRuntime().analytics.track('opening_started', {
         openingNumber: pending.openingNumber,
@@ -314,7 +323,7 @@ export class FirstRunScene extends Phaser.Scene {
       });
       this.startOpening();
     } catch (error: unknown) {
-      if (this.phase === 'shutdown') return;
+      if (this.isShutdown()) return;
       console.error('[onboarding] failed to stage first reward', error);
       this.phase = 'idle';
       this.drag = null;
@@ -324,12 +333,12 @@ export class FirstRunScene extends Phaser.Scene {
   }
 
   private startOpening(): void {
-    if (this.phase === 'shutdown') return;
+    if (this.isShutdown()) return;
     this.scene.start('OpeningScene');
   }
 
   private handleResize(): void {
-    if (this.phase === 'shutdown' || this.phase === 'transitioning') return;
+    if (this.isShutdown() || this.phase === 'transitioning') return;
     // Restarting this short presentation is safer than trying to preserve a
     // half-finished entrance/drag across a backing-store resize. Durable reward
     // truth is still owned by OpeningSession and therefore cannot duplicate.
@@ -353,6 +362,10 @@ export class FirstRunScene extends Phaser.Scene {
     this.pouch = null;
     this.root?.destroy(true);
     this.root = null;
+  }
+
+  private isShutdown(): boolean {
+    return this.phase === 'shutdown';
   }
 
   private tweenPromise(config: Phaser.Types.Tweens.TweenBuilderConfig): Promise<void> {
