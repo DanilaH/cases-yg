@@ -10,7 +10,7 @@ The implemented lightweight meta-loop is:
 
 > **Basic Pouch → collectible + CHIPS → duplicate recycle + SIGNAL → Charged Pouch → better roll → repeat.**
 
-The project is deliberately **not** a full idle/incremental economy. Phase 2.6 Signal Overcharge, the bounded feel corrections, final repeated-use regression, six-Drop content expansion and content-scale economy audit are complete. The next evidence gate is the real hosted Yandex DRAFT.
+The project is deliberately **not** a full idle/incremental economy. Phase 2.6 Signal Overcharge, the bounded feel corrections, final repeated-use regression, seven-Drop content expansion, content-scale economy audit and directed first-run onboarding design are complete/locked. The next evidence gate after the onboarding implementation is the real hosted Yandex DRAFT.
 
 ---
 
@@ -63,15 +63,34 @@ Implementation, repeated-use follow-up fixes, exact-revision video/screenshot au
 
 ### Stage B3 — final-hands-on correction + Signal Overcharge — IMPLEMENTED / EXACT-AUDITED
 
-Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Final direct repeated-use regression is accepted. Current tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`; the later six-Drop economy audit also accepted these values unchanged. The future expensive pouch remains a hypothesis only.
+Canonical contract: `FINAL_HANDS_ON_OVERCHARGE_PLAN.md`. The rarity/reward/Charged-denial fixes, Signal/Secret clarity work and deterministic recoverable Overcharge extension are implemented and exact-audited. Final direct repeated-use regression is accepted. Current tuning is Basic `+0.10`, Charged `+0.50`, cap `x1.50`; the later economy audit also accepted these values unchanged. The future expensive pouch remains a hypothesis only.
 
 ### Stage C — expanded content + economy scale — COMPLETE / AUDITED
 
-The runtime now contains six themed Drops / twelve families / sixty authored collectibles with Drop-aware Collection navigation and on-demand art loading. The full-game economy audit accepted the existing balance unchanged after multi-strategy simulation and focused cross-Drop Signal/Overcharge stress.
+The runtime now contains seven themed Drops / fourteen families / seventy authored collectibles with Drop-aware Collection navigation and on-demand art loading. The historical six-Drop full-game economy audit accepted the existing steady-state balance unchanged after multi-strategy simulation and focused cross-Drop Signal/Overcharge stress; the later Airwaves content addition did not intentionally retune the core economy.
 
-### Stage D — real Yandex DRAFT validation — NEXT
+### Stage C2 — directed onboarding — LOCKED NEXT
 
-Upload the exact expanded candidate and validate hosted SDK boot/Game Ready/gameplay markup, lifecycle/audio, safe storage, interrupted Basic/Charged recovery, six-Drop loading/navigation, ads debug probes and analytics/Metrica where configured.
+Canonical contract: `ONBOARDING.md`.
+
+The new-player path is intentionally a **directed version of normal gameplay**, not a tutorial screen:
+
+- first Basic pouch physically enters/lands before normal chrome appears;
+- star gesture pointer teaches the existing tear interaction;
+- brand-new save receives a one-time 10-CHIPS starting wallet;
+- first Basic is authored to NEW Rare + normal base payout + exactly +20 cache;
+- the existing durable pending transaction remains authoritative across refresh/recovery;
+- first affordability at 60 CHIPS points to Charged;
+- first Charged is authored to NEW Legendary and may satisfy an already-armed Signal;
+- first duplicate / first full Signal get short contextual explanations only.
+
+Hidden Pocket, Overcharge, cache taxonomy and the rarity ladder remain discovery, not tutorial content.
+
+This is a bounded early-progression exception. Normal Basic/Charged costs, cache tables, rarity tables, Signal, Hidden Pocket and Overcharge remain unchanged after the two authored onboarding beats.
+
+### Stage D — real Yandex DRAFT validation — NEXT AFTER C2
+
+Upload the exact expanded candidate and validate hosted SDK boot/Game Ready/gameplay markup, lifecycle/audio, onboarding refresh/recovery, safe storage, interrupted Basic/Charged recovery, seven-Drop loading/navigation, ads debug probes and analytics/Metrica where configured.
 
 CI/local browser automation cannot replace this gate.
 
@@ -82,7 +101,7 @@ After hosted platform behavior is proven:
 - fix only demonstrated hosted defects;
 - finalize rewarded/interstitial/sticky monetization decisions;
 - finalize Metrica/CSP choice;
-- finalize store metadata and six-Drop release creative;
+- finalize store metadata and seven-Drop release creative;
 - run declared-device/browser/moderation self-check;
 - submit the expanded candidate for public moderation.
 
@@ -131,6 +150,8 @@ grab response
 
 Tap/click during active presentation can accelerate it without changing the transaction.
 
+For an untouched save, `ONBOARDING.md` directs the first pass through the same mechanics with a pre-UI pouch entrance and two authored reward milestones. Tutorial presentation never substitutes for or owns the transaction.
+
 ---
 
 ## 5. Progression model — CURRENT RUNTIME
@@ -165,7 +186,13 @@ Duplicate recycle C/R/E/L = `2 / 4 / 8 / 15 CHIPS`.
 
 Cache remains independent; Mega pays `120–180 CHIPS` at current release-candidate tuning.
 
-No legacy balance tuning was mixed into Phase 2.6. Existing pouch costs/base/cache/rarity/recycle values remain unchanged. The six-Drop content-scale audit accepted the complete current balance, including Overcharge at Basic `+0.10`, Charged `+0.50`, cap `x1.50`. Reopen balance only from hosted/player evidence or a material mechanic/content change.
+Normal pouch tuning remains unchanged. The onboarding contract introduces only these new-player exceptions:
+
+- one-time start wallet `10 CHIPS` before opening #1;
+- opening #1 Basic = NEW Rare + fixed `cache +20` while retaining normal Basic base CHIPS;
+- first Charged = NEW Legendary when a missing eligible Legendary exists.
+
+After those authored beats, the release-candidate distributions above apply normally. Reopen ordinary balance only from hosted/player evidence or a material mechanic/content change.
 
 ---
 
@@ -179,6 +206,7 @@ Every deliberate input should produce acknowledgement. A player should never be 
 
 Motion should connect source and destination:
 
+- first-run pouch arrival has approach sound, contracting landing shadow, material contact, squash and rebound;
 - star pull affects pouch;
 - tear produces recoil;
 - reward emerges from pouch;
@@ -200,7 +228,7 @@ Do not apply aggressive synthwave/CRT treatment to the whole cozy scene.
 
 ## 8. Basic vs Charged presentation
 
-Mechanically unchanged, but Charged must become visually obvious before reading its label.
+Mechanically unchanged after onboarding, but Charged must become visually obvious before reading its label.
 
 Current merged solution remains low-production:
 
@@ -210,6 +238,8 @@ Current merged solution remains low-production:
 - star/seal emphasis;
 - stronger contour/aura/sparks;
 - selector + pouch transition together.
+
+The first-ever Charged selection additionally gets one short non-blocking premium emphasis from `ONBOARDING.md`; it is milestone choreography, not a new permanent effect stack.
 
 The label-hidden exact-revision audit passed with runtime treatment, so no recolored Charged raster is required now. Re-open that asset only if later hands-on contradicts the audit. Do not redesign pouch geometry.
 
@@ -228,15 +258,15 @@ This is a valid progression-comprehension surface but is **not core feel choreog
 
 After hosted DRAFT evidence, consider one on-demand Drop info drawer sourced from typed balance/content config. Avoid a permanent giant sidebar or permanently visible probability table.
 
-Player-facing six-Drop navigation already exists; richer odds/content-detail surfaces remain deferred until hosted/player evidence justifies them.
+Player-facing seven-Drop navigation already exists; richer odds/content-detail surfaces remain deferred until hosted/player evidence justifies them.
 
 ---
 
 ## 10. Content / Collection / monetization strategy — UNCHANGED
 
-Camera and Flip Phone remain the historical validation catalog. Current production content is organized as six themed Drops with two families per Drop rather than a global mega-pool.
+Camera and Flip Phone remain the historical validation catalog. Current production content is organized as seven themed Drops with two families per Drop rather than a global mega-pool.
 
-Shelf = attractive best finds. Library = exhaustive ownership/completion view. Both now operate against the real six-Drop roster and active Drop context.
+Shelf = attractive best finds. Library = exhaustive ownership/completion view. Both operate against the real seven-Drop roster and active Drop context.
 
 Ads remain optional/reasonable: rewarded explicit, interstitial outside active reveal, failures non-blocking, no artificial energy scarcity.
 
@@ -246,8 +276,8 @@ Ads remain optional/reasonable: rewarded explicit, interstitial outside active r
 
 Still excluded from the current pre-DRAFT scope:
 
-- speculative balance changes without new evidence;
-- more family/Drop content beyond the current six-Drop candidate;
+- speculative ordinary balance changes without new evidence;
+- more family/Drop content beyond the current seven-Drop candidate;
 - permanent odds/collection sidebar;
 - Basic energy/timers;
 - offline/passive income;
