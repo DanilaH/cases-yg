@@ -19,6 +19,23 @@ const DEFAULT_HINT_STATE: OnboardingHintState = {
   signalLockSeen: false,
 };
 
+const sameStrings = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
+const matchesInitialOnboardingGrant = (before: SaveState, after: SaveState): boolean =>
+  after.version === before.version &&
+  after.pendingReveal === null &&
+  after.muted === before.muted &&
+  after.chips === ONBOARDING_INITIAL_CHIPS &&
+  after.signal === before.signal &&
+  after.overchargeHundredths === before.overchargeHundredths &&
+  after.activeLootPoolId === before.activeLootPoolId &&
+  after.totalOpens === before.totalOpens &&
+  after.stats.duplicates === before.stats.duplicates &&
+  after.stats.hiddenPockets === before.stats.hiddenPockets &&
+  sameStrings(after.discoveredStandard, before.discoveredStandard) &&
+  sameStrings(after.discoveredSecrets, before.discoveredSecrets);
+
 export const shouldRunPrimaryOnboarding = (
   state: Pick<SaveState, 'totalOpens' | 'pendingReveal'>,
 ): boolean => state.totalOpens === 0 && (state.pendingReveal === null || state.pendingReveal.openingNumber === 1);
@@ -26,6 +43,8 @@ export const shouldRunPrimaryOnboarding = (
 /**
  * Grants the authored 10-CHIPS starting wallet exactly once for a truly untouched save.
  * Existing/migrated saves and already-staged first reveals are never topped up.
+ * A rejected storage promise is ambiguous, so reload and accept only the exact
+ * grant state we attempted before falling back to an error path.
  */
 export const ensureInitialOnboardingChips = async (
   repository: SaveRepository,
@@ -33,8 +52,19 @@ export const ensureInitialOnboardingChips = async (
 ): Promise<SaveState> => {
   if (state.totalOpens !== 0 || state.pendingReveal !== null || state.chips !== 0) return state;
   const next: SaveState = { ...state, chips: ONBOARDING_INITIAL_CHIPS };
-  await repository.write(next);
-  return next;
+
+  try {
+    await repository.write(next);
+    return next;
+  } catch (error: unknown) {
+    try {
+      const reloaded = await repository.load();
+      if (matchesInitialOnboardingGrant(state, reloaded)) return reloaded;
+    } catch {
+      // Preserve the original write error.
+    }
+    throw error;
+  }
 };
 
 export const hasCommittedStandardLegendary = (
