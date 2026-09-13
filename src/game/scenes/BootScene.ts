@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 
+import { getPlatformRuntime } from '../../app/runtime';
 import {
   getRuntimeBootStaticArt,
   getRuntimeCollectibleArtForLootPool,
   getRuntimePouchArtForLootPool,
 } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, GAME_LOOT_POOL_IDS, GAME_REGISTRY } from '../data/collectibles';
+import { shouldRunPrimaryOnboarding } from '../systems/onboarding';
+import { SaveRepository } from '../systems/save';
 
 export class BootScene extends Phaser.Scene {
   public constructor() {
@@ -39,6 +42,20 @@ export class BootScene extends Phaser.Scene {
   }
 
   public create(): void {
-    this.scene.start('OpeningScene');
+    void this.routeInitialScene();
+  }
+
+  private async routeInitialScene(): Promise<void> {
+    let firstRun = false;
+    try {
+      const state = await new SaveRepository(getPlatformRuntime().storage).load();
+      firstRun = shouldRunPrimaryOnboarding(state);
+    } catch (error: unknown) {
+      // OpeningScene already owns the canonical save-load failure UI.
+      console.warn('[boot] onboarding route check failed; falling back to Opening', error);
+    }
+
+    if (!this.scene.isActive('GuidanceScene')) this.scene.launch('GuidanceScene');
+    this.scene.start(firstRun ? 'FirstRunScene' : 'OpeningScene');
   }
 }
