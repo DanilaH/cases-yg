@@ -11,6 +11,7 @@ The older inventory was written before the shared kit existed. It remains useful
 The following capabilities now live in `DanilaH/mini-games-kit` as `0.x` APIs:
 
 - presentation skip ownership;
+- **durable pending transaction / ambiguous-write recovery kernel**;
 - injectable gameplay RNG / weighted choice;
 - continuous-interaction progress/velocity semantics;
 - bounded value-transfer planning with semantic value separated from visual/audio density;
@@ -27,6 +28,33 @@ The following capabilities now live in `DanilaH/mini-games-kit` as `0.x` APIs:
 
 These APIs are deliberately experimental. The next real project should reuse them where they fit and is allowed to reshape them when real requirements expose a better boundary.
 
+### Durable transaction extraction boundary
+
+The shared transaction primitive was generalized from Signal 2000's `OpeningSession` / `pendingReveal` lifecycle, but it does **not** export `OpeningSession`, `SaveState` or `PendingReveal`.
+
+The kit owns only this lifecycle:
+
+```text
+base durable state
+→ create one pending transaction
+→ persist that exact pending transaction
+→ presentation / non-durable work
+→ deterministic commit
+→ pending marker cleared
+```
+
+Projects inject:
+
+- how pending state is stored/read;
+- how a new pending transaction is resolved;
+- how staging and commit are persisted;
+- how semantic transaction identity is compared after reload;
+- how committed state proves that the exact transaction already applied.
+
+The generic implementation also hardens one edge case beyond Signal 2000: when a write is ambiguous and the immediate recovery reload also fails, further mutations are blocked until an authoritative `load()` succeeds. This prevents blind reroll or double-apply while durable truth is unknown.
+
+Signal 2000 remains on its proven local implementation for now; switching the shipped game to a private cross-repository dependency solely to prove reuse would add deployment/CI risk without product value.
+
 ## Still intentionally local
 
 Keep these Signal-specific unless a future consumer proves a smaller common contract:
@@ -37,21 +65,14 @@ Keep these Signal-specific unless a future consumer proves a smaller common cont
 - reward probabilities and balance;
 - collection schema and milestone policy;
 - `OpeningScene` orchestration;
-- Signal 2000 save schema and conflict comparison rules;
+- Signal 2000 save schema and its exact commit/conflict comparison rules;
 - concrete Y2K art/audio identity.
 
-## Highest-value remaining extraction candidate
+The generic transaction kernel does **not** make those save/economy policies shared.
 
-The durable pending transaction / ambiguous-write recovery pattern remains the strongest architectural candidate not yet moved. Do **not** export `OpeningSession`, `SaveState` or `PendingReveal` unchanged. A generic extraction should preserve the proven guarantees while injecting project state/pending/commit verification policy.
+## Remaining lower-priority candidates
 
-The trigger is not merely "a second consumer exists". Extract when either:
-
-1. another project actually needs interruption-safe staged durable work; or
-2. a project-local refactor can expose a small generic transaction kernel without importing Signal-specific state into the shared API.
-
-## Lower-priority candidates
-
-Silhouette-following accents, transformed-bounds contextual placement, milestone resolution and collection read models remain useful observations, but should not outrank platform/runtime/asset infrastructure already moved to the kit.
+Silhouette-following accents, transformed-bounds contextual placement, milestone resolution and collection read models remain useful observations, but there is no reason to extract them merely for completeness.
 
 ## Rule for future agents
 
