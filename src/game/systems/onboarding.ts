@@ -2,7 +2,7 @@ import type { StorageAdapter } from '../../platform/storage';
 import type { LiteBalanceConfig, PouchType } from '../data/balance';
 import type { ContentRegistry } from '../data/collectibles';
 import type { PendingReveal } from './drops';
-import type { SaveState } from './save';
+import { SaveRepository, type SaveState } from './save';
 
 export const ONBOARDING_INITIAL_CHIPS = 10;
 export const ONBOARDING_FIRST_BASIC_CACHE_CHIPS = 20;
@@ -22,6 +22,20 @@ const DEFAULT_HINT_STATE: OnboardingHintState = {
 export const shouldRunPrimaryOnboarding = (
   state: Pick<SaveState, 'totalOpens' | 'pendingReveal'>,
 ): boolean => state.totalOpens === 0 && (state.pendingReveal === null || state.pendingReveal.openingNumber === 1);
+
+/**
+ * Grants the authored 10-CHIPS starting wallet exactly once for a truly untouched save.
+ * Existing/migrated saves and already-staged first reveals are never topped up.
+ */
+export const ensureInitialOnboardingChips = async (
+  repository: SaveRepository,
+  state: SaveState,
+): Promise<SaveState> => {
+  if (state.totalOpens !== 0 || state.pendingReveal !== null || state.chips !== 0) return state;
+  const next: SaveState = { ...state, chips: ONBOARDING_INITIAL_CHIPS };
+  await repository.write(next);
+  return next;
+};
 
 export const hasCommittedStandardLegendary = (
   state: Pick<SaveState, 'discoveredStandard'>,
