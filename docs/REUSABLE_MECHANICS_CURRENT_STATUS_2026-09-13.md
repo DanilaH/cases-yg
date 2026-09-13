@@ -20,8 +20,12 @@ The following capabilities now live in `DanilaH/mini-games-kit` as `0.x` APIs:
 - presentation audio mixer, continuous tactile noise and pitch helpers;
 - render-density helpers;
 - platform-independent gameplay activity coordination and interstitial eligibility;
+- document-visibility and viewport-orientation activity bridges;
 - generic async storage seam;
+- versioned JSON repository with injected migration/validation and serialized writes;
 - Yandex ads adapter, Player Data mirroring and Metrica adapter;
+- **Yandex SDK/platform runtime bootstrap** with early pause/resume capture, safe-storage setup, optional Player Data enhancement, idempotent readiness and cleanup;
+- mock platform runtime with the same consumer-facing shape;
 - configurable landscape logical layout;
 - Phaser text sharpness and runtime image loading;
 - Node-side generated-image cutout/normalization/validation tooling.
@@ -55,6 +59,25 @@ The generic implementation also hardens one edge case beyond Signal 2000: when a
 
 Signal 2000 remains on its proven local implementation for now; switching the shipped game to a private cross-repository dependency solely to prove reuse would add deployment/CI risk without product value.
 
+### Production-skeleton extraction boundary
+
+The final broad extraction pass generalized the remaining high-leverage boot/persistence plumbing from Signal 2000 without moving game policy.
+
+The shared Yandex runtime now owns:
+
+- controlled SDK script loading / injected SDK initialization;
+- immediate `game_api_pause` / `game_api_resume` subscription before async storage setup;
+- `GameplayAPI.start()` / `stop()` edges through `GameplayActivityCoordinator`;
+- safe storage setup;
+- optional Player Data mirroring with game-injected conflict policy;
+- idempotent `LoadingAPI.ready()`;
+- deterministic visibility/listener cleanup;
+- a matching mock runtime for development.
+
+The shared JSON repository owns JSON parse/serialize and per-instance write ordering, while the game still owns schema validation, migrations and defaults.
+
+The orientation helper only mirrors a viewport rule into a blocker. Signal 2000's rotate-device UI and Phaser loop/audio pause wiring remain local.
+
 ## Still intentionally local
 
 Keep these Signal-specific unless a future consumer proves a smaller common contract:
@@ -66,13 +89,17 @@ Keep these Signal-specific unless a future consumer proves a smaller common cont
 - collection schema and milestone policy;
 - `OpeningScene` orchestration;
 - Signal 2000 save schema and its exact commit/conflict comparison rules;
-- concrete Y2K art/audio identity.
+- concrete Y2K art/audio identity;
+- exact RU/EN product language policy and debug controls;
+- Signal 2000-specific boot UI, scene list and visual orientation gate.
 
-The generic transaction kernel does **not** make those save/economy policies shared.
+The generic transaction and persistence layers do **not** make those save/economy/product policies shared.
 
 ## Remaining lower-priority candidates
 
 Silhouette-following accents, transformed-bounds contextual placement, milestone resolution and collection read models remain useful observations, but there is no reason to extract them merely for completeness.
+
+At this point broad pre-emptive extraction should stop. The next useful evidence must come from another real game consuming the kit.
 
 ## Rule for future agents
 
