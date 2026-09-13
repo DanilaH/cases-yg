@@ -124,6 +124,10 @@ export class GuidanceScene extends Phaser.Scene {
       const openingNumber = Number(params?.openingNumber ?? -1);
       const isNew = params?.isNew === true;
       const chipsAfter = Number(params?.chipsAfter ?? Number.NaN);
+      const signalAfter = Number(params?.signalAfter ?? Number.NaN);
+      const previousSignal = this.state?.signal;
+      const signalGainOccurred =
+        previousSignal !== undefined && Number.isFinite(signalAfter) && signalAfter > previousSignal;
 
       if (Number.isFinite(chipsAfter) && this.state) {
         this.state = { ...this.state, chips: Math.max(0, Math.floor(chipsAfter)) };
@@ -131,10 +135,10 @@ export class GuidanceScene extends Phaser.Scene {
 
       if (openingNumber === 1) this.scheduleResultPointer();
 
-      // The first duplicate necessarily gains Signal because no previous
-      // duplicate can have filled the lock. Keep the hint tied to that first
-      // causal experience instead of showing it on a later arbitrary duplicate.
-      if (!isNew && !this.hints.signalGainSeen) {
+      // Tie the explanation to an observed Signal increase, not merely to a
+      // duplicate. This keeps a lost cosmetic hint record from showing the copy
+      // on a later duplicate while an already-armed lock is being retained.
+      if (!isNew && signalGainOccurred && !this.hints.signalGainSeen) {
         this.hints = { ...this.hints, signalGainSeen: true };
         void saveOnboardingHintState(getPlatformRuntime().storage, this.hints);
         this.enqueueHint('signal-gain', getMessages(getPlatformRuntime().language).opening.onboardingSignalGain);
