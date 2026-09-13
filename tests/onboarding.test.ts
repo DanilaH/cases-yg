@@ -21,6 +21,17 @@ const firstRareState = () => ({
   chips: ONBOARDING_INITIAL_CHIPS,
 });
 
+class WriteThenThrowStorageAdapter extends MemoryStorageAdapter {
+  private shouldThrow = true;
+
+  public override async setItem(key: string, value: string): Promise<void> {
+    await super.setItem(key, value);
+    if (!this.shouldThrow) return;
+    this.shouldThrow = false;
+    throw new Error('ambiguous write');
+  }
+}
+
 describe('Signal 2000 onboarding policy', () => {
   it('grants the 10-CHIPS starting wallet once before any first reveal is staged', async () => {
     const storage = new MemoryStorageAdapter();
@@ -33,6 +44,18 @@ describe('Signal 2000 onboarding policy', () => {
 
     expect(granted.chips).toBe(ONBOARDING_INITIAL_CHIPS);
     expect(repeated.chips).toBe(ONBOARDING_INITIAL_CHIPS);
+    expect((await repository.load()).chips).toBe(ONBOARDING_INITIAL_CHIPS);
+  });
+
+  it('accepts the starting grant when storage rejects after the exact write became durable', async () => {
+    const repository = new SaveRepository(new WriteThenThrowStorageAdapter());
+    const initial = await repository.load();
+
+    const granted = await ensureInitialOnboardingChips(repository, initial);
+
+    expect(granted.chips).toBe(ONBOARDING_INITIAL_CHIPS);
+    expect(granted.totalOpens).toBe(0);
+    expect(granted.pendingReveal).toBeNull();
     expect((await repository.load()).chips).toBe(ONBOARDING_INITIAL_CHIPS);
   });
 
