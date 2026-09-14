@@ -34,6 +34,11 @@ jobs:
       - name: Report asset v2 footprint
         run: node tools/assets/report-build-footprint.mjs dist asset-v2
 
+      - name: Install GPU compression benchmark tools
+        run: npm install --no-save --package-lock=false gpu-tex-enc@1.2.5
+      - name: Benchmark representative GPU texture formats
+        run: node tools/assets/benchmark-gpu-compression.mjs
+
       - name: Upload asset v2 evidence
         uses: actions/upload-artifact@v4
         with:
@@ -41,4 +46,5 @@ jobs:
           path: |
             .asset-build/runtime-v2-report.json
             .asset-build/qa-v2
+            .asset-build/gpu-benchmark/report.json
           if-no-files-found: error
