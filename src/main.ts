@@ -4,7 +4,7 @@ import '@fontsource/press-start-2p/latin-400.css';
 
 import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
-import { resolveViewportSize } from './app/viewport';
+import { resolveViewportState, type ViewportState } from './app/viewport';
 import { createDebugPanel } from './debug/createDebugPanel';
 import { getRuntimeSfxAssets } from './game/data/audioAssets';
 import { BootScene } from './game/scenes/BootScene';
@@ -20,36 +20,37 @@ import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
-const VIEWPORT_SETTLE_DELAYS_MS = [120, 360, 700] as const;
+const VIEWPORT_SETTLE_DELAYS_MS = [120, 360, 700, 1200, 2000] as const;
+const VIEWPORT_WATCHDOG_MS = 500;
 
 interface CssViewportSize {
   width: number;
   height: number;
 }
 
-const readOrientationPortraitHint = (): boolean | null => {
-  const orientationType = window.screen.orientation?.type;
-  if (orientationType?.startsWith('portrait')) return true;
-  if (orientationType?.startsWith('landscape')) return false;
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(orientation: portrait)').matches;
-  }
-  return null;
+const readOrientationMediaPortrait = (): boolean | null => {
+  if (typeof window.matchMedia !== 'function') return null;
+  return window.matchMedia('(orientation: portrait)').matches;
 };
 
-const readLiveViewportSize = (): CssViewportSize => {
+const readLiveViewportState = (): ViewportState => {
   const viewport = window.visualViewport;
   const root = document.documentElement;
-  return resolveViewportSize(
+  return resolveViewportState(
     viewport ? { width: viewport.width, height: viewport.height } : null,
     { width: window.innerWidth, height: window.innerHeight },
     { width: root.clientWidth, height: root.clientHeight },
-    readOrientationPortraitHint(),
+    readOrientationMediaPortrait(),
   );
 };
 
-const syncViewportCssSize = (): CssViewportSize => {
-  const size = readLiveViewportSize();
+const readLiveViewportSize = (): CssViewportSize => {
+  const { width, height } = readLiveViewportState();
+  return { width, height };
+};
+
+const syncViewportCssSize = (state: ViewportState = readLiveViewportState()): CssViewportSize => {
+  const size = state;
   const root = document.documentElement;
   root.style.setProperty('--app-viewport-width', `${size.width}px`);
   root.style.setProperty('--app-viewport-height', `${size.height}px`);
@@ -148,25 +149,31 @@ const boot = async (): Promise<void> => {
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
   if (gate) gate.textContent = messages.rotateDevice;
-  const updateOrientationGate = (): void => {
-    const viewport = readLiveViewportSize();
-    const portrait = readOrientationPortraitHint() ?? viewport.height > viewport.width;
-    if (gate) gate.dataset.visible = portrait ? 'true' : 'false';
-    platform.activity.setBlocked('orientation', portrait);
+  const updateOrientationGate = (viewport: ViewportState): void => {
+    if (gate) gate.dataset.visible = viewport.portrait ? 'true' : 'false';
+    platform.activity.setBlocked('orientation', viewport.portrait);
   };
   const preventContextMenu = (event: Event): void => event.preventDefault();
 
+  let lastViewportSignature = '';
+  const getViewportSignature = (viewport: ViewportState): string =>
+    `${Math.round(viewport.width)}x${Math.round(viewport.height)}:${viewport.portrait ? 'p' : 'l'}`;
+
   const applyViewportChange = (): void => {
-    syncViewportCssSize();
+    const viewport = readLiveViewportState();
+    syncViewportCssSize(viewport);
     syncBackingStore();
-    updateOrientationGate();
+    updateOrientationGate(viewport);
+    lastViewportSignature = getViewportSignature(viewport);
   };
 
   let viewportAnimationFrame: number | null = null;
   let viewportSettleTimers: number[] = [];
   const scheduleViewportChange = (): void => {
-    // Orientation signals can arrive before viewport dimensions settle. Apply once
-    // immediately so the gate reacts, then re-measure across several settle points.
+    // Rotation signals can arrive before browser geometry settles. Apply once
+    // immediately, again on the next frame, and keep a bounded set of settle
+    // checks. A watchdog below covers browsers/webviews that drop the useful
+    // event entirely while Phaser is sleeping behind the portrait gate.
     applyViewportChange();
     if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
     viewportAnimationFrame = window.requestAnimationFrame(() => {
@@ -193,8 +200,15 @@ const boot = async (): Promise<void> => {
   const screenOrientation = window.screen.orientation;
 
   applyViewportChange();
+  const viewportWatchdog = window.setInterval(() => {
+    const viewport = readLiveViewportState();
+    if (getViewportSignature(viewport) !== lastViewportSignature) scheduleViewportChange();
+  }, VIEWPORT_WATCHDOG_MS);
+
   window.addEventListener('resize', scheduleViewportChange);
   window.addEventListener('orientationchange', scheduleViewportChange);
+  window.addEventListener('pageshow', scheduleViewportChange);
+  window.addEventListener('focus', scheduleViewportChange);
   window.visualViewport?.addEventListener('resize', scheduleViewportChange);
   screenOrientation?.addEventListener('change', scheduleViewportChange);
   orientationMedia?.addEventListener('change', scheduleViewportChange);
@@ -206,12 +220,15 @@ const boot = async (): Promise<void> => {
       if (blocked) game?.loop.wake();
       window.removeEventListener('resize', scheduleViewportChange);
       window.removeEventListener('orientationchange', scheduleViewportChange);
+      window.removeEventListener('pageshow', scheduleViewportChange);
+      window.removeEventListener('focus', scheduleViewportChange);
       window.visualViewport?.removeEventListener('resize', scheduleViewportChange);
       screenOrientation?.removeEventListener('change', scheduleViewportChange);
       orientationMedia?.removeEventListener('change', scheduleViewportChange);
       if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
       for (const timer of viewportSettleTimers) window.clearTimeout(timer);
       viewportSettleTimers = [];
+      window.clearInterval(viewportWatchdog);
       resizeObserver?.disconnect();
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();

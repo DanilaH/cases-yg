@@ -1,33 +1,52 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPortraitViewport, resolveViewportSize } from '../src/app/viewport';
+import { isPortraitViewport, resolveViewportState } from '../src/app/viewport';
 
 describe('viewport resolution', () => {
-  it('prefers visualViewport when it agrees with orientation', () => {
-    expect(resolveViewportSize(
+  it('prefers visualViewport when all geometry agrees', () => {
+    expect(resolveViewportState(
       { width: 844, height: 390 },
       { width: 844, height: 390 },
       { width: 844, height: 390 },
       false,
-    )).toEqual({ width: 844, height: 390 });
+    )).toEqual({ width: 844, height: 390, portrait: false });
   });
 
-  it('falls back when visualViewport is stale after rotation', () => {
-    expect(resolveViewportSize(
+  it('rejects stale portrait visualViewport after layout geometry rotates to landscape', () => {
+    expect(resolveViewportState(
       { width: 390, height: 844 },
       { width: 844, height: 390 },
       { width: 844, height: 390 },
-      false,
-    )).toEqual({ width: 844, height: 390 });
+      true,
+    )).toEqual({ width: 844, height: 390, portrait: false });
   });
 
-  it('keeps the best available source when no orientation hint exists', () => {
-    expect(resolveViewportSize(
-      { width: 412, height: 915 },
+  it('does not let a stale media orientation override agreeing layout geometry', () => {
+    expect(resolveViewportState(
+      { width: 390, height: 844 },
+      { width: 915, height: 412 },
+      { width: 915, height: 412 },
+      true,
+    ).portrait).toBe(false);
+  });
+
+  it('uses media orientation only as a tie-breaker while layout sources disagree', () => {
+    expect(resolveViewportState(
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+      { width: 390, height: 844 },
+      false,
+    )).toEqual({ width: 844, height: 390, portrait: false });
+  });
+
+  it('falls back to the best available geometry without orientation APIs', () => {
+    const state = resolveViewportState(
       { width: 412, height: 915 },
       null,
       null,
-    )).toEqual({ width: 412, height: 915 });
-    expect(isPortraitViewport({ width: 412, height: 915 })).toBe(true);
+      null,
+    );
+    expect(state).toEqual({ width: 412, height: 915, portrait: true });
+    expect(isPortraitViewport(state)).toBe(true);
   });
 });
