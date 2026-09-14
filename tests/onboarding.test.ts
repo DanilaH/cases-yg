@@ -121,6 +121,32 @@ describe('Signal 2000 onboarding policy', () => {
     expect(recovered.chips.cacheBonus).toBe(20);
   });
 
+  it('keeps primary onboarding active after reward commit until the exact first result is collected', async () => {
+    const storage = new MemoryStorageAdapter();
+    const repository = new SaveRepository(storage);
+    const granted = await ensureInitialOnboardingChips(repository, await repository.load());
+    const session = new OpeningSession({
+      repository,
+      registry: DEFAULT_DROP_REGISTRY,
+      balance: LITE_V2_BALANCE,
+      random: new SequenceRandom([0, 0, 0, 0, 0]),
+      createTransactionId: () => 'first-collect-gate',
+    });
+    await session.load();
+    const pending = await session.prepareReveal('basic');
+    const committed = await session.commitReveal();
+
+    expect(granted.totalOpens).toBe(0);
+    expect(committed.pendingReveal).toBeNull();
+    expect(committed.onboarding.primaryCompleted).toBe(false);
+    expect(committed.onboarding.firstRevealReceipt).toEqual(pending);
+    expect(shouldRunPrimaryOnboarding(committed)).toBe(true);
+
+    const completed = await session.completePrimaryOnboarding();
+    expect(completed.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
+    expect(shouldRunPrimaryOnboarding(completed)).toBe(false);
+  });
+
   it('forces the first Charged standard to NEW Legendary and then returns to ordinary Charged weights', () => {
     const beforeFirstCharged = {
       ...createInitialSaveState(),

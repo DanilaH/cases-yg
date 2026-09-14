@@ -73,6 +73,10 @@ export class FirstRunScene extends Phaser.Scene {
         this.startOpening();
         return;
       }
+      if (state.onboarding.firstRevealReceipt) {
+        this.startOpening();
+        return;
+      }
 
       state = await ensureInitialOnboardingChips(repository, state);
       if (!this.isCurrentActivation(generation)) return;
@@ -85,6 +89,10 @@ export class FirstRunScene extends Phaser.Scene {
       this.saveState = await this.session.load();
       if (!this.isCurrentActivation(generation)) return;
       if (!shouldRunPrimaryOnboarding(this.saveState)) {
+        this.startOpening();
+        return;
+      }
+      if (this.saveState.onboarding.firstRevealReceipt) {
         this.startOpening();
         return;
       }

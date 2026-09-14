@@ -95,6 +95,7 @@ type OpeningPhase = 'booting' | 'idle' | 'dragging' | 'revealing' | 'result' | '
 
 interface OpeningSceneData {
   lootPoolId?: GameLootPoolId;
+  onboardingHandoffId?: string;
 }
 
 interface DragState {
@@ -152,6 +153,7 @@ export class OpeningScene extends Phaser.Scene {
   private resultBreathBaseScale = 1;
   private selectedPouchType: PouchType = 'basic';
   private requestedLootPoolId: GameLootPoolId | null = null;
+  private requestedOnboardingHandoffId: string | null = null;
   private previewLootPoolId: GameLootPoolId | null = null;
   private dropSwitchInFlight = false;
   private dropSwitchGeneration = 0;
@@ -183,6 +185,7 @@ export class OpeningScene extends Phaser.Scene {
 
   public init(data: OpeningSceneData = {}): void {
     this.requestedLootPoolId = data.lootPoolId ?? null;
+    this.requestedOnboardingHandoffId = data.onboardingHandoffId ?? null;
   }
 
   public create(): void {
@@ -388,7 +391,9 @@ export class OpeningScene extends Phaser.Scene {
 
     let idleMessage: string | undefined;
     const requestedLootPoolId = this.requestedLootPoolId;
+    const onboardingHandoffId = this.requestedOnboardingHandoffId;
     this.requestedLootPoolId = null;
+    this.requestedOnboardingHandoffId = null;
     const targetLootPoolId =
       requestedLootPoolId && !this.saveState.pendingReveal
         ? requestedLootPoolId
@@ -421,6 +426,20 @@ export class OpeningScene extends Phaser.Scene {
       }
     }
 
+    const onboardingReplay = this.saveState.onboarding.firstRevealReceipt;
+    if (onboardingReplay) {
+      this.selectedPouchType = onboardingReplay.pouchType;
+      this.lastReveal = onboardingReplay;
+      this.phase = 'result';
+      this.resultReady = true;
+      this.renderResolvedResult(onboardingReplay);
+      platform.activity.setGameplayDesired(true);
+      platform.markReady();
+      platform.analytics.track('onboarding_result_recovered', { openingNumber: onboardingReplay.openingNumber });
+      platform.analytics.track('onboarding_result_ready', { openingNumber: onboardingReplay.openingNumber, recovered: true });
+      return;
+    }
+
     const pending = this.saveState.pendingReveal;
     if (pending) {
       this.selectedPouchType = pending.pouchType;
@@ -446,7 +465,7 @@ export class OpeningScene extends Phaser.Scene {
       getPlatformRuntime().analytics.track('pending_reveal_recovered', {
         openingNumber: pending.openingNumber,
       });
-      void this.playReveal(pending, true);
+      void this.playReveal(pending, onboardingHandoffId !== pending.id);
     }
   }
 
@@ -2659,6 +2678,12 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'result') return;
     this.resultReady = true;
     this.renderResultActionPanel(pending);
+    if (pending.openingNumber === 1 && !committed.onboarding.primaryCompleted) {
+      getPlatformRuntime().analytics.track('onboarding_result_ready', {
+        openingNumber: pending.openingNumber,
+        recovered: false,
+      });
+    }
   }
 
   private async animateTearDetach(recovered: boolean): Promise<void> {
@@ -4585,6 +4610,7 @@ export class OpeningScene extends Phaser.Scene {
       overchargeGain: pending.overcharge.appliedGainHundredths,
       overchargeAfter: committed.overchargeHundredths,
       signalAfter: committed.signal,
+      signalGain: pending.signal.gain,
     });
 
     if (pending.signal.lockReached) {
@@ -5170,7 +5196,28 @@ export class OpeningScene extends Phaser.Scene {
     if (this.phase !== 'result' || !this.resultReady || !this.lastReveal) return;
     getGameAudio().play('ui-click');
     this.resultCarouselDrag = null;
+    this.resultReady = false;
     const pending = this.lastReveal;
+    this.renderResultActionPanel(pending);
+    void this.acceptResult(pending);
+  }
+
+  private async acceptResult(pending: PendingReveal): Promise<void> {
+    if (!this.session || !this.saveState || this.isSceneShutdown()) return;
+
+    if (pending.openingNumber === 1 && !this.saveState.onboarding.primaryCompleted) {
+      try {
+        this.saveState = await this.session.completePrimaryOnboarding();
+      } catch (error: unknown) {
+        console.error('[onboarding] failed to persist first collect', error);
+        if (!this.isSceneShutdown()) {
+          this.resultReady = true;
+          this.renderResultActionPanel(pending);
+        }
+        return;
+      }
+    }
+
     getPlatformRuntime().analytics.track('result_collected', {
       openingNumber: pending.openingNumber,
       lootPoolId: pending.lootPoolId,
@@ -5180,11 +5227,13 @@ export class OpeningScene extends Phaser.Scene {
       hiddenPocket: pending.hiddenPocket !== null,
       startPage: pending.hiddenPocket && this.resultCarouselIndex === 1 ? 'secret' : 'standard',
     });
-    void this.animateRewardBanking(pending).catch((error: unknown) => {
+    try {
+      await this.animateRewardBanking(pending);
+    } catch (error: unknown) {
       console.error('[opening] reward banking presentation failed', error);
       getGameAudio().clearResultAmbience();
       if (this.saveState && !this.isSceneShutdown()) this.renderIdle();
-    });
+    }
   }
 
   private addLockedSaveFailure(): void {

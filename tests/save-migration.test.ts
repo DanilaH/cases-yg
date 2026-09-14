@@ -74,6 +74,7 @@ describe('Lite V2 save migration', () => {
       activeLootPoolId: 'y2k-essentials',
       totalOpens: 7,
       pendingReveal: null,
+      onboarding: { primaryCompleted: true, firstRevealReceipt: null },
       stats: { duplicates: 2, hiddenPockets: 0 },
     });
   });
@@ -247,6 +248,18 @@ describe('Lite V2 save migration', () => {
       appliedGainHundredths: 0,
       bonusChips: 0,
     });
+  });
+
+  it('migrates V4 onboarding state conservatively without inventing a replay receipt', () => {
+    const freshV5 = createInitialSaveState();
+    const freshV4 = { ...freshV5, version: 4 };
+    delete (freshV4 as Record<string, unknown>).onboarding;
+    const migratedFresh = parseSaveState(JSON.stringify(freshV4));
+    expect(migratedFresh.onboarding).toEqual({ primaryCompleted: false, firstRevealReceipt: null });
+
+    const progressedV4 = { ...freshV4, totalOpens: 1 };
+    const migratedProgressed = parseSaveState(JSON.stringify(progressedV4));
+    expect(migratedProgressed.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
   });
 
   it('rejects a current pending transaction whose commit no longer matches its base collection', () => {
