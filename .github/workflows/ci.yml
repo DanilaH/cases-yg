@@ -33,22 +33,17 @@ jobs:
         run: npm run build:asset-v2
       - name: Report asset v2 footprint
         run: node tools/assets/report-build-footprint.mjs dist asset-v2
-      - name: Benchmark alpha-trim candidate
-        run: node tools/assets/benchmark-trim-v2.mjs
+      - name: Benchmark WebP effort 4
+        run: node tools/assets/benchmark-webp-effort-v2.mjs
 
-      - name: Install GPU compression benchmark tools
-        run: npm install --prefix .asset-build/gpu-tools --no-save --package-lock=false gpu-tex-enc@1.2.5
-      - name: Benchmark representative GPU texture formats
-        run: node tools/assets/benchmark-gpu-compression.mjs
-
-      - name: Upload asset v2 evidence
+      # Alpha-trim and GPU-format research was completed and archived in CI #625.
+      # Do not repeatedly spend several minutes rebuilding those frozen experiments
+      # on unrelated follow-up commits.
+      - name: Upload asset v2 effort evidence
         uses: actions/upload-artifact@v4
         with:
-          name: asset-pipeline-v2-evidence
+          name: asset-pipeline-v2-effort-evidence
           path: |
             .asset-build/runtime-v2-report.json
-            .asset-build/trim-v2-report.json
-            .asset-build/qa-v2
-            .asset-build/qa-trim-v2
-            .asset-build/gpu-benchmark/report.json
+            .asset-build/webp-effort4-report.json
           if-no-files-found: error
