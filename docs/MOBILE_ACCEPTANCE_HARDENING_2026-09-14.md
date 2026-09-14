@@ -1,7 +1,7 @@
 # Signal 2000 — Mobile Acceptance Hardening
 
 **Date:** 2026-09-14  
-**Status:** ACTIVE IMPLEMENTATION PLAN  
+**Status:** IMPLEMENTED — AWAITING REAL-PHONE ACCEPTANCE  
 **Trigger:** first real-phone GitHub Pages acceptance pass
 
 This pass addresses four concrete hands-on failures observed on a real phone. It is deliberately scoped to presentation, responsive layout, and onboarding timing. It must not change reward/economy truth, save semantics, pouch odds, Signal rules, or Yandex integration behavior.
@@ -199,3 +199,29 @@ The four reports are mutually consistent and supported by current code. They are
 - rotation is a browser viewport synchronization issue.
 
 The tempting shortcut — globally zooming the entire canvas or globally increasing Phaser resolution — is rejected. It would either crop the scene or only sharpen the same physically tiny text. The correct low-complexity fix is one shared gameplay scene with a compact readable chrome profile plus robust mobile viewport synchronization.
+
+## 10. Implementation result and independent diff review
+
+Implemented in `mobile-acceptance-hardening` and reviewed against this document before merge.
+
+Implementation result:
+
+- `LayoutMetrics` now exposes physical CSS viewport dimensions and a short-height `compactChrome` profile using the clamped render pixel ratio;
+- Opening/FirstRun/Guidance/Collection all consume the same DPR-aware metrics path, without introducing a second mobile scene;
+- compact Opening chrome enlarges and reflows CHIPS, SIGNAL/OVERCHARGE, pouch cards, odds, reward breakdown, result metadata/CTA, milestones, mute/collection controls, and onboarding hints;
+- the first pending reveal renders through a dedicated reveal shell containing environment, resource HUD, mute, and the real torn pouch while excluding idle Drop/pouch/odds chrome;
+- the onboarding gesture cue is now a branded cyan/lavender/pink pointer with dark local contrast, directional geometry, pulse, and larger compact-mode travel/scale;
+- viewport synchronization now uses `visualViewport` when available, listens to `resize`, `orientationchange`, and `visualViewport.resize`, updates CSS viewport variables before measuring the game host, and performs an animation-frame pass plus a delayed settle pass;
+- focused layout tests cover the compact mobile classification and protect HiDPI desktop classification.
+
+Independent diff review found no blocking state/economy/save/Yandex-runtime changes. One follow-up readability pass was made before merge to raise remaining transient reward/reveal copy and to make Charged-spend feedback use compact HUD geometry rather than desktop constants.
+
+Validated after the final readability pass with:
+
+- `npm run typecheck`;
+- `npm test`;
+- `npm run assets:selftest`;
+- `npm run assets:validate`;
+- `npm run build`.
+
+PR CI is also green. Remaining acceptance is intentionally hands-on: deploy the merged build to GitHub Pages and rerun the checklist in section 8 on the real phone.
