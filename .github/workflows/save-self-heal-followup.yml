@@ -22,7 +22,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Apply review follow-up
+      - name: Apply repair-only onboarding follow-up
         run: python scripts/save-self-heal-followup.py
 
       - name: Install dependencies
@@ -51,5 +51,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Enforce onboarding recovery invariant"
+          git commit -m "Normalize onboarding only during save repair"
           git push origin HEAD:save-self-heal-hardening
