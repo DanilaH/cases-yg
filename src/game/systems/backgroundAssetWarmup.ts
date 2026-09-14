@@ -2,9 +2,9 @@ import type { PlatformRuntime } from '../../platform/yandex';
 import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
 import { GAME_REGISTRY } from '../data/collectibles';
 
-const DEFAULT_DELAY_MS = 1200;
-const BATCH_SIZE = 6;
-const BATCH_GAP_MS = 180;
+const DEFAULT_DELAY_MS = 1500;
+const BATCH_SIZE = 4;
+const BATCH_GAP_MS = 450;
 
 export const getBackgroundWarmupAssetPaths = (): readonly string[] =>
   [...new Set([
