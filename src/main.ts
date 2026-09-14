@@ -161,15 +161,16 @@ const boot = async (): Promise<void> => {
   game.sound.mute = blocked;
   if (loopSuspended) game.loop.sleep();
 
-  const syncBackingStore = (viewport: ViewportState): void => {
-    if (!game) return;
+  const syncBackingStore = (viewport: ViewportState): boolean => {
+    if (!game) return false;
     // Use the exact same resolved viewport snapshot as the CSS shell and rotate
     // gate. A second DOM geometry read here can be one rotation phase behind on
     // Android Chrome and leave Phaser presenting a stale portrait-authored layout.
     const cssSize = resolveGameCssSize(viewport);
     const backingSize = getBackingStoreSize(cssSize.width, cssSize.height);
-    if (game.scale.width === backingSize.width && game.scale.height === backingSize.height) return;
+    if (game.scale.width === backingSize.width && game.scale.height === backingSize.height) return false;
     game.scale.resize(backingSize.width, backingSize.height);
+    return true;
   };
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
@@ -186,15 +187,26 @@ const boot = async (): Promise<void> => {
 
   const applyViewportChange = (): void => {
     const viewport = readLiveViewportState();
+    const viewportSignature = getViewportSignature(viewport);
+    const viewportChanged = viewportSignature !== lastViewportSignature;
     syncViewportCssSize(viewport);
 
     // The portrait gate fully covers the game, so resizing the Phaser backing
     // store there only clears/restarts scenes we cannot show. Preserve the last
     // live landscape canvas and resize exactly when landscape geometry returns.
-    if (shouldSyncGameBackingStore(viewport)) syncBackingStore(viewport);
+    if (shouldSyncGameBackingStore(viewport)) {
+      const backingStoreResized = syncBackingStore(viewport);
+      if (!backingStoreResized && viewportChanged) {
+        // Returning from portrait can legitimately restore the exact same
+        // landscape backing size. Phaser.resize() would then be skipped, so emit
+        // the official ScaleManager refresh/RESIZE signal explicitly to rebuild
+        // scene presentation that may have changed lifecycle state under the gate.
+        game?.scale.refresh();
+      }
+    }
 
     updateOrientationGate(viewport);
-    lastViewportSignature = getViewportSignature(viewport);
+    lastViewportSignature = viewportSignature;
   };
 
   let viewportAnimationFrame: number | null = null;
