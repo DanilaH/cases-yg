@@ -25,10 +25,13 @@ export interface PlatformRuntime {
 
 const DEBUG_LANGUAGE_KEY = 'mystery-pocket-tech.debug-language';
 
+const debugToolsEnabled = (): boolean =>
+  import.meta.env.DEV || import.meta.env.VITE_DEBUG_PANEL === 'true';
+
 const normalizeLanguage = (language: string | undefined): AppLanguage => (language === 'ru' ? 'ru' : 'en');
 
 const readDebugLanguageOverride = (): AppLanguage | null => {
-  if (!import.meta.env.DEV) return null;
+  if (!debugToolsEnabled()) return null;
   try {
     const value = window.sessionStorage.getItem(DEBUG_LANGUAGE_KEY);
     return value === 'ru' || value === 'en' ? value : null;
@@ -38,7 +41,7 @@ const readDebugLanguageOverride = (): AppLanguage | null => {
 };
 
 export const setDebugLanguageOverride = (language: AppLanguage): void => {
-  if (!import.meta.env.DEV) return;
+  if (!debugToolsEnabled()) return;
   try {
     window.sessionStorage.setItem(DEBUG_LANGUAGE_KEY, language);
   } catch {
