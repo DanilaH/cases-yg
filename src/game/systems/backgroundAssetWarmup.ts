@@ -1,5 +1,9 @@
 import type { PlatformRuntime } from '../../platform/yandex';
-import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
+import {
+  getRuntimeCollectibleArt,
+  getRuntimeCollectionStaticArt,
+  getRuntimeStaticArt,
+} from '../data/artAssets';
 import { GAME_REGISTRY } from '../data/collectibles';
 
 const DEFAULT_DELAY_MS = 1500;
@@ -8,6 +12,7 @@ const BATCH_GAP_MS = 450;
 
 export const getBackgroundWarmupAssetPaths = (): readonly string[] =>
   [...new Set([
+    ...getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
     ...getRuntimeCollectibleArt(GAME_REGISTRY).map(({ assetPath }) => assetPath),
     ...getRuntimeStaticArt().map(({ assetPath }) => assetPath),
   ])];

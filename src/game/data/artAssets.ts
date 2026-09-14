@@ -195,14 +195,9 @@ const DROP_POUCH_STATIC_ART_IDS: Readonly<Partial<Record<GameLootPoolId, PouchVa
   airwaves: themedPouchIds('airwaves'),
 };
 
-const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = [
-  'pouch-body',
-  'pouch-tear-strip',
-  'pouch-star-tab',
-  'charged-pouch-body',
-  'charged-pouch-tear-strip',
-  'charged-pouch-star-tab',
-  'opening-bg',
+const BOOT_STATIC_ART_IDS: readonly StaticArtId[] = ['opening-bg'];
+
+const COLLECTION_STATIC_ART_IDS: readonly StaticArtId[] = [
   'collection-bg',
   'collection-foreground',
 ];
@@ -259,6 +254,9 @@ export const getRuntimeStaticArt = (): readonly RuntimeStaticArt[] =>
 
 export const getRuntimeBootStaticArt = (): readonly RuntimeStaticArt[] =>
   toRuntimeStaticArt(BOOT_STATIC_ART_IDS);
+
+export const getRuntimeCollectionStaticArt = (): readonly RuntimeStaticArt[] =>
+  toRuntimeStaticArt(COLLECTION_STATIC_ART_IDS);
 
 export const getRuntimePouchArt = (
   variant: PouchArtVariant,
