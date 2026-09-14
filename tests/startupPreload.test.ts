@@ -165,11 +165,21 @@ describe('StartupPreloadController', () => {
     expect(computeStartupFakeProgress(120_000)).toBeLessThan(1);
   });
 
+  it('does not fail a legitimately slow 30-60 second mobile startup', () => {
+    const { scheduler, controller } = createHarness();
+
+    controller.begin();
+    scheduler.advanceBy(60_000);
+
+    expect(controller.getPhase()).toBe('visible');
+    expect(controller.getProgress()).toBeLessThan(1);
+  });
+
   it('shows an explicit failure state when startup exceeds the bounded timeout', () => {
     const { scheduler, controller } = createHarness();
 
     controller.begin();
-    scheduler.advanceBy(30_000);
+    scheduler.advanceBy(90_000);
 
     expect(controller.getPhase()).toBe('failed');
     expect(controller.getProgress()).toBeLessThan(1);
@@ -180,7 +190,7 @@ describe('StartupPreloadController', () => {
     const { scheduler, controller } = createHarness();
 
     controller.begin();
-    scheduler.advanceBy(30_000);
+    scheduler.advanceBy(90_000);
     expect(controller.getPhase()).toBe('failed');
 
     controller.complete();
