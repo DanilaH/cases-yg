@@ -40,4 +40,17 @@ describe('startup asset staging', () => {
     expect(saveLoad).toBeGreaterThanOrEqual(0);
     expect(activeDropLoad).toBeGreaterThan(saveLoad);
   });
+
+  it('keeps missing dynamic art covered until Phaser has authored textures and rebuilds the scene', () => {
+    const source = readFileSync('src/game/systems/artLoading.ts', 'utf8');
+    const gateShown = source.indexOf('const releaseGate = showRuntimeArtGate()');
+    const loaderWait = source.indexOf('await new Promise<void>');
+    const refresh = source.indexOf('scene.scale.refresh()');
+    const release = source.indexOf('releaseGate()');
+
+    expect(gateShown).toBeGreaterThanOrEqual(0);
+    expect(loaderWait).toBeGreaterThan(gateShown);
+    expect(refresh).toBeGreaterThan(loaderWait);
+    expect(release).toBeGreaterThan(refresh);
+  });
 });
