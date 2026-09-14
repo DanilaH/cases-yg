@@ -1,7 +1,7 @@
 # Signal 2000 — Mobile Acceptance Hardening
 
 **Date:** 2026-09-14  
-**Status:** IMPLEMENTED — AWAITING REAL-PHONE ACCEPTANCE  
+**Status:** SECOND REAL-PHONE CORRECTION PASS — IMPLEMENTED, AWAITING PHONE ACCEPTANCE  
 **Trigger:** first real-phone GitHub Pages acceptance pass
 
 This pass addresses four concrete hands-on failures observed on a real phone. It is deliberately scoped to presentation, responsive layout, and onboarding timing. It must not change reward/economy truth, save semantics, pouch odds, Signal rules, or Yandex integration behavior.
@@ -225,3 +225,37 @@ Validated after the final readability pass with:
 - `npm run build`.
 
 PR CI is also green. Remaining acceptance is intentionally hands-on: deploy the merged build to GitHub Pages and rerun the checklist in section 8 on the real phone.
+
+## 11. Second real-phone acceptance findings
+
+The first deployed compact-chrome pass improved physical readability and rotation handling, but the next real-phone review exposed five follow-up failures. These are treated as one bounded layout-coherence correction, not a new feature pass.
+
+1. **Odds chrome survives into live reveal.** The live tear path only dimmed selector cards and hid the Drop selector; the odds container was not owned/tracked by reveal-phase cleanup. The live path must transition to the same clean reveal shell used by staged/recovered presentation.
+2. **The POUCH section label loses contrast.** It sits directly on bright authored background art. Compact mode needs a dark outline/shadow while preserving the existing typography identity.
+3. **Compact chrome is readable but compositionally cramped.** The previous pass enlarged text without proportionally redesigning card heights, vertical rhythm and Drop navigation. This creates near-overflow, crowded surfaces and navigation controls that compete with Drop title/progress copy. The correction must reduce vertical pressure while preserving readable font sizes, and move compact Drop arrows outside the text surface.
+4. **Charged onboarding target geometry drifted.** At least one Charged-ready outline still uses the desktop rail width/height while the compact card uses enlarged dimensions. Opening and Guidance must share a single pouch-selector geometry source so pointer/highlight/hit targets cannot drift from the rendered card.
+5. **The branded gesture pointer is visible but optically off-center.** The arrowhead was intentionally placed toward the right edge of the halo, which reads as malformed rather than directional on phone. The arrow must be centered inside the circular target; direction comes from the translation loop and external trail.
+
+### Correction constraints
+
+- no economy, reward, RNG, save, tear-threshold or Yandex runtime changes;
+- no second mobile scene;
+- no broad OpeningScene rewrite;
+- preserve the improved physical readability from the first pass;
+- one shared compact geometry source must drive rendered pouch cards and guidance target coordinates;
+- reveal chrome must be semantically owned by phase, not merely dimmed;
+- compact Drop navigation must have independent space from title/progress content;
+- after automated validation, real-phone review remains authoritative.
+
+
+### Second-pass implementation result
+
+- live tears now rebuild into the same reveal-owned shell after the pending reward is durably staged, so odds/pouch/Drop idle chrome cannot survive into reveal/result presentation;
+- compact Opening geometry is centralized in `openingChromeLayout.ts` and shared by Opening + Guidance;
+- compact rail height/spacing and odds height were reduced while retaining readable system-font sizes, removing the previous near-overflow pressure;
+- compact Drop navigation is taller internally and places the previous/next controls outside the title/progress surface;
+- `POUCH` now has a dark stroke/shadow for authored-background contrast;
+- Charged availability/READY outlines and guidance pointer targets use the same rendered card dimensions;
+- the guidance arrow is optically centered inside its circular target and direction is carried by motion + trailing dots.
+
+Automated validation remains a pre-merge gate; the real phone remains authoritative for final acceptance.

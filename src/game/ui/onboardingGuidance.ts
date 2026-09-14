@@ -16,9 +16,9 @@ export interface GuidancePointer {
 
 /**
  * High-salience non-interactive gesture pointer used by onboarding guidance.
- * It intentionally uses the game's cyan/lavender/pink accent family plus a dark
- * local shadow so the cue remains visible on both the bright desk art and dark UI.
- * The pointer is presentation-only: it never intercepts input or owns gameplay state.
+ * The circular target and arrow share one visual center; small trailing dots plus
+ * the repeated translation communicate direction without offsetting the arrowhead
+ * to the edge of the halo. The pointer never intercepts input or owns gameplay state.
  */
 export const createGuidancePointer = (
   scene: Phaser.Scene,
@@ -30,27 +30,25 @@ export const createGuidancePointer = (
   const baseScale = options.scale ?? 1;
   const container = scene.add.container(x, y).setDepth(1200);
 
-  const shadow = scene.add.circle(0, 3, 27, 0x090711, 0.32);
+  const shadow = scene.add.circle(0, 3, 28, 0x090711, 0.36);
   const halo = scene.add
-    .circle(0, 0, 25, 0x8df8ff, 0.11)
-    .setStrokeStyle(3, 0x8df8ff, 0.92);
+    .circle(0, 0, 26, 0x8df8ff, 0.12)
+    .setStrokeStyle(3, 0x8df8ff, 0.96);
   const inner = scene.add
-    .circle(0, 0, 16, 0xd39bff, 0.13)
-    .setStrokeStyle(2, 0xd39bff, 0.88);
-  const dragOrigin = scene.add
-    .circle(-18, 0, 7, 0xffffff, 0.98)
-    .setStrokeStyle(3, 0x8df8ff, 0.95);
-  const beam = scene.add
-    .rectangle(-2, 0, 33, 8, 0xd39bff, 0.94)
+    .circle(0, 0, 17, 0xd39bff, 0.15)
+    .setStrokeStyle(2, 0xd39bff, 0.9);
+  const trailFar = scene.add.circle(-48, 0, 3.2, 0xd39bff, 0.52);
+  const trailNear = scene.add.circle(-37, 0, 4.2, 0x8df8ff, 0.72);
+  const shaft = scene.add
+    .rectangle(-4, 0, 22, 7, 0xd39bff, 0.98)
     .setOrigin(0.5)
-    .setStrokeStyle(1, 0xffffff, 0.34);
+    .setStrokeStyle(1, 0xffffff, 0.38);
   const arrow = scene.add
-    .triangle(18, 0, -7, -12, -7, 12, 11, 0, 0xff8fd8, 0.98)
+    .triangle(2, 0, -8, -11, -8, 11, 10, 0, 0xff8fd8, 1)
     .setOrigin(0.5)
-    .setStrokeStyle(2, 0xffffff, 0.74);
-  const hotCore = scene.add.circle(18, 0, 3.5, 0xffffff, 0.98);
+    .setStrokeStyle(2, 0xffffff, 0.8);
 
-  container.add([shadow, halo, inner, beam, dragOrigin, arrow, hotCore]);
+  container.add([shadow, trailFar, trailNear, halo, inner, shaft, arrow]);
   container.setRotation(Phaser.Math.DegToRad(options.angle ?? 0));
   container.setScale(baseScale);
   parent.add(container);
@@ -59,7 +57,7 @@ export const createGuidancePointer = (
     targets: container,
     x: x + (options.travelX ?? 34),
     y: y + (options.travelY ?? 0),
-    alpha: { from: 0.72, to: 1 },
+    alpha: { from: 0.76, to: 1 },
     scale: { from: baseScale * 0.96, to: baseScale },
     duration: options.durationMs ?? 620,
     yoyo: true,
@@ -70,8 +68,8 @@ export const createGuidancePointer = (
 
   const pulseTween = scene.tweens.add({
     targets: [halo, inner],
-    scale: { from: 0.92, to: 1.08 },
-    alpha: { from: 0.72, to: 1 },
+    scale: { from: 0.94, to: 1.07 },
+    alpha: { from: 0.76, to: 1 },
     duration: 420,
     yoyo: true,
     repeat: -1,
