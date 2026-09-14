@@ -46,9 +46,10 @@ const addDebugChips = (state: SaveState, amount: number): SaveState => {
 };
 
 export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
-  // Internal save/reveal/ad controls must never be reachable in a production
-  // moderation or public build through a query-string switch.
-  if (!import.meta.env.DEV) {
+  // Internal save/reveal/ad controls stay disabled in ordinary production builds.
+  // Dedicated test hosts such as GitHub Pages must opt in at build time.
+  const debugPanelEnabled = import.meta.env.DEV || import.meta.env.VITE_DEBUG_PANEL === 'true';
+  if (!debugPanelEnabled) {
     return () => undefined;
   }
 
