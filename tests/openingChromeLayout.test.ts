@@ -15,6 +15,10 @@ describe('opening chrome geometry', () => {
     const geometry = getPouchSelectorGeometry(metrics);
 
     expect(metrics.compactChrome).toBe(true);
+    expect(geometry.chrome.chipsHudHeight).toBe(96);
+    expect(geometry.chrome.signalHudHeight).toBe(112);
+    expect(geometry.chrome.hudGap).toBe(14);
+    expect(geometry.chrome.selectorTopOffset - (8 + geometry.chrome.chipsHudHeight + geometry.chrome.hudGap + geometry.chrome.signalHudHeight)).toBeGreaterThanOrEqual(20);
     expect(geometry.basic.width).toBe(286);
     expect(geometry.basic.height).toBe(70);
     expect(geometry.charged.x).toBe(geometry.basic.x);
@@ -38,6 +42,9 @@ describe('opening chrome geometry', () => {
     const desktop = getOpeningChromeSizing(false);
 
     expect(desktop.chipsHudWidth).toBe(216);
+    expect(desktop.chipsHudHeight).toBe(64);
+    expect(desktop.signalHudHeight).toBe(64);
+    expect(desktop.hudGap).toBe(10);
     expect(desktop.railCardWidth).toBe(216);
     expect(desktop.railCardHeight).toBe(58);
     expect(desktop.dropSelectorHeight).toBe(84);

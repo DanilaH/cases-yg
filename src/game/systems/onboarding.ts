@@ -145,7 +145,9 @@ export const shouldShowChargedOnboardingPointer = (
   selectedPouchType: PouchType,
   registry: ContentRegistry,
   balance: LiteBalanceConfig,
+  chargedControlReady: boolean,
 ): boolean =>
+  chargedControlReady &&
   state.pendingReveal === null &&
   state.chips >= balance.pouchProfiles.charged.chipsCost &&
   !hasCommittedStandardLegendary(state, registry) &&

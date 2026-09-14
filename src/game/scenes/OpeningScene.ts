@@ -1237,8 +1237,30 @@ export class OpeningScene extends Phaser.Scene {
     this.pouch.dragZone.disableInteractive();
   }
 
+  public isPouchSelectorReadyForGuidance(pouchType: PouchType = 'charged'): boolean {
+    if (this.phase !== 'idle' || this.dropSwitchInFlight || this.pouchArtLoadInFlight) return false;
+    const card = this.pouchSelectorButtons.find((item) => item.getData('pouchType') === pouchType);
+    if (!card?.active || !card.visible) return false;
+    const idleAlpha = Number(card.getData('idleAlpha') ?? 1);
+    return card.alpha >= Math.max(0.01, idleAlpha * 0.9);
+  }
+
   private getChromeSizing() {
     return getOpeningChromeSizing(this.metrics?.compactChrome ?? false);
+  }
+
+  private getSignalHudCenter(): { x: number; y: number } {
+    if (!this.metrics) return { x: 0, y: 0 };
+    const chrome = this.getChromeSizing();
+    return {
+      x: this.metrics.safeLeft + chrome.signalHudWidth / 2,
+      y:
+        this.metrics.safeTop +
+        OPENING_FEEL_PRESENTATION.railTopOffset +
+        chrome.chipsHudHeight +
+        chrome.hudGap +
+        chrome.signalHudHeight / 2,
+    };
   }
 
   private getDetailFontFamily(): string {
@@ -1429,16 +1451,16 @@ export class OpeningScene extends Phaser.Scene {
     container.setData('glow', glow);
     container.setData('shimmer', shimmer);
 
-    const token = createChipToken(this, chrome.compact ? 30 : 24, chrome.compact ? 53 : 37, chrome.compact ? 1.05 : 0.86);
+    const token = createChipToken(this, chrome.compact ? 30 : 24, chrome.compact ? 58 : 37, chrome.compact ? 1.05 : 0.86);
     const label = this.add
-      .text(chrome.compact ? 62 : 49, chrome.compact ? 13 : 10, messages.opening.chips, {
+      .text(chrome.compact ? 62 : 49, chrome.compact ? 14 : 10, messages.opening.chips, {
         color: '#bffaff',
         fontFamily: DIGITAL_FONT_FAMILY,
         fontSize: chrome.compact ? '20px' : '9px',
       })
       .setOrigin(0, 0);
     const valueText = this.add
-      .text(chrome.compact ? 62 : 48, chrome.compact ? 61 : 40, `${Math.max(0, Math.floor(chips))}`, {
+      .text(chrome.compact ? 62 : 48, chrome.compact ? 72 : 40, `${Math.max(0, Math.floor(chips))}`, {
         color: '#f4feff',
         stroke: '#11333b',
         strokeThickness: 2,
@@ -1501,7 +1523,7 @@ export class OpeningScene extends Phaser.Scene {
     const labelText = lockReady ? messages.opening.signalLockReady : messages.opening.signal;
     const chrome = this.getChromeSizing();
     const x = this.metrics.safeLeft;
-    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + chrome.chipsHudHeight + 10;
+    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + chrome.chipsHudHeight + chrome.hudGap;
     const width = chrome.signalHudWidth;
     const height = chrome.signalHudHeight;
     const container = this.add.container(x, y);
@@ -1518,14 +1540,14 @@ export class OpeningScene extends Phaser.Scene {
     const shimmer = this.addHudShimmer(container, width, height, 360);
     container.setData('shimmer', shimmer);
 
-    const label = this.add.text(14, 7, labelText, {
+    const label = this.add.text(14, chrome.compact ? 11 : 7, labelText, {
       color: lockReady ? '#d7ceff' : '#b9f7ff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: chrome.compact ? '19px' : lockReady ? '8px' : '9px',
     });
-    const value = this.add.text(width - 14, 7, `${clamped}/${threshold}`, {
+    const value = this.add.text(width - 14, chrome.compact ? 11 : 7, `${clamped}/${threshold}`, {
       color: '#f7fdff',
       stroke: '#160f20',
       strokeThickness: 2,
@@ -1534,14 +1556,14 @@ export class OpeningScene extends Phaser.Scene {
     }).setOrigin(1, 0);
 
     const overchargeColor = overchargeMax ? '#ff7aa8' : overchargeActive ? '#8df8ff' : '#81788a';
-    const overchargeLabel = this.add.text(14, chrome.compact ? 38 : 27, messages.opening.overcharge, {
+    const overchargeLabel = this.add.text(14, chrome.compact ? 48 : 27, messages.opening.overcharge, {
       color: overchargeActive || overchargeMax ? overchargeColor : '#6e6677',
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: chrome.compact ? '17px' : '7px',
     });
     const overchargeValue = this.add.text(
       width - 14,
-      chrome.compact ? 38 : 27,
+      chrome.compact ? 48 : 27,
       `${formatOverchargeMultiplier(overcharge)}${overchargeMax ? ' · MAX' : ''}`,
       {
         color: overchargeColor,
@@ -1560,7 +1582,7 @@ export class OpeningScene extends Phaser.Scene {
       const segment = this.add
         .rectangle(
           14 + index * (segmentWidth + segmentGap),
-          chrome.compact ? 76 : 50,
+          chrome.compact ? 98 : 50,
           segmentWidth,
           chrome.compact ? 11 : 8,
           active ? (waitingForCharged ? 0x9d7cff : 0x76e9f5) : 0x3a3146,
@@ -3538,15 +3560,7 @@ export class OpeningScene extends Phaser.Scene {
   private async animateSignalLockConsumptionPrelude(pending: PendingReveal): Promise<void> {
     if (!pending.signal.lockConsumed || !this.root || !this.metrics || !this.saveState || !this.pouch) return;
 
-    const signalOrigin = {
-      x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
-      y:
-        this.metrics.safeTop +
-        OPENING_FEEL_PRESENTATION.railTopOffset +
-        OPENING_FEEL_PRESENTATION.chipsHudHeight +
-        10 +
-        OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
-    };
+    const signalOrigin = this.getSignalHudCenter();
     const pouchTarget = {
       x: this.pouch.group.x,
       y: this.pouch.group.y + POUCH_PRESENTATION.body.y,
@@ -3631,15 +3645,7 @@ export class OpeningScene extends Phaser.Scene {
   private async bankSignalGain(pending: PendingReveal): Promise<void> {
     if (!this.root || !this.metrics || !this.saveState || pending.signal.gain <= 0) return;
     const origin = this.getRewardBankOrigin();
-    const signalTarget = {
-      x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
-      y:
-        this.metrics.safeTop +
-        OPENING_FEEL_PRESENTATION.railTopOffset +
-        OPENING_FEEL_PRESENTATION.chipsHudHeight +
-        10 +
-        OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
-    };
+    const signalTarget = this.getSignalHudCenter();
     const spark = this.add
       .circle(origin.x + 17, origin.y + 10, 8, 0x76e9f5, 0.94)
       .setStrokeStyle(2, 0xffffff, 0.58);
@@ -3698,15 +3704,7 @@ export class OpeningScene extends Phaser.Scene {
     if (!this.root || !this.metrics || !this.saveState) return;
     const before = pending.overcharge.beforeHundredths;
     const after = pending.overcharge.afterHundredths;
-    const signalTarget = {
-      x: this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth / 2,
-      y:
-        this.metrics.safeTop +
-        OPENING_FEEL_PRESENTATION.railTopOffset +
-        OPENING_FEEL_PRESENTATION.chipsHudHeight +
-        10 +
-        OPENING_FEEL_PRESENTATION.signalHudHeight / 2,
-    };
+    const signalTarget = this.getSignalHudCenter();
 
     if (pending.signal.lockRetained && pending.overcharge.appliedGainHundredths > 0) {
       const origin = this.getRewardBankOrigin();

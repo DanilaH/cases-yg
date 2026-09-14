@@ -7,6 +7,7 @@ export interface OpeningChromeSizing {
   chipsHudHeight: number;
   signalHudWidth: number;
   signalHudHeight: number;
+  hudGap: number;
   railCardWidth: number;
   railCardHeight: number;
   railGap: number;
@@ -43,13 +44,14 @@ export interface PouchSelectorGeometry {
 export const getOpeningChromeSizing = (compact: boolean): OpeningChromeSizing => ({
   compact,
   chipsHudWidth: compact ? 286 : OPENING_FEEL_PRESENTATION.chipsHudWidth,
-  chipsHudHeight: compact ? 84 : OPENING_FEEL_PRESENTATION.chipsHudHeight,
+  chipsHudHeight: compact ? 96 : OPENING_FEEL_PRESENTATION.chipsHudHeight,
   signalHudWidth: compact ? 286 : OPENING_FEEL_PRESENTATION.signalHudWidth,
-  signalHudHeight: compact ? 88 : OPENING_FEEL_PRESENTATION.signalHudHeight,
+  signalHudHeight: compact ? 112 : OPENING_FEEL_PRESENTATION.signalHudHeight,
+  hudGap: compact ? 14 : 10,
   railCardWidth: compact ? 286 : OPENING_FEEL_PRESENTATION.railCardWidth,
   railCardHeight: compact ? 70 : OPENING_FEEL_PRESENTATION.railCardHeight,
   railGap: compact ? 10 : OPENING_FEEL_PRESENTATION.railGap,
-  selectorTopOffset: compact ? 214 : OPENING_FEEL_PRESENTATION.selectorTopOffset,
+  selectorTopOffset: compact ? 256 : OPENING_FEEL_PRESENTATION.selectorTopOffset,
   selectorLabelGap: compact ? 30 : 20,
   oddsPanelHeight: compact ? 164 : 104,
   oddsTopGap: compact ? 16 : 14,

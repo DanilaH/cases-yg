@@ -209,14 +209,16 @@ describe('Signal 2000 onboarding policy', () => {
       discoveredStandard: ['camera-rare'],
     };
 
-    expect(shouldShowChargedOnboardingPointer(eligible, 'basic', DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE)).toBe(true);
-    expect(shouldShowChargedOnboardingPointer(eligible, 'charged', DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE)).toBe(false);
+    expect(shouldShowChargedOnboardingPointer(eligible, 'basic', DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE, true)).toBe(true);
+    expect(shouldShowChargedOnboardingPointer(eligible, 'basic', DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE, false)).toBe(false);
+    expect(shouldShowChargedOnboardingPointer(eligible, 'charged', DEFAULT_DROP_REGISTRY, LITE_V2_BALANCE, true)).toBe(false);
     expect(
       shouldShowChargedOnboardingPointer(
         { ...eligible, discoveredStandard: ['camera-legendary'] },
         'basic',
         DEFAULT_DROP_REGISTRY,
         LITE_V2_BALANCE,
+        true,
       ),
     ).toBe(false);
   });

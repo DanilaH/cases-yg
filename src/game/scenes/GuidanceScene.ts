@@ -20,6 +20,7 @@ import { getRenderPixelRatio } from '../systems/renderDensity';
 import { SaveRepository, type SaveState } from '../systems/save';
 import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { createGuidancePointer, type GuidancePointer } from '../ui/onboardingGuidance';
+import type { OpeningScene } from './OpeningScene';
 
 const POUCH_Y = POUCH_PRESENTATION.groupY;
 
@@ -64,15 +65,16 @@ export class GuidanceScene extends Phaser.Scene {
 
   public update(): void {
     const openingSceneActive = this.scene.isActive('OpeningScene');
-    if (openingSceneActive === this.wasOpeningSceneActive) return;
-    this.wasOpeningSceneActive = openingSceneActive;
-
-    if (!openingSceneActive) {
-      this.hideOpeningGuidance();
-      return;
+    if (openingSceneActive !== this.wasOpeningSceneActive) {
+      this.wasOpeningSceneActive = openingSceneActive;
+      if (!openingSceneActive) {
+        this.hideOpeningGuidance();
+        return;
+      }
+      void this.refreshState();
     }
 
-    void this.refreshState();
+    if (openingSceneActive) this.syncChargedPointer();
   }
 
   private async initializeState(): Promise<void> {
@@ -173,11 +175,14 @@ export class GuidanceScene extends Phaser.Scene {
       this.hideChargedPointer();
       return;
     }
+    const openingScene = this.scene.get('OpeningScene') as OpeningScene;
+    const chargedControlReady = openingScene.isPouchSelectorReadyForGuidance('charged');
     const shouldShow = shouldShowChargedOnboardingPointer(
       this.state,
       this.selectedPouchType,
       GAME_REGISTRY,
       LITE_V2_BALANCE,
+      chargedControlReady,
     );
     if (!shouldShow) {
       this.hideChargedPointer();
@@ -284,7 +289,7 @@ export class GuidanceScene extends Phaser.Scene {
       this.metrics.safeTop +
       OPENING_FEEL_PRESENTATION.railTopOffset +
       chrome.chipsHudHeight +
-      10 +
+      chrome.hudGap +
       chrome.signalHudHeight / 2;
     const x = Math.min(
       this.metrics.safeRight - width,
