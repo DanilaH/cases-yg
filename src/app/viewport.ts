@@ -12,6 +12,9 @@ const isUsable = (size: ViewportSize | null | undefined): size is ViewportSize =
 
 export const isPortraitViewport = (size: ViewportSize): boolean => size.height > size.width;
 
+export const shouldSyncGameBackingStore = (viewport: Pick<ViewportState, 'portrait'>): boolean =>
+  !viewport.portrait;
+
 const resolvePortrait = (
   visualViewport: ViewportSize | null | undefined,
   innerViewport: ViewportSize | null | undefined,
