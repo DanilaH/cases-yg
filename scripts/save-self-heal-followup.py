@@ -2,21 +2,37 @@ from pathlib import Path
 
 save_path = Path('src/game/systems/save.ts')
 text = save_path.read_text()
-old = """  if (onboarding.primaryCompleted && onboarding.firstRevealReceipt !== null) {
-    throw new Error('Completed onboarding cannot retain a first reveal receipt');
+old = """  const fallback: SaveState = { ...base, pendingReveal };
+  if (isPrimaryOnboardingState(value.onboarding)) {
+    const candidate: SaveState = { ...fallback, onboarding: value.onboarding };
+    try {
+      return validateSaveState(candidate);
+    } catch {
+      // Keep durable progression and fall back to conservative onboarding state.
+    }
   }
-  if (onboarding.firstRevealReceipt) {
+
+  return validateSaveState(fallback);
 """
-new = """  if (onboarding.primaryCompleted && onboarding.firstRevealReceipt !== null) {
-    throw new Error('Completed onboarding cannot retain a first reveal receipt');
+new = """  const fallback: SaveState = { ...base, pendingReveal };
+  if (isPrimaryOnboardingState(value.onboarding)) {
+    const onboarding = value.onboarding;
+    const hasExactOrCompleteOnboardingEvidence =
+      onboarding.primaryCompleted || onboarding.firstRevealReceipt !== null || value.totalOpens === 0;
+    if (hasExactOrCompleteOnboardingEvidence) {
+      const candidate: SaveState = { ...fallback, onboarding };
+      try {
+        return validateSaveState(candidate);
+      } catch {
+        // Keep durable progression and fall back to conservative onboarding state.
+      }
+    }
   }
-  if (!onboarding.primaryCompleted && onboarding.firstRevealReceipt === null && state.totalOpens > 0) {
-    throw new Error('Incomplete primary onboarding requires its first reveal receipt');
-  }
-  if (onboarding.firstRevealReceipt) {
+
+  return validateSaveState(fallback);
 """
 if old not in text:
-    raise SystemExit('onboarding validation block not found')
+    raise SystemExit('repair onboarding retention block not found')
 text = text.replace(old, new, 1)
 save_path.write_text(text)
 
