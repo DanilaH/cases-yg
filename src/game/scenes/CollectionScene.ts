@@ -5,7 +5,7 @@ import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
 import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GadgetFamilyDefinition, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
-import { ensureLootPoolCollectibleArt } from '../systems/artLoading';
+import { ensureCollectionArt, ensureLootPoolCollectibleArt } from '../systems/artLoading';
 import {
   buildCollectionSnapshot,
   getShelfFeaturedOwned,
@@ -64,9 +64,9 @@ export class CollectionScene extends Phaser.Scene {
     }
 
     try {
-      await ensureLootPoolCollectibleArt(this, GAME_REGISTRY, this.selectedLootPoolId());
+      await ensureCollectionArt(this, GAME_REGISTRY, this.selectedLootPoolId());
     } catch (error: unknown) {
-      console.warn('[art] Collection active Drop art failed to load; using fallbacks', error);
+      console.warn('[art] Collection authored art failed to load; using fallbacks', error);
     }
 
     if (!this.sys.isActive()) return;

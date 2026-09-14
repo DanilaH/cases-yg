@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
-import { getRuntimeStaticArt } from '../data/artAssets';
+import { getRuntimeBootStaticArt } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../data/collectibles';
 import { ensureLootPoolArt } from '../systems/artLoading';
 import { installBackgroundAssetWarmup } from '../systems/backgroundAssetWarmup';
@@ -21,17 +21,11 @@ export class BootScene extends Phaser.Scene {
       this.load.image(textureKey, assetPath);
     };
 
-    // Only shared scene backgrounds block Phaser's initial preload. Pouch and
-    // collectible art is selected after durable save state identifies the real
-    // active Drop, avoiding a default/all-Drop tax on cold startup.
-    for (const art of getRuntimeStaticArt()) {
-      if (
-        art.id === 'opening-bg' ||
-        art.id === 'collection-bg' ||
-        art.id === 'collection-foreground'
-      ) {
-        queueImage(art.textureKey, art.assetPath);
-      }
+    // Only art required by the first visible Opening frame blocks the generic
+    // Phaser preload. Collection owns its scene-only layers, while active-Drop
+    // pouch + collectible art is selected after durable save state resolves.
+    for (const art of getRuntimeBootStaticArt()) {
+      queueImage(art.textureKey, art.assetPath);
     }
   }
 

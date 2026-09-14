@@ -1,16 +1,17 @@
 {
   "version": 1,
   "defaults": {
-    "canvas": 1024,
-    "padding": 64,
-    "webpQuality": 90,
+    "canvas": 768,
+    "padding": 48,
+    "webpQuality": 88,
     "backgroundRemoval": "auto",
     "backgroundColorTolerance": 48,
     "edgeFeather": 0.8,
     "aiMaskLow": 0.015,
     "aiMaskHigh": 0.985,
     "aiMaskGamma": 1,
-    "aiEdgeFeather": 0
+    "aiEdgeFeather": 0,
+    "webpEffort": 4
   },
   "assets": [
     {

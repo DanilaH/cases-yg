@@ -10,6 +10,7 @@ import {
   getRuntimeCollectibleArt,
   getRuntimeBootStaticArt,
   getRuntimeCollectibleArtForLootPool,
+  getRuntimeCollectionStaticArt,
   getRuntimePouchArt,
   getRuntimePouchArtForLootPool,
   getRuntimeStaticArt,
@@ -77,14 +78,24 @@ describe('runtime asset manifests', () => {
     expect(getRuntimeCollectibleArt(DEFAULT_DROP_REGISTRY)).toEqual([]);
   });
 
-  it('preloads both pouch variants and maps all Charged layers', () => {
+  it('keeps cold Boot static art limited to the first Opening frame', () => {
     replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
 
-    const bootIds = getRuntimeBootStaticArt().map(({ id }) => id);
-    expect(bootIds).toContain('pouch-body');
-    expect(bootIds).toContain('charged-pouch-body');
-    expect(bootIds).toContain('charged-pouch-tear-strip');
-    expect(bootIds).toContain('charged-pouch-star-tab');
+    expect(getRuntimeBootStaticArt().map(({ id }) => id)).toEqual(['opening-bg']);
+  });
+
+  it('keeps Collection-only layers in a scene-owned bundle', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
+    expect(getRuntimeCollectionStaticArt().map(({ id }) => id)).toEqual([
+      'collection-bg',
+      'collection-foreground',
+    ]);
+  });
+
+  it('maps the default Charged pouch layers independently from Boot residency', () => {
+    replaceSetContents(AVAILABLE_STATIC_ART_IDS, defaultStaticArtIds);
+
     expect(getRuntimePouchArt('charged')).toEqual([
       {
         id: 'charged-pouch-body',

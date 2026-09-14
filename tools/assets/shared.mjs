@@ -264,7 +264,10 @@ const prepareCutout = async (sourceBuffer, options) => {
   }
 };
 
-const normalizeToCanvas = async (input, { canvas, padding, offsetX = 0, offsetY = 0, webpQuality }) => {
+const normalizeToCanvas = async (
+  input,
+  { canvas, padding, offsetX = 0, offsetY = 0, webpQuality, webpEffort = 4 },
+) => {
   const trimmed = await sharp(input)
     .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 8 })
     .png()
@@ -293,7 +296,7 @@ const normalizeToCanvas = async (input, { canvas, padding, offsetX = 0, offsetY 
     },
   })
     .composite([{ input: resized.data, left, top }])
-    .webp({ quality: webpQuality, alphaQuality: 100, effort: 6, smartSubsample: true })
+    .webp({ quality: webpQuality, alphaQuality: 100, effort: webpEffort, smartSubsample: true })
     .toBuffer();
 };
 

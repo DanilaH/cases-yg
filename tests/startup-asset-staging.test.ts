@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../src/game/data/artAssets';
+import {
+  getRuntimeBootStaticArt,
+  getRuntimeCollectibleArt,
+  getRuntimeCollectionStaticArt,
+  getRuntimeStaticArt,
+} from '../src/game/data/artAssets';
 import { GAME_REGISTRY } from '../src/game/data/collectibles';
 import {
   createAssetPrefetchBatches,
@@ -19,6 +24,9 @@ describe('startup asset staging', () => {
 
     expect(paths).toHaveLength(expected.size);
     expect(new Set(paths)).toEqual(expected);
+    expect(paths.slice(0, 2)).toEqual(
+      getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
+    );
   });
 
   it('batches speculative prefetch work instead of emitting one unbounded burst', () => {
@@ -26,6 +34,14 @@ describe('startup asset staging', () => {
       ['a', 'b'],
       ['c', 'd'],
       ['e'],
+    ]);
+  });
+
+  it('keeps only first-frame shared art in Boot and defers Collection layers', () => {
+    expect(getRuntimeBootStaticArt().map(({ id }) => id)).toEqual(['opening-bg']);
+    expect(getRuntimeCollectionStaticArt().map(({ id }) => id)).toEqual([
+      'collection-bg',
+      'collection-foreground',
     ]);
   });
 
@@ -37,8 +53,19 @@ describe('startup asset staging', () => {
     expect(source).not.toContain('GAME_LOOT_POOL_IDS');
     expect(source).not.toContain('getRuntimeCollectibleArtForLootPool');
     expect(source).not.toContain('getRuntimePouchArtForLootPool');
+    expect(source).toContain('getRuntimeBootStaticArt()');
+    expect(source).not.toContain("art.id === 'collection-bg'");
     expect(saveLoad).toBeGreaterThanOrEqual(0);
     expect(activeDropLoad).toBeGreaterThan(saveLoad);
+  });
+
+  it('requires authored Collection layers before its first render', () => {
+    const source = readFileSync('src/game/scenes/CollectionScene.ts', 'utf8');
+    const ensureArt = source.indexOf('await ensureCollectionArt(this, GAME_REGISTRY, this.selectedLootPoolId())');
+    const firstRender = source.indexOf('this.render();');
+
+    expect(ensureArt).toBeGreaterThanOrEqual(0);
+    expect(firstRender).toBeGreaterThan(ensureArt);
   });
 
   it('keeps missing dynamic art behind the authored preload surface until Phaser rebuilds the scene', () => {

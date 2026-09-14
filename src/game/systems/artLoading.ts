@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { beginRuntimeLoadOverlay } from '../../app/runtimeLoadOverlay';
 import {
   getRuntimeCollectibleArtForLootPool,
+  getRuntimeCollectionStaticArt,
   getRuntimePouchArt,
   getRuntimePouchArtForLootPool,
   type PouchArtVariant,
@@ -80,6 +81,20 @@ const ensureRuntimeImageArt = async (
     releaseOverlay();
   }
 };
+
+export const ensureCollectionArt = (
+  scene: Phaser.Scene,
+  registry: ContentRegistry,
+  lootPoolId: LootPoolId,
+): Promise<void> =>
+  ensureRuntimeImageArt(
+    scene,
+    [
+      ...getRuntimeCollectionStaticArt(),
+      ...getRuntimeCollectibleArtForLootPool(registry, lootPoolId),
+    ],
+    'Collection art',
+  );
 
 export const ensureLootPoolCollectibleArt = (
   scene: Phaser.Scene,
