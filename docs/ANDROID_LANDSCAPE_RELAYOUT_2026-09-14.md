@@ -13,7 +13,7 @@ This means PR #162 materially improved Android runtime survival, but rotation ac
 
 The current viewport architecture intends CSS, orientation gate and Phaser to use one coherent resolved viewport snapshot. In `main.ts`, however, CSS is updated from that snapshot and Phaser backing-store sync then re-reads `#game.getBoundingClientRect()` independently. During Android rotation/toolbar settling those two geometry reads can disagree.
 
-Opening presentation also relies primarily on Phaser's `scale.resize` event to rebuild its `LayoutMetrics`. If the backing size changes while the scene is in an inconvenient lifecycle window or the presentation misses the effective relayout signal, the old `metrics/root` can survive even though the runtime itself is alive.
+Opening presentation also relies on Phaser's Scale Manager `RESIZE` event to rebuild its `LayoutMetrics`. Returning from portrait can restore the exact same landscape backing dimensions that existed before portrait. In that case an optimization that skips `game.scale.resize()` also skips the `RESIZE` signal, even though a presentation relayout/reconciliation is still desirable after the gated lifecycle transition.
 
 ## Fix contract
 
@@ -32,11 +32,17 @@ If Phaser is first constructed while the rotate gate owns presentation, do not a
 
 This keeps boot work running behind the gate without teaching Opening/FirstRun a transient portrait layout that is never meant to be shown.
 
-### Opening self-heal
+### Landscape relayout reconciliation
 
-Opening should cheaply compare its rendered `LayoutMetrics.viewportWidth/viewportHeight` with the current Phaser scale size during normal updates. If they disagree, route through the existing resize/rebuild behavior. This is a recovery guard, not a polling-based geometry source: the authoritative size remains the Phaser scale manager.
+Keep the existing scene resize handlers as the single presentation rebuild path.
 
-Do not restart or mutate durable reveal/reward state. Existing revealing/banking resize semantics remain authoritative.
+When a coherent landscape viewport arrives:
+
+- if the target backing dimensions changed, `game.scale.resize()` updates the backing store and emits the normal Phaser `RESIZE` event;
+- if the viewport transitioned but the target backing dimensions are already identical, call the official `game.scale.refresh()` path so Phaser still emits `RESIZE` and active scenes can rebuild/reconcile their presentation;
+- do not add scene-specific polling or another private relayout API.
+
+This preserves the existing reveal/banking resize semantics and avoids touching durable reward state.
 
 ### Startup timeout
 
@@ -55,7 +61,7 @@ At minimum:
 - game CSS size honors the 2:1 cap from a landscape snapshot;
 - initial portrait bootstrap resolves to bounded landscape geometry;
 - current viewport tests remain green;
-- startup timeout unit test reflects the new 90 s bound;
+- startup timeout unit test proves 30-60 s can remain a valid loading state and the diagnostic bound is now 90 s;
 - full project gate passes.
 
 ## Hands-on acceptance
