@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPortraitViewport, resolveViewportState } from '../src/app/viewport';
+import {
+  isPortraitViewport,
+  resolveViewportState,
+  shouldSyncGameBackingStore,
+} from '../src/app/viewport';
 
 describe('viewport resolution', () => {
   it('prefers visualViewport when all geometry agrees', () => {
@@ -48,5 +52,10 @@ describe('viewport resolution', () => {
     );
     expect(state).toEqual({ width: 412, height: 915, portrait: true });
     expect(isPortraitViewport(state)).toBe(true);
+  });
+
+  it('keeps the Phaser backing store untouched while the portrait gate owns presentation', () => {
+    expect(shouldSyncGameBackingStore({ portrait: true })).toBe(false);
+    expect(shouldSyncGameBackingStore({ portrait: false })).toBe(true);
   });
 });
