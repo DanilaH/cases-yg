@@ -4,7 +4,7 @@ import { DEFAULT_LOOT_POOL_ID as GAME_DEFAULT_LOOT_POOL_ID, STANDARD_RARITIES, t
 import type { PendingReveal } from './drops';
 import { LITE_SIGNAL_THRESHOLD, migrateLegacySignal } from './signal';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';
 export const DEFAULT_CHIPS = 0;
 export const DEFAULT_OVERCHARGE_HUNDREDTHS = 100;
@@ -26,9 +26,15 @@ export interface ProgressSnapshot {
   stats: ProgressStats;
 }
 
+export interface PrimaryOnboardingState {
+  primaryCompleted: boolean;
+  firstRevealReceipt: PendingReveal | null;
+}
+
 export interface SaveState extends ProgressSnapshot {
   version: typeof SAVE_VERSION;
   pendingReveal: PendingReveal | null;
+  onboarding: PrimaryOnboardingState;
   /** @deprecated compatibility only; runtime mute lives in the separate settings key. */
   muted: boolean;
 }
@@ -78,6 +84,10 @@ export const createInitialSaveState = (): SaveState => ({
   activeLootPoolId: DEFAULT_LOOT_POOL_ID,
   totalOpens: 0,
   pendingReveal: null,
+  onboarding: {
+    primaryCompleted: false,
+    firstRevealReceipt: null,
+  },
   muted: false,
   stats: {
     duplicates: 0,
@@ -299,6 +309,23 @@ const isPendingReveal = (value: unknown): value is PendingReveal => {
   );
 };
 
+const isPrimaryOnboardingState = (value: unknown): value is PrimaryOnboardingState =>
+  isRecord(value) &&
+  typeof value.primaryCompleted === 'boolean' &&
+  (value.firstRevealReceipt === null || isPendingReveal(value.firstRevealReceipt));
+
+const revealCommitMatchesState = (state: SaveState, receipt: PendingReveal): boolean =>
+  state.pendingReveal === null &&
+  state.totalOpens === receipt.commit.totalOpens &&
+  state.chips === receipt.commit.chips &&
+  state.signal === receipt.commit.signal &&
+  state.overchargeHundredths === receipt.commit.overchargeHundredths &&
+  state.activeLootPoolId === receipt.commit.activeLootPoolId &&
+  state.stats.duplicates === receipt.commit.stats.duplicates &&
+  state.stats.hiddenPockets === receipt.commit.stats.hiddenPockets &&
+  sameStrings(state.discoveredStandard, receipt.commit.discoveredStandard) &&
+  sameStrings(state.discoveredSecrets, receipt.commit.discoveredSecrets);
+
 const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): boolean => {
   if (
     pending.baseTotalOpens !== state.totalOpens ||
@@ -338,9 +365,20 @@ const pendingMatchesBaseState = (state: SaveState, pending: PendingReveal): bool
   );
 };
 
-const validatePendingBaseState = (state: SaveState): SaveState => {
+const validateSaveState = (state: SaveState): SaveState => {
   if (state.pendingReveal && !pendingMatchesBaseState(state, state.pendingReveal)) {
     throw new Error('Pending reveal does not match its base save state');
+  }
+
+  const onboarding = state.onboarding;
+  if (onboarding.primaryCompleted && onboarding.firstRevealReceipt !== null) {
+    throw new Error('Completed onboarding cannot retain a first reveal receipt');
+  }
+  if (onboarding.firstRevealReceipt) {
+    const receipt = onboarding.firstRevealReceipt;
+    if (receipt.openingNumber !== 1 || receipt.baseTotalOpens !== 0 || !revealCommitMatchesState(state, receipt)) {
+      throw new Error('Primary onboarding receipt does not match committed save state');
+    }
   }
   return state;
 };
@@ -418,10 +456,14 @@ const parseLegacySave = (value: Record<string, unknown>): SaveState => {
 
   const legacy = value as unknown as LegacySaveState;
   const progress = migrateLegacyProgress(legacy);
-  return validatePendingBaseState({
+  return validateSaveState({
     version: SAVE_VERSION,
     ...progress,
     pendingReveal: legacy.pendingReveal ? migrateLegacyPending(legacy.pendingReveal, progress) : null,
+    onboarding: {
+      primaryCompleted: progress.totalOpens > 0,
+      firstRevealReceipt: null,
+    },
     muted: legacy.muted,
   });
 };
@@ -489,10 +531,26 @@ const migrateV3Save = (value: Record<string, unknown>): SaveState => {
     };
   }
 
+  return migrateV4Save({
+    ...value,
+    version: 4,
+    pendingReveal,
+  });
+};
+
+const migrateV4Save = (value: Record<string, unknown>): SaveState => {
+  if (value.version !== 4) {
+    throw new Error('Invalid V4 save payload');
+  }
+
+  const primaryCompleted = isNonNegativeInteger(value.totalOpens) && value.totalOpens > 0;
   return parseCurrentSave({
     ...value,
     version: SAVE_VERSION,
-    pendingReveal,
+    onboarding: {
+      primaryCompleted,
+      firstRevealReceipt: null,
+    },
   });
 };
 
@@ -501,12 +559,13 @@ const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
     value.version !== SAVE_VERSION ||
     !isProgressSnapshot(value) ||
     (value.pendingReveal !== null && !isPendingReveal(value.pendingReveal)) ||
+    !isPrimaryOnboardingState(value.onboarding) ||
     typeof value.muted !== 'boolean'
   ) {
     throw new Error('Invalid save payload');
   }
 
-  return validatePendingBaseState(value as unknown as SaveState);
+  return validateSaveState(value as unknown as SaveState);
 };
 
 export const parseSaveState = (raw: string): SaveState => {
@@ -522,6 +581,9 @@ export const parseSaveState = (raw: string): SaveState => {
   }
   if (value.version === 3) {
     return migrateV3Save(value);
+  }
+  if (value.version === 4) {
+    return migrateV4Save(value);
   }
   if (value.version === SAVE_VERSION) {
     return parseCurrentSave(value);
@@ -552,11 +614,33 @@ export const commitPendingRevealState = (state: SaveState): SaveState => {
     throw new Error('Pending reveal cannot be committed against a different save state');
   }
 
+  const onboarding: PrimaryOnboardingState =
+    !state.onboarding.primaryCompleted && pending.openingNumber === 1
+      ? { primaryCompleted: false, firstRevealReceipt: pending }
+      : state.onboarding;
+
   return {
     version: SAVE_VERSION,
     ...pending.commit,
     pendingReveal: null,
+    onboarding,
     muted: state.muted,
+  };
+};
+
+export const completePrimaryOnboardingState = (state: SaveState): SaveState => {
+  if (state.onboarding.primaryCompleted) return state;
+  const receipt = state.onboarding.firstRevealReceipt;
+  if (!receipt || receipt.openingNumber !== 1 || !revealCommitMatchesState(state, receipt)) {
+    throw new Error('Primary onboarding cannot complete without its committed first reveal receipt');
+  }
+
+  return {
+    ...state,
+    onboarding: {
+      primaryCompleted: true,
+      firstRevealReceipt: null,
+    },
   };
 };
 

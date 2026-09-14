@@ -25,6 +25,8 @@ const sameStrings = (left: readonly string[], right: readonly string[]): boolean
 const matchesInitialOnboardingGrant = (before: SaveState, after: SaveState): boolean =>
   after.version === before.version &&
   after.pendingReveal === null &&
+  after.onboarding.primaryCompleted === before.onboarding.primaryCompleted &&
+  after.onboarding.firstRevealReceipt?.id === before.onboarding.firstRevealReceipt?.id &&
   after.muted === before.muted &&
   after.chips === ONBOARDING_INITIAL_CHIPS &&
   after.signal === before.signal &&
@@ -37,8 +39,12 @@ const matchesInitialOnboardingGrant = (before: SaveState, after: SaveState): boo
   sameStrings(after.discoveredSecrets, before.discoveredSecrets);
 
 export const shouldRunPrimaryOnboarding = (
-  state: Pick<SaveState, 'totalOpens' | 'pendingReveal'>,
-): boolean => state.totalOpens === 0 && (state.pendingReveal === null || state.pendingReveal.openingNumber === 1);
+  state: Pick<SaveState, 'totalOpens' | 'pendingReveal' | 'onboarding'>,
+): boolean => {
+  if (state.onboarding.primaryCompleted) return false;
+  if (state.onboarding.firstRevealReceipt) return true;
+  return state.totalOpens === 0 && (state.pendingReveal === null || state.pendingReveal.openingNumber === 1);
+};
 
 /**
  * Grants the authored 10-CHIPS starting wallet exactly once for a truly untouched save.

@@ -120,25 +120,25 @@ export class GuidanceScene extends Phaser.Scene {
       return;
     }
 
-    if (event === 'reveal_complete') {
+    if (event === 'onboarding_result_ready') {
       const openingNumber = Number(params?.openingNumber ?? -1);
+      if (openingNumber === 1) this.scheduleResultPointer();
+      return;
+    }
+
+    if (event === 'reveal_complete') {
       const isNew = params?.isNew === true;
       const chipsAfter = Number(params?.chipsAfter ?? Number.NaN);
-      const signalAfter = Number(params?.signalAfter ?? Number.NaN);
-      const previousSignal = this.state?.signal;
-      const signalGainOccurred =
-        previousSignal !== undefined && Number.isFinite(signalAfter) && signalAfter > previousSignal;
+      const signalGain = Number(params?.signalGain ?? 0);
 
       if (Number.isFinite(chipsAfter) && this.state) {
         this.state = { ...this.state, chips: Math.max(0, Math.floor(chipsAfter)) };
       }
 
-      if (openingNumber === 1) this.scheduleResultPointer();
-
-      // Tie the explanation to an observed Signal increase, not merely to a
-      // duplicate. This keeps a lost cosmetic hint record from showing the copy
-      // on a later duplicate while an already-armed lock is being retained.
-      if (!isNew && signalGainOccurred && !this.hints.signalGainSeen) {
+      // Reward resolution already knows whether this exact opening gained Signal.
+      // Consume that durable semantic fact directly instead of racing an async
+      // guidance-side save reload against the reveal-complete event.
+      if (!isNew && signalGain > 0 && !this.hints.signalGainSeen) {
         this.hints = { ...this.hints, signalGainSeen: true };
         void saveOnboardingHintState(getPlatformRuntime().storage, this.hints);
         this.enqueueHint('signal-gain', getMessages(getPlatformRuntime().language).opening.onboardingSignalGain);

@@ -58,7 +58,7 @@ The normal gameplay UI is absent during the pouch entrance/tear lesson. Once the
 
 When the first result becomes collectible, show a small pointer toward the ordinary `Tap to collect` / `Нажми, чтобы забрать` action. The pointer is guidance only; the existing result interaction remains the real control.
 
-The primary onboarding is complete after the first opening commits. `totalOpens > 0` is sufficient durable evidence; do not add a redundant permanent intro-complete flag.
+The primary onboarding is complete only after the player accepts the first result with the ordinary collect action. Reward commit and tutorial completion are deliberately separate: the first result may already be durable while the collect lesson is still unfinished. The save therefore keeps a durable `primaryCompleted` marker plus the exact committed first-result receipt until collect succeeds.
 
 ---
 
@@ -79,9 +79,10 @@ Concrete cases:
 
 - `totalOpens === 0`, no pending reveal: replay the full pouch entrance and allow the first tear to create the authored Rare/+20-cache transaction.
 - `totalOpens === 0`, `pendingReveal.openingNumber === 1`: replay the onboarding entrance/tear presentation, but `prepareReveal()` must return the already persisted pending reveal. The subsequent Opening recovery shows that exact Rare/cache result.
-- `totalOpens >= 1`: primary onboarding is complete and must not restart.
+- opening #1 committed but collect not yet accepted: replay the exact stored first-result receipt directly in the normal result UI; do not reroll or recommit the reward.
+- `primaryCompleted === true`: primary onboarding is complete and must not restart. Existing pre-v5 saves with prior openings are grandfathered as complete because no exact historical receipt can be reconstructed safely.
 
-The existing durable `pendingReveal` / ambiguous-write recovery contract remains authoritative. Onboarding presentation is explicitly subordinate to it.
+The existing durable `pendingReveal` / ambiguous-write recovery contract remains authoritative. A live FirstRun → Opening handoff is not treated as reload recovery and therefore receives the full authored reveal; an actual reload of a staged transaction may use the abbreviated recovery reveal. Once opening #1 commits, its exact receipt remains durable until collect so refresh cannot erase the tutorial state or duplicate economy mutations.
 
 The one-time 10-CHIPS starting grant is also treated as a durable write: if storage rejects after the underlying write may already have succeeded, the implementation reloads and accepts success only when the exact intended grant state is present.
 
@@ -167,7 +168,7 @@ Preferred copy:
 
 The existing `isSignalWaitingForCharged()` semantic condition remains the source of truth. The indicator must disappear when the condition is no longer true.
 
-Guidance observes existing game-authored lifecycle/analytics events. Local guidance observers are isolated from the gameplay emitter: a presentation observer failure must not propagate back into reward or interaction flow.
+Guidance observes existing game-authored lifecycle/analytics events. `reveal_complete` carries the exact transaction-authored `signalGain`, so the first-duplicate hint does not infer causality by racing a later save read. Local guidance observers are isolated from the gameplay emitter: a presentation observer failure must not propagate back into reward or interaction flow.
 
 ---
 
@@ -230,7 +231,7 @@ The implementation is merged without reopening the broader economy, pouch geomet
 
 ## 8. Implementation evidence
 
-Merged implementation: PR #149, squash commit `2f2a0dcad60e61896394c5f8ca831b374f5884ce`.
+Base directed-onboarding implementation: PR #149, squash commit `2f2a0dcad60e61896394c5f8ca831b374f5884ce`. Recovery/lifecycle hardening is tracked in PR #155.
 
 Automated gate is green:
 
@@ -258,6 +259,9 @@ The onboarding is accepted only if all of the following hold:
 - first Basic transaction is NEW Rare + normal 6–10 base + exactly +20 `cache` bonus;
 - page refresh before first tear restarts the intro;
 - page refresh after the first pending reveal was persisted never rerolls it;
+- page refresh after opening #1 committed but before collect replays the exact committed result without a second commit;
+- primary completion becomes durable only when first-result collect succeeds;
+- the live first-run handoff uses the full reveal choreography, while true reload recovery may use the shortened recovery reveal;
 - ordinary Opening UI appears for the first reveal;
 - first result gets a collect pointer and the pointer disappears after collection;
 - Charged pointer appears at affordability, hides on Charged selection, and returns if the player backs out to Basic without opening;

@@ -362,6 +362,10 @@ export const getRarityAmbienceProfile = (rarity: ResultAmbienceRarity): RarityAm
 
 export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentationDirective => {
   switch (cue) {
+    case 'pouch-land':
+      return {
+        duck: { multiplier: 0.78, attackMs: 8, holdMs: 55, releaseMs: 150 },
+      };
     case 'pouch-grab':
       return {
         clearPersistent: true,

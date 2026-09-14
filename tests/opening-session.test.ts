@@ -153,12 +153,18 @@ describe('OpeningSession', () => {
     const persisted = await new SaveRepository(storage).load();
 
     expect(committed.pendingReveal).toBeNull();
+    expect(committed.onboarding.primaryCompleted).toBe(false);
+    expect(committed.onboarding.firstRevealReceipt).toEqual(pending);
     expect(committed.totalOpens).toBe(pending.openingNumber);
     expect(committed.chips).toBe(pending.chips.after);
     expect(committed.signal).toBe(pending.signal.after);
     expect(committed.overchargeHundredths).toBe(pending.overcharge.afterHundredths);
     expect(committedAgain).toEqual(committed);
     expect(persisted).toEqual(committed);
+
+    const completed = await session.completePrimaryOnboarding();
+    expect(completed.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
+    expect((await new SaveRepository(storage).load()).onboarding).toEqual(completed.onboarding);
   });
 
   it('stages Charged cost and reward atomically without mutating the wallet before commit', async () => {
@@ -202,6 +208,19 @@ describe('OpeningSession', () => {
 
     expect(pending.id).toBe('tx-1');
     expect(session.getPendingReveal()).toEqual(pending);
+  });
+
+  it('accepts an ambiguous primary collect write only when reload proves completion is durable', async () => {
+    const storage = new WriteThenThrowStorage(3);
+    const session = createSession(storage);
+    await session.load();
+    await session.prepareReveal();
+    await session.commitReveal();
+
+    const completed = await session.completePrimaryOnboarding();
+
+    expect(completed.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
+    expect(session.getState()).toEqual(completed);
   });
 
   it('accepts an ambiguous commit write when reload proves the complete transaction is committed', async () => {

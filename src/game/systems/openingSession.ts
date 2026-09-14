@@ -2,7 +2,7 @@ import type { LiteBalanceConfig, PouchType } from '../data/balance';
 import type { ContentRegistry, LootPoolId } from '../data/collectibles';
 import { createPendingReveal, type PendingReveal } from './drops';
 import type { RandomSource } from './random';
-import { SaveRepository, type SaveState } from './save';
+import { SaveRepository, completePrimaryOnboardingState, type SaveState } from './save';
 
 export type TransactionIdFactory = () => string;
 
@@ -27,6 +27,7 @@ const sameStrings = (left: readonly string[], right: readonly string[]): boolean
 
 const matchesCommittedPending = (state: SaveState, pending: PendingReveal): boolean =>
   state.pendingReveal === null &&
+  (pending.openingNumber !== 1 || state.onboarding.firstRevealReceipt?.id === pending.id) &&
   state.totalOpens === pending.commit.totalOpens &&
   state.chips === pending.commit.chips &&
   state.signal === pending.commit.signal &&
@@ -39,9 +40,27 @@ const matchesCommittedPending = (state: SaveState, pending: PendingReveal): bool
 
 const matchesLootPoolSwitch = (before: SaveState, after: SaveState, lootPoolId: LootPoolId): boolean =>
   after.pendingReveal === null &&
+  after.onboarding.primaryCompleted === before.onboarding.primaryCompleted &&
+  after.onboarding.firstRevealReceipt?.id === before.onboarding.firstRevealReceipt?.id &&
   after.version === before.version &&
   after.muted === before.muted &&
   after.activeLootPoolId === lootPoolId &&
+  after.totalOpens === before.totalOpens &&
+  after.chips === before.chips &&
+  after.signal === before.signal &&
+  after.overchargeHundredths === before.overchargeHundredths &&
+  after.stats.duplicates === before.stats.duplicates &&
+  after.stats.hiddenPockets === before.stats.hiddenPockets &&
+  sameStrings(after.discoveredStandard, before.discoveredStandard) &&
+  sameStrings(after.discoveredSecrets, before.discoveredSecrets);
+
+const matchesPrimaryOnboardingCompletion = (before: SaveState, after: SaveState): boolean =>
+  after.pendingReveal === before.pendingReveal &&
+  after.version === before.version &&
+  after.muted === before.muted &&
+  after.onboarding.primaryCompleted &&
+  after.onboarding.firstRevealReceipt === null &&
+  after.activeLootPoolId === before.activeLootPoolId &&
   after.totalOpens === before.totalOpens &&
   after.chips === before.chips &&
   after.signal === before.signal &&
@@ -134,6 +153,27 @@ export class OpeningSession {
         }
       } catch {
         // Preserve the original write error; callers can surface/retry it.
+      }
+      throw error;
+    }
+  }
+
+  public async completePrimaryOnboarding(): Promise<SaveState> {
+    const current = this.getState();
+    if (current.onboarding.primaryCompleted) return current;
+    const completed = completePrimaryOnboardingState(current);
+
+    try {
+      await this.options.repository.write(completed);
+      this.state = completed;
+      return completed;
+    } catch (error: unknown) {
+      try {
+        const reloaded = await this.options.repository.load();
+        this.state = reloaded;
+        if (matchesPrimaryOnboardingCompletion(current, reloaded)) return reloaded;
+      } catch {
+        // Preserve the original write error.
       }
       throw error;
     }
