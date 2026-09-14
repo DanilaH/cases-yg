@@ -619,11 +619,16 @@ const repairCurrentSave = (value: Record<string, unknown>): SaveState | null => 
 
   const fallback: SaveState = { ...base, pendingReveal };
   if (isPrimaryOnboardingState(value.onboarding)) {
-    const candidate: SaveState = { ...fallback, onboarding: value.onboarding };
-    try {
-      return validateSaveState(candidate);
-    } catch {
-      // Keep durable progression and fall back to conservative onboarding state.
+    const onboarding = value.onboarding;
+    const hasExactOrCompleteOnboardingEvidence =
+      onboarding.primaryCompleted || onboarding.firstRevealReceipt !== null || value.totalOpens === 0;
+    if (hasExactOrCompleteOnboardingEvidence) {
+      const candidate: SaveState = { ...fallback, onboarding };
+      try {
+        return validateSaveState(candidate);
+      } catch {
+        // Keep durable progression and fall back to conservative onboarding state.
+      }
     }
   }
 

@@ -67,7 +67,7 @@ describe('current save self-heal', () => {
     expect(loaded.totalOpens).toBe(base.totalOpens);
     expect(loaded.chips).toBe(base.chips);
     expect(loaded.discoveredStandard).toEqual(base.discoveredStandard);
-    expect(loaded.onboarding).toEqual(base.onboarding);
+    expect(loaded.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
     expect(await storage.getItem(recoveryKey)).toBe(raw);
   });
 
