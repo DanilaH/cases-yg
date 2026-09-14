@@ -171,5 +171,8 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   }
 };
 
+const shouldUseMockPlatform = (): boolean =>
+  import.meta.env.DEV || import.meta.env.VITE_PLATFORM_RUNTIME === 'mock';
+
 export const bootstrapPlatform = async (): Promise<PlatformRuntime> =>
-  import.meta.env.DEV ? createMockPlatform() : createYandexPlatform();
+  shouldUseMockPlatform() ? createMockPlatform() : createYandexPlatform();
