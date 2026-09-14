@@ -41,6 +41,7 @@ export class FirstRunScene extends Phaser.Scene {
   private drag: DragState | null = null;
   private session: OpeningSession | null = null;
   private saveState: SaveState | null = null;
+  private activationGeneration = 0;
 
   public constructor() {
     super('FirstRunScene');
@@ -48,6 +49,7 @@ export class FirstRunScene extends Phaser.Scene {
 
   public create(): void {
     installSceneTextSharpness(this);
+    const generation = ++this.activationGeneration;
     this.phase = 'loading';
     this.drag = null;
     getPlatformRuntime().activity.setGameplayDesired(false);
@@ -57,21 +59,23 @@ export class FirstRunScene extends Phaser.Scene {
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
 
-    void this.initialize();
+    void this.initialize(generation);
   }
 
-  private async initialize(): Promise<void> {
+  private async initialize(generation: number): Promise<void> {
     const platform = getPlatformRuntime();
     const repository = new SaveRepository(platform.storage);
 
     try {
       let state = await repository.load();
+      if (!this.isCurrentActivation(generation)) return;
       if (!shouldRunPrimaryOnboarding(state)) {
         this.startOpening();
         return;
       }
 
       state = await ensureInitialOnboardingChips(repository, state);
+      if (!this.isCurrentActivation(generation)) return;
       this.session = new OpeningSession({
         repository,
         registry: GAME_REGISTRY,
@@ -79,21 +83,25 @@ export class FirstRunScene extends Phaser.Scene {
         random: new MathRandomSource(),
       });
       this.saveState = await this.session.load();
+      if (!this.isCurrentActivation(generation)) return;
       if (!shouldRunPrimaryOnboarding(this.saveState)) {
         this.startOpening();
         return;
       }
 
       this.renderStage();
-      platform.activity.setGameplayDesired(true);
+      // The authored entrance is already visible/playable content, so Game Ready
+      // may hide the platform loader here. GameplayAPI remains stopped until the
+      // landing has settled and the real star control is interactive.
       platform.markReady();
-      await this.animateEntrance();
-      if (this.isShutdown()) return;
+      await this.animateEntrance(generation);
+      if (!this.isCurrentActivation(generation)) return;
       this.phase = 'idle';
       this.pouch?.dragZone.setInteractive({ useHandCursor: true });
+      platform.activity.setGameplayDesired(true);
       this.scheduleGesturePointer(120);
     } catch (error: unknown) {
-      if (this.isShutdown()) return;
+      if (!this.isCurrentActivation(generation)) return;
       this.phase = 'failed';
       console.error('[onboarding] failed to initialize first run', error);
       // Fall back to the mature Opening failure/recovery surface rather than
@@ -149,22 +157,37 @@ export class FirstRunScene extends Phaser.Scene {
     return DEFAULT_LOOT_POOL_ID;
   }
 
-  private async animateEntrance(): Promise<void> {
+  private async animateEntrance(generation: number): Promise<void> {
     const pouch = this.pouch;
     const shadow = this.groundShadow;
     if (!pouch || !shadow) return;
 
     this.phase = 'arriving';
-    getGameAudio().play('pouch-select');
+    const audio = getGameAudio();
+    const entryStartY = pouch.group.y;
+    const entryEndY = POUCH_Y + 8;
+    audio.primeDragTexture();
 
     await Promise.all([
       this.tweenPromise({
         targets: pouch.group,
-        y: POUCH_Y + 8,
+        y: entryEndY,
         scaleX: 1.015,
         scaleY: 0.985,
         duration: 620,
         ease: 'Cubic.In',
+        onUpdate: () => {
+          if (!this.isCurrentActivation(generation)) return;
+          const progress = Phaser.Math.Clamp(
+            (pouch.group.y - entryStartY) / Math.max(1, entryEndY - entryStartY),
+            0,
+            1,
+          );
+          // A soft filtered noise texture reads closer to air/plastic movement than
+          // the ordinary pouch-selection UI tone. Browsers may still defer WebAudio
+          // until the first user gesture; hosted acceptance owns that constraint.
+          audio.setDragTexture(0.08 + progress * 0.34, 0.16 + progress * 0.46);
+        },
       }),
       this.tweenPromise({
         targets: shadow,
@@ -175,9 +198,12 @@ export class FirstRunScene extends Phaser.Scene {
         ease: 'Sine.In',
       }),
     ]);
-    if (this.isShutdown()) return;
+    if (!this.isCurrentActivation(generation)) return;
 
-    getGameAudio().play('pouch-grab');
+    // Contact gets a short plastic/material transient on top of the decaying
+    // arrival texture, then the visible squash/rebound carries the physical hit.
+    audio.setDragTexture(0.58, 0.72);
+    audio.play('pouch-grab');
     await this.tweenPromise({
       targets: pouch.group,
       y: POUCH_Y + 12,
@@ -186,7 +212,8 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 82,
       ease: 'Quad.Out',
     });
-    if (this.isShutdown()) return;
+    audio.stopDragTexture();
+    if (!this.isCurrentActivation(generation)) return;
 
     await this.tweenPromise({
       targets: pouch.group,
@@ -196,7 +223,7 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 118,
       ease: 'Sine.Out',
     });
-    if (this.isShutdown()) return;
+    if (!this.isCurrentActivation(generation)) return;
 
     await this.tweenPromise({
       targets: pouch.group,
@@ -206,7 +233,7 @@ export class FirstRunScene extends Phaser.Scene {
       duration: 155,
       ease: 'Back.Out',
     });
-    if (this.isShutdown()) return;
+    if (!this.isCurrentActivation(generation)) return;
 
     pouch.shadow.setAlpha(0.28);
     shadow.destroy();
@@ -321,7 +348,7 @@ export class FirstRunScene extends Phaser.Scene {
         lootPoolId: pending.lootPoolId,
         pouchType: pending.pouchType,
       });
-      this.startOpening();
+      this.startOpening(pending.id);
     } catch (error: unknown) {
       if (this.isShutdown()) return;
       console.error('[onboarding] failed to stage first reward', error);
@@ -332,9 +359,9 @@ export class FirstRunScene extends Phaser.Scene {
     }
   }
 
-  private startOpening(): void {
+  private startOpening(onboardingHandoffId?: string): void {
     if (this.isShutdown()) return;
-    this.scene.start('OpeningScene');
+    this.scene.start('OpeningScene', onboardingHandoffId ? { onboardingHandoffId } : undefined);
   }
 
   private handleResize(): void {
@@ -346,9 +373,11 @@ export class FirstRunScene extends Phaser.Scene {
   }
 
   private handleShutdown(): void {
+    this.activationGeneration += 1;
     this.phase = 'shutdown';
     this.clearGesturePointer();
     getGameAudio().stopDragTexture(true);
+    getPlatformRuntime().activity.setGameplayDesired(false);
     this.input.off('pointermove', this.handlePointerMove, this);
     this.input.off('pointerup', this.handlePointerUp, this);
     this.scale.off('resize', this.handleResize, this);
@@ -366,6 +395,10 @@ export class FirstRunScene extends Phaser.Scene {
 
   private isShutdown(): boolean {
     return this.phase === 'shutdown';
+  }
+
+  private isCurrentActivation(generation: number): boolean {
+    return generation === this.activationGeneration && !this.isShutdown();
   }
 
   private tweenPromise(config: Phaser.Types.Tweens.TweenBuilderConfig): Promise<void> {
