@@ -4,8 +4,8 @@ import { createRequire } from 'node:module';
 
 import sharp from 'sharp';
 
-const require = createRequire(import.meta.url);
-const gpuTexEnc = require('gpu-tex-enc');
+const toolRequire = createRequire(path.join(process.cwd(), '.asset-build/gpu-tools/package.json'));
+const gpuTexEnc = toolRequire('gpu-tex-enc');
 
 const PUBLIC_V2 = path.resolve('.asset-build/public-v2');
 const OUT_ROOT = path.resolve('.asset-build/gpu-benchmark');
