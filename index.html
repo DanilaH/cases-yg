@@ -32,9 +32,16 @@
         max-width: 200vh;
       }
 
-      #orientation-gate,
-      #startup-preload {
+      #orientation-gate {
         display: none;
+      }
+
+      #startup-preload {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
       }
     </style>
     <!-- Avoid browser favicon 404 noise inside embedded game hosts. -->
