@@ -4,6 +4,7 @@ import '@fontsource/press-start-2p/latin-400.css';
 
 import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
+import { StartupPreloadController, createStartupPreloadDomView } from './app/startupPreload';
 import {
   resolveViewportState,
   shouldSyncGameBackingStore,
@@ -22,11 +23,15 @@ import { loadSettingsSafe } from './game/systems/settings';
 import { getMessages } from './i18n';
 import { shouldSuspendRuntimeLoop, type ActivityBlocker } from './platform/activity';
 import { bootstrapPlatform } from './platform/yandex';
+import './startupPreload.css';
 import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
 const VIEWPORT_SETTLE_DELAYS_MS = [120, 360, 700, 1200, 2000] as const;
 const VIEWPORT_WATCHDOG_MS = 500;
+
+const startupPreload = new StartupPreloadController(createStartupPreloadDomView());
+startupPreload.begin();
 
 interface CssViewportSize {
   width: number;
@@ -88,8 +93,30 @@ const preloadAccentFont = async (): Promise<void> => {
 const boot = async (): Promise<void> => {
   const platform = await bootstrapPlatform();
   platform.analytics = createObservableAnalyticsAdapter(platform.analytics);
-  setPlatformRuntime(platform);
   const messages = getMessages(platform.language);
+  startupPreload.setCopy(messages.startup);
+
+  // Scene code already owns the canonical semantic "presentable ready" signal.
+  // Keep the platform call intact, then let the DOM loader disappear only after
+  // two browser frames so the newly-authored Phaser frame has a chance to paint.
+  const markPlatformReady = platform.markReady.bind(platform);
+  let startupCompletionScheduled = false;
+  let startupReadyFrame: number | null = null;
+  let startupReadySecondFrame: number | null = null;
+  platform.markReady = () => {
+    markPlatformReady();
+    if (startupCompletionScheduled) return;
+    startupCompletionScheduled = true;
+    startupReadyFrame = window.requestAnimationFrame(() => {
+      startupReadyFrame = null;
+      startupReadySecondFrame = window.requestAnimationFrame(() => {
+        startupReadySecondFrame = null;
+        startupPreload.complete();
+      });
+    });
+  };
+
+  setPlatformRuntime(platform);
   const removeDebugPanel = createDebugPanel(platform);
   const audio = getGameAudio();
   const settings = await loadSettingsSafe(platform.storage);
@@ -245,11 +272,14 @@ const boot = async (): Promise<void> => {
       screenOrientation?.removeEventListener('change', scheduleViewportChange);
       orientationMedia?.removeEventListener('change', scheduleViewportChange);
       if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
+      if (startupReadyFrame !== null) window.cancelAnimationFrame(startupReadyFrame);
+      if (startupReadySecondFrame !== null) window.cancelAnimationFrame(startupReadySecondFrame);
       for (const timer of viewportSettleTimers) window.clearTimeout(timer);
       viewportSettleTimers = [];
       window.clearInterval(viewportWatchdog);
       resizeObserver?.disconnect();
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
+      startupPreload.destroy();
       removeBlockedListener();
       removeDebugPanel();
       platform.destroy();
@@ -261,9 +291,5 @@ const boot = async (): Promise<void> => {
 
 void boot().catch((error: unknown) => {
   console.error('[boot] fatal startup error', error);
-  const gate = document.querySelector<HTMLElement>('#orientation-gate');
-  if (gate) {
-    gate.textContent = 'Unable to start the game';
-    gate.dataset.visible = 'true';
-  }
+  startupPreload.fail();
 });
