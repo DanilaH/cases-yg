@@ -1,12 +1,10 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
-import {
-  getRuntimeBootStaticArt,
-  getRuntimeCollectibleArtForLootPool,
-  getRuntimePouchArtForLootPool,
-} from '../data/artAssets';
-import { DEFAULT_LOOT_POOL_ID, GAME_LOOT_POOL_IDS, GAME_REGISTRY } from '../data/collectibles';
+import { getRuntimeStaticArt } from '../data/artAssets';
+import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../data/collectibles';
+import { ensureLootPoolArt } from '../systems/artLoading';
+import { installBackgroundAssetWarmup } from '../systems/backgroundAssetWarmup';
 import { shouldRunPrimaryOnboarding } from '../systems/onboarding';
 import { SaveRepository } from '../systems/save';
 
@@ -23,38 +21,49 @@ export class BootScene extends Phaser.Scene {
       this.load.image(textureKey, assetPath);
     };
 
-    for (const art of getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, DEFAULT_LOOT_POOL_ID)) {
-      queueImage(art.textureKey, art.assetPath);
-    }
-
-    for (const art of getRuntimeBootStaticArt()) {
-      queueImage(art.textureKey, art.assetPath);
-    }
-
-    // Pouch skins are part of the immediately browsable Opening UI. Preload all
-    // Basic/Charged layers for every Drop so carousel navigation never exposes
-    // the procedural fallback while a themed pouch is still downloading.
-    for (const lootPoolId of GAME_LOOT_POOL_IDS) {
-      for (const art of getRuntimePouchArtForLootPool(lootPoolId)) {
+    // Only shared scene backgrounds block Phaser's initial preload. Pouch and
+    // collectible art is selected after durable save state identifies the real
+    // active Drop, avoiding a default/all-Drop tax on cold startup.
+    for (const art of getRuntimeStaticArt()) {
+      if (
+        art.id === 'opening-bg' ||
+        art.id === 'collection-bg' ||
+        art.id === 'collection-foreground'
+      ) {
         queueImage(art.textureKey, art.assetPath);
       }
     }
   }
 
   public create(): void {
+    installBackgroundAssetWarmup(getPlatformRuntime());
     void this.routeInitialScene();
   }
 
   private async routeInitialScene(): Promise<void> {
     let firstRun = false;
+    let activeLootPoolId = DEFAULT_LOOT_POOL_ID;
     try {
       const state = await new SaveRepository(getPlatformRuntime().storage).load();
       firstRun = shouldRunPrimaryOnboarding(state);
+      activeLootPoolId = state.activeLootPoolId;
     } catch (error: unknown) {
       // OpeningScene already owns the canonical save-load failure UI.
       console.warn('[boot] onboarding route check failed; falling back to Opening', error);
     }
 
+    // Slow network is not an art failure. Await the active Drop's full authored
+    // pouch + collectible set before handing off to FirstRun/Opening so a late
+    // texture can never briefly render as a procedural placeholder.
+    try {
+      await ensureLootPoolArt(this, GAME_REGISTRY, activeLootPoolId);
+    } catch (error: unknown) {
+      // A confirmed loader error keeps the existing procedural fallback as the
+      // emergency path; speculative background warmup never controls correctness.
+      console.warn('[art] initial active Drop art failed to load; using fallbacks', error);
+    }
+
+    if (!this.sys.isActive()) return;
     if (!this.scene.isActive('GuidanceScene')) this.scene.launch('GuidanceScene');
     this.scene.start(firstRun ? 'FirstRunScene' : 'OpeningScene');
   }
