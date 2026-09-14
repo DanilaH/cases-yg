@@ -35,7 +35,7 @@ jobs:
         run: node tools/assets/report-build-footprint.mjs dist asset-v2
 
       - name: Install GPU compression benchmark tools
-        run: npm install --no-save --package-lock=false gpu-tex-enc@1.2.5
+        run: npm install --prefix .asset-build/gpu-tools --no-save --package-lock=false gpu-tex-enc@1.2.5
       - name: Benchmark representative GPU texture formats
         run: node tools/assets/benchmark-gpu-compression.mjs
 
