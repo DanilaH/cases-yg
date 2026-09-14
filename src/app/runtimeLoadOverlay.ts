@@ -60,6 +60,14 @@ const setProgress = (dom: RuntimeLoadOverlayDom, progress: number): void => {
   dom.progressPercent.textContent = `${String(percent).padStart(2, '0')}%`;
 };
 
+const startProgressTicker = (dom: RuntimeLoadOverlayDom): void => {
+  clearProgressTimer();
+  progressTimer = window.setInterval(() => {
+    if (!ownsOverlay || depth <= 0) return;
+    setProgress(dom, computeStartupFakeProgress(performance.now() - startedAt, PRE_COMPLETE_CAP));
+  }, PROGRESS_TICK_MS);
+};
+
 const show = (dom: RuntimeLoadOverlayDom): void => {
   if (!ownsOverlay || depth <= 0) return;
   visibleAt ??= performance.now();
@@ -70,6 +78,9 @@ const show = (dom: RuntimeLoadOverlayDom): void => {
 };
 
 const hide = (dom: RuntimeLoadOverlayDom): void => {
+  clearShowTimer();
+  clearProgressTimer();
+  clearCompletionTimer();
   dom.overlay.dataset.state = 'hidden';
   dom.overlay.setAttribute('aria-hidden', 'true');
   depth = 0;
@@ -125,17 +136,20 @@ export const beginRuntimeLoadOverlay = (): (() => void) => {
       showTimer = null;
       show(dom);
     }, SHOW_DELAY_MS);
-    progressTimer = window.setInterval(() => {
-      if (!ownsOverlay || depth <= 0) return;
-      setProgress(dom, computeStartupFakeProgress(performance.now() - startedAt, PRE_COMPLETE_CAP));
-    }, PROGRESS_TICK_MS);
   } else if (completionTimer !== null) {
+    // A second runtime load can begin during the short 100% completion hold.
+    // Reclaim the same surface instead of letting it disappear over new work.
     clearCompletionTimer();
+    startedAt = performance.now();
+    visibleAt ??= startedAt;
+    setProgress(dom, computeStartupFakeProgress(0, PRE_COMPLETE_CAP));
     dom.overlay.dataset.state = 'visible';
     dom.overlay.setAttribute('aria-hidden', 'false');
   }
 
   depth += 1;
+  startProgressTicker(dom);
+
   let released = false;
   return () => {
     if (released || !ownsOverlay) return;
