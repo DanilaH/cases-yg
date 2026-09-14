@@ -4,6 +4,7 @@ import '@fontsource/press-start-2p/latin-400.css';
 
 import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
+import { resolveViewportSize } from './app/viewport';
 import { createDebugPanel } from './debug/createDebugPanel';
 import { getRuntimeSfxAssets } from './game/data/audioAssets';
 import { BootScene } from './game/scenes/BootScene';
@@ -19,19 +20,32 @@ import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
-const VIEWPORT_SETTLE_DELAY_MS = 140;
+const VIEWPORT_SETTLE_DELAYS_MS = [120, 360, 700] as const;
 
 interface CssViewportSize {
   width: number;
   height: number;
 }
 
+const readOrientationPortraitHint = (): boolean | null => {
+  const orientationType = window.screen.orientation?.type;
+  if (orientationType?.startsWith('portrait')) return true;
+  if (orientationType?.startsWith('landscape')) return false;
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia('(orientation: portrait)').matches;
+  }
+  return null;
+};
+
 const readLiveViewportSize = (): CssViewportSize => {
   const viewport = window.visualViewport;
-  return {
-    width: Math.max(1, viewport?.width || window.innerWidth || 1),
-    height: Math.max(1, viewport?.height || window.innerHeight || 1),
-  };
+  const root = document.documentElement;
+  return resolveViewportSize(
+    viewport ? { width: viewport.width, height: viewport.height } : null,
+    { width: window.innerWidth, height: window.innerHeight },
+    { width: root.clientWidth, height: root.clientHeight },
+    readOrientationPortraitHint(),
+  );
 };
 
 const syncViewportCssSize = (): CssViewportSize => {
@@ -136,7 +150,7 @@ const boot = async (): Promise<void> => {
   if (gate) gate.textContent = messages.rotateDevice;
   const updateOrientationGate = (): void => {
     const viewport = readLiveViewportSize();
-    const portrait = viewport.height > viewport.width;
+    const portrait = readOrientationPortraitHint() ?? viewport.height > viewport.width;
     if (gate) gate.dataset.visible = portrait ? 'true' : 'false';
     platform.activity.setBlocked('orientation', portrait);
   };
@@ -149,32 +163,41 @@ const boot = async (): Promise<void> => {
   };
 
   let viewportAnimationFrame: number | null = null;
-  let viewportSettleTimer: number | null = null;
+  let viewportSettleTimers: number[] = [];
   const scheduleViewportChange = (): void => {
+    // Orientation signals can arrive before viewport dimensions settle. Apply once
+    // immediately so the gate reacts, then re-measure across several settle points.
+    applyViewportChange();
     if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
     viewportAnimationFrame = window.requestAnimationFrame(() => {
       viewportAnimationFrame = null;
       applyViewportChange();
     });
-    if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);
-    // Mobile browsers often publish one intermediate viewport during rotation or
-    // toolbar collapse. Re-measure after the geometry has had a moment to settle.
-    viewportSettleTimer = window.setTimeout(() => {
-      viewportSettleTimer = null;
-      applyViewportChange();
-    }, VIEWPORT_SETTLE_DELAY_MS);
+    for (const timer of viewportSettleTimers) window.clearTimeout(timer);
+    viewportSettleTimers = VIEWPORT_SETTLE_DELAYS_MS.map((delay) =>
+      window.setTimeout(() => {
+        applyViewportChange();
+      }, delay),
+    );
   };
 
   const resizeObserver = typeof ResizeObserver === 'undefined'
     ? null
-    : new ResizeObserver(() => syncBackingStore());
+    : new ResizeObserver(() => scheduleViewportChange());
   const gameHost = document.querySelector<HTMLElement>('#game');
   if (gameHost) resizeObserver?.observe(gameHost);
+
+  const orientationMedia = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(orientation: portrait)')
+    : null;
+  const screenOrientation = window.screen.orientation;
 
   applyViewportChange();
   window.addEventListener('resize', scheduleViewportChange);
   window.addEventListener('orientationchange', scheduleViewportChange);
   window.visualViewport?.addEventListener('resize', scheduleViewportChange);
+  screenOrientation?.addEventListener('change', scheduleViewportChange);
+  orientationMedia?.addEventListener('change', scheduleViewportChange);
   document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);
 
   window.addEventListener(
@@ -184,8 +207,11 @@ const boot = async (): Promise<void> => {
       window.removeEventListener('resize', scheduleViewportChange);
       window.removeEventListener('orientationchange', scheduleViewportChange);
       window.visualViewport?.removeEventListener('resize', scheduleViewportChange);
+      screenOrientation?.removeEventListener('change', scheduleViewportChange);
+      orientationMedia?.removeEventListener('change', scheduleViewportChange);
       if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
-      if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);
+      for (const timer of viewportSettleTimers) window.clearTimeout(timer);
+      viewportSettleTimers = [];
       resizeObserver?.disconnect();
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();
