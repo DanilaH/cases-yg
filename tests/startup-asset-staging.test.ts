@@ -41,15 +41,19 @@ describe('startup asset staging', () => {
     expect(activeDropLoad).toBeGreaterThan(saveLoad);
   });
 
-  it('keeps missing dynamic art covered until Phaser has authored textures and rebuilds the scene', () => {
-    const source = readFileSync('src/game/systems/artLoading.ts', 'utf8');
-    const gateShown = source.indexOf('const releaseGate = showRuntimeArtGate()');
-    const loaderWait = source.indexOf('await new Promise<void>');
-    const refresh = source.indexOf('scene.scale.refresh()');
-    const release = source.indexOf('releaseGate()');
+  it('keeps missing dynamic art behind the authored preload surface until Phaser rebuilds the scene', () => {
+    const artLoadingSource = readFileSync('src/game/systems/artLoading.ts', 'utf8');
+    const overlaySource = readFileSync('src/app/runtimeLoadOverlay.ts', 'utf8');
+    const overlayShown = artLoadingSource.indexOf('const releaseOverlay = beginRuntimeLoadOverlay()');
+    const loaderWait = artLoadingSource.indexOf('await new Promise<void>');
+    const refresh = artLoadingSource.indexOf('scene.scale.refresh()');
+    const release = artLoadingSource.indexOf('releaseOverlay()');
 
-    expect(gateShown).toBeGreaterThanOrEqual(0);
-    expect(loaderWait).toBeGreaterThan(gateShown);
+    expect(artLoadingSource).not.toContain('runtime-art-gate');
+    expect(overlaySource).toContain("#startup-preload");
+    expect(overlaySource).toContain("#startup-preload-progress-fill");
+    expect(overlayShown).toBeGreaterThanOrEqual(0);
+    expect(loaderWait).toBeGreaterThan(overlayShown);
     expect(refresh).toBeGreaterThan(loaderWait);
     expect(release).toBeGreaterThan(refresh);
   });
