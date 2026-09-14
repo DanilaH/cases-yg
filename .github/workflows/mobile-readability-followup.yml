@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: 22.12.0
           package-manager-cache: false
+      - name: Fix async patch target
+        run: node tools/fix-followup-map.mjs
       - name: Apply reviewed readability follow-up
         id: apply
         continue-on-error: true
@@ -39,7 +41,7 @@ jobs:
           exit 1
       - name: Remove one-shot follow-up machinery
         if: steps.apply.outcome == 'success'
-        run: rm -f mobile-followup-output.txt tools/mobile-readability-followup.mjs .github/workflows/mobile-readability-followup.yml
+        run: rm -f mobile-followup-output.txt tools/mobile-readability-followup.mjs tools/fix-followup-map.mjs .github/workflows/mobile-readability-followup.yml
       - name: Install dependencies
         if: steps.apply.outcome == 'success'
         run: npm ci
