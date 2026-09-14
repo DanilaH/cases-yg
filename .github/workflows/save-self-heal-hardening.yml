@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   patch-and-verify:
-    if: ${{ !contains(github.event.head_commit.message, '[save-self-heal-done]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -72,8 +71,6 @@ jobs:
     totalOpens: value.totalOpens,
     pendingReveal: null,
     onboarding: {
-      // If exact first-result tutorial evidence is unavailable, a progressed save
-      // is grandfathered as complete rather than blocking the whole game.
       primaryCompleted: value.totalOpens > 0,
       firstRevealReceipt: null,
     },
@@ -156,8 +153,6 @@ const repairCurrentSave = (value: Record<string, unknown>): SaveState | null => 
       const repaired = isRecord(rawValue) ? repairCurrentSave(rawValue) : null;
       if (!repaired) throw error;
 
-      // Keep the exact broken payload locally for diagnosis/recovery before
-      // replacing the live save. Yandex cloud mirroring ignores this side key.
       try {
         await this.storage.setItem(`${this.key}${SAVE_RECOVERY_SUFFIX}`, raw);
       } catch (backupError: unknown) {
