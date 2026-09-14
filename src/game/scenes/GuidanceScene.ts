@@ -274,28 +274,32 @@ export class GuidanceScene extends Phaser.Scene {
     this.hintShowing = true;
     this.hintContainer?.destroy(true);
 
-    const width = Math.min(390, Math.max(270, this.metrics.logicalWidth * 0.31));
+    const compact = this.metrics.compactChrome;
+    const width = compact
+      ? Math.min(470, Math.max(360, this.metrics.logicalWidth * 0.36))
+      : Math.min(390, Math.max(270, this.metrics.logicalWidth * 0.31));
     const signalY =
       this.metrics.safeTop +
       OPENING_FEEL_PRESENTATION.railTopOffset +
-      OPENING_FEEL_PRESENTATION.chipsHudHeight +
+      (compact ? 92 : OPENING_FEEL_PRESENTATION.chipsHudHeight) +
       10 +
-      OPENING_FEEL_PRESENTATION.signalHudHeight / 2;
+      (compact ? 100 : OPENING_FEEL_PRESENTATION.signalHudHeight) / 2;
     const x = Math.min(
       this.metrics.safeRight - width,
-      this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth + 18,
+      this.metrics.safeLeft + (compact ? 300 : OPENING_FEEL_PRESENTATION.signalHudWidth) + 18,
     );
-    const container = this.add.container(x, signalY - 30).setAlpha(0);
+    const panelHeight = compact ? 80 : 60;
+    const container = this.add.container(x, signalY - panelHeight / 2).setAlpha(0);
     const panel = this.add.graphics();
     panel.fillStyle(0x17101f, 0.94);
-    panel.fillRoundedRect(0, 0, width, 60, 14);
+    panel.fillRoundedRect(0, 0, width, panelHeight, 14);
     panel.lineStyle(2, next.kind === 'signal-lock' ? 0xd39bff : 0x7eeaff, 0.74);
-    panel.strokeRoundedRect(0, 0, width, 60, 14);
+    panel.strokeRoundedRect(0, 0, width, panelHeight, 14);
     const label = this.add
-      .text(16, 30, next.text, {
+      .text(16, panelHeight / 2, next.text, {
         color: '#f7efff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '14px',
+        fontSize: compact ? '18px' : '14px',
         fontStyle: '600',
         wordWrap: { width: width - 32 },
         align: 'left',
@@ -350,7 +354,7 @@ export class GuidanceScene extends Phaser.Scene {
       .text(0, 0, text, {
         color: '#dcc2ff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '12px',
+        fontSize: this.metrics.compactChrome ? '17px' : '12px',
         fontStyle: '600',
         backgroundColor: '#17101fe8',
         padding: { x: 9, y: 6 },

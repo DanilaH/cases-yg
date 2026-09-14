@@ -1254,7 +1254,7 @@ export class OpeningScene extends Phaser.Scene {
       railCardHeight: compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight,
       railGap: compact ? 12 : OPENING_FEEL_PRESENTATION.railGap,
       selectorTopOffset: compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset,
-      rewardTrayWidth: compact ? 360 : OPENING_FEEL_PRESENTATION.rewardTrayWidth,
+      rewardTrayWidth: compact ? 420 : OPENING_FEEL_PRESENTATION.rewardTrayWidth,
       rewardTrayContentInset: compact ? 24 : OPENING_FEEL_PRESENTATION.rewardTrayContentInset,
     };
   }
@@ -1313,7 +1313,7 @@ export class OpeningScene extends Phaser.Scene {
         backgroundColor: '#2a2037',
         padding: { x: 12, y: 7 },
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
+        fontSize: metrics.compactChrome ? '20px' : '16px',
       })
       .setOrigin(0.5)
       .setAlpha(0)
@@ -1452,7 +1452,7 @@ export class OpeningScene extends Phaser.Scene {
       .text(chrome.compact ? 62 : 49, chrome.compact ? 13 : 10, messages.opening.chips, {
         color: '#bffaff',
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '18px' : '9px',
+        fontSize: chrome.compact ? '20px' : '9px',
       })
       .setOrigin(0, 0);
     const valueText = this.add
@@ -1541,21 +1541,21 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '17px' : lockReady ? '8px' : '9px',
+      fontSize: chrome.compact ? '19px' : lockReady ? '8px' : '9px',
     });
     const value = this.add.text(width - 14, 7, `${clamped}/${threshold}`, {
       color: '#f7fdff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '17px' : '9px',
+      fontSize: chrome.compact ? '19px' : '9px',
     }).setOrigin(1, 0);
 
     const overchargeColor = overchargeMax ? '#ff7aa8' : overchargeActive ? '#8df8ff' : '#81788a';
     const overchargeLabel = this.add.text(14, chrome.compact ? 38 : 27, messages.opening.overcharge, {
       color: overchargeActive || overchargeMax ? overchargeColor : '#6e6677',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '14px' : '7px',
+      fontSize: chrome.compact ? '17px' : '7px',
     });
     const overchargeValue = this.add.text(
       width - 14,
@@ -1566,7 +1566,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#160f20',
         strokeThickness: overchargeActive || overchargeMax ? 2 : 0,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '14px' : '7px',
+        fontSize: chrome.compact ? '17px' : '7px',
       },
     ).setOrigin(1, 0);
     container.add([label, value, overchargeLabel, overchargeValue]);
@@ -1657,7 +1657,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: this.metrics.compactChrome ? '16px' : getPlatformRuntime().language === 'ru' ? '9px' : '10px',
+        fontSize: this.metrics.compactChrome ? '18px' : getPlatformRuntime().language === 'ru' ? '9px' : '10px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5, 0);
@@ -1667,7 +1667,7 @@ export class OpeningScene extends Phaser.Scene {
       .text(0, 43, `${standardsLabel} ${standardCount}/${standards.length}   ·   ${secretsLabel} ${secretCount}/${secrets.length}`, {
         color: '#9feaf4',
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: this.metrics.compactChrome ? '14px' : '8px',
+        fontSize: this.metrics.compactChrome ? '16px' : '8px',
       })
       .setOrigin(0.5, 0);
 
@@ -1799,7 +1799,7 @@ export class OpeningScene extends Phaser.Scene {
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: this.metrics.compactChrome ? '12px' : '6px',
+          fontSize: this.metrics.compactChrome ? '14px' : '6px',
           fontStyle: 'bold',
         })
         .setOrigin(1, 0.5)
@@ -1955,7 +1955,7 @@ export class OpeningScene extends Phaser.Scene {
     const sectionLabel = this.add.text(railX + 2, labelY, 'POUCH', {
       color: '#d8cced',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '17px' : '9px',
+      fontSize: chrome.compact ? '20px' : '9px',
       fontStyle: chrome.compact ? 'bold' : 'normal',
     });
     root.add(sectionLabel);
@@ -1988,20 +1988,20 @@ export class OpeningScene extends Phaser.Scene {
         .text(13, height / 2, selected ? '◆' : '◇', {
           color: selected ? (charged ? '#c7b8ff' : '#ffffff') : '#81758f',
           fontFamily: 'system-ui, sans-serif',
-          fontSize: chrome.compact ? '21px' : '15px',
+          fontSize: chrome.compact ? '24px' : '15px',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
       const titleText = this.add.text(38, 11, title, {
         color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#b7adbf',
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '17px' : getPlatformRuntime().language === 'ru' ? '8px' : '9px',
+        fontSize: chrome.compact ? '20px' : getPlatformRuntime().language === 'ru' ? '8px' : '9px',
         fontStyle: chrome.compact ? 'bold' : 'normal',
       });
       const subtitleText = this.add.text(38, 35, subtitle, {
         color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#a69aae',
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '15px' : '8px',
+        fontSize: chrome.compact ? '18px' : '8px',
       });
       card.add([background, marker, titleText, subtitleText]);
       const hitTarget = this.add
@@ -2102,7 +2102,7 @@ export class OpeningScene extends Phaser.Scene {
     const title = this.add.text(12, compact ? 12 : 8, messages.opening.dropRates, {
       color: compact ? '#d9cfe4' : '#a99ab8',
       fontFamily,
-      fontSize: compact ? '18px' : '7px',
+      fontSize: compact ? '21px' : '7px',
       fontStyle: compact ? 'bold' : 'normal',
     });
     panel.add(title);
@@ -2118,7 +2118,7 @@ export class OpeningScene extends Phaser.Scene {
         .text(columnX[index] ?? firstColumn, headerY, messages.rarity[rarity].toUpperCase().slice(0, 3), {
           color: rarityColors[rarity],
           fontFamily,
-          fontSize: compact ? '14px' : '5px',
+          fontSize: compact ? '17px' : '5px',
           fontStyle: compact ? 'bold' : 'normal',
         })
         .setOrigin(0.5);
@@ -2136,7 +2136,7 @@ export class OpeningScene extends Phaser.Scene {
           .text(12, rowY, label, {
             color: accent,
             fontFamily,
-            fontSize: compact ? '16px' : getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+            fontSize: compact ? '19px' : getPlatformRuntime().language === 'ru' ? '6px' : '7px',
             fontStyle: compact ? 'bold' : 'normal',
           })
           .setOrigin(0, 0.5),
@@ -2147,7 +2147,7 @@ export class OpeningScene extends Phaser.Scene {
             .text(columnX[index] ?? firstColumn, rowY, `${weights[rarity]}%`, {
               color: rarityColors[rarity],
               fontFamily,
-              fontSize: compact ? '16px' : '7px',
+              fontSize: compact ? '19px' : '7px',
               fontStyle: compact ? '600' : 'normal',
             })
             .setOrigin(0.5),
@@ -2167,7 +2167,7 @@ export class OpeningScene extends Phaser.Scene {
         .text(12, compact ? 141 : 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
           color: '#ffb4dc',
           fontFamily,
-          fontSize: compact ? '15px' : '6px',
+          fontSize: compact ? '18px' : '6px',
           fontStyle: compact ? '600' : 'normal',
         })
         .setOrigin(0, 0.5),
@@ -2177,7 +2177,7 @@ export class OpeningScene extends Phaser.Scene {
         .text(12, compact ? 171 : 94, messages.opening.fromFourthOpen, {
           color: compact ? '#aca1b8' : '#81758f',
           fontFamily,
-          fontSize: compact ? '13px' : '5px',
+          fontSize: compact ? '15px' : '5px',
         })
         .setOrigin(0, 0.5),
     );
@@ -2804,8 +2804,9 @@ export class OpeningScene extends Phaser.Scene {
   private async animateChipsPrelude(pending: PendingReveal): Promise<void> {
     if (!this.root || !this.metrics || pending.chips.cost <= 0) return;
     const afterSpend = pending.chips.before - pending.chips.cost;
-    const width = OPENING_FEEL_PRESENTATION.chipsHudWidth;
-    const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
+    const chrome = this.getChromeSizing();
+    const width = chrome.chipsHudWidth;
+    const height = chrome.chipsHudHeight;
     const debitX = this.metrics.safeLeft + width - 14;
     const debitY = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + height / 2;
     const debit = this.add
@@ -2814,7 +2815,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#160f20',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '10px',
+        fontSize: chrome.compact ? '18px' : '10px',
       })
       .setOrigin(1, 0.5)
       .setAlpha(0);
@@ -2905,12 +2906,12 @@ export class OpeningScene extends Phaser.Scene {
     const header = this.add.text(textX, 9, 'REWARD', {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '14px' : '7px',
+      fontSize: chrome.compact ? '17px' : '7px',
     });
     const rarity = this.add.text(contentRight, 9, rarityCode, {
       color: rarityColor,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '13px' : '6px',
+      fontSize: chrome.compact ? '16px' : '6px',
       fontStyle: 'bold',
     }).setOrigin(1, 0);
     tray.add([header, rarity]);
@@ -2925,7 +2926,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '15px' : '8px',
+        fontSize: chrome.compact ? '18px' : '8px',
         fontStyle: 'bold',
       });
       tray.add(status);
@@ -2938,7 +2939,7 @@ export class OpeningScene extends Phaser.Scene {
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-          fontSize: chrome.compact ? '16px' : '9px',
+          fontSize: chrome.compact ? '20px' : '9px',
         });
         tray.add([token, bonus]);
         cursorY += chrome.compact ? 34 : 23;
@@ -2950,7 +2951,7 @@ export class OpeningScene extends Phaser.Scene {
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-          fontSize: chrome.compact ? '12px' : '6px',
+          fontSize: chrome.compact ? '18px' : '6px',
         });
         tray.add(collection);
         cursorY += chrome.compact ? 28 : 18;
@@ -2972,7 +2973,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '16px' : '9px',
+        fontSize: chrome.compact ? '20px' : '9px',
       });
       tray.add([totalIcon, totalText]);
       cursorY += chrome.compact ? 31 : 21;
@@ -2987,7 +2988,7 @@ export class OpeningScene extends Phaser.Scene {
             stroke: '#100b16',
             strokeThickness: 2,
             fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-            fontSize: chrome.compact ? '12px' : '6px',
+            fontSize: chrome.compact ? '18px' : '6px',
             wordWrap: { width: width - 48, useAdvancedWrap: true },
           });
           tray.add(breakdown);
@@ -3020,7 +3021,7 @@ export class OpeningScene extends Phaser.Scene {
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-          fontSize: chrome.compact ? '12px' : '6px',
+          fontSize: chrome.compact ? '18px' : '6px',
           wordWrap: { width: width - 48, useAdvancedWrap: true },
         });
         tray.add([icon, text]);
@@ -3038,7 +3039,7 @@ export class OpeningScene extends Phaser.Scene {
             stroke: '#100b16',
             strokeThickness: 2,
             fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-            fontSize: chrome.compact ? '12px' : '6px',
+            fontSize: chrome.compact ? '18px' : '6px',
             wordWrap: { width: width - 48, useAdvancedWrap: true },
           },
         );
@@ -3224,13 +3225,13 @@ export class OpeningScene extends Phaser.Scene {
         color: '#fffaff',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: this.metrics?.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics?.compactChrome ? '18px' : '8px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
-    const width = Phaser.Math.Clamp(label.width + 56, 176, 308);
-    const height = 38;
+    const width = Phaser.Math.Clamp(label.width + 56, 176, this.metrics?.compactChrome ? 380 : 308);
+    const height = this.metrics?.compactChrome ? 54 : 38;
     const badge = this.add.container(x, y).setAlpha(0).setScale(0.96);
     const glow = this.add.graphics().setAlpha(0.2);
     glow.lineStyle(5, accent, 0.16);
@@ -4890,8 +4891,8 @@ export class OpeningScene extends Phaser.Scene {
         color: '#fff8ff',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics.compactChrome ? '17px' : '8px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -4900,8 +4901,8 @@ export class OpeningScene extends Phaser.Scene {
         color: `#${copy.accent.toString(16).padStart(6, '0')}`,
         stroke: '#100b16',
         strokeThickness: 1,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '7px',
+        fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics.compactChrome ? '15px' : '7px',
       })
       .setOrigin(0.5);
     toast.add([background, diamond, title, progress]);
@@ -5181,7 +5182,7 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 1,
       fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-      fontSize: this.metrics.compactChrome ? '15px' : '10px',
+      fontSize: this.metrics.compactChrome ? '17px' : '10px',
       fontStyle: 'bold',
     });
     rarity.setData('capsule', rarityCapsule);
@@ -5193,7 +5194,7 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-      fontSize: this.metrics.compactChrome ? '16px' : '10px',
+      fontSize: this.metrics.compactChrome ? '18px' : '10px',
     }).setOrigin(0.5);
     const statusAccent = this.add.text(
       0,
@@ -5204,14 +5205,14 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#160f20',
         strokeThickness: 2,
         fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: this.metrics.compactChrome ? '16px' : '10px',
+        fontSize: this.metrics.compactChrome ? '18px' : '10px',
       },
     ).setOrigin(0, 0.5);
     this.positionResultStatus(status, statusAccent);
     const hint = this.add.text(0, RESULT_PRESENTATION.hintY, hintText, {
       color: this.resultReady ? '#ffffff' : '#bfb3ca',
       fontFamily: 'system-ui, sans-serif',
-      fontSize: this.metrics.compactChrome ? (pending.hiddenPocket ? '18px' : '20px') : pending.hiddenPocket ? '13px' : '15px',
+      fontSize: this.metrics.compactChrome ? (pending.hiddenPocket ? '20px' : '22px') : pending.hiddenPocket ? '13px' : '15px',
       fontStyle: this.resultReady ? 'bold' : 'normal',
     }).setOrigin(0.5);
     const actionZone = this.add
