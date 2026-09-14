@@ -33,6 +33,8 @@ jobs:
         run: npm run build:asset-v2
       - name: Report asset v2 footprint
         run: node tools/assets/report-build-footprint.mjs dist asset-v2
+      - name: Benchmark alpha-trim candidate
+        run: node tools/assets/benchmark-trim-v2.mjs
 
       - name: Install GPU compression benchmark tools
         run: npm install --prefix .asset-build/gpu-tools --no-save --package-lock=false gpu-tex-enc@1.2.5
@@ -45,6 +47,8 @@ jobs:
           name: asset-pipeline-v2-evidence
           path: |
             .asset-build/runtime-v2-report.json
+            .asset-build/trim-v2-report.json
             .asset-build/qa-v2
+            .asset-build/qa-trim-v2
             .asset-build/gpu-benchmark/report.json
           if-no-files-found: error
