@@ -25,25 +25,8 @@ jobs:
       - name: Apply patch
         run: python scripts/save-self-heal-hardening.py
 
-      - name: Align recovery expectation
-        shell: bash
-        run: |
-          python <<'PY'
-          from pathlib import Path
-          path = Path('tests/save-recovery.test.ts')
-          text = path.read_text()
-          old = """    expect(loaded.discoveredStandard).toEqual(base.discoveredStandard);
-    expect(loaded.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
-    expect(await storage.getItem(recoveryKey)).toBe(raw);
-"""
-          new = """    expect(loaded.discoveredStandard).toEqual(base.discoveredStandard);
-    expect(loaded.onboarding).toEqual(base.onboarding);
-    expect(await storage.getItem(recoveryKey)).toBe(raw);
-"""
-          if old not in text:
-              raise SystemExit('target recovery expectation not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
+      - name: Apply test correction
+        run: python scripts/save-self-heal-test-fix.py
 
       - name: Install dependencies
         run: npm ci
@@ -67,6 +50,7 @@ jobs:
         shell: bash
         run: |
           rm scripts/save-self-heal-hardening.py
+          rm scripts/save-self-heal-test-fix.py
           rm .github/workflows/save-self-heal-hardening.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
