@@ -82,7 +82,8 @@ export class CollectionScene extends Phaser.Scene {
 
   private createRoot(): Phaser.GameObjects.Container {
     this.root?.destroy(true);
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(getRenderPixelRatio()));
+    const ratio = getRenderPixelRatio();
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
     this.metrics = metrics;
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
     this.root = root;

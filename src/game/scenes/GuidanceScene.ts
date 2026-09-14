@@ -186,11 +186,11 @@ export class GuidanceScene extends Phaser.Scene {
 
     const { x, y } = this.getChargedCardPointerPosition();
     this.chargedPointer = createGuidancePointer(this, this.root, x, y, {
-      travelX: -24,
+      travelX: this.metrics.compactChrome ? -34 : -24,
       durationMs: 620,
       repeatDelayMs: 360,
       angle: 180,
-      scale: 0.9,
+      scale: this.metrics.compactChrome ? 1.12 : 0.9,
     });
   }
 
@@ -209,7 +209,13 @@ export class GuidanceScene extends Phaser.Scene {
         this.root,
         this.metrics.centerX + RESULT_PRESENTATION.panelMaxWidth / 2 + 26,
         RESULT_PRESENTATION.panelY + RESULT_PRESENTATION.hintY,
-        { travelX: -20, durationMs: 580, repeatDelayMs: 320, angle: 180, scale: 0.86 },
+        {
+          travelX: this.metrics.compactChrome ? -30 : -20,
+          durationMs: 580,
+          repeatDelayMs: 320,
+          angle: 180,
+          scale: this.metrics.compactChrome ? 1.08 : 0.86,
+        },
       );
     });
   }
@@ -376,12 +382,17 @@ export class GuidanceScene extends Phaser.Scene {
 
   private getChargedCardPointerPosition(): { x: number; y: number } {
     const metrics = this.metrics!;
-    const labelY = metrics.safeTop + OPENING_FEEL_PRESENTATION.selectorTopOffset;
-    const firstCardY = labelY + 20;
-    const chargedY = firstCardY + OPENING_FEEL_PRESENTATION.railCardHeight + OPENING_FEEL_PRESENTATION.railGap;
+    const compact = metrics.compactChrome;
+    const selectorTopOffset = compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset;
+    const railCardWidth = compact ? 300 : OPENING_FEEL_PRESENTATION.railCardWidth;
+    const railCardHeight = compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight;
+    const railGap = compact ? 12 : OPENING_FEEL_PRESENTATION.railGap;
+    const labelY = metrics.safeTop + selectorTopOffset;
+    const firstCardY = labelY + (compact ? 30 : 20);
+    const chargedY = firstCardY + railCardHeight + railGap;
     return {
-      x: metrics.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth + 34,
-      y: chargedY + OPENING_FEEL_PRESENTATION.railCardHeight / 2,
+      x: metrics.safeLeft + railCardWidth + (compact ? 44 : 34),
+      y: chargedY + railCardHeight / 2,
     };
   }
 
@@ -389,7 +400,7 @@ export class GuidanceScene extends Phaser.Scene {
     this.hideOpeningGuidance();
     this.root?.destroy(true);
     const ratio = getRenderPixelRatio();
-    this.metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio));
+    this.metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
     this.root = this.add.container(this.metrics.offsetX, 0).setScale(this.metrics.scale).setDepth(10_000);
   }
 

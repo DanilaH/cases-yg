@@ -121,7 +121,7 @@ export class FirstRunScene extends Phaser.Scene {
   private renderStage(): void {
     this.destroyStage();
     const ratio = getRenderPixelRatio();
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio));
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
     this.metrics = metrics;
 
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -260,7 +260,13 @@ export class FirstRunScene extends Phaser.Scene {
         this.root,
         this.metrics.centerX + POUCH_PRESENTATION.hitboxX - 10,
         POUCH_Y + POUCH_PRESENTATION.hitboxY - 44,
-        { travelX: 72, durationMs: 720, repeatDelayMs: 420, angle: 0, scale: 0.92 },
+        {
+          travelX: this.metrics.compactChrome ? 96 : 78,
+          durationMs: 720,
+          repeatDelayMs: 420,
+          angle: 0,
+          scale: this.metrics.compactChrome ? 1.24 : 1,
+        },
       );
     });
   }
