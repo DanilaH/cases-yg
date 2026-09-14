@@ -1,6 +1,12 @@
 export const ru = {
   appTitle: 'Mystery Pocket Tech',
   rotateDevice: 'Поверните устройство',
+  startup: {
+    heading: 'ПОДГОТОВКА DROP',
+    status: 'СТАБИЛИЗИРУЕМ SIGNAL...',
+    failedHeading: 'SIGNAL ПОТЕРЯН',
+    failedStatus: 'Запуск завис. Перезагрузите игру и попробуйте снова.',
+  },
   opening: {
     collection: 'Коллекция →',
     drop: 'DROP',
