@@ -6,6 +6,7 @@ import { LITE_SIGNAL_THRESHOLD, migrateLegacySignal } from './signal';
 
 export const SAVE_VERSION = 5;
 export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';
+const SAVE_RECOVERY_SUFFIX = '.recovery';
 export const DEFAULT_CHIPS = 0;
 export const DEFAULT_OVERCHARGE_HUNDREDTHS = 100;
 export const DEFAULT_LOOT_POOL_ID = GAME_DEFAULT_LOOT_POOL_ID;
@@ -568,6 +569,67 @@ const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
   return validateSaveState(value as unknown as SaveState);
 };
 
+const createRepairableCurrentBase = (value: Record<string, unknown>): SaveState | null => {
+  if (value.version !== SAVE_VERSION || !isProgressSnapshot(value) || typeof value.muted !== 'boolean') {
+    return null;
+  }
+
+  return {
+    version: SAVE_VERSION,
+    discoveredStandard: [...value.discoveredStandard],
+    discoveredSecrets: [...value.discoveredSecrets],
+    chips: value.chips,
+    signal: value.signal,
+    overchargeHundredths: value.overchargeHundredths,
+    activeLootPoolId: value.activeLootPoolId,
+    totalOpens: value.totalOpens,
+    pendingReveal: null,
+    onboarding: {
+      primaryCompleted: value.totalOpens > 0,
+      firstRevealReceipt: null,
+    },
+    muted: value.muted,
+    stats: { ...value.stats },
+  };
+};
+
+/**
+ * Salvages only current-version saves whose durable progression snapshot is
+ * still valid. Transient transaction/tutorial evidence is retained only when it
+ * independently validates against that snapshot; otherwise it is discarded.
+ *
+ * This deliberately does not repair malformed JSON, unknown versions, or an
+ * invalid durable progression snapshot. Those cases remain hard failures because
+ * guessing could duplicate or erase economy state.
+ */
+const repairCurrentSave = (value: Record<string, unknown>): SaveState | null => {
+  const base = createRepairableCurrentBase(value);
+  if (!base) return null;
+
+  let pendingReveal: PendingReveal | null = null;
+  if (value.pendingReveal !== null && value.pendingReveal !== undefined && isPendingReveal(value.pendingReveal)) {
+    const pendingCandidate: SaveState = { ...base, pendingReveal: value.pendingReveal };
+    try {
+      validateSaveState(pendingCandidate);
+      pendingReveal = value.pendingReveal;
+    } catch {
+      // The durable base snapshot wins over an irreconcilable staged transaction.
+    }
+  }
+
+  const fallback: SaveState = { ...base, pendingReveal };
+  if (isPrimaryOnboardingState(value.onboarding)) {
+    const candidate: SaveState = { ...fallback, onboarding: value.onboarding };
+    try {
+      return validateSaveState(candidate);
+    } catch {
+      // Keep durable progression and fall back to conservative onboarding state.
+    }
+  }
+
+  return validateSaveState(fallback);
+};
+
 export const parseSaveState = (raw: string): SaveState => {
   const value: unknown = JSON.parse(raw);
   if (!isRecord(value)) {
@@ -656,7 +718,31 @@ export class SaveRepository {
       return createInitialSaveState();
     }
 
-    const parsed = parseSaveState(raw);
+    let parsed: SaveState;
+    try {
+      parsed = parseSaveState(raw);
+    } catch (error: unknown) {
+      let rawValue: unknown;
+      try {
+        rawValue = JSON.parse(raw);
+      } catch {
+        throw error;
+      }
+
+      const repaired = isRecord(rawValue) ? repairCurrentSave(rawValue) : null;
+      if (!repaired) throw error;
+
+      try {
+        await this.storage.setItem(`${this.key}${SAVE_RECOVERY_SUFFIX}`, raw);
+      } catch (backupError: unknown) {
+        console.warn('[save] failed to preserve recovery backup', backupError);
+      }
+
+      await this.write(repaired);
+      console.warn('[save] self-healed recoverable current save payload', error);
+      return repaired;
+    }
+
     const rawValue: unknown = JSON.parse(raw);
     if (isRecord(rawValue) && rawValue.version !== SAVE_VERSION) {
       await this.write(parsed);
