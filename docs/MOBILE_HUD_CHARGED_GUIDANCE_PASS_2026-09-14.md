@@ -1,7 +1,7 @@
 # Signal 2000 — Mobile HUD + Charged Guidance Pass
 
 **Date:** 2026-09-14  
-**Status:** IMPLEMENTATION IN PROGRESS  
+**Status:** IMPLEMENTED — AUTOMATED GATE GREEN, AWAITING PHONE ACCEPTANCE  
 **Trigger:** second real-phone acceptance pass after mobile layout cleanup and orientation hotfix
 
 ## Scope
@@ -87,3 +87,43 @@ The pointer must not be delayed until some unrelated later interaction. Once bot
 - returning from Charged to Basic still makes the pointer reappear while the first-Charged milestone is incomplete;
 - pointer remains suppressed during active opening/reveal/result transaction states;
 - desktop layout remains unchanged.
+
+## Implementation result
+
+Implemented on `mobile-hud-charged-guidance-pass`.
+
+Compact HUD geometry now uses one shared profile:
+
+- CHIPS height: `96` logical px (was `84`);
+- SIGNAL height: `112` logical px (was `88`);
+- HUD card gap: `14` logical px;
+- POUCH selector top offset: `256` logical px (was `214`), leaving a deliberate gap below the enlarged HUD;
+- desktop sizes remain the existing `64/64` CHIPS/SIGNAL heights with the existing selector geometry.
+
+CHIPS internals were re-spaced around the taller card. SIGNAL title/value, OVERCHARGE row, and progress segments now use separate vertical bands. Signal arrival/reward presentation targets no longer use desktop `OPENING_FEEL_PRESENTATION` HUD sizes; they resolve from the active chrome profile.
+
+Charged onboarding now has two independent gates:
+
+1. economic eligibility (`chips >= Charged cost`, no first Legendary committed, Basic selected, no pending reveal);
+2. visual readiness reported by `OpeningScene`: idle phase, no Drop/art transition, Charged card exists, is visible, and has reached at least 90% of its intended idle alpha.
+
+`GuidanceScene` re-evaluates that lightweight readiness while Opening is active. This removes the race without an arbitrary delay: the pointer cannot lead the control, but appears on the next presentation frame once the card is actually settled enough to guide toward.
+
+## Independent review
+
+Independent post-implementation review checked the full branch against the two reported phone failures and the project guardrails.
+
+Findings:
+
+- no gameplay/economy/RNG/save/reward/Yandex semantics changed;
+- desktop HUD dimensions and existing desktop coordinates remain unchanged;
+- the compact HUD has explicit room between title/value/Overcharge/progress bands and between the HUD stack and POUCH selector;
+- stale direct uses of `OPENING_FEEL_PRESENTATION.signalHudWidth`, `chipsHudHeight`, and `signalHudHeight` for Signal motion targets are gone from `OpeningScene`;
+- Charged guidance cannot appear during reveal/result/banking because the visual-readiness predicate requires `OpeningScene` phase `idle`;
+- it also cannot appear during Drop switching or pouch-art loading;
+- returning to Basic after selecting Charged remains eligible because the existing `pouch_selected` event updates Guidance selection state and the same readiness/economy gates are re-evaluated;
+- frame-level re-evaluation performs no storage reads and creates no new object while a pointer already exists.
+
+Focused tests cover the larger compact HUD geometry, preserved desktop sizes, the intentional HUD-to-selector gap, and the new `chargedControlReady=false` suppression case.
+
+The full implementation gate passed: `npm ci`, typecheck, unit tests, asset self-test, asset validation, and production build.
