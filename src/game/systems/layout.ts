@@ -12,11 +12,14 @@ export interface SafeAreaInsets {
 export interface LayoutMetrics {
   viewportWidth: number;
   viewportHeight: number;
+  cssViewportWidth: number;
+  cssViewportHeight: number;
   logicalWidth: number;
   logicalHeight: 720;
   scale: number;
   offsetX: number;
   mode: LayoutMode;
+  compactChrome: boolean;
   centerX: number;
   centerY: number;
   safeLeft: number;
@@ -24,6 +27,8 @@ export interface LayoutMetrics {
   safeTop: number;
   safeBottom: number;
 }
+
+export const COMPACT_CHROME_MAX_CSS_HEIGHT = 520;
 
 const ZERO_INSETS: SafeAreaInsets = { left: 0, right: 0, top: 0, bottom: 0 };
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -49,11 +54,20 @@ export const createLayoutMetrics = (
   viewportWidth: number,
   viewportHeight: number,
   safeArea: SafeAreaInsets = ZERO_INSETS,
+  pixelRatio = 1,
 ): LayoutMetrics => {
   const height = Math.max(1, viewportHeight);
   const aspect = viewportWidth / height;
   const logicalHeight = 720 as const;
   const scale = height / logicalHeight;
+  const renderPixelRatio = resolveRenderPixelRatio(pixelRatio);
+  const cssViewportWidth = viewportWidth / renderPixelRatio;
+  const cssViewportHeight = viewportHeight / renderPixelRatio;
+  // Aspect ratio alone cannot distinguish a 16:9 desktop window from a 16:9
+  // phone. Short landscape viewports need larger/reflowed chrome so small
+  // digital-font labels do not collapse to only a few physical CSS pixels.
+  const compactChrome =
+    cssViewportWidth >= cssViewportHeight && cssViewportHeight <= COMPACT_CHROME_MAX_CSS_HEIGHT;
   // Yandex Games desktop requirement 1.6.2.2 caps the active game's long side
   // at 2x the short side. Keep the authored logical surface inside that limit.
   const logicalWidth = clamp(aspect * logicalHeight, 900, logicalHeight * 2);
@@ -69,11 +83,14 @@ export const createLayoutMetrics = (
   return {
     viewportWidth,
     viewportHeight,
+    cssViewportWidth,
+    cssViewportHeight,
     logicalWidth,
     logicalHeight,
     scale,
     offsetX,
     mode,
+    compactChrome,
     centerX: logicalWidth / 2,
     centerY: logicalHeight / 2,
     safeLeft: Math.max(horizontalMargin, safeViewportLeft + insetPadding),

@@ -186,11 +186,11 @@ export class GuidanceScene extends Phaser.Scene {
 
     const { x, y } = this.getChargedCardPointerPosition();
     this.chargedPointer = createGuidancePointer(this, this.root, x, y, {
-      travelX: -24,
+      travelX: this.metrics.compactChrome ? -34 : -24,
       durationMs: 620,
       repeatDelayMs: 360,
       angle: 180,
-      scale: 0.9,
+      scale: this.metrics.compactChrome ? 1.12 : 0.9,
     });
   }
 
@@ -209,7 +209,13 @@ export class GuidanceScene extends Phaser.Scene {
         this.root,
         this.metrics.centerX + RESULT_PRESENTATION.panelMaxWidth / 2 + 26,
         RESULT_PRESENTATION.panelY + RESULT_PRESENTATION.hintY,
-        { travelX: -20, durationMs: 580, repeatDelayMs: 320, angle: 180, scale: 0.86 },
+        {
+          travelX: this.metrics.compactChrome ? -30 : -20,
+          durationMs: 580,
+          repeatDelayMs: 320,
+          angle: 180,
+          scale: this.metrics.compactChrome ? 1.08 : 0.86,
+        },
       );
     });
   }
@@ -268,28 +274,32 @@ export class GuidanceScene extends Phaser.Scene {
     this.hintShowing = true;
     this.hintContainer?.destroy(true);
 
-    const width = Math.min(390, Math.max(270, this.metrics.logicalWidth * 0.31));
+    const compact = this.metrics.compactChrome;
+    const width = compact
+      ? Math.min(470, Math.max(360, this.metrics.logicalWidth * 0.36))
+      : Math.min(390, Math.max(270, this.metrics.logicalWidth * 0.31));
     const signalY =
       this.metrics.safeTop +
       OPENING_FEEL_PRESENTATION.railTopOffset +
-      OPENING_FEEL_PRESENTATION.chipsHudHeight +
+      (compact ? 92 : OPENING_FEEL_PRESENTATION.chipsHudHeight) +
       10 +
-      OPENING_FEEL_PRESENTATION.signalHudHeight / 2;
+      (compact ? 100 : OPENING_FEEL_PRESENTATION.signalHudHeight) / 2;
     const x = Math.min(
       this.metrics.safeRight - width,
-      this.metrics.safeLeft + OPENING_FEEL_PRESENTATION.signalHudWidth + 18,
+      this.metrics.safeLeft + (compact ? 300 : OPENING_FEEL_PRESENTATION.signalHudWidth) + 18,
     );
-    const container = this.add.container(x, signalY - 30).setAlpha(0);
+    const panelHeight = compact ? 80 : 60;
+    const container = this.add.container(x, signalY - panelHeight / 2).setAlpha(0);
     const panel = this.add.graphics();
     panel.fillStyle(0x17101f, 0.94);
-    panel.fillRoundedRect(0, 0, width, 60, 14);
+    panel.fillRoundedRect(0, 0, width, panelHeight, 14);
     panel.lineStyle(2, next.kind === 'signal-lock' ? 0xd39bff : 0x7eeaff, 0.74);
-    panel.strokeRoundedRect(0, 0, width, 60, 14);
+    panel.strokeRoundedRect(0, 0, width, panelHeight, 14);
     const label = this.add
-      .text(16, 30, next.text, {
+      .text(16, panelHeight / 2, next.text, {
         color: '#f7efff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '14px',
+        fontSize: compact ? '18px' : '14px',
         fontStyle: '600',
         wordWrap: { width: width - 32 },
         align: 'left',
@@ -344,7 +354,7 @@ export class GuidanceScene extends Phaser.Scene {
       .text(0, 0, text, {
         color: '#dcc2ff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '12px',
+        fontSize: this.metrics.compactChrome ? '17px' : '12px',
         fontStyle: '600',
         backgroundColor: '#17101fe8',
         padding: { x: 9, y: 6 },
@@ -376,12 +386,17 @@ export class GuidanceScene extends Phaser.Scene {
 
   private getChargedCardPointerPosition(): { x: number; y: number } {
     const metrics = this.metrics!;
-    const labelY = metrics.safeTop + OPENING_FEEL_PRESENTATION.selectorTopOffset;
-    const firstCardY = labelY + 20;
-    const chargedY = firstCardY + OPENING_FEEL_PRESENTATION.railCardHeight + OPENING_FEEL_PRESENTATION.railGap;
+    const compact = metrics.compactChrome;
+    const selectorTopOffset = compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset;
+    const railCardWidth = compact ? 300 : OPENING_FEEL_PRESENTATION.railCardWidth;
+    const railCardHeight = compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight;
+    const railGap = compact ? 12 : OPENING_FEEL_PRESENTATION.railGap;
+    const labelY = metrics.safeTop + selectorTopOffset;
+    const firstCardY = labelY + (compact ? 30 : 20);
+    const chargedY = firstCardY + railCardHeight + railGap;
     return {
-      x: metrics.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth + 34,
-      y: chargedY + OPENING_FEEL_PRESENTATION.railCardHeight / 2,
+      x: metrics.safeLeft + railCardWidth + (compact ? 44 : 34),
+      y: chargedY + railCardHeight / 2,
     };
   }
 
@@ -389,7 +404,7 @@ export class GuidanceScene extends Phaser.Scene {
     this.hideOpeningGuidance();
     this.root?.destroy(true);
     const ratio = getRenderPixelRatio();
-    this.metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio));
+    this.metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
     this.root = this.add.container(this.metrics.offsetX, 0).setScale(this.metrics.scale).setDepth(10_000);
   }
 

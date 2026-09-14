@@ -19,13 +19,37 @@ import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
 const ACCENT_FONT_WARMUP_TEXT = 'CHIPS SIGNAL REWARD ЖЙЦУКЕН 0123';
+const VIEWPORT_SETTLE_DELAY_MS = 140;
+
+interface CssViewportSize {
+  width: number;
+  height: number;
+}
+
+const readLiveViewportSize = (): CssViewportSize => {
+  const viewport = window.visualViewport;
+  return {
+    width: Math.max(1, viewport?.width || window.innerWidth || 1),
+    height: Math.max(1, viewport?.height || window.innerHeight || 1),
+  };
+};
+
+const syncViewportCssSize = (): CssViewportSize => {
+  const size = readLiveViewportSize();
+  const root = document.documentElement;
+  root.style.setProperty('--app-viewport-width', `${size.width}px`);
+  root.style.setProperty('--app-viewport-height', `${size.height}px`);
+  root.style.setProperty('--app-viewport-max-game-width', `${size.height * 2}px`);
+  return size;
+};
 
 const readGameCssSize = (): { width: number; height: number } => {
   const host = document.querySelector<HTMLElement>('#game');
   const bounds = host?.getBoundingClientRect();
+  const viewport = readLiveViewportSize();
   return {
-    width: Math.max(1, bounds?.width || window.innerWidth || 1),
-    height: Math.max(1, bounds?.height || window.innerHeight || 1),
+    width: Math.max(1, bounds?.width || viewport.width),
+    height: Math.max(1, bounds?.height || viewport.height),
   };
 };
 
@@ -74,6 +98,7 @@ const boot = async (): Promise<void> => {
   // buffered and applied before the game gets a chance to run normally.
   const removeBlockedListener = platform.activity.onBlockedChange(applyBlockedState);
 
+  syncViewportCssSize();
   const initialCssSize = readGameCssSize();
   const initialBackingSize = getBackingStoreSize(initialCssSize.width, initialCssSize.height);
   game = new Phaser.Game({
@@ -110,32 +135,57 @@ const boot = async (): Promise<void> => {
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
   if (gate) gate.textContent = messages.rotateDevice;
   const updateOrientationGate = (): void => {
-    const portrait = window.innerHeight > window.innerWidth;
+    const viewport = readLiveViewportSize();
+    const portrait = viewport.height > viewport.width;
     if (gate) gate.dataset.visible = portrait ? 'true' : 'false';
     platform.activity.setBlocked('orientation', portrait);
   };
   const preventContextMenu = (event: Event): void => event.preventDefault();
 
-  const handleViewportChange = (): void => {
+  const applyViewportChange = (): void => {
+    syncViewportCssSize();
     syncBackingStore();
     updateOrientationGate();
   };
+
+  let viewportAnimationFrame: number | null = null;
+  let viewportSettleTimer: number | null = null;
+  const scheduleViewportChange = (): void => {
+    if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
+    viewportAnimationFrame = window.requestAnimationFrame(() => {
+      viewportAnimationFrame = null;
+      applyViewportChange();
+    });
+    if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);
+    // Mobile browsers often publish one intermediate viewport during rotation or
+    // toolbar collapse. Re-measure after the geometry has had a moment to settle.
+    viewportSettleTimer = window.setTimeout(() => {
+      viewportSettleTimer = null;
+      applyViewportChange();
+    }, VIEWPORT_SETTLE_DELAY_MS);
+  };
+
   const resizeObserver = typeof ResizeObserver === 'undefined'
     ? null
     : new ResizeObserver(() => syncBackingStore());
   const gameHost = document.querySelector<HTMLElement>('#game');
   if (gameHost) resizeObserver?.observe(gameHost);
 
-  updateOrientationGate();
-  syncBackingStore();
-  window.addEventListener('resize', handleViewportChange);
+  applyViewportChange();
+  window.addEventListener('resize', scheduleViewportChange);
+  window.addEventListener('orientationchange', scheduleViewportChange);
+  window.visualViewport?.addEventListener('resize', scheduleViewportChange);
   document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);
 
   window.addEventListener(
     'beforeunload',
     () => {
       if (blocked) game?.loop.wake();
-      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('resize', scheduleViewportChange);
+      window.removeEventListener('orientationchange', scheduleViewportChange);
+      window.visualViewport?.removeEventListener('resize', scheduleViewportChange);
+      if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
+      if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);
       resizeObserver?.disconnect();
       document.querySelector('#game-shell')?.removeEventListener('contextmenu', preventContextMenu);
       removeBlockedListener();

@@ -3,11 +3,26 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --app-viewport-width: 100dvw;
+  --app-viewport-height: 100dvh;
+  --app-viewport-max-game-width: 200dvh;
 }
 
 html,
-body,
-#game-shell,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#game-shell {
+  width: var(--app-viewport-width);
+  height: var(--app-viewport-height);
+  margin: 0;
+  padding: 0;
+}
+
 #game {
   width: 100%;
   height: 100%;
@@ -36,7 +51,7 @@ body {
 }
 
 #game {
-  max-width: 200vh;
+  max-width: var(--app-viewport-max-game-width);
 }
 
 #game canvas {

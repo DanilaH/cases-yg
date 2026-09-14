@@ -452,7 +452,8 @@ export class OpeningScene extends Phaser.Scene {
         if (this.isSceneShutdown()) return;
       }
     }
-    this.renderIdle(idleMessage);
+    if (pending) this.renderRevealShell(pending);
+    else this.renderIdle(idleMessage);
     // Gameplay becomes active only after save recovery + required active art are ready
     // and the first usable Opening frame exists. This keeps GameplayAPI.start aligned
     // with actual gameplay and makes it precede the idempotent Game Ready signal.
@@ -555,7 +556,8 @@ export class OpeningScene extends Phaser.Scene {
     this.rewardTrayContainer = null;
     this.collectionMilestoneTarget = null;
     this.tearHint = null;
-    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(getRenderPixelRatio()));
+    const ratio = getRenderPixelRatio();
+    const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
     this.metrics = metrics;
     this.ensureEnvironment(metrics);
     const root = this.add.container(metrics.offsetX, 0).setScale(metrics.scale);
@@ -1203,6 +1205,64 @@ export class OpeningScene extends Phaser.Scene {
     return this.presentationSkip.request(this.time.now);
   }
 
+  private renderRevealShell(pending: PendingReveal): void {
+    if (!this.saveState || this.isSceneShutdown()) return;
+    this.resultReady = false;
+    this.drag = null;
+    this.deferredResize = false;
+
+    const root = this.createRoot();
+    const metrics = this.metrics!;
+    this.renderResourceHud(root, this.saveState);
+    this.createMuteButton(root);
+    if (pending.pouchType === 'charged') this.renderChargedPouchAura(root);
+    this.pouch = createPouchVisual(
+      this,
+      root,
+      metrics.centerX,
+      POUCH_Y,
+      pending.pouchType,
+      pending.lootPoolId as GameLootPoolId,
+    );
+    // Scene-entry pending reveals represent a tear that already crossed its durable
+    // staging boundary. Render the actual torn state, never the idle selector shell.
+    this.pouch.tab.setX(this.pouch.tabEndX);
+    this.pouch.dragZone.disableInteractive();
+  }
+
+  private getChromeSizing(): {
+    compact: boolean;
+    chipsHudWidth: number;
+    chipsHudHeight: number;
+    signalHudWidth: number;
+    signalHudHeight: number;
+    railCardWidth: number;
+    railCardHeight: number;
+    railGap: number;
+    selectorTopOffset: number;
+    rewardTrayWidth: number;
+    rewardTrayContentInset: number;
+  } {
+    const compact = this.metrics?.compactChrome ?? false;
+    return {
+      compact,
+      chipsHudWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.chipsHudWidth,
+      chipsHudHeight: compact ? 92 : OPENING_FEEL_PRESENTATION.chipsHudHeight,
+      signalHudWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.signalHudWidth,
+      signalHudHeight: compact ? 100 : OPENING_FEEL_PRESENTATION.signalHudHeight,
+      railCardWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.railCardWidth,
+      railCardHeight: compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight,
+      railGap: compact ? 12 : OPENING_FEEL_PRESENTATION.railGap,
+      selectorTopOffset: compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset,
+      rewardTrayWidth: compact ? 420 : OPENING_FEEL_PRESENTATION.rewardTrayWidth,
+      rewardTrayContentInset: compact ? 24 : OPENING_FEEL_PRESENTATION.rewardTrayContentInset,
+    };
+  }
+
+  private getDetailFontFamily(): string {
+    return this.metrics?.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY;
+  }
+
   private renderIdle(message?: string, animateEntry = false): void {
     if (!this.saveState || this.isSceneShutdown()) return;
 
@@ -1253,7 +1313,7 @@ export class OpeningScene extends Phaser.Scene {
         backgroundColor: '#2a2037',
         padding: { x: 12, y: 7 },
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
+        fontSize: metrics.compactChrome ? '20px' : '16px',
       })
       .setOrigin(0.5)
       .setAlpha(0)
@@ -1368,10 +1428,11 @@ export class OpeningScene extends Phaser.Scene {
   private renderChipsHud(root: Phaser.GameObjects.Container, chips: number): void {
     if (!this.metrics) return;
     const messages = getMessages(getPlatformRuntime().language);
+    const chrome = this.getChromeSizing();
     const x = this.metrics.safeLeft;
     const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset;
-    const width = OPENING_FEEL_PRESENTATION.chipsHudWidth;
-    const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
+    const width = chrome.chipsHudWidth;
+    const height = chrome.chipsHudHeight;
     const container = this.add.container(x, y);
     const background = this.add.graphics();
     background.fillStyle(0x17101f, 0.9);
@@ -1386,21 +1447,21 @@ export class OpeningScene extends Phaser.Scene {
     container.setData('glow', glow);
     container.setData('shimmer', shimmer);
 
-    const token = createChipToken(this, 24, 37, 0.86);
+    const token = createChipToken(this, chrome.compact ? 30 : 24, chrome.compact ? 53 : 37, chrome.compact ? 1.05 : 0.86);
     const label = this.add
-      .text(49, 10, messages.opening.chips, {
+      .text(chrome.compact ? 62 : 49, chrome.compact ? 13 : 10, messages.opening.chips, {
         color: '#bffaff',
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '9px',
+        fontSize: chrome.compact ? '20px' : '9px',
       })
       .setOrigin(0, 0);
     const valueText = this.add
-      .text(48, 40, `${Math.max(0, Math.floor(chips))}`, {
+      .text(chrome.compact ? 62 : 48, chrome.compact ? 61 : 40, `${Math.max(0, Math.floor(chips))}`, {
         color: '#f4feff',
         stroke: '#11333b',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '19px',
+        fontSize: chrome.compact ? '30px' : '19px',
       })
       .setOrigin(0, 0.5);
     container.add([token, label, valueText]);
@@ -1456,10 +1517,11 @@ export class OpeningScene extends Phaser.Scene {
     const overchargeMax = overcharge >= LITE_V2_BALANCE.overchargeCapHundredths;
     const messages = getMessages(getPlatformRuntime().language);
     const labelText = lockReady ? messages.opening.signalLockReady : messages.opening.signal;
+    const chrome = this.getChromeSizing();
     const x = this.metrics.safeLeft;
-    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + OPENING_FEEL_PRESENTATION.chipsHudHeight + 10;
-    const width = OPENING_FEEL_PRESENTATION.signalHudWidth;
-    const height = OPENING_FEEL_PRESENTATION.signalHudHeight;
+    const y = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + chrome.chipsHudHeight + 10;
+    const width = chrome.signalHudWidth;
+    const height = chrome.signalHudHeight;
     const container = this.add.container(x, y);
     const background = this.add.graphics();
     background.fillStyle(0x17101f, 0.84);
@@ -1479,32 +1541,32 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: lockReady ? '8px' : '9px',
+      fontSize: chrome.compact ? '19px' : lockReady ? '8px' : '9px',
     });
     const value = this.add.text(width - 14, 7, `${clamped}/${threshold}`, {
       color: '#f7fdff',
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '9px',
+      fontSize: chrome.compact ? '19px' : '9px',
     }).setOrigin(1, 0);
 
     const overchargeColor = overchargeMax ? '#ff7aa8' : overchargeActive ? '#8df8ff' : '#81788a';
-    const overchargeLabel = this.add.text(14, 27, messages.opening.overcharge, {
+    const overchargeLabel = this.add.text(14, chrome.compact ? 38 : 27, messages.opening.overcharge, {
       color: overchargeActive || overchargeMax ? overchargeColor : '#6e6677',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '7px',
+      fontSize: chrome.compact ? '17px' : '7px',
     });
     const overchargeValue = this.add.text(
       width - 14,
-      27,
+      chrome.compact ? 38 : 27,
       `${formatOverchargeMultiplier(overcharge)}${overchargeMax ? ' · MAX' : ''}`,
       {
         color: overchargeColor,
         stroke: '#160f20',
         strokeThickness: overchargeActive || overchargeMax ? 2 : 0,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '7px',
+        fontSize: chrome.compact ? '17px' : '7px',
       },
     ).setOrigin(1, 0);
     container.add([label, value, overchargeLabel, overchargeValue]);
@@ -1516,9 +1578,9 @@ export class OpeningScene extends Phaser.Scene {
       const segment = this.add
         .rectangle(
           14 + index * (segmentWidth + segmentGap),
-          50,
+          chrome.compact ? 76 : 50,
           segmentWidth,
-          8,
+          chrome.compact ? 11 : 8,
           active ? (waitingForCharged ? 0x9d7cff : 0x76e9f5) : 0x3a3146,
           active ? 0.98 : 0.72,
         )
@@ -1595,7 +1657,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#100b16',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '9px' : '10px',
+        fontSize: this.metrics.compactChrome ? '18px' : getPlatformRuntime().language === 'ru' ? '9px' : '10px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5, 0);
@@ -1605,7 +1667,7 @@ export class OpeningScene extends Phaser.Scene {
       .text(0, 43, `${standardsLabel} ${standardCount}/${standards.length}   ·   ${secretsLabel} ${secretCount}/${secrets.length}`, {
         color: '#9feaf4',
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontSize: this.metrics.compactChrome ? '16px' : '8px',
       })
       .setOrigin(0.5, 0);
 
@@ -1737,7 +1799,7 @@ export class OpeningScene extends Phaser.Scene {
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '6px',
+          fontSize: this.metrics.compactChrome ? '14px' : '6px',
           fontStyle: 'bold',
         })
         .setOrigin(1, 0.5)
@@ -1884,15 +1946,17 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
     const cost = getChargedCost(LITE_V2_BALANCE);
     const chargedAvailable = canAffordPouch(this.saveState, 'charged', LITE_V2_BALANCE);
-    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
-    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const chrome = this.getChromeSizing();
+    const width = chrome.railCardWidth;
+    const height = chrome.railCardHeight;
     const railX = this.metrics.safeLeft;
-    const labelY = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.selectorTopOffset;
+    const labelY = this.metrics.safeTop + chrome.selectorTopOffset;
 
     const sectionLabel = this.add.text(railX + 2, labelY, 'POUCH', {
       color: '#d8cced',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '9px',
+      fontSize: chrome.compact ? '20px' : '9px',
+      fontStyle: chrome.compact ? 'bold' : 'normal',
     });
     root.add(sectionLabel);
     this.pouchSelectorLabel = sectionLabel;
@@ -1924,19 +1988,20 @@ export class OpeningScene extends Phaser.Scene {
         .text(13, height / 2, selected ? '◆' : '◇', {
           color: selected ? (charged ? '#c7b8ff' : '#ffffff') : '#81758f',
           fontFamily: 'system-ui, sans-serif',
-          fontSize: '15px',
+          fontSize: chrome.compact ? '24px' : '15px',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
       const titleText = this.add.text(38, 11, title, {
         color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#b7adbf',
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: getPlatformRuntime().language === 'ru' ? '8px' : '9px',
+        fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: chrome.compact ? '20px' : getPlatformRuntime().language === 'ru' ? '8px' : '9px',
+        fontStyle: chrome.compact ? 'bold' : 'normal',
       });
       const subtitleText = this.add.text(38, 35, subtitle, {
         color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#a69aae',
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: chrome.compact ? '18px' : '8px',
       });
       card.add([background, marker, titleText, subtitleText]);
       const hitTarget = this.add
@@ -1979,7 +2044,7 @@ export class OpeningScene extends Phaser.Scene {
       return card;
     };
 
-    const firstCardY = labelY + 20;
+    const firstCardY = labelY + (chrome.compact ? 30 : 20);
     createCard(
       'basic',
       firstCardY,
@@ -1989,7 +2054,7 @@ export class OpeningScene extends Phaser.Scene {
     );
     const chargedCard = createCard(
       'charged',
-      firstCardY + height + OPENING_FEEL_PRESENTATION.railGap,
+      firstCardY + height + chrome.railGap,
       `⚡ ${messages.opening.chargedPouch}`,
       chargedAvailable
         ? `${cost} ${messages.opening.chips}`
@@ -1999,7 +2064,7 @@ export class OpeningScene extends Phaser.Scene {
     this.renderPouchOdds(
       root,
       railX,
-      firstCardY + height * 2 + OPENING_FEEL_PRESENTATION.railGap + 14,
+      firstCardY + height * 2 + chrome.railGap + (chrome.compact ? 18 : 14),
       width,
     );
     if (chargedAvailable && this.selectedPouchType !== 'charged') {
@@ -2023,29 +2088,38 @@ export class OpeningScene extends Phaser.Scene {
       epic: '#c7b8ff',
       legendary: '#ffd98a',
     };
-    const panelHeight = 104;
+    const compact = this.metrics?.compactChrome ?? false;
+    const fontFamily = this.getDetailFontFamily();
+    const panelHeight = compact ? 190 : 104;
     const panel = this.add.container(x, y);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, 0.78);
+    background.fillStyle(0x17101f, compact ? 0.91 : 0.78);
     background.fillRoundedRect(0, 0, width, panelHeight, 14);
-    background.lineStyle(1, 0xbda7d6, 0.22);
+    background.lineStyle(compact ? 1.5 : 1, 0xbda7d6, compact ? 0.34 : 0.22);
     background.strokeRoundedRect(0, 0, width, panelHeight, 14);
     panel.add(background);
 
-    const title = this.add.text(10, 8, messages.opening.dropRates, {
-      color: '#a99ab8',
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '7px',
+    const title = this.add.text(12, compact ? 12 : 8, messages.opening.dropRates, {
+      color: compact ? '#d9cfe4' : '#a99ab8',
+      fontFamily,
+      fontSize: compact ? '21px' : '7px',
+      fontStyle: compact ? 'bold' : 'normal',
     });
     panel.add(title);
 
-    const columnX = [88, 120, 152, 184] as const;
+    const labelColumnWidth = compact ? 108 : 72;
+    const firstColumn = compact ? labelColumnWidth + 18 : 88;
+    const lastColumn = width - (compact ? 20 : 32);
+    const step = (lastColumn - firstColumn) / 3;
+    const columnX = rarities.map((_, index) => firstColumn + step * index);
+    const headerY = compact ? 47 : 25;
     rarities.forEach((rarity, index) => {
       const header = this.add
-        .text(columnX[index] ?? 88, 25, messages.rarity[rarity].toUpperCase().slice(0, 3), {
+        .text(columnX[index] ?? firstColumn, headerY, messages.rarity[rarity].toUpperCase().slice(0, 3), {
           color: rarityColors[rarity],
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '5px',
+          fontFamily,
+          fontSize: compact ? '17px' : '5px',
+          fontStyle: compact ? 'bold' : 'normal',
         })
         .setOrigin(0.5);
       panel.add(header);
@@ -2059,28 +2133,30 @@ export class OpeningScene extends Phaser.Scene {
     ): void => {
       panel.add(
         this.add
-          .text(10, rowY, label, {
+          .text(12, rowY, label, {
             color: accent,
-            fontFamily: DIGITAL_FONT_FAMILY,
-            fontSize: getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+            fontFamily,
+            fontSize: compact ? '19px' : getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+            fontStyle: compact ? 'bold' : 'normal',
           })
           .setOrigin(0, 0.5),
       );
       rarities.forEach((rarity, index) => {
         panel.add(
           this.add
-            .text(columnX[index] ?? 88, rowY, `${weights[rarity]}%`, {
+            .text(columnX[index] ?? firstColumn, rowY, `${weights[rarity]}%`, {
               color: rarityColors[rarity],
-              fontFamily: DIGITAL_FONT_FAMILY,
-              fontSize: '7px',
+              fontFamily,
+              fontSize: compact ? '19px' : '7px',
+              fontStyle: compact ? '600' : 'normal',
             })
             .setOrigin(0.5),
         );
       });
     };
 
-    addRateRow(43, messages.opening.basicPouch, basic.rarityWeights, '#f7f2ff');
-    addRateRow(61, messages.opening.chargedPouch, charged.rarityWeights, CHARGED_TEXT_COLOR);
+    addRateRow(compact ? 78 : 43, messages.opening.basicPouch, basic.rarityWeights, '#f7f2ff');
+    addRateRow(compact ? 108 : 61, messages.opening.chargedPouch, charged.rarityWeights, CHARGED_TEXT_COLOR);
 
     const formatChance = (chance: number): string => {
       const percent = chance * 100;
@@ -2088,19 +2164,20 @@ export class OpeningScene extends Phaser.Scene {
     };
     panel.add(
       this.add
-        .text(10, 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
+        .text(12, compact ? 141 : 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
           color: '#ffb4dc',
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '6px',
+          fontFamily,
+          fontSize: compact ? '18px' : '6px',
+          fontStyle: compact ? '600' : 'normal',
         })
         .setOrigin(0, 0.5),
     );
     panel.add(
       this.add
-        .text(10, 94, messages.opening.fromFourthOpen, {
-          color: '#81758f',
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '5px',
+        .text(12, compact ? 171 : 94, messages.opening.fromFourthOpen, {
+          color: compact ? '#aca1b8' : '#81758f',
+          fontFamily,
+          fontSize: compact ? '15px' : '5px',
         })
         .setOrigin(0, 0.5),
     );
@@ -2108,8 +2185,9 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private startPaidPouchAvailabilityPulse(card: Phaser.GameObjects.Container, linkedToSignal: boolean): void {
-    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
-    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const chrome = this.getChromeSizing();
+    const width = chrome.railCardWidth;
+    const height = chrome.railCardHeight;
     const outline = this.add.graphics().setAlpha(0.04);
     outline.lineStyle(2.5, linkedToSignal ? 0x9d7cff : CHARGED_ACCENT, linkedToSignal ? 0.72 : 0.46);
     outline.strokeRoundedRect(2, 2, width - 4, height - 4, 14);
@@ -2267,9 +2345,10 @@ export class OpeningScene extends Phaser.Scene {
 
   private getChipsHudTarget(): { x: number; y: number } {
     if (!this.metrics) return { x: 36, y: 24 };
+    const chrome = this.getChromeSizing();
     return {
-      x: this.metrics.safeLeft + 25,
-      y: this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + OPENING_FEEL_PRESENTATION.chipsHudHeight / 2,
+      x: this.metrics.safeLeft + (chrome.compact ? 32 : 25),
+      y: this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + chrome.chipsHudHeight / 2,
     };
   }
 
@@ -2291,7 +2370,7 @@ export class OpeningScene extends Phaser.Scene {
         backgroundColor: '#312746',
         padding: { x: 16, y: 10 },
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '18px',
+        fontSize: this.metrics.compactChrome ? '22px' : '18px',
       })
       .setOrigin(1, 0.5);
 
@@ -2319,7 +2398,7 @@ export class OpeningScene extends Phaser.Scene {
       .text(this.metrics.safeRight, this.metrics.safeTop + 8, audio.isMuted() ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`, {
         color: '#d9cfe4',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '14px',
+        fontSize: this.metrics.compactChrome ? '18px' : '14px',
         backgroundColor: '#312746',
         padding: { x: 10, y: 7 },
       })
@@ -2725,8 +2804,9 @@ export class OpeningScene extends Phaser.Scene {
   private async animateChipsPrelude(pending: PendingReveal): Promise<void> {
     if (!this.root || !this.metrics || pending.chips.cost <= 0) return;
     const afterSpend = pending.chips.before - pending.chips.cost;
-    const width = OPENING_FEEL_PRESENTATION.chipsHudWidth;
-    const height = OPENING_FEEL_PRESENTATION.chipsHudHeight;
+    const chrome = this.getChromeSizing();
+    const width = chrome.chipsHudWidth;
+    const height = chrome.chipsHudHeight;
     const debitX = this.metrics.safeLeft + width - 14;
     const debitY = this.metrics.safeTop + OPENING_FEEL_PRESENTATION.railTopOffset + height / 2;
     const debit = this.add
@@ -2735,7 +2815,7 @@ export class OpeningScene extends Phaser.Scene {
         stroke: '#160f20',
         strokeThickness: 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '10px',
+        fontSize: chrome.compact ? '18px' : '10px',
       })
       .setOrigin(1, 0.5)
       .setAlpha(0);
@@ -2793,7 +2873,7 @@ export class OpeningScene extends Phaser.Scene {
     if (this.rewardTrayContainer?.active) {
       const height = Number(this.rewardTrayContainer.getData('height') ?? 0);
       return {
-        x: this.rewardTrayContainer.x - OPENING_FEEL_PRESENTATION.rewardTrayWidth / 2 - 4,
+        x: this.rewardTrayContainer.x - Number(this.rewardTrayContainer.getData('width') ?? OPENING_FEEL_PRESENTATION.rewardTrayWidth) / 2 - 4,
         y: this.rewardTrayContainer.y + height / 2,
       };
     }
@@ -2808,10 +2888,11 @@ export class OpeningScene extends Phaser.Scene {
     this.rewardTrayContainer?.destroy(true);
     const messages = getMessages(getPlatformRuntime().language);
     const secretSelected = Boolean(pending.hiddenPocket && this.resultCarouselIndex === 1);
-    const width = OPENING_FEEL_PRESENTATION.rewardTrayWidth;
+    const chrome = this.getChromeSizing();
+    const width = chrome.rewardTrayWidth;
     const left = -width / 2;
-    const contentLeft = left + OPENING_FEEL_PRESENTATION.rewardTrayContentInset;
-    const contentRight = width / 2 - OPENING_FEEL_PRESENTATION.rewardTrayContentInset;
+    const contentLeft = left + chrome.rewardTrayContentInset;
+    const contentRight = width / 2 - chrome.rewardTrayContentInset;
     const iconX = contentLeft + 4;
     const textX = contentLeft + 18;
     const tray = this.add.container(0, 0);
@@ -2825,17 +2906,17 @@ export class OpeningScene extends Phaser.Scene {
     const header = this.add.text(textX, 9, 'REWARD', {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '7px',
+      fontSize: chrome.compact ? '17px' : '7px',
     });
     const rarity = this.add.text(contentRight, 9, rarityCode, {
       color: rarityColor,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '6px',
+      fontSize: chrome.compact ? '16px' : '6px',
       fontStyle: 'bold',
     }).setOrigin(1, 0);
     tray.add([header, rarity]);
 
-    let cursorY = 31;
+    let cursorY = chrome.compact ? 43 : 31;
     if (secretSelected && pending.hiddenPocket) {
       const secretStatus = pending.hiddenPocket.isNew
         ? messages.opening.secretDiscovered
@@ -2844,12 +2925,12 @@ export class OpeningScene extends Phaser.Scene {
         color: '#ff7088',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: chrome.compact ? '18px' : '8px',
         fontStyle: 'bold',
       });
       tray.add(status);
-      cursorY += 23;
+      cursorY += chrome.compact ? 34 : 23;
 
       if (pending.chips.secretBonus > 0) {
         const token = createChipToken(this, iconX, cursorY + 4, 0.48);
@@ -2857,11 +2938,11 @@ export class OpeningScene extends Phaser.Scene {
           color: '#ffd36a',
           stroke: '#100b16',
           strokeThickness: 2,
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '9px',
+          fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+          fontSize: chrome.compact ? '20px' : '9px',
         });
         tray.add([token, bonus]);
-        cursorY += 23;
+        cursorY += chrome.compact ? 34 : 23;
       }
 
       if (pending.hiddenPocket.isNew) {
@@ -2869,11 +2950,11 @@ export class OpeningScene extends Phaser.Scene {
           color: '#ffdca0',
           stroke: '#100b16',
           strokeThickness: 2,
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '6px',
+          fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+          fontSize: chrome.compact ? '18px' : '6px',
         });
         tray.add(collection);
-        cursorY += 18;
+        cursorY += chrome.compact ? 28 : 18;
       }
     } else {
       const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
@@ -2891,11 +2972,11 @@ export class OpeningScene extends Phaser.Scene {
         color: '#f4feff',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '9px',
+        fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: chrome.compact ? '20px' : '9px',
       });
       tray.add([totalIcon, totalText]);
-      cursorY += 21;
+      cursorY += chrome.compact ? 31 : 21;
 
       if (breakdownParts.length > 1) {
         const breakdownRows = breakdownParts.length <= 2
@@ -2906,12 +2987,12 @@ export class OpeningScene extends Phaser.Scene {
             color: '#b9c8d7',
             stroke: '#100b16',
             strokeThickness: 2,
-            fontFamily: DIGITAL_FONT_FAMILY,
-            fontSize: '6px',
+            fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+            fontSize: chrome.compact ? '18px' : '6px',
             wordWrap: { width: width - 48, useAdvancedWrap: true },
           });
           tray.add(breakdown);
-          cursorY += Math.max(15, breakdown.height + 5);
+          cursorY += Math.max(chrome.compact ? 24 : 15, breakdown.height + 5);
         }
       } else {
         cursorY += 4;
@@ -2939,12 +3020,12 @@ export class OpeningScene extends Phaser.Scene {
           color: signalColor,
           stroke: '#100b16',
           strokeThickness: 2,
-          fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: '6px',
+          fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+          fontSize: chrome.compact ? '18px' : '6px',
           wordWrap: { width: width - 48, useAdvancedWrap: true },
         });
         tray.add([icon, text]);
-        cursorY += Math.max(18, text.height + 5);
+        cursorY += Math.max(chrome.compact ? 27 : 18, text.height + 5);
       }
 
       const nearCompletion = getStandardLootPoolNearCompletion(GAME_REGISTRY, pending.lootPoolId, pending.commit);
@@ -2957,14 +3038,14 @@ export class OpeningScene extends Phaser.Scene {
             color: '#8df8ff',
             stroke: '#100b16',
             strokeThickness: 2,
-            fontFamily: DIGITAL_FONT_FAMILY,
-            fontSize: '6px',
+            fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+            fontSize: chrome.compact ? '18px' : '6px',
             wordWrap: { width: width - 48, useAdvancedWrap: true },
           },
         );
         nearCompletionText.setData('nearCompletion', true);
         tray.add(nearCompletionText);
-        cursorY += Math.max(18, nearCompletionText.height + 5);
+        cursorY += Math.max(chrome.compact ? 27 : 18, nearCompletionText.height + 5);
       }
 
       if (animate && pending.chips.overchargeBonus > 0) {
@@ -2992,7 +3073,7 @@ export class OpeningScene extends Phaser.Scene {
       safeTop: this.metrics!.safeTop,
       topOffset: OPENING_FEEL_PRESENTATION.railTopOffset,
       centerX: this.metrics!.centerX,
-      railRight: this.metrics!.safeLeft + OPENING_FEEL_PRESENTATION.railCardWidth,
+      railRight: this.metrics!.safeLeft + chrome.railCardWidth,
       resultPanelTop: RESULT_PRESENTATION.panelY - RESULT_PRESENTATION.panelHeight / 2,
       trayWidth: width,
       trayHeight: height,
@@ -3002,6 +3083,7 @@ export class OpeningScene extends Phaser.Scene {
     });
     tray.setPosition(placement.x, placement.y - height / 2);
     tray.setData('height', height);
+    tray.setData('width', width);
     tray.setData('side', placement.side);
     background.fillStyle(0x17101f, 0.91);
     background.fillRoundedRect(left, 0, width, height, 16);
@@ -3143,13 +3225,13 @@ export class OpeningScene extends Phaser.Scene {
         color: '#fffaff',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: this.metrics?.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics?.compactChrome ? '18px' : '8px',
         fontStyle: 'bold',
       })
       .setOrigin(0, 0.5);
-    const width = Phaser.Math.Clamp(label.width + 56, 176, 308);
-    const height = 38;
+    const width = Phaser.Math.Clamp(label.width + 56, 176, this.metrics?.compactChrome ? 380 : 308);
+    const height = this.metrics?.compactChrome ? 54 : 38;
     const badge = this.add.container(x, y).setAlpha(0).setScale(0.96);
     const glow = this.add.graphics().setAlpha(0.2);
     glow.lineStyle(5, accent, 0.16);
@@ -4809,8 +4891,8 @@ export class OpeningScene extends Phaser.Scene {
         color: '#fff8ff',
         stroke: '#100b16',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '8px',
+        fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics.compactChrome ? '17px' : '8px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
@@ -4819,8 +4901,8 @@ export class OpeningScene extends Phaser.Scene {
         color: `#${copy.accent.toString(16).padStart(6, '0')}`,
         stroke: '#100b16',
         strokeThickness: 1,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '7px',
+        fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics.compactChrome ? '15px' : '7px',
       })
       .setOrigin(0.5);
     toast.add([background, diamond, title, progress]);
@@ -4906,8 +4988,8 @@ export class OpeningScene extends Phaser.Scene {
     const headingGap = 12;
     const diamondTextOffset = 11;
     const headingSidePadding = 24;
-    const titleMaxFontSize = 21;
-    const titleMinFontSize = 17;
+    const titleMaxFontSize = this.metrics?.compactChrome ? 27 : 21;
+    const titleMinFontSize = this.metrics?.compactChrome ? 21 : 17;
     const logicalWidth = this.metrics?.logicalWidth ?? RESULT_PRESENTATION.panelMaxWidth + 120;
     const panelWidth = Math.max(
       RESULT_PRESENTATION.panelMinWidth,
@@ -5086,7 +5168,7 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 3,
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '21px',
+      fontSize: this.metrics.compactChrome ? '27px' : '21px',
       fontStyle: 'bold',
     });
     const rarityCapsule = this.add.graphics();
@@ -5099,8 +5181,8 @@ export class OpeningScene extends Phaser.Scene {
       padding: { x: 0, y: 2 },
       stroke: '#160f20',
       strokeThickness: 1,
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '10px',
+      fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+      fontSize: this.metrics.compactChrome ? '17px' : '10px',
       fontStyle: 'bold',
     });
     rarity.setData('capsule', rarityCapsule);
@@ -5111,8 +5193,8 @@ export class OpeningScene extends Phaser.Scene {
       color: copy.statusColor,
       stroke: '#160f20',
       strokeThickness: 2,
-      fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: '10px',
+      fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+      fontSize: this.metrics.compactChrome ? '18px' : '10px',
     }).setOrigin(0.5);
     const statusAccent = this.add.text(
       0,
@@ -5122,15 +5204,15 @@ export class OpeningScene extends Phaser.Scene {
         color: copy.statusAccentColor,
         stroke: '#160f20',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '10px',
+        fontFamily: this.metrics.compactChrome ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: this.metrics.compactChrome ? '18px' : '10px',
       },
     ).setOrigin(0, 0.5);
     this.positionResultStatus(status, statusAccent);
     const hint = this.add.text(0, RESULT_PRESENTATION.hintY, hintText, {
       color: this.resultReady ? '#ffffff' : '#bfb3ca',
       fontFamily: 'system-ui, sans-serif',
-      fontSize: pending.hiddenPocket ? '13px' : '15px',
+      fontSize: this.metrics.compactChrome ? (pending.hiddenPocket ? '20px' : '22px') : pending.hiddenPocket ? '13px' : '15px',
       fontStyle: this.resultReady ? 'bold' : 'normal',
     }).setOrigin(0.5);
     const actionZone = this.add
