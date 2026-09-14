@@ -13,6 +13,7 @@ const POUCH_BODY_MAX_WIDTH = 896;
 const POUCH_STRIP_MAX_WIDTH = 768;
 const POUCH_TAB_MAX_WIDTH = 640;
 const WEBP_QUALITY = 88;
+const CONVERSION_CONCURRENCY = 4;
 
 const walkFiles = async (directory) => {
   const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -26,6 +27,21 @@ const walkFiles = async (directory) => {
 };
 
 const sum = (values) => values.reduce((total, value) => total + value, 0);
+
+const mapLimit = async (items, limit, mapper) => {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index], index);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+};
 
 const classify = (relativePath) => {
   const normalized = relativePath.replaceAll(path.sep, '/');
@@ -73,8 +89,7 @@ const optimizeWebp = async (source, destination, profile) => {
 };
 
 const alphaBounds = async (file) => {
-  const image = sharp(file).ensureAlpha();
-  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const alphaIndex = info.channels - 1;
   let minX = info.width;
   let minY = info.height;
@@ -115,15 +130,14 @@ const qaSamples = new Set([
   'assets/backgrounds/opening-bg.webp',
 ]);
 
+const startedAt = performance.now();
 await fs.rm(OUTPUT_PUBLIC_ROOT, { recursive: true, force: true });
 await fs.rm(QA_ROOT, { recursive: true, force: true });
 await fs.mkdir(path.dirname(OUTPUT_PUBLIC_ROOT), { recursive: true });
 await fs.cp(SOURCE_PUBLIC_ROOT, OUTPUT_PUBLIC_ROOT, { recursive: true });
 
 const sourceFiles = await walkFiles(SOURCE_PUBLIC_ROOT);
-const records = [];
-
-for (const source of sourceFiles) {
+const records = await mapLimit(sourceFiles, CONVERSION_CONCURRENCY, async (source) => {
   const relative = path.relative(SOURCE_PUBLIC_ROOT, source).replaceAll(path.sep, '/');
   const destination = path.join(OUTPUT_PUBLIC_ROOT, relative);
   const profile = classify(relative);
@@ -143,7 +157,11 @@ for (const source of sourceFiles) {
     } else {
       afterMetadata = beforeMetadata;
     }
-    if (profile.kind === 'collectible' || profile.kind.startsWith('pouch-')) {
+
+    // Pixel-level alpha inspection is evidence/QA, not a prerequisite for every
+    // conversion. Running it across the whole catalog would decode every output a
+    // second time and make the reusable build path needlessly expensive.
+    if (qaSamples.has(relative) && (profile.kind === 'collectible' || profile.kind.startsWith('pouch-'))) {
       alpha = await alphaBounds(destination);
     }
   }
@@ -156,7 +174,9 @@ for (const source of sourceFiles) {
     ? afterMetadata.width * afterMetadata.height
     : null;
 
-  records.push({
+  if (qaSamples.has(relative)) await copyQaPair(relative, source, destination);
+
+  return {
     path: relative,
     kind: profile.kind,
     optimized: !profile.passthrough,
@@ -169,10 +189,8 @@ for (const source of sourceFiles) {
     estimatedRgbaBeforeBytes: beforePixels === null ? null : beforePixels * 4,
     estimatedRgbaAfterBytes: afterPixels === null ? null : afterPixels * 4,
     alpha,
-  });
-
-  if (qaSamples.has(relative)) await copyQaPair(relative, source, destination);
-}
+  };
+});
 
 const optimized = records.filter((record) => record.optimized);
 const imageRecords = records.filter((record) => record.before !== null);
@@ -184,6 +202,7 @@ const report = {
     pouchStripMaxWidth: POUCH_STRIP_MAX_WIDTH,
     pouchTabMaxWidth: POUCH_TAB_MAX_WIDTH,
     webpQuality: WEBP_QUALITY,
+    conversionConcurrency: CONVERSION_CONCURRENCY,
   },
   summary: {
     optimizedFileCount: optimized.length,
@@ -194,6 +213,7 @@ const report = {
     allImageAfterBytes: sum(imageRecords.map((record) => record.afterBytes)),
     estimatedRgbaBeforeBytes: sum(imageRecords.map((record) => record.estimatedRgbaBeforeBytes ?? 0)),
     estimatedRgbaAfterBytes: sum(imageRecords.map((record) => record.estimatedRgbaAfterBytes ?? 0)),
+    conversionMs: Math.round(performance.now() - startedAt),
   },
   largestSavings: [...optimized]
     .sort((a, b) => (b.beforeBytes - b.afterBytes) - (a.beforeBytes - a.afterBytes))
