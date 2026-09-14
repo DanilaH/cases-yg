@@ -31,10 +31,15 @@ The later launch must still work normally when the cache was cleared or evicted;
 
 Background cache warmup is never considered proof that a texture exists in Phaser. Before a Drop is shown, its scene path still awaits the Phaser loader's `COMPLETE` signal. That applies to initial active-Drop handoff and the existing Opening/Collection lazy-loading paths.
 
+Opening has one important edge case: Drop switching intentionally renders the user's target preview before its asynchronous loader starts. Removing the previous all-Drop pouch preload would otherwise expose procedural pouch art during a slow first visit. The shared runtime-art loader now owns a lightweight DOM gate whenever required Phaser textures are missing. It covers the canvas while the loader is in flight, then emits the existing ScaleManager refresh/resize path after successful load so active presentation rebuilds from authored textures before the gate disappears.
+
+The runtime-art gate sits below the portrait/orientation gate and startup loader, and above the canvas. It is not shown when the required textures already exist in Phaser.
+
 Therefore:
 
-- `slow` means wait;
-- `already cached` means the wait should be short;
+- `slow` means wait behind the art gate;
+- `already decoded in Phaser` means no art gate at all;
+- `HTTP-cached but not decoded` means a short gated Phaser load/decode;
 - `confirmed loaderror` may use the existing procedural emergency fallback.
 
 ## Acceptance
@@ -42,7 +47,8 @@ Therefore:
 1. No Drop/pouch/collectible placeholder may appear merely because an asset is still downloading.
 2. First-run pouch/reveal remains fully authored.
 3. Returning saves start with their actual active Drop rather than paying for the default Drop first.
-4. Browsing a not-yet-decoded Drop still waits for its Phaser loader completion before rendering.
+4. Browsing/switching to a not-yet-decoded Drop waits behind the runtime-art gate and rebuilds with authored textures before uncovering the canvas.
 5. Background warmup is staggered, low-priority and non-fatal; speculative misses do not block gameplay.
 6. The full catalog is not eagerly decoded into Phaser/GPU memory.
-7. Full typecheck/tests/assets/build gate remains green.
+7. Orientation gate still owns portrait presentation above any dynamic-art load.
+8. Full typecheck/tests/assets/build gate remains green.
