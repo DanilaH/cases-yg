@@ -1,7 +1,7 @@
 # Signal 2000 — Mobile Acceptance Hardening
 
 **Date:** 2026-09-14  
-**Status:** SECOND REAL-PHONE CORRECTION PASS — IMPLEMENTING  
+**Status:** SECOND REAL-PHONE CORRECTION PASS — IMPLEMENTED, AWAITING PHONE ACCEPTANCE  
 **Trigger:** first real-phone GitHub Pages acceptance pass
 
 This pass addresses four concrete hands-on failures observed on a real phone. It is deliberately scoped to presentation, responsive layout, and onboarding timing. It must not change reward/economy truth, save semantics, pouch odds, Signal rules, or Yandex integration behavior.
@@ -246,3 +246,16 @@ The first deployed compact-chrome pass improved physical readability and rotatio
 - reveal chrome must be semantically owned by phase, not merely dimmed;
 - compact Drop navigation must have independent space from title/progress content;
 - after automated validation, real-phone review remains authoritative.
+
+
+### Second-pass implementation result
+
+- live tears now rebuild into the same reveal-owned shell after the pending reward is durably staged, so odds/pouch/Drop idle chrome cannot survive into reveal/result presentation;
+- compact Opening geometry is centralized in `openingChromeLayout.ts` and shared by Opening + Guidance;
+- compact rail height/spacing and odds height were reduced while retaining readable system-font sizes, removing the previous near-overflow pressure;
+- compact Drop navigation is taller internally and places the previous/next controls outside the title/progress surface;
+- `POUCH` now has a dark stroke/shadow for authored-background contrast;
+- Charged availability/READY outlines and guidance pointer targets use the same rendered card dimensions;
+- the guidance arrow is optically centered inside its circular target and direction is carried by motion + trailing dots.
+
+Automated validation remains a pre-merge gate; the real phone remains authoritative for final acceptance.

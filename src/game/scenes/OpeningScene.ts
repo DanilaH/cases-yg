@@ -1231,8 +1231,8 @@ export class OpeningScene extends Phaser.Scene {
       pending.pouchType,
       pending.lootPoolId as GameLootPoolId,
     );
-    // Scene-entry pending reveals represent a tear that already crossed its durable
-    // staging boundary. Render the actual torn state, never the idle selector shell.
+    // A pending reveal has already crossed its durable staging boundary, whether it
+    // arrived from a live tear handoff or recovery. Rebuild only reveal-owned chrome.
     this.pouch.tab.setX(this.pouch.tabEndX);
     this.pouch.dragZone.disableInteractive();
   }
@@ -3963,12 +3963,13 @@ export class OpeningScene extends Phaser.Scene {
     outline.lineStyle(3, CHARGED_ACCENT, 0.88);
     outline.strokeRoundedRect(1, 1, width - 2, height - 2, 15);
     const ready = this.add
-      .text(width - 12, compact ? 10 : 10, 'READY', {
+      .text(width - 12, compact ? 9 : 10, 'READY', {
         color: '#8df8ff',
         stroke: '#160f20',
         strokeThickness: 2,
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: '7px',
+        fontFamily: compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: compact ? '14px' : '7px',
+        fontStyle: 'bold',
       })
       .setOrigin(1, 0)
       .setAlpha(0);
