@@ -1,0 +1,58 @@
+name: Mobile cleanup 2
+
+on:
+  push:
+    branches:
+      - mobile-acceptance-cleanup-2
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[mobile-cleanup-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: mobile-acceptance-cleanup-2
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply bounded mobile cleanup
+        run: node tools/mobile-cleanup-2.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Asset self-test
+        run: npm run assets:selftest
+
+      - name: Asset validation
+        run: npm run assets:validate
+
+      - name: Production build
+        run: npm run build
+
+      - name: Remove one-shot implementation files
+        run: rm tools/mobile-cleanup-2.mjs .github/workflows/mobile-cleanup-2.yml
+
+      - name: Commit verified implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Tighten mobile layout acceptance [mobile-cleanup-done]"
+          git push origin HEAD:mobile-acceptance-cleanup-2
