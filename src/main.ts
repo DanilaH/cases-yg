@@ -4,7 +4,11 @@ import '@fontsource/press-start-2p/latin-400.css';
 
 import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
-import { resolveViewportState, type ViewportState } from './app/viewport';
+import {
+  resolveViewportState,
+  shouldSyncGameBackingStore,
+  type ViewportState,
+} from './app/viewport';
 import { createDebugPanel } from './debug/createDebugPanel';
 import { getRuntimeSfxAssets } from './game/data/audioAssets';
 import { BootScene } from './game/scenes/BootScene';
@@ -16,6 +20,7 @@ import { getGameAudio } from './game/systems/audio';
 import { getBackingStoreSize } from './game/systems/renderDensity';
 import { loadSettingsSafe } from './game/systems/settings';
 import { getMessages } from './i18n';
+import { shouldSuspendRuntimeLoop, type ActivityBlocker } from './platform/activity';
 import { bootstrapPlatform } from './platform/yandex';
 import './styles.css';
 
@@ -95,23 +100,28 @@ const boot = async (): Promise<void> => {
   document.title = messages.appTitle;
 
   let blocked = false;
+  let loopSuspended = false;
   let game: Phaser.Game | null = null;
-  const applyBlockedState = (nextBlocked: boolean): void => {
-    blocked = nextBlocked;
-    audio.setBlocked(nextBlocked);
+  const applyActivityState = (blockers: ReadonlySet<ActivityBlocker>): void => {
+    blocked = blockers.size > 0;
+    loopSuspended = shouldSuspendRuntimeLoop(blockers);
+    audio.setBlocked(blocked);
     if (!game) return;
-    game.sound.mute = nextBlocked;
-    if (nextBlocked) {
+    game.sound.mute = blocked;
+    if (loopSuspended) {
       game.loop.sleep();
     } else {
+      // Orientation alone is a presentation gate, not a runtime suspension.
+      // Keeping Phaser alive lets scene init/tweens settle behind the DOM gate and
+      // avoids Android Chrome failing to resume a loop after a backing-store resize.
       game.loop.wake();
     }
   };
 
-  // Subscribe before Phaser construction. onBlockedChange replays the current
-  // aggregate state, so a Yandex startup pause that happened during async boot is
-  // buffered and applied before the game gets a chance to run normally.
-  const removeBlockedListener = platform.activity.onBlockedChange(applyBlockedState);
+  // Subscribe before Phaser construction. The detailed blocker snapshot lets the
+  // render loop distinguish a harmless orientation gate from real ad/platform/
+  // visibility suspension while preserving the same aggregate gameplay blocking.
+  const removeBlockedListener = platform.activity.onBlockersChange(applyActivityState);
 
   syncViewportCssSize();
   const initialCssSize = readGameCssSize();
@@ -137,7 +147,7 @@ const boot = async (): Promise<void> => {
     },
   });
   game.sound.mute = blocked;
-  if (blocked) game.loop.sleep();
+  if (loopSuspended) game.loop.sleep();
 
   const syncBackingStore = (): void => {
     if (!game) return;
@@ -162,7 +172,12 @@ const boot = async (): Promise<void> => {
   const applyViewportChange = (): void => {
     const viewport = readLiveViewportState();
     syncViewportCssSize(viewport);
-    syncBackingStore();
+
+    // The portrait gate fully covers the game, so resizing the Phaser backing
+    // store there only clears/restarts scenes we cannot show. Preserve the last
+    // live landscape canvas and resize exactly when landscape geometry returns.
+    if (shouldSyncGameBackingStore(viewport)) syncBackingStore();
+
     updateOrientationGate(viewport);
     lastViewportSignature = getViewportSignature(viewport);
   };
@@ -173,7 +188,7 @@ const boot = async (): Promise<void> => {
     // Rotation signals can arrive before browser geometry settles. Apply once
     // immediately, again on the next frame, and keep a bounded set of settle
     // checks. A watchdog below covers browsers/webviews that drop the useful
-    // event entirely while Phaser is sleeping behind the portrait gate.
+    // event entirely.
     applyViewportChange();
     if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);
     viewportAnimationFrame = window.requestAnimationFrame(() => {
@@ -217,7 +232,7 @@ const boot = async (): Promise<void> => {
   window.addEventListener(
     'beforeunload',
     () => {
-      if (blocked) game?.loop.wake();
+      if (loopSuspended) game?.loop.wake();
       window.removeEventListener('resize', scheduleViewportChange);
       window.removeEventListener('orientationchange', scheduleViewportChange);
       window.removeEventListener('pageshow', scheduleViewportChange);
