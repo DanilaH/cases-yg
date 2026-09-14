@@ -35,6 +35,7 @@ jobs:
         run: npm run build
         env:
           VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
