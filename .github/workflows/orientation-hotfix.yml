@@ -1,0 +1,93 @@
+name: Orientation regression hotfix
+
+on:
+  push:
+    branches: [orientation-regression-hotfix]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[orientation-hotfix-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: orientation-regression-hotfix
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Patch viewport/orientation plumbing
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/main.ts')
+          text = path.read_text()
+
+          text = text.replace(
+              "import { setPlatformRuntime } from './app/runtime';\n",
+              "import { setPlatformRuntime } from './app/runtime';\nimport { resolveViewportSize } from './app/viewport';\n",
+          )
+          text = text.replace(
+              'const VIEWPORT_SETTLE_DELAY_MS = 140;\n',
+              'const VIEWPORT_SETTLE_DELAYS_MS = [120, 360, 700] as const;\n',
+          )
+
+          old_read = """const readLiveViewportSize = (): CssViewportSize => {\n  const viewport = window.visualViewport;\n  return {\n    width: Math.max(1, viewport?.width || window.innerWidth || 1),\n    height: Math.max(1, viewport?.height || window.innerHeight || 1),\n  };\n};\n"""
+          new_read = """const readOrientationPortraitHint = (): boolean | null => {\n  const orientationType = window.screen.orientation?.type;\n  if (orientationType?.startsWith('portrait')) return true;\n  if (orientationType?.startsWith('landscape')) return false;\n  if (typeof window.matchMedia === 'function') {\n    return window.matchMedia('(orientation: portrait)').matches;\n  }\n  return null;\n};\n\nconst readLiveViewportSize = (): CssViewportSize => {\n  const viewport = window.visualViewport;\n  const root = document.documentElement;\n  return resolveViewportSize(\n    viewport ? { width: viewport.width, height: viewport.height } : null,\n    { width: window.innerWidth, height: window.innerHeight },\n    { width: root.clientWidth, height: root.clientHeight },\n    readOrientationPortraitHint(),\n  );\n};\n"""
+          if old_read not in text:
+              raise SystemExit('readLiveViewportSize block not found')
+          text = text.replace(old_read, new_read)
+
+          text = text.replace(
+              "    const portrait = viewport.height > viewport.width;\n",
+              "    const portrait = readOrientationPortraitHint() ?? viewport.height > viewport.width;\n",
+          )
+
+          old_schedule = """  let viewportAnimationFrame: number | null = null;\n  let viewportSettleTimer: number | null = null;\n  const scheduleViewportChange = (): void => {\n    if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);\n    viewportAnimationFrame = window.requestAnimationFrame(() => {\n      viewportAnimationFrame = null;\n      applyViewportChange();\n    });\n    if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);\n    // Mobile browsers often publish one intermediate viewport during rotation or\n    // toolbar collapse. Re-measure after the geometry has had a moment to settle.\n    viewportSettleTimer = window.setTimeout(() => {\n      viewportSettleTimer = null;\n      applyViewportChange();\n    }, VIEWPORT_SETTLE_DELAY_MS);\n  };\n\n  const resizeObserver = typeof ResizeObserver === 'undefined'\n    ? null\n    : new ResizeObserver(() => syncBackingStore());\n"""
+          new_schedule = """  let viewportAnimationFrame: number | null = null;\n  let viewportSettleTimers: number[] = [];\n  const scheduleViewportChange = (): void => {\n    // Orientation signals can arrive before viewport dimensions settle. Apply once\n    // immediately so the gate reacts, then re-measure across several settle points.\n    applyViewportChange();\n    if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);\n    viewportAnimationFrame = window.requestAnimationFrame(() => {\n      viewportAnimationFrame = null;\n      applyViewportChange();\n    });\n    for (const timer of viewportSettleTimers) window.clearTimeout(timer);\n    viewportSettleTimers = VIEWPORT_SETTLE_DELAYS_MS.map((delay) =>\n      window.setTimeout(() => {\n        applyViewportChange();\n      }, delay),\n    );\n  };\n\n  const resizeObserver = typeof ResizeObserver === 'undefined'\n    ? null\n    : new ResizeObserver(() => scheduleViewportChange());\n"""
+          if old_schedule not in text:
+              raise SystemExit('viewport schedule block not found')
+          text = text.replace(old_schedule, new_schedule)
+
+          old_listeners = """  applyViewportChange();\n  window.addEventListener('resize', scheduleViewportChange);\n  window.addEventListener('orientationchange', scheduleViewportChange);\n  window.visualViewport?.addEventListener('resize', scheduleViewportChange);\n  document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);\n"""
+          new_listeners = """  const orientationMedia = typeof window.matchMedia === 'function'\n    ? window.matchMedia('(orientation: portrait)')\n    : null;\n  const screenOrientation = window.screen.orientation;\n\n  applyViewportChange();\n  window.addEventListener('resize', scheduleViewportChange);\n  window.addEventListener('orientationchange', scheduleViewportChange);\n  window.visualViewport?.addEventListener('resize', scheduleViewportChange);\n  screenOrientation?.addEventListener('change', scheduleViewportChange);\n  if (orientationMedia) {\n    if ('addEventListener' in orientationMedia) orientationMedia.addEventListener('change', scheduleViewportChange);\n    else orientationMedia.addListener(scheduleViewportChange);\n  }\n  document.querySelector('#game-shell')?.addEventListener('contextmenu', preventContextMenu);\n"""
+          if old_listeners not in text:
+              raise SystemExit('viewport listener block not found')
+          text = text.replace(old_listeners, new_listeners)
+
+          old_cleanup = """      window.removeEventListener('resize', scheduleViewportChange);\n      window.removeEventListener('orientationchange', scheduleViewportChange);\n      window.visualViewport?.removeEventListener('resize', scheduleViewportChange);\n      if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);\n      if (viewportSettleTimer !== null) window.clearTimeout(viewportSettleTimer);\n      resizeObserver?.disconnect();\n"""
+          new_cleanup = """      window.removeEventListener('resize', scheduleViewportChange);\n      window.removeEventListener('orientationchange', scheduleViewportChange);\n      window.visualViewport?.removeEventListener('resize', scheduleViewportChange);\n      screenOrientation?.removeEventListener('change', scheduleViewportChange);\n      if (orientationMedia) {\n        if ('removeEventListener' in orientationMedia) orientationMedia.removeEventListener('change', scheduleViewportChange);\n        else orientationMedia.removeListener(scheduleViewportChange);\n      }\n      if (viewportAnimationFrame !== null) window.cancelAnimationFrame(viewportAnimationFrame);\n      for (const timer of viewportSettleTimers) window.clearTimeout(timer);\n      viewportSettleTimers = [];\n      resizeObserver?.disconnect();\n"""
+          if old_cleanup not in text:
+              raise SystemExit('viewport cleanup block not found')
+          text = text.replace(old_cleanup, new_cleanup)
+
+          path.write_text(text)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Asset self-test
+        run: npm run assets:selftest
+      - name: Asset validation
+        run: npm run assets:validate
+      - name: Production build
+        run: npm run build
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/orientation-hotfix.yml
+      - name: Commit verified hotfix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main.ts src/app/viewport.ts tests/viewport.test.ts .github/workflows/orientation-hotfix.yml
+          git commit -m "Fix mobile orientation relayout [orientation-hotfix-done]"
+          git push origin HEAD:orientation-regression-hotfix
