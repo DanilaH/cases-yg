@@ -7,6 +7,7 @@ import { LITE_V2_BALANCE, type PouchType } from '../data/balance';
 import { GAME_REGISTRY } from '../data/collectibles';
 import { OPENING_FEEL_PRESENTATION, POUCH_PRESENTATION, RESULT_PRESENTATION } from '../data/presentation';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import { getOpeningChromeSizing, getPouchSelectorGeometry } from '../systems/openingChromeLayout';
 import {
   hasCommittedStandardLegendary,
   loadOnboardingHintState,
@@ -275,18 +276,19 @@ export class GuidanceScene extends Phaser.Scene {
     this.hintContainer?.destroy(true);
 
     const compact = this.metrics.compactChrome;
+    const chrome = getOpeningChromeSizing(compact);
     const width = compact
       ? Math.min(470, Math.max(360, this.metrics.logicalWidth * 0.36))
       : Math.min(390, Math.max(270, this.metrics.logicalWidth * 0.31));
     const signalY =
       this.metrics.safeTop +
       OPENING_FEEL_PRESENTATION.railTopOffset +
-      (compact ? 92 : OPENING_FEEL_PRESENTATION.chipsHudHeight) +
+      chrome.chipsHudHeight +
       10 +
-      (compact ? 100 : OPENING_FEEL_PRESENTATION.signalHudHeight) / 2;
+      chrome.signalHudHeight / 2;
     const x = Math.min(
       this.metrics.safeRight - width,
-      this.metrics.safeLeft + (compact ? 300 : OPENING_FEEL_PRESENTATION.signalHudWidth) + 18,
+      this.metrics.safeLeft + chrome.signalHudWidth + 18,
     );
     const panelHeight = compact ? 80 : 60;
     const container = this.add.container(x, signalY - panelHeight / 2).setAlpha(0);
@@ -386,17 +388,10 @@ export class GuidanceScene extends Phaser.Scene {
 
   private getChargedCardPointerPosition(): { x: number; y: number } {
     const metrics = this.metrics!;
-    const compact = metrics.compactChrome;
-    const selectorTopOffset = compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset;
-    const railCardWidth = compact ? 300 : OPENING_FEEL_PRESENTATION.railCardWidth;
-    const railCardHeight = compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight;
-    const railGap = compact ? 12 : OPENING_FEEL_PRESENTATION.railGap;
-    const labelY = metrics.safeTop + selectorTopOffset;
-    const firstCardY = labelY + (compact ? 30 : 20);
-    const chargedY = firstCardY + railCardHeight + railGap;
+    const geometry = getPouchSelectorGeometry(metrics);
     return {
-      x: metrics.safeLeft + railCardWidth + (compact ? 44 : 34),
-      y: chargedY + railCardHeight / 2,
+      x: geometry.charged.x + geometry.charged.width + (metrics.compactChrome ? 42 : 34),
+      y: geometry.charged.y + geometry.charged.height / 2,
     };
   }
 

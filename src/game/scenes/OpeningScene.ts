@@ -27,6 +27,11 @@ import { getStandardLootPoolNearCompletion } from '../systems/collection';
 import { chipEmissionDelay, createChipFlightPlan, shouldPlayChipClack } from '../systems/chipFlight';
 import type { PendingReveal } from '../systems/drops';
 import { createLayoutMetrics, readSafeAreaInsets, type LayoutMetrics } from '../systems/layout';
+import {
+  getDropSelectorWidth,
+  getOpeningChromeSizing,
+  getPouchSelectorGeometry,
+} from '../systems/openingChromeLayout';
 import { getRenderPixelRatio } from '../systems/renderDensity';
 import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { computeRewardTrayPlacement } from '../systems/rewardLayout';
@@ -165,6 +170,7 @@ export class OpeningScene extends Phaser.Scene {
   private pouchArtLoadInFlight = false;
   private pouchSelectorButtons: Phaser.GameObjects.Container[] = [];
   private pouchSelectorLabel: Phaser.GameObjects.Text | null = null;
+  private pouchOddsContainer: Phaser.GameObjects.Container | null = null;
   private chipsHudContainer: Phaser.GameObjects.Container | null = null;
   private chipsHudText: Phaser.GameObjects.Text | null = null;
   private chipsHudValue = 0;
@@ -545,6 +551,7 @@ export class OpeningScene extends Phaser.Scene {
     this.resultCarouselZone = null;
     this.pouchSelectorButtons = [];
     this.pouchSelectorLabel = null;
+    this.pouchOddsContainer = null;
     this.dropSelectorContainer = null;
     this.dropSelectorInteractiveZones = [];
     this.dropSelectorDrag = null;
@@ -1230,33 +1237,8 @@ export class OpeningScene extends Phaser.Scene {
     this.pouch.dragZone.disableInteractive();
   }
 
-  private getChromeSizing(): {
-    compact: boolean;
-    chipsHudWidth: number;
-    chipsHudHeight: number;
-    signalHudWidth: number;
-    signalHudHeight: number;
-    railCardWidth: number;
-    railCardHeight: number;
-    railGap: number;
-    selectorTopOffset: number;
-    rewardTrayWidth: number;
-    rewardTrayContentInset: number;
-  } {
-    const compact = this.metrics?.compactChrome ?? false;
-    return {
-      compact,
-      chipsHudWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.chipsHudWidth,
-      chipsHudHeight: compact ? 92 : OPENING_FEEL_PRESENTATION.chipsHudHeight,
-      signalHudWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.signalHudWidth,
-      signalHudHeight: compact ? 100 : OPENING_FEEL_PRESENTATION.signalHudHeight,
-      railCardWidth: compact ? 300 : OPENING_FEEL_PRESENTATION.railCardWidth,
-      railCardHeight: compact ? 82 : OPENING_FEEL_PRESENTATION.railCardHeight,
-      railGap: compact ? 12 : OPENING_FEEL_PRESENTATION.railGap,
-      selectorTopOffset: compact ? 230 : OPENING_FEEL_PRESENTATION.selectorTopOffset,
-      rewardTrayWidth: compact ? 420 : OPENING_FEEL_PRESENTATION.rewardTrayWidth,
-      rewardTrayContentInset: compact ? 24 : OPENING_FEEL_PRESENTATION.rewardTrayContentInset,
-    };
+  private getChromeSizing() {
+    return getOpeningChromeSizing(this.metrics?.compactChrome ?? false);
   }
 
   private getDetailFontFamily(): string {
@@ -1632,11 +1614,10 @@ export class OpeningScene extends Phaser.Scene {
     const secrets = GAME_REGISTRY.secrets.filter((item) => item.lootPoolId === poolId);
     const standardCount = standards.filter(({ collectible }) => ownedStandards.has(collectible.id)).length;
     const secretCount = secrets.filter(({ collectible }) => ownedSecrets.has(collectible.id)).length;
-    const width = Math.min(
-      OPENING_FEEL_PRESENTATION.dropSelectorMaxWidth,
-      Math.max(OPENING_FEEL_PRESENTATION.dropSelectorMinWidth, this.metrics.logicalWidth * 0.48),
-    );
-    const height = OPENING_FEEL_PRESENTATION.dropSelectorHeight;
+    const chrome = this.getChromeSizing();
+    const compact = chrome.compact;
+    const width = getDropSelectorWidth(this.metrics);
+    const height = chrome.dropSelectorHeight;
     const x = this.metrics.centerX;
     const y = this.metrics.safeBottom - OPENING_FEEL_PRESENTATION.dropSelectorBottomInset - height;
     const panel = this.add.container(x, y);
@@ -1652,34 +1633,33 @@ export class OpeningScene extends Phaser.Scene {
     inner.strokeRoundedRect(-width / 2 + 4, 4, width - 8, height - 8, 17);
 
     const label = this.add
-      .text(0, 12, `${messages.opening.drop} ${index + 1}/${GAME_LOOT_POOL_IDS.length} · ${messages.drops[poolId]}`, {
+      .text(0, compact ? 13 : 12, `${messages.opening.drop} ${index + 1}/${GAME_LOOT_POOL_IDS.length} · ${messages.drops[poolId]}`, {
         color: '#fbf7ff',
         stroke: '#100b16',
-        strokeThickness: 2,
+        strokeThickness: compact ? 3 : 2,
         fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: this.metrics.compactChrome ? '18px' : getPlatformRuntime().language === 'ru' ? '9px' : '10px',
+        fontSize: compact ? '18px' : getPlatformRuntime().language === 'ru' ? '9px' : '10px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5, 0);
     const standardsLabel = messages.collection.standards.toUpperCase();
     const secretsLabel = messages.collection.secrets.toUpperCase();
     const progress = this.add
-      .text(0, 43, `${standardsLabel} ${standardCount}/${standards.length}   ·   ${secretsLabel} ${secretCount}/${secrets.length}`, {
+      .text(0, compact ? 48 : 43, `${standardsLabel} ${standardCount}/${standards.length}   ·   ${secretsLabel} ${secretCount}/${secrets.length}`, {
         color: '#9feaf4',
-        fontFamily: DIGITAL_FONT_FAMILY,
-        fontSize: this.metrics.compactChrome ? '16px' : '8px',
+        fontFamily: compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
+        fontSize: compact ? '15px' : '8px',
+        fontStyle: compact ? '600' : 'normal',
       })
       .setOrigin(0.5, 0);
 
-    // Six-position carousel cue. It is deliberately presentation-only: arrows
-    // and swipe remain the navigation targets, while the active Drop becomes a pill.
     const dotGap = OPENING_FEEL_PRESENTATION.dropSelectorDotGap;
     const dotSize = OPENING_FEEL_PRESENTATION.dropSelectorDotSize;
     const activeDotWidth = OPENING_FEEL_PRESENTATION.dropSelectorDotActiveWidth;
     const dotHeight = OPENING_FEEL_PRESENTATION.dropSelectorDotHeight;
     const dotWidths = GAME_LOOT_POOL_IDS.map((_, dotIndex) => dotIndex === index ? activeDotWidth : dotSize);
     const dotRailWidth = dotWidths.reduce((sum, dotWidth) => sum + dotWidth, 0) + dotGap * (dotWidths.length - 1);
-    const dotY = height - OPENING_FEEL_PRESENTATION.dropSelectorDotBottomInset - dotHeight / 2;
+    const dotY = height - (compact ? 13 : OPENING_FEEL_PRESENTATION.dropSelectorDotBottomInset) - dotHeight / 2;
     const dropDots: Phaser.GameObjects.Graphics[] = [];
     let dotCursorX = -dotRailWidth / 2;
     for (let dotIndex = 0; dotIndex < dotWidths.length; dotIndex += 1) {
@@ -1705,35 +1685,40 @@ export class OpeningScene extends Phaser.Scene {
       dotCursorX += dotWidth + dotGap;
     }
 
+    const previousX = compact ? -width / 2 - chrome.dropSelectorArrowGap : -width / 2 + 34;
+    const nextX = compact ? width / 2 + chrome.dropSelectorArrowGap : width / 2 - 34;
     const previousBack = this.add
-      .circle(-width / 2 + 34, height / 2, 25, 0x332742, 0.96)
-      .setStrokeStyle(1.5, 0xdccdf0, 0.28);
+      .circle(previousX, height / 2, chrome.dropSelectorArrowRadius, 0x332742, 0.98)
+      .setStrokeStyle(1.5, 0xdccdf0, 0.34);
     const nextBack = this.add
-      .circle(width / 2 - 34, height / 2, 25, 0x332742, 0.96)
-      .setStrokeStyle(1.5, 0xdccdf0, 0.28);
+      .circle(nextX, height / 2, chrome.dropSelectorArrowRadius, 0x332742, 0.98)
+      .setStrokeStyle(1.5, 0xdccdf0, 0.34);
     const previous = this.add
       .text(previousBack.x, previousBack.y - 2, '‹', {
         color: '#f4edff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '34px',
+        fontSize: compact ? '38px' : '34px',
+        fontStyle: '600',
       })
       .setOrigin(0.5);
     const next = this.add
       .text(nextBack.x, nextBack.y - 2, '›', {
         color: '#f4edff',
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '34px',
+        fontSize: compact ? '38px' : '34px',
+        fontStyle: '600',
       })
       .setOrigin(0.5);
-    const hitWidth = OPENING_FEEL_PRESENTATION.dropSelectorArrowHitWidth;
+    const hitWidth = chrome.dropSelectorArrowHitSize;
+    const hitHeight = compact ? 76 : height;
     const previousHit = this.add
-      .zone(previousBack.x, height / 2, hitWidth, height)
+      .zone(previousBack.x, height / 2, hitWidth, hitHeight)
       .setInteractive({ useHandCursor: true });
     const nextHit = this.add
-      .zone(nextBack.x, height / 2, hitWidth, height)
+      .zone(nextBack.x, height / 2, hitWidth, hitHeight)
       .setInteractive({ useHandCursor: true });
     const swipeHit = this.add
-      .zone(0, height / 2, Math.max(80, width - hitWidth * 2), height)
+      .zone(0, height / 2, compact ? width - 40 : Math.max(80, width - hitWidth * 2), height)
       .setInteractive({ useHandCursor: true });
 
     const pressArrow = (
@@ -1794,12 +1779,12 @@ export class OpeningScene extends Phaser.Scene {
     if (shouldNudgeNext) {
       this.dropCompletionNudgePoolId = null;
       const nextLabel = this.add
-        .text(width / 2 - 68, 66, messages.opening.nextDrop, {
+        .text(compact ? width / 2 - 14 : width / 2 - 68, compact ? height - 24 : 66, messages.opening.nextDrop, {
           color: '#8df8ff',
           stroke: '#100b16',
           strokeThickness: 2,
           fontFamily: DIGITAL_FONT_FAMILY,
-          fontSize: this.metrics.compactChrome ? '14px' : '6px',
+          fontSize: compact ? '13px' : '6px',
           fontStyle: 'bold',
         })
         .setOrigin(1, 0.5)
@@ -1946,18 +1931,19 @@ export class OpeningScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
     const cost = getChargedCost(LITE_V2_BALANCE);
     const chargedAvailable = canAffordPouch(this.saveState, 'charged', LITE_V2_BALANCE);
-    const chrome = this.getChromeSizing();
+    const geometry = getPouchSelectorGeometry(this.metrics);
+    const { chrome, railX, labelY } = geometry;
     const width = chrome.railCardWidth;
     const height = chrome.railCardHeight;
-    const railX = this.metrics.safeLeft;
-    const labelY = this.metrics.safeTop + chrome.selectorTopOffset;
 
     const sectionLabel = this.add.text(railX + 2, labelY, 'POUCH', {
-      color: '#d8cced',
+      color: '#efe6f7',
+      stroke: '#120d19',
+      strokeThickness: chrome.compact ? 4 : 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '20px' : '9px',
+      fontSize: chrome.compact ? '19px' : '9px',
       fontStyle: chrome.compact ? 'bold' : 'normal',
-    });
+    }).setShadow(0, 2, '#120d19', chrome.compact ? 4 : 2, true, true);
     root.add(sectionLabel);
     this.pouchSelectorLabel = sectionLabel;
 
@@ -1988,20 +1974,21 @@ export class OpeningScene extends Phaser.Scene {
         .text(13, height / 2, selected ? '◆' : '◇', {
           color: selected ? (charged ? '#c7b8ff' : '#ffffff') : '#81758f',
           fontFamily: 'system-ui, sans-serif',
-          fontSize: chrome.compact ? '24px' : '15px',
+          fontSize: chrome.compact ? '22px' : '15px',
           fontStyle: 'bold',
         })
         .setOrigin(0, 0.5);
-      const titleText = this.add.text(38, 11, title, {
+      const titleText = this.add.text(38, chrome.compact ? 8 : 11, title, {
         color: available ? (charged ? CHARGED_TEXT_COLOR : '#f7f2ff') : '#b7adbf',
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '20px' : getPlatformRuntime().language === 'ru' ? '8px' : '9px',
-        fontStyle: chrome.compact ? 'bold' : 'normal',
+        fontSize: chrome.compact ? '18px' : getPlatformRuntime().language === 'ru' ? '8px' : '9px',
+        fontStyle: chrome.compact ? '700' : 'normal',
       });
-      const subtitleText = this.add.text(38, 35, subtitle, {
+      const subtitleText = this.add.text(38, chrome.compact ? 38 : 35, subtitle, {
         color: available ? (charged ? '#8df8ff' : '#bfb3ca') : '#a69aae',
         fontFamily: chrome.compact ? 'system-ui, sans-serif' : DIGITAL_FONT_FAMILY,
-        fontSize: chrome.compact ? '18px' : '8px',
+        fontSize: chrome.compact ? '16px' : '8px',
+        fontStyle: chrome.compact ? '500' : 'normal',
       });
       card.add([background, marker, titleText, subtitleText]);
       const hitTarget = this.add
@@ -2044,29 +2031,17 @@ export class OpeningScene extends Phaser.Scene {
       return card;
     };
 
-    const firstCardY = labelY + (chrome.compact ? 30 : 20);
-    createCard(
-      'basic',
-      firstCardY,
-      messages.opening.basicPouch,
-      messages.opening.free,
-      true,
-    );
+    createCard('basic', geometry.basic.y, messages.opening.basicPouch, messages.opening.free, true);
     const chargedCard = createCard(
       'charged',
-      firstCardY + height + chrome.railGap,
+      geometry.charged.y,
       `⚡ ${messages.opening.chargedPouch}`,
       chargedAvailable
         ? `${cost} ${messages.opening.chips}`
         : `${this.saveState.chips}/${cost} ${messages.opening.chips}`,
       chargedAvailable,
     );
-    this.renderPouchOdds(
-      root,
-      railX,
-      firstCardY + height * 2 + chrome.railGap + (chrome.compact ? 18 : 14),
-      width,
-    );
+    this.renderPouchOdds(root, geometry.odds.x, geometry.odds.y, geometry.odds.width);
     if (chargedAvailable && this.selectedPouchType !== 'charged') {
       this.startPaidPouchAvailabilityPulse(chargedCard, this.saveState.signal >= LITE_V2_BALANCE.signalThreshold);
     }
@@ -2088,38 +2063,39 @@ export class OpeningScene extends Phaser.Scene {
       epic: '#c7b8ff',
       legendary: '#ffd98a',
     };
-    const compact = this.metrics?.compactChrome ?? false;
+    const chrome = this.getChromeSizing();
+    const compact = chrome.compact;
     const fontFamily = this.getDetailFontFamily();
-    const panelHeight = compact ? 190 : 104;
+    const panelHeight = chrome.oddsPanelHeight;
     const panel = this.add.container(x, y);
     const background = this.add.graphics();
-    background.fillStyle(0x17101f, compact ? 0.91 : 0.78);
+    background.fillStyle(0x17101f, compact ? 0.92 : 0.78);
     background.fillRoundedRect(0, 0, width, panelHeight, 14);
     background.lineStyle(compact ? 1.5 : 1, 0xbda7d6, compact ? 0.34 : 0.22);
     background.strokeRoundedRect(0, 0, width, panelHeight, 14);
     panel.add(background);
 
-    const title = this.add.text(12, compact ? 12 : 8, messages.opening.dropRates, {
-      color: compact ? '#d9cfe4' : '#a99ab8',
+    const title = this.add.text(12, compact ? 10 : 8, messages.opening.dropRates, {
+      color: compact ? '#e5dbea' : '#a99ab8',
       fontFamily,
-      fontSize: compact ? '21px' : '7px',
-      fontStyle: compact ? 'bold' : 'normal',
+      fontSize: compact ? '18px' : '7px',
+      fontStyle: compact ? '700' : 'normal',
     });
     panel.add(title);
 
-    const labelColumnWidth = compact ? 108 : 72;
+    const labelColumnWidth = compact ? 100 : 72;
     const firstColumn = compact ? labelColumnWidth + 18 : 88;
-    const lastColumn = width - (compact ? 20 : 32);
+    const lastColumn = width - (compact ? 18 : 32);
     const step = (lastColumn - firstColumn) / 3;
     const columnX = rarities.map((_, index) => firstColumn + step * index);
-    const headerY = compact ? 47 : 25;
+    const headerY = compact ? 40 : 25;
     rarities.forEach((rarity, index) => {
       const header = this.add
         .text(columnX[index] ?? firstColumn, headerY, messages.rarity[rarity].toUpperCase().slice(0, 3), {
           color: rarityColors[rarity],
           fontFamily,
-          fontSize: compact ? '17px' : '5px',
-          fontStyle: compact ? 'bold' : 'normal',
+          fontSize: compact ? '15px' : '5px',
+          fontStyle: compact ? '700' : 'normal',
         })
         .setOrigin(0.5);
       panel.add(header);
@@ -2136,8 +2112,8 @@ export class OpeningScene extends Phaser.Scene {
           .text(12, rowY, label, {
             color: accent,
             fontFamily,
-            fontSize: compact ? '19px' : getPlatformRuntime().language === 'ru' ? '6px' : '7px',
-            fontStyle: compact ? 'bold' : 'normal',
+            fontSize: compact ? '17px' : getPlatformRuntime().language === 'ru' ? '6px' : '7px',
+            fontStyle: compact ? '650' : 'normal',
           })
           .setOrigin(0, 0.5),
       );
@@ -2147,7 +2123,7 @@ export class OpeningScene extends Phaser.Scene {
             .text(columnX[index] ?? firstColumn, rowY, `${weights[rarity]}%`, {
               color: rarityColors[rarity],
               fontFamily,
-              fontSize: compact ? '19px' : '7px',
+              fontSize: compact ? '17px' : '7px',
               fontStyle: compact ? '600' : 'normal',
             })
             .setOrigin(0.5),
@@ -2155,8 +2131,8 @@ export class OpeningScene extends Phaser.Scene {
       });
     };
 
-    addRateRow(compact ? 78 : 43, messages.opening.basicPouch, basic.rarityWeights, '#f7f2ff');
-    addRateRow(compact ? 108 : 61, messages.opening.chargedPouch, charged.rarityWeights, CHARGED_TEXT_COLOR);
+    addRateRow(compact ? 68 : 43, messages.opening.basicPouch, basic.rarityWeights, '#f7f2ff');
+    addRateRow(compact ? 96 : 61, messages.opening.chargedPouch, charged.rarityWeights, CHARGED_TEXT_COLOR);
 
     const formatChance = (chance: number): string => {
       const percent = chance * 100;
@@ -2164,24 +2140,25 @@ export class OpeningScene extends Phaser.Scene {
     };
     panel.add(
       this.add
-        .text(12, compact ? 141 : 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
+        .text(12, compact ? 127 : 78, `${messages.opening.secretOdds}  ${formatChance(basic.hiddenPocketChance)} → ${formatChance(charged.hiddenPocketChance)}`, {
           color: '#ffb4dc',
           fontFamily,
-          fontSize: compact ? '18px' : '6px',
+          fontSize: compact ? '16px' : '6px',
           fontStyle: compact ? '600' : 'normal',
         })
         .setOrigin(0, 0.5),
     );
     panel.add(
       this.add
-        .text(12, compact ? 171 : 94, messages.opening.fromFourthOpen, {
-          color: compact ? '#aca1b8' : '#81758f',
+        .text(12, compact ? 151 : 94, messages.opening.fromFourthOpen, {
+          color: compact ? '#b8afc0' : '#81758f',
           fontFamily,
-          fontSize: compact ? '15px' : '5px',
+          fontSize: compact ? '13px' : '5px',
         })
         .setOrigin(0, 0.5),
     );
     root.add(panel);
+    this.pouchOddsContainer = panel;
   }
 
   private startPaidPouchAvailabilityPulse(card: Phaser.GameObjects.Container, linkedToSignal: boolean): void {
@@ -2439,6 +2416,22 @@ export class OpeningScene extends Phaser.Scene {
     }
   }
 
+  private hideIdleChromeForReveal(): void {
+    if (this.collectionButton?.active) {
+      this.collectionButton.setAlpha(0);
+      this.collectionButton.disableInteractive();
+    }
+    if (this.pouchSelectorLabel?.active) this.pouchSelectorLabel.setAlpha(0);
+    if (this.pouchOddsContainer?.active) this.pouchOddsContainer.setAlpha(0);
+    for (const button of this.pouchSelectorButtons) {
+      this.tweens.killTweensOf(button);
+      button.setAlpha(0);
+      const hitTarget = button.getData('hitTarget') as Phaser.GameObjects.Zone | undefined;
+      if (hitTarget?.input) hitTarget.input.enabled = false;
+    }
+    this.hideDropSelectorForReveal();
+  }
+
   private hideDropSelectorForReveal(): void {
     if (!this.dropSelectorContainer?.active) return;
     for (const zone of this.dropSelectorInteractiveZones) zone.disableInteractive();
@@ -2652,13 +2645,15 @@ export class OpeningScene extends Phaser.Scene {
     this.presentationSkip.guardUntilTime(this.time.now + OPENING_FEEL_PRESENTATION.postTearSkipGuardMs);
     this.pouch?.dragZone.disableInteractive();
     this.setChromeEnabled(false);
-    this.hideDropSelectorForReveal();
+    this.hideIdleChromeForReveal();
     getGameAudio().play('tear');
 
     try {
       const pending = await this.session.prepareReveal(this.selectedPouchType);
       if (this.isSceneShutdown()) return;
       this.lastReveal = pending;
+      this.renderRevealShell(pending);
+      if (!this.root || !this.pouch || !this.metrics) return;
       if (firstInteraction && pending.openingNumber === 1) {
         this.firstInteractionTracked = true;
         getPlatformRuntime().analytics.track('first_package_interaction');
@@ -3963,13 +3958,12 @@ export class OpeningScene extends Phaser.Scene {
   private showChargedReadyOnSelector(): void {
     const card = this.pouchSelectorButtons.find((button) => button.getData('pouchType') === 'charged');
     if (!card) return;
-    const width = OPENING_FEEL_PRESENTATION.railCardWidth;
-    const height = OPENING_FEEL_PRESENTATION.railCardHeight;
+    const { railCardWidth: width, railCardHeight: height, compact } = this.getChromeSizing();
     const outline = this.add.graphics().setAlpha(0);
     outline.lineStyle(3, CHARGED_ACCENT, 0.88);
     outline.strokeRoundedRect(1, 1, width - 2, height - 2, 15);
     const ready = this.add
-      .text(width - 12, 10, 'READY', {
+      .text(width - 12, compact ? 10 : 10, 'READY', {
         color: '#8df8ff',
         stroke: '#160f20',
         strokeThickness: 2,
