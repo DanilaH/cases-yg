@@ -175,6 +175,7 @@ export class FirstRunScene extends Phaser.Scene {
     const entryStartY = pouch.group.y;
     const entryEndY = POUCH_Y + 8;
     audio.primeDragTexture();
+    audio.play('pouch-arrival');
 
     await Promise.all([
       this.tweenPromise({
@@ -211,7 +212,7 @@ export class FirstRunScene extends Phaser.Scene {
     // Contact gets a short plastic/material transient on top of the decaying
     // arrival texture, then the visible squash/rebound carries the physical hit.
     audio.setDragTexture(0.58, 0.72);
-    audio.play('pouch-grab');
+    audio.play('pouch-land');
     await this.tweenPromise({
       targets: pouch.group,
       y: POUCH_Y + 12,

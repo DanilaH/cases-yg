@@ -231,7 +231,7 @@ The implementation is merged without reopening the broader economy, pouch geomet
 
 ## 8. Implementation evidence
 
-Merged implementation: PR #149, squash commit `2f2a0dcad60e61896394c5f8ca831b374f5884ce`.
+Base directed-onboarding implementation: PR #149, squash commit `2f2a0dcad60e61896394c5f8ca831b374f5884ce`. Recovery/lifecycle hardening is tracked in PR #155.
 
 Automated gate is green:
 
