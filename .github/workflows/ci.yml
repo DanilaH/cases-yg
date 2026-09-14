@@ -23,42 +23,22 @@ jobs:
       - run: npm test
       - run: npm run assets:selftest
       - run: npm run assets:validate
-      - run: npm run build
-      - name: Report build footprint
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import fs from 'node:fs';
-          import path from 'node:path';
 
-          const root = path.resolve('dist');
-          const imageExtensions = new Set(['.webp', '.png', '.jpg', '.jpeg', '.avif', '.ktx', '.ktx2', '.pvr']);
-          const files = [];
+      - name: Build baseline
+        run: npm run build
+      - name: Report baseline footprint
+        run: node tools/assets/report-build-footprint.mjs dist baseline
 
-          const walk = (directory) => {
-            for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-              const absolute = path.join(directory, entry.name);
-              if (entry.isDirectory()) walk(absolute);
-              else {
-                const stat = fs.statSync(absolute);
-                files.push({ path: path.relative(root, absolute).replaceAll(path.sep, '/'), bytes: stat.size });
-              }
-            }
-          };
+      - name: Build asset v2 candidate
+        run: npm run build:asset-v2
+      - name: Report asset v2 footprint
+        run: node tools/assets/report-build-footprint.mjs dist asset-v2
 
-          walk(root);
-          const sum = (items) => items.reduce((total, item) => total + item.bytes, 0);
-          const assetFiles = files.filter((file) => file.path.startsWith('assets/'));
-          const imageFiles = files.filter((file) => imageExtensions.has(path.extname(file.path).toLowerCase()));
-          const report = {
-            distBytes: sum(files),
-            distFileCount: files.length,
-            assetBytes: sum(assetFiles),
-            assetFileCount: assetFiles.length,
-            imageBytes: sum(imageFiles),
-            imageFileCount: imageFiles.length,
-            largestFiles: [...files].sort((a, b) => b.bytes - a.bytes).slice(0, 30),
-          };
-
-          console.log('BUILD_FOOTPRINT_JSON=' + JSON.stringify(report));
-          NODE
+      - name: Upload asset v2 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-pipeline-v2-evidence
+          path: |
+            .asset-build/runtime-v2-report.json
+            .asset-build/qa-v2
+          if-no-files-found: error
