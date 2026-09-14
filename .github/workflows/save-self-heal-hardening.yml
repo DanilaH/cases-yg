@@ -1,0 +1,344 @@
+name: Save self-heal hardening
+
+on:
+  push:
+    branches:
+      - save-self-heal-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[save-self-heal-done]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: save-self-heal-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply save self-heal hardening
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('src/game/systems/save.ts')
+          text = path.read_text()
+
+          text = text.replace(
+              "export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';\n",
+              "export const DEFAULT_SAVE_KEY = 'mystery-pocket-tech.save';\nconst SAVE_RECOVERY_SUFFIX = '.recovery';\n",
+              1,
+          )
+
+          marker = """const parseCurrentSave = (value: Record<string, unknown>): SaveState => {
+  if (
+    value.version !== SAVE_VERSION ||
+    !isProgressSnapshot(value) ||
+    (value.pendingReveal !== null && !isPendingReveal(value.pendingReveal)) ||
+    !isPrimaryOnboardingState(value.onboarding) ||
+    typeof value.muted !== 'boolean'
+  ) {
+    throw new Error('Invalid save payload');
+  }
+
+  return validateSaveState(value as unknown as SaveState);
+};
+
+"""
+          if marker not in text:
+              raise SystemExit('parseCurrentSave marker not found')
+
+          repair = marker + """const createRepairableCurrentBase = (value: Record<string, unknown>): SaveState | null => {
+  if (value.version !== SAVE_VERSION || !isProgressSnapshot(value) || typeof value.muted !== 'boolean') {
+    return null;
+  }
+
+  return {
+    version: SAVE_VERSION,
+    discoveredStandard: [...value.discoveredStandard],
+    discoveredSecrets: [...value.discoveredSecrets],
+    chips: value.chips,
+    signal: value.signal,
+    overchargeHundredths: value.overchargeHundredths,
+    activeLootPoolId: value.activeLootPoolId,
+    totalOpens: value.totalOpens,
+    pendingReveal: null,
+    onboarding: {
+      // If exact first-result tutorial evidence is unavailable, a progressed save
+      // is grandfathered as complete rather than blocking the whole game.
+      primaryCompleted: value.totalOpens > 0,
+      firstRevealReceipt: null,
+    },
+    muted: value.muted,
+    stats: { ...value.stats },
+  };
+};
+
+/**
+ * Salvages only current-version saves whose durable progression snapshot is
+ * still valid. Transient transaction/tutorial evidence is retained only when it
+ * independently validates against that snapshot; otherwise it is discarded.
+ *
+ * This deliberately does not repair malformed JSON, unknown versions, or an
+ * invalid durable progression snapshot. Those cases remain hard failures because
+ * guessing could duplicate or erase economy state.
+ */
+const repairCurrentSave = (value: Record<string, unknown>): SaveState | null => {
+  const base = createRepairableCurrentBase(value);
+  if (!base) return null;
+
+  let pendingReveal: PendingReveal | null = null;
+  if (value.pendingReveal !== null && value.pendingReveal !== undefined && isPendingReveal(value.pendingReveal)) {
+    const pendingCandidate: SaveState = { ...base, pendingReveal: value.pendingReveal };
+    try {
+      validateSaveState(pendingCandidate);
+      pendingReveal = value.pendingReveal;
+    } catch {
+      // The durable base snapshot wins over an irreconcilable staged transaction.
+    }
+  }
+
+  const fallback: SaveState = { ...base, pendingReveal };
+  if (isPrimaryOnboardingState(value.onboarding)) {
+    const candidate: SaveState = { ...fallback, onboarding: value.onboarding };
+    try {
+      return validateSaveState(candidate);
+    } catch {
+      // Keep durable progression and fall back to conservative onboarding state.
+    }
+  }
+
+  return validateSaveState(fallback);
+};
+
+"""
+          text = text.replace(marker, repair, 1)
+
+          old_load = """  public async load(): Promise<SaveState> {
+    const raw = await this.storage.getItem(this.key);
+    if (raw === null) {
+      return createInitialSaveState();
+    }
+
+    const parsed = parseSaveState(raw);
+    const rawValue: unknown = JSON.parse(raw);
+    if (isRecord(rawValue) && rawValue.version !== SAVE_VERSION) {
+      await this.write(parsed);
+    }
+    return parsed;
+  }
+"""
+          new_load = """  public async load(): Promise<SaveState> {
+    const raw = await this.storage.getItem(this.key);
+    if (raw === null) {
+      return createInitialSaveState();
+    }
+
+    let parsed: SaveState;
+    try {
+      parsed = parseSaveState(raw);
+    } catch (error: unknown) {
+      let rawValue: unknown;
+      try {
+        rawValue = JSON.parse(raw);
+      } catch {
+        throw error;
+      }
+
+      const repaired = isRecord(rawValue) ? repairCurrentSave(rawValue) : null;
+      if (!repaired) throw error;
+
+      // Keep the exact broken payload locally for diagnosis/recovery before
+      // replacing the live save. Yandex cloud mirroring ignores this side key.
+      try {
+        await this.storage.setItem(`${this.key}${SAVE_RECOVERY_SUFFIX}`, raw);
+      } catch (backupError: unknown) {
+        console.warn('[save] failed to preserve recovery backup', backupError);
+      }
+
+      await this.write(repaired);
+      console.warn('[save] self-healed recoverable current save payload', error);
+      return repaired;
+    }
+
+    const rawValue: unknown = JSON.parse(raw);
+    if (isRecord(rawValue) && rawValue.version !== SAVE_VERSION) {
+      await this.write(parsed);
+    }
+    return parsed;
+  }
+"""
+          if old_load not in text:
+              raise SystemExit('SaveRepository.load block not found')
+          text = text.replace(old_load, new_load, 1)
+          path.write_text(text)
+          PY
+
+          cat > tests/save-recovery.test.ts <<'EOF'
+          import { describe, expect, it } from 'vitest';
+
+          import { LITE_V2_BALANCE } from '../src/game/data/balance';
+          import { createPendingReveal } from '../src/game/systems/drops';
+          import {
+            DEFAULT_SAVE_KEY,
+            SaveRepository,
+            createInitialSaveState,
+            parseSaveState,
+            stagePendingReveal,
+          } from '../src/game/systems/save';
+          import { DEFAULT_DROP_REGISTRY } from './defaultDropFixture';
+          import { MemoryStorageAdapter, SequenceRandom } from './helpers';
+
+          const recoveryKey = `${DEFAULT_SAVE_KEY}.recovery`;
+
+          describe('current save self-heal', () => {
+            it('repairs missing onboarding metadata without losing durable progression', async () => {
+              const storage = new MemoryStorageAdapter();
+              const rawState = {
+                ...createInitialSaveState(),
+                totalOpens: 4,
+                chips: 64,
+                discoveredStandard: ['camera-common'],
+              } as Record<string, unknown>;
+              delete rawState.onboarding;
+              const raw = JSON.stringify(rawState);
+              await storage.setItem(DEFAULT_SAVE_KEY, raw);
+
+              const loaded = await new SaveRepository(storage).load();
+
+              expect(loaded).toMatchObject({
+                totalOpens: 4,
+                chips: 64,
+                discoveredStandard: ['camera-common'],
+                pendingReveal: null,
+                onboarding: { primaryCompleted: true, firstRevealReceipt: null },
+              });
+              expect(await storage.getItem(recoveryKey)).toBe(raw);
+              expect(parseSaveState((await storage.getItem(DEFAULT_SAVE_KEY))!)).toEqual(loaded);
+            });
+
+            it('drops an irreconcilable staged reveal but preserves its durable base state', async () => {
+              const storage = new MemoryStorageAdapter();
+              const base = { ...createInitialSaveState(), totalOpens: 3, chips: 41 };
+              const pending = createPendingReveal({
+                state: base,
+                registry: DEFAULT_DROP_REGISTRY,
+                balance: LITE_V2_BALANCE,
+                random: new SequenceRandom([0, 0, 0, 0, 0.999]),
+                transactionId: 'broken-pending',
+              });
+              const staged = stagePendingReveal(base, pending);
+              const corrupted = {
+                ...staged,
+                pendingReveal: {
+                  ...pending,
+                  commit: { ...pending.commit, discoveredStandard: [] },
+                },
+              };
+              const raw = JSON.stringify(corrupted);
+              await storage.setItem(DEFAULT_SAVE_KEY, raw);
+
+              const loaded = await new SaveRepository(storage).load();
+
+              expect(loaded.pendingReveal).toBeNull();
+              expect(loaded.totalOpens).toBe(base.totalOpens);
+              expect(loaded.chips).toBe(base.chips);
+              expect(loaded.discoveredStandard).toEqual(base.discoveredStandard);
+              expect(loaded.onboarding).toEqual({ primaryCompleted: true, firstRevealReceipt: null });
+              expect(await storage.getItem(recoveryKey)).toBe(raw);
+            });
+
+            it('repairs a fresh current save conservatively back into unfinished onboarding', async () => {
+              const storage = new MemoryStorageAdapter();
+              const rawState = { ...createInitialSaveState() } as Record<string, unknown>;
+              rawState.onboarding = { primaryCompleted: true, firstRevealReceipt: { invalid: true } };
+              await storage.setItem(DEFAULT_SAVE_KEY, JSON.stringify(rawState));
+
+              const loaded = await new SaveRepository(storage).load();
+
+              expect(loaded.totalOpens).toBe(0);
+              expect(loaded.onboarding).toEqual({ primaryCompleted: false, firstRevealReceipt: null });
+            });
+
+            it('still rejects an invalid durable progression snapshot instead of guessing', async () => {
+              const storage = new MemoryStorageAdapter();
+              const corrupted = { ...createInitialSaveState(), chips: -1 };
+              await storage.setItem(DEFAULT_SAVE_KEY, JSON.stringify(corrupted));
+
+              await expect(new SaveRepository(storage).load()).rejects.toThrow('Invalid save payload');
+              expect(await storage.getItem(recoveryKey)).toBeNull();
+            });
+          });
+          EOF
+
+          cat > docs/SAVE_SELF_HEAL_HARDENING_2026-09-14.md <<'EOF'
+          # Signal 2000 — Save self-heal hardening
+
+          **Date:** 2026-09-14
+          **Trigger:** real-phone Pages build only became playable after manually resetting/repairing the persisted save.
+
+          ## Finding
+
+          Startup routes through `SaveRepository.load()`, and the current v5 parser validates both durable progression and transient state (`pendingReveal`, onboarding receipt) as one strict object. Any mismatch in transient evidence therefore turns the entire save into a load failure even when CHIPS, collection, Signal, Overcharge and opening count are still structurally valid. `OpeningScene` then stays in its save-load failure state. Clearing the save appears to “fix” the game only because it removes the rejected payload.
+
+          We cannot inspect the reporter's browser-local raw payload from the repository, so this pass does not claim which exact transient field was stale. It fixes the architectural failure mode instead.
+
+          ## Repair contract
+
+          Automatic repair is intentionally narrow:
+
+          - only current-version v5 payloads are eligible;
+          - the durable `ProgressSnapshot` and `muted` field must already validate exactly;
+          - a staged reveal is retained only if it is structurally valid and still matches the durable base state;
+          - otherwise the staged reveal is discarded and the durable base state wins, preventing duplicate/guessed rewards;
+          - onboarding metadata is retained only when it validates against the repaired state;
+          - if exact onboarding evidence is unavailable, `totalOpens > 0` is conservatively grandfathered complete, matching the existing v4→v5 migration policy; a zero-open save returns to unfinished onboarding;
+          - malformed JSON, unknown versions and invalid durable progression remain hard failures;
+          - before replacing a recoverable payload, the exact raw value is copied to `<save-key>.recovery` locally for diagnosis.
+
+          ## Guardrails
+
+          The repair path must never invent collection ownership, CHIPS, Signal, Overcharge, opening count or a reward transaction. It may only discard transient evidence that cannot be reconciled with an already-valid durable snapshot.
+
+          ## Validation
+
+          Focused tests cover missing onboarding metadata, irreconcilable staged reveal, fresh-save onboarding fallback and refusal to repair invalid durable progression. Full merge gate remains `npm ci`, typecheck, unit tests, asset self-test, asset validation and production build.
+          EOF
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Asset self-test
+        run: npm run assets:selftest
+
+      - name: Asset validation
+        run: npm run assets:validate
+
+      - name: Production build
+        run: npm run build
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/save-self-heal-hardening.yml
+
+      - name: Commit verified implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Harden current-save recovery [save-self-heal-done]"
+          git push origin HEAD:save-self-heal-hardening
