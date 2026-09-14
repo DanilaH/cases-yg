@@ -103,11 +103,15 @@ const boot = async (): Promise<void> => {
   let loopSuspended = false;
   let game: Phaser.Game | null = null;
   const applyActivityState = (blockers: ReadonlySet<ActivityBlocker>): void => {
-    blocked = blockers.size > 0;
-    loopSuspended = shouldSuspendRuntimeLoop(blockers);
+    const nextBlocked = blockers.size > 0;
+    const nextLoopSuspended = shouldSuspendRuntimeLoop(blockers);
+    const suspensionChanged = nextLoopSuspended !== loopSuspended;
+    blocked = nextBlocked;
+    loopSuspended = nextLoopSuspended;
     audio.setBlocked(blocked);
     if (!game) return;
     game.sound.mute = blocked;
+    if (!suspensionChanged) return;
     if (loopSuspended) {
       game.loop.sleep();
     } else {
