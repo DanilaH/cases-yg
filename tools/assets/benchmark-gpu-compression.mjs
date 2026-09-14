@@ -28,6 +28,11 @@ const estimateAstcBytes = (width, height, blockWidth, blockHeight) =>
 const estimateEtc2RgbaBytes = (width, height) =>
   Math.ceil(width / 4) * Math.ceil(height / 4) * 16 + 64;
 
+const preserveOutput = async (generatedPath, destinationPath) => {
+  await fs.rename(generatedPath, destinationPath);
+  return destinationPath;
+};
+
 await fs.rm(OUT_ROOT, { recursive: true, force: true });
 await fs.mkdir(OUT_ROOT, { recursive: true });
 
@@ -51,8 +56,14 @@ for (const relative of SAMPLES) {
   await sharp(inputWebp).png().toFile(png);
   const metadata = await sharp(inputWebp).metadata();
 
-  const astc6 = await gpuTexEnc.generateASTC(png, '6x6', 'medium', 'cl', ['-silent']);
-  const astc8 = await gpuTexEnc.generateASTC(png, '8x8', 'medium', 'cl', ['-silent']);
+  const astc6Generated = await gpuTexEnc.generateASTC(png, '6x6', 'medium', 'cl', ['-silent']);
+  const astc6 = await preserveOutput(astc6Generated, path.join(OUT_ROOT, `${sampleName}.astc6x6.ktx`));
+  const astc6Bytes = await statBytes(astc6);
+
+  const astc8Generated = await gpuTexEnc.generateASTC(png, '8x8', 'medium', 'cl', ['-silent']);
+  const astc8 = await preserveOutput(astc8Generated, path.join(OUT_ROOT, `${sampleName}.astc8x8.ktx`));
+  const astc8Bytes = await statBytes(astc8);
+
   const etc2 = await gpuTexEnc.generateETC(png, 'RGBA8', 60, 'rgba', ['-j', '2']);
   const basisEtc1s = await gpuTexEnc.generateBasis(png, 'ETC1S', true, ['-q', '160']);
   const basisUastc = await gpuTexEnc.generateBasis(
@@ -64,8 +75,8 @@ for (const relative of SAMPLES) {
 
   const webpBytes = await statBytes(inputWebp);
   const formats = {
-    astc6x6: { path: path.basename(astc6), bytes: await statBytes(astc6), phaserNative: true },
-    astc8x8: { path: path.basename(astc8), bytes: await statBytes(astc8), phaserNative: true },
+    astc6x6: { path: path.basename(astc6), bytes: astc6Bytes, phaserNative: true },
+    astc8x8: { path: path.basename(astc8), bytes: astc8Bytes, phaserNative: true },
     etc2Rgba: { path: path.basename(etc2), bytes: await statBytes(etc2), phaserNative: true },
     basisEtc1s: { path: path.basename(basisEtc1s), bytes: await statBytes(basisEtc1s), phaserNative: false },
     basisUastc: { path: path.basename(basisUastc), bytes: await statBytes(basisUastc), phaserNative: false },
@@ -88,7 +99,7 @@ for (const key of ['astc6x6', 'astc8x8', 'etc2Rgba', 'basisEtc1s', 'basisUastc']
 }
 
 const report = {
-  version: 1,
+  version: 2,
   note: 'ASTC/ETC KTX outputs are Phaser-native candidates. Basis KTX2 is size research only and requires a runtime transcoder before adoption.',
   catalogEstimate,
   totals,
