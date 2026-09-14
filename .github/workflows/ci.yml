@@ -37,8 +37,8 @@ jobs:
       # Alpha-trim and GPU-format research was completed and archived in CI #625.
       # The full-catalog effort-4 vs effort-6 comparison is archived in CI #627.
       # This final experiment run publishes the exact effort-4 runtime candidate
-      # so a clean production branch can consume committed outputs without the
-      # research harness.
+      # plus the narrow unchanged source snapshot needed to assemble the clean
+      # production branch outside the research harness.
       - name: Upload final asset v2 candidate
         uses: actions/upload-artifact@v4
         with:
@@ -47,4 +47,12 @@ jobs:
             .asset-build/public-v2
             .asset-build/runtime-v2-report.json
             .asset-build/qa-v2
+            src/game/scenes/BootScene.ts
+            src/game/scenes/CollectionScene.ts
+            src/game/data/artAssets.ts
+            src/game/systems/artLoading.ts
+            tests/runtime-assets.test.ts
+            tests/startup-asset-staging.test.ts
+            assets-src/collectibles.manifest.json
+            tools/assets/shared.mjs
           if-no-files-found: error
