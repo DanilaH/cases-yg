@@ -9,12 +9,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:asset-v2": "npm run assets:runtime:v2 && tsc --noEmit && vite build --config vite.asset-v2.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "preview": "vite preview",
     "assets:prepare": "node tools/assets/prepare-collectibles.mjs",
     "assets:validate": "node tools/assets/validate-collectibles.mjs",
     "assets:atlas": "node tools/assets/build-atlas.mjs",
+    "assets:runtime:v2": "node tools/assets/build-runtime-v2.mjs",
     "assets:model:u2netp": "node tools/assets/fetch-u2netp.mjs",
     "assets:selftest": "node tools/assets/self-test.mjs",
     "assets:ai:selftest": "node tools/assets/ai-self-test.mjs"
