@@ -32,7 +32,8 @@
         max-width: 200vh;
       }
 
-      #orientation-gate {
+      #orientation-gate,
+      #startup-preload {
         display: none;
       }
     </style>
@@ -43,6 +44,38 @@
   <body>
     <main id="game-shell">
       <div id="game" aria-label="Mystery Pocket Tech game canvas"></div>
+      <div
+        id="startup-preload"
+        data-state="idle"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-hidden="true"
+      >
+        <div class="startup-preload__panel">
+          <div class="startup-preload__spinner" aria-hidden="true">
+            <span class="startup-preload__ring"></span>
+            <span class="startup-preload__orbit"></span>
+            <span class="startup-preload__core">✦</span>
+          </div>
+          <p id="startup-preload-heading" class="startup-preload__heading">PREPARING DROP</p>
+          <div id="startup-preload-status" class="startup-preload__status">STABILIZING SIGNAL...</div>
+          <div class="startup-preload__progress-row">
+            <div
+              id="startup-preload-progress-bar"
+              class="startup-preload__progress"
+              role="progressbar"
+              aria-label="Startup progress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="8"
+            >
+              <span id="startup-preload-progress-fill"></span>
+            </div>
+            <span id="startup-preload-progress-percent" class="startup-preload__percent" aria-hidden="true">08%</span>
+          </div>
+        </div>
+      </div>
       <div id="orientation-gate" role="status" aria-live="polite">Rotate your device</div>
     </main>
     <script type="module" src="/src/main.ts"></script>
