@@ -13,6 +13,7 @@ const POUCH_BODY_MAX_WIDTH = 896;
 const POUCH_STRIP_MAX_WIDTH = 768;
 const POUCH_TAB_MAX_WIDTH = 640;
 const WEBP_QUALITY = 88;
+const WEBP_EFFORT = 4;
 const CONVERSION_CONCURRENCY = 4;
 
 const walkFiles = async (directory) => {
@@ -82,7 +83,7 @@ const optimizeWebp = async (source, destination, profile) => {
     pipeline.resize({ ...resize, fit: 'inside', withoutEnlargement: true });
   }
   await pipeline
-    .webp({ quality: WEBP_QUALITY, alphaQuality: 100, effort: 6, smartSubsample: true })
+    .webp({ quality: WEBP_QUALITY, alphaQuality: 100, effort: WEBP_EFFORT, smartSubsample: true })
     .toFile(destination);
   const after = await sharp(destination).metadata();
   return { before, after };
@@ -158,9 +159,6 @@ const records = await mapLimit(sourceFiles, CONVERSION_CONCURRENCY, async (sourc
       afterMetadata = beforeMetadata;
     }
 
-    // Pixel-level alpha inspection is evidence/QA, not a prerequisite for every
-    // conversion. Running it across the whole catalog would decode every output a
-    // second time and make the reusable build path needlessly expensive.
     if (qaSamples.has(relative) && (profile.kind === 'collectible' || profile.kind.startsWith('pouch-'))) {
       alpha = await alphaBounds(destination);
     }
@@ -202,6 +200,7 @@ const report = {
     pouchStripMaxWidth: POUCH_STRIP_MAX_WIDTH,
     pouchTabMaxWidth: POUCH_TAB_MAX_WIDTH,
     webpQuality: WEBP_QUALITY,
+    webpEffort: WEBP_EFFORT,
     conversionConcurrency: CONVERSION_CONCURRENCY,
   },
   summary: {
