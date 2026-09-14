@@ -1,6 +1,12 @@
 export const en = {
   appTitle: 'Mystery Pocket Tech',
   rotateDevice: 'Rotate your device',
+  startup: {
+    heading: 'PREPARING DROP',
+    status: 'STABILIZING SIGNAL...',
+    failedHeading: 'SIGNAL LOST',
+    failedStatus: 'Startup stalled. Reload to retry.',
+  },
   opening: {
     collection: 'Collection →',
     drop: 'DROP',
