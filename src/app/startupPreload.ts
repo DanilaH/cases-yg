@@ -62,7 +62,7 @@ const DEFAULT_OPTIONS: ResolvedStartupPreloadOptions = {
   minVisibleMs: 520,
   completionHoldMs: 180,
   progressTickMs: 100,
-  fatalTimeoutMs: 30_000,
+  fatalTimeoutMs: 90_000,
   preCompleteCap: 0.92,
 };
 

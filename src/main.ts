@@ -6,6 +6,8 @@ import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
 import { StartupPreloadController, createStartupPreloadDomView } from './app/startupPreload';
 import {
+  resolveGameCssSize,
+  resolveInitialGameCssSize,
   resolveViewportState,
   shouldSyncGameBackingStore,
   type ViewportState,
@@ -33,11 +35,6 @@ const VIEWPORT_WATCHDOG_MS = 500;
 const startupPreload = new StartupPreloadController(createStartupPreloadDomView());
 startupPreload.begin();
 
-interface CssViewportSize {
-  width: number;
-  height: number;
-}
-
 const readOrientationMediaPortrait = (): boolean | null => {
   if (typeof window.matchMedia !== 'function') return null;
   return window.matchMedia('(orientation: portrait)').matches;
@@ -54,28 +51,11 @@ const readLiveViewportState = (): ViewportState => {
   );
 };
 
-const readLiveViewportSize = (): CssViewportSize => {
-  const { width, height } = readLiveViewportState();
-  return { width, height };
-};
-
-const syncViewportCssSize = (state: ViewportState = readLiveViewportState()): CssViewportSize => {
-  const size = state;
+const syncViewportCssSize = (state: ViewportState = readLiveViewportState()): void => {
   const root = document.documentElement;
-  root.style.setProperty('--app-viewport-width', `${size.width}px`);
-  root.style.setProperty('--app-viewport-height', `${size.height}px`);
-  root.style.setProperty('--app-viewport-max-game-width', `${size.height * 2}px`);
-  return size;
-};
-
-const readGameCssSize = (): { width: number; height: number } => {
-  const host = document.querySelector<HTMLElement>('#game');
-  const bounds = host?.getBoundingClientRect();
-  const viewport = readLiveViewportSize();
-  return {
-    width: Math.max(1, bounds?.width || viewport.width),
-    height: Math.max(1, bounds?.height || viewport.height),
-  };
+  root.style.setProperty('--app-viewport-width', `${state.width}px`);
+  root.style.setProperty('--app-viewport-height', `${state.height}px`);
+  root.style.setProperty('--app-viewport-max-game-width', `${state.height * 2}px`);
 };
 
 const preloadAccentFont = async (): Promise<void> => {
@@ -154,8 +134,9 @@ const boot = async (): Promise<void> => {
   // visibility suspension while preserving the same aggregate gameplay blocking.
   const removeBlockedListener = platform.activity.onBlockersChange(applyActivityState);
 
-  syncViewportCssSize();
-  const initialCssSize = readGameCssSize();
+  const initialViewport = readLiveViewportState();
+  syncViewportCssSize(initialViewport);
+  const initialCssSize = resolveInitialGameCssSize(initialViewport);
   const initialBackingSize = getBackingStoreSize(initialCssSize.width, initialCssSize.height);
   game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -180,12 +161,16 @@ const boot = async (): Promise<void> => {
   game.sound.mute = blocked;
   if (loopSuspended) game.loop.sleep();
 
-  const syncBackingStore = (): void => {
-    if (!game) return;
-    const cssSize = readGameCssSize();
+  const syncBackingStore = (viewport: ViewportState): boolean => {
+    if (!game) return false;
+    // Use the exact same resolved viewport snapshot as the CSS shell and rotate
+    // gate. A second DOM geometry read here can be one rotation phase behind on
+    // Android Chrome and leave Phaser presenting a stale portrait-authored layout.
+    const cssSize = resolveGameCssSize(viewport);
     const backingSize = getBackingStoreSize(cssSize.width, cssSize.height);
-    if (game.scale.width === backingSize.width && game.scale.height === backingSize.height) return;
+    if (game.scale.width === backingSize.width && game.scale.height === backingSize.height) return false;
     game.scale.resize(backingSize.width, backingSize.height);
+    return true;
   };
 
   const gate = document.querySelector<HTMLElement>('#orientation-gate');
@@ -202,15 +187,26 @@ const boot = async (): Promise<void> => {
 
   const applyViewportChange = (): void => {
     const viewport = readLiveViewportState();
+    const viewportSignature = getViewportSignature(viewport);
+    const viewportChanged = viewportSignature !== lastViewportSignature;
     syncViewportCssSize(viewport);
 
     // The portrait gate fully covers the game, so resizing the Phaser backing
     // store there only clears/restarts scenes we cannot show. Preserve the last
     // live landscape canvas and resize exactly when landscape geometry returns.
-    if (shouldSyncGameBackingStore(viewport)) syncBackingStore();
+    if (shouldSyncGameBackingStore(viewport)) {
+      const backingStoreResized = syncBackingStore(viewport);
+      if (!backingStoreResized && viewportChanged) {
+        // Returning from portrait can legitimately restore the exact same
+        // landscape backing size. Phaser.resize() would then be skipped, so emit
+        // the official ScaleManager refresh/RESIZE signal explicitly to rebuild
+        // scene presentation that may have changed lifecycle state under the gate.
+        game?.scale.refresh();
+      }
+    }
 
     updateOrientationGate(viewport);
-    lastViewportSignature = getViewportSignature(viewport);
+    lastViewportSignature = viewportSignature;
   };
 
   let viewportAnimationFrame: number | null = null;

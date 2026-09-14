@@ -15,6 +15,26 @@ export const isPortraitViewport = (size: ViewportSize): boolean => size.height >
 export const shouldSyncGameBackingStore = (viewport: Pick<ViewportState, 'portrait'>): boolean =>
   !viewport.portrait;
 
+export const resolveGameCssSize = (viewport: ViewportSize): ViewportSize => {
+  const height = Math.max(1, viewport.height);
+  return {
+    width: Math.max(1, Math.min(viewport.width, height * 2)),
+    height,
+  };
+};
+
+export const resolveInitialGameCssSize = (viewport: ViewportState): ViewportSize => {
+  if (!viewport.portrait) return resolveGameCssSize(viewport);
+
+  // The portrait gate is the only authored portrait presentation. Keep Phaser
+  // booting behind it using provisional landscape geometry so scenes never
+  // author a tall layout that can survive into the first visible landscape frame.
+  return resolveGameCssSize({
+    width: viewport.height,
+    height: viewport.width,
+  });
+};
+
 const resolvePortrait = (
   visualViewport: ViewportSize | null | undefined,
   innerViewport: ViewportSize | null | undefined,
