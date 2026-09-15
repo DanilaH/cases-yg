@@ -32,6 +32,18 @@ describe('startup asset staging', () => {
     expect(source).not.toContain('installBackgroundAssetWarmup');
   });
 
+  it('starts save reconciliation before the image queue and captures rejection immediately', () => {
+    const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
+    const saveStart = source.indexOf('this.initialSaveResult = new SaveRepository(platform.storage).load()');
+    const imageQueue = source.indexOf('for (const art of getRuntimeStaticArt())');
+
+    expect(saveStart).toBeGreaterThanOrEqual(0);
+    expect(imageQueue).toBeGreaterThan(saveStart);
+    expect(source).toContain('(error: unknown) => {');
+    expect(source).toContain("markStartupPhase('bootSaveSettled')");
+    expect(source).toContain("markStartupPhase('bootArtSettled')");
+  });
+
   it('keeps runtime art helpers assertion-only with no Phaser loader transaction', () => {
     const source = readFileSync('src/game/systems/artLoading.ts', 'utf8');
 
