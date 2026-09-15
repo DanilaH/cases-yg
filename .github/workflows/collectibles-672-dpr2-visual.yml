@@ -1,0 +1,148 @@
+name: Collectibles 672 DPR2 visual pass
+
+on:
+  push:
+    branches:
+      - experiment/collectibles-672
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v6
+        with:
+          ref: experiment/collectibles-672
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install candidate dependencies
+        run: npm ci
+
+      - name: Checkout current main baseline into worktree
+        run: |
+          git fetch origin main --depth=1
+          git worktree add --detach /tmp/cases-yg-main FETCH_HEAD
+          npm ci --prefix /tmp/cases-yg-main
+
+      - name: Install isolated browser harness
+        run: |
+          rm -rf /tmp/browser-harness
+          npm install --prefix /tmp/browser-harness --package-lock=false playwright@1.55.0
+          /tmp/browser-harness/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Build candidate
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Build main baseline
+        working-directory: /tmp/cases-yg-main
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Start both preview servers
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/vite-candidate.log 2>&1 &
+          (cd /tmp/cases-yg-main && npm run preview -- --host 127.0.0.1 --port 4174 > /tmp/vite-main.log 2>&1) &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null && \
+               curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/vite-candidate.log || true
+          cat /tmp/vite-main.log || true
+          exit 1
+
+      - name: Capture settled DPR2 reveal evidence
+        run: |
+          mkdir -p /tmp/dpr2-evidence
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { chromium } = require('/tmp/browser-harness/node_modules/playwright');
+
+          const variants = [
+            { name: 'main-768', url: 'http://127.0.0.1:4174/' },
+            { name: 'candidate-672', url: 'http://127.0.0.1:4173/' },
+          ];
+          const scenarios = [
+            ['Force Common', 'common'],
+            ['Force Epic Phone', 'epic-phone'],
+            ['Force Legendary (Charged)', 'legendary'],
+            ['Force Hidden Pocket', 'secret'],
+          ];
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const report = [];
+              for (const variant of variants) {
+                for (const [buttonName, slug] of scenarios) {
+                  const context = await browser.newContext({
+                    viewport: { width: 844, height: 390 },
+                    deviceScaleFactor: 2,
+                    serviceWorkers: 'block',
+                  });
+                  const page = await context.newPage();
+                  const pageErrors = [];
+                  page.on('pageerror', (error) => pageErrors.push(error.message));
+                  await page.goto(variant.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+                  await page.waitForFunction(
+                    () => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden',
+                    { timeout: 60_000 },
+                  );
+                  await page.getByRole('button', { name: buttonName, exact: true }).click();
+                  await page.waitForTimeout(8000);
+                  if (pageErrors.length) {
+                    throw new Error(`${variant.name}/${slug} page errors: ${pageErrors.join(' | ')}`);
+                  }
+                  const output = `/tmp/dpr2-evidence/${variant.name}-${slug}.png`;
+                  await page.screenshot({ path: output, fullPage: true });
+                  const metrics = await page.evaluate(() => ({
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight,
+                    dpr: window.devicePixelRatio,
+                    canvasWidth: document.querySelector('canvas')?.width ?? null,
+                    canvasHeight: document.querySelector('canvas')?.height ?? null,
+                  }));
+                  report.push({ variant: variant.name, slug, ...metrics });
+                  await context.close();
+                }
+              }
+              fs.writeFileSync('/tmp/dpr2-evidence/metrics.json', JSON.stringify(report, null, 2));
+              console.log(JSON.stringify(report, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload DPR2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collectibles-672-dpr2-evidence
+          path: /tmp/dpr2-evidence
+
+      - name: Show preview logs on failure
+        if: failure()
+        run: |
+          cat /tmp/vite-candidate.log || true
+          cat /tmp/vite-main.log || true
