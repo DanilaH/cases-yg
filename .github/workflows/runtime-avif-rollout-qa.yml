@@ -1,0 +1,130 @@
+name: Runtime AVIF rollout QA
+
+on:
+  push:
+    branches:
+      - perf/runtime-avif-fallback
+    paths:
+      - public/**/*.avif
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Validate source and AVIF coverage
+        run: |
+          npm run assets:avif:validate
+          npm run typecheck
+          npm test
+      - name: Build debug candidate
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+      - name: Install isolated Chromium harness
+        run: |
+          rm -rf /tmp/runtime-avif-qa
+          npm install --prefix /tmp/runtime-avif-qa --package-lock=false playwright@1.55.0
+          /tmp/runtime-avif-qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify automatic AVIF and WebP fallback in browser
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/runtime-avif-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          sleep 1
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { chromium, devices } = require('/tmp/runtime-avif-qa/node_modules/playwright');
+
+          const variants = [
+            { label: 'auto-avif', query: '', expectedFormat: 'avif', minKiB: 4300, maxKiB: 5600 },
+            { label: 'forced-webp', query: '?artFormat=webp', expectedFormat: 'webp', minKiB: 7000, maxKiB: 8000 },
+          ];
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const results = [];
+            try {
+              for (const variant of variants) {
+                const context = await browser.newContext({
+                  ...devices['Pixel 7'],
+                  serviceWorkers: 'block',
+                });
+                const page = await context.newPage();
+                const pageErrors = [];
+                const failedResponses = [];
+                page.on('pageerror', (error) => pageErrors.push(error.message));
+                page.on('response', (response) => {
+                  if (response.status() >= 400) failedResponses.push(`${response.status()} ${response.url()}`);
+                });
+
+                await page.goto(`http://127.0.0.1:4173/${variant.query}`, {
+                  waitUntil: 'domcontentloaded',
+                  timeout: 120_000,
+                });
+                await page.waitForFunction(
+                  () => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden',
+                  { timeout: 120_000 },
+                );
+
+                if (pageErrors.length) throw new Error(`${variant.label} page errors: ${pageErrors.join(' | ')}`);
+                if (failedResponses.length) throw new Error(`${variant.label} failed responses: ${failedResponses.join(' | ')}`);
+
+                await page.getByRole('button', { name: 'Startup art', exact: true }).click();
+                await page.waitForFunction(() => document.querySelector('.mpt-debug-panel [data-status]')?.textContent?.includes('runtimeArtFormat'));
+                const art = JSON.parse(await page.locator('.mpt-debug-panel [data-status]').textContent());
+                if (art.runtimeArtFormat !== variant.expectedFormat) {
+                  throw new Error(`${variant.label}: expected ${variant.expectedFormat}, got ${art.runtimeArtFormat}`);
+                }
+                if (art.queuedCount !== 115 || art.observedCount !== 115) {
+                  throw new Error(`${variant.label}: expected 115/115, got ${art.queuedCount}/${art.observedCount}`);
+                }
+                if (art.encodedKiB < variant.minKiB || art.encodedKiB > variant.maxKiB) {
+                  throw new Error(`${variant.label}: encodedKiB ${art.encodedKiB} outside ${variant.minKiB}-${variant.maxKiB}`);
+                }
+
+                const requestedFormats = await page.evaluate(() => {
+                  const urls = performance.getEntriesByType('resource').map((entry) => entry.name);
+                  return {
+                    avif: urls.filter((url) => /\/assets\/(?:collectibles|package|backgrounds)\/.*\.avif(?:\?|$)/.test(url)).length,
+                    webp: urls.filter((url) => /\/assets\/(?:collectibles|package|backgrounds)\/.*\.webp(?:\?|$)/.test(url)).length,
+                  };
+                });
+                const expectedCounts = variant.expectedFormat === 'avif' ? { avif: 115, webp: 0 } : { avif: 0, webp: 115 };
+                if (requestedFormats.avif !== expectedCounts.avif || requestedFormats.webp !== expectedCounts.webp) {
+                  throw new Error(`${variant.label}: unexpected runtime request formats ${JSON.stringify(requestedFormats)}`);
+                }
+
+                await page.screenshot({ path: `/tmp/runtime-avif-qa/${variant.label}.png`, fullPage: true });
+                results.push({ label: variant.label, art, requestedFormats });
+                await context.close();
+              }
+            } finally {
+              await browser.close();
+            }
+            fs.writeFileSync('/tmp/runtime-avif-qa/results.json', JSON.stringify(results, null, 2));
+            console.log(JSON.stringify(results, null, 2));
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-avif-rollout-qa
+          path: |
+            /tmp/runtime-avif-qa/results.json
+            /tmp/runtime-avif-qa/auto-avif.png
+            /tmp/runtime-avif-qa/forced-webp.png
