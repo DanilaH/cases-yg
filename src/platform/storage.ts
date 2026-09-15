@@ -180,8 +180,8 @@ export class YandexCloudSaveStorageAdapter implements StorageAdapter {
       // gameplay on a forced network flush for every pouch opening.
       await this.player.setData({ [this.options.cloudField]: raw }, false);
     } catch (error: unknown) {
-      // safeStorage already contains the authoritative local copy. A later load
-      // or committed write will retry cloud synchronization automatically.
+      // safeStorage already contains the authoritative local copy. The next
+      // committed write or a future session will retry cloud synchronization.
       console.warn('[cloud-save] failed to mirror save to Yandex player data', error);
     }
   }
