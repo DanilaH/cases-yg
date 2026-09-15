@@ -1,9 +1,6 @@
 name: Collectibles 672 browser benchmark
 
 on:
-  push:
-    branches:
-      - experiment/collectibles-672
   workflow_dispatch:
 
 permissions:
@@ -128,9 +125,6 @@ jobs:
             await page.goto(variant.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
             await page.waitForFunction(() => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden', { timeout: 60_000 });
             await page.getByRole('button', { name: buttonName, exact: true }).click();
-            // Reveal/debug scenarios contain deliberate transition animation. Capture only
-            // after both variants have had enough time to settle on the final result,
-            // otherwise a faster candidate can be compared to a baseline mid-transition.
             await page.waitForTimeout(8000);
             if (pageErrors.length) throw new Error(`${variant.name}/${slug} page errors: ${pageErrors.join(' | ')}`);
             await page.screenshot({ path: `/tmp/visual-evidence/${variant.name}-${slug}.png`, fullPage: true });
