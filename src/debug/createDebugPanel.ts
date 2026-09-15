@@ -33,6 +33,24 @@ const writeCollapsedPreference = (collapsed: boolean): void => {
   }
 };
 
+const copyTextToClipboard = async (text: string): Promise<void> => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.readOnly = true;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Copy failed');
+};
+
 const addDebugChips = (state: SaveState, amount: number): SaveState => {
   const pendingReveal = state.pendingReveal
     ? {
@@ -129,6 +147,38 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     body.append(button);
   };
 
+  const addCopyJsonButton = (): void => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Copy JSON';
+    button.addEventListener('click', () => {
+      const value = status.textContent ?? '';
+      try {
+        JSON.parse(value);
+      } catch {
+        button.textContent = 'No JSON';
+        window.setTimeout(() => {
+          button.textContent = 'Copy JSON';
+        }, 900);
+        return;
+      }
+
+      void copyTextToClipboard(value)
+        .then(() => {
+          button.textContent = 'Copied';
+        })
+        .catch(() => {
+          button.textContent = 'Copy failed';
+        })
+        .finally(() => {
+          window.setTimeout(() => {
+            button.textContent = 'Copy JSON';
+          }, 900);
+        });
+    });
+    body.append(button);
+  };
+
   const stageAndReload = async (scenario: DebugRevealScenario): Promise<{ scenario: DebugRevealScenario }> => {
     await stageDebugReveal(repository, scenario);
     window.setTimeout(() => window.location.reload(), 80);
@@ -162,6 +212,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addLabel('Diagnostics');
   addButton('Startup timing', async () => getStartupPerformanceSnapshot());
   addButton('Startup art', async () => getStartupArtDiagnosticsSnapshot());
+  addCopyJsonButton();
 
   addLabel('Art loader A/B');
   addButton('Cold default', () => runColdArtProbe(undefined));
