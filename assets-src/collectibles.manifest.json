@@ -1,8 +1,8 @@
 {
   "version": 1,
   "defaults": {
-    "canvas": 768,
-    "padding": 48,
+    "canvas": 672,
+    "padding": 42,
     "webpQuality": 84,
     "backgroundRemoval": "auto",
     "backgroundColorTolerance": 48,
