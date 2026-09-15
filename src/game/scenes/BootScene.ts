@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
+import { markStartupPhase } from '../../app/startupPerformance';
 import { getRuntimeBootStaticArt } from '../data/artAssets';
 import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../data/collectibles';
 import { ensureLootPoolArt } from '../systems/artLoading';
@@ -45,6 +46,7 @@ export class BootScene extends Phaser.Scene {
       // OpeningScene already owns the canonical save-load failure UI.
       console.warn('[boot] onboarding route check failed; falling back to Opening', error);
     }
+    markStartupPhase('bootSaveSettled');
 
     // The warmup policy depends on durable active-Drop truth. Install it only
     // after save resolution so Game Ready prefetches near-future assets for the
@@ -61,6 +63,7 @@ export class BootScene extends Phaser.Scene {
       // emergency path; speculative background warmup never controls correctness.
       console.warn('[art] initial active Drop art failed to load; using fallbacks', error);
     }
+    markStartupPhase('bootArtSettled');
 
     if (!this.sys.isActive()) return;
     if (!this.scene.isActive('GuidanceScene')) this.scene.launch('GuidanceScene');
