@@ -38,8 +38,6 @@ export interface StartupArtDiagnosticsSnapshot {
 
 interface QueuedStartupArt {
   textureKey: string;
-  canonicalPath: string;
-  requestPath: string;
   requestUrl: string | undefined;
 }
 
@@ -138,6 +136,11 @@ export const beginStartupArtDiagnostics = (
   loaderMaxParallelDownloads: number,
   config: StartupArtExperimentConfig,
 ): void => {
+  if (!debugEnabled()) {
+    session = undefined;
+    return;
+  }
+
   session = {
     config,
     loaderMaxParallelDownloads,
@@ -150,20 +153,13 @@ export const beginStartupArtDiagnostics = (
 
 export const prepareStartupArtRequest = (textureKey: string, assetPath: string): string => {
   const requestPath = appendCacheBustToken(assetPath, session?.config.cacheBustToken);
-  session?.queued.push({
-    textureKey,
-    canonicalPath: assetPath,
-    requestPath,
-    requestUrl: toAbsoluteUrl(requestPath),
-  });
+  session?.queued.push({ textureKey, requestUrl: toAbsoluteUrl(requestPath) });
   return requestPath;
 };
 
 const getResourceTimings = (): ResourceTimingLike[] => {
   if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') return [];
-  return performance.getEntriesByType('resource').filter(
-    (entry): entry is PerformanceResourceTiming => entry instanceof PerformanceResourceTiming,
-  );
+  return performance.getEntriesByType('resource') as PerformanceResourceTiming[];
 };
 
 const resolveObservedNetworkConcurrency = (entries: readonly ResourceTimingLike[]): number | undefined => {
@@ -172,7 +168,7 @@ const resolveObservedNetworkConcurrency = (entries: readonly ResourceTimingLike[
   for (const entry of entries) {
     const start = entry.requestStart > 0 ? entry.requestStart : entry.startTime;
     const end = entry.responseEnd;
-    if (!(end >= start)) continue;
+    if (!(end > start)) continue;
     events.push({ at: start, delta: 1 }, { at: end, delta: -1 });
   }
   if (events.length === 0) return undefined;
@@ -206,14 +202,18 @@ const makeSnapshot = (
     : undefined;
 
   const slowest = observed
-    .map(({ asset, timing }): StartupArtSlowAsset => ({
-      key: asset.textureKey,
-      durationMs: rounded(timing.duration),
-      waitMs: rounded(Math.max(0, timing.responseStart - timing.requestStart)),
-      downloadMs: rounded(Math.max(0, timing.responseEnd - timing.responseStart)),
-      transferKiB: roundedKiB(timing.transferSize),
-      encodedKiB: roundedKiB(timing.encodedBodySize),
-    }))
+    .map(({ asset, timing }): StartupArtSlowAsset => {
+      const requestStart = timing.requestStart > 0 ? timing.requestStart : timing.startTime;
+      const responseStart = timing.responseStart > 0 ? timing.responseStart : requestStart;
+      return {
+        key: asset.textureKey,
+        durationMs: rounded(timing.duration),
+        waitMs: rounded(Math.max(0, responseStart - requestStart)),
+        downloadMs: rounded(Math.max(0, timing.responseEnd - responseStart)),
+        transferKiB: roundedKiB(timing.transferSize),
+        encodedKiB: roundedKiB(timing.encodedBodySize),
+      };
+    })
     .sort((a, b) => b.durationMs - a.durationMs)
     .slice(0, SLOWEST_ASSET_LIMIT);
 
