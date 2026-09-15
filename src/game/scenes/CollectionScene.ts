@@ -37,6 +37,7 @@ export class CollectionScene extends Phaser.Scene {
   private page = 0;
   private dropBrowseInFlight = false;
   private pendingEntryMotion: CollectionEntryMotion = 'none';
+  private contentRoot: Phaser.GameObjects.Container | null = null;
 
   public constructor() {
     super('CollectionScene');
@@ -84,6 +85,10 @@ export class CollectionScene extends Phaser.Scene {
   }
 
   private createRoot(): Phaser.GameObjects.Container {
+    if (this.contentRoot) {
+      this.tweens.killTweensOf(this.contentRoot);
+      this.contentRoot = null;
+    }
     this.root?.destroy(true);
     const ratio = getRenderPixelRatio();
     const metrics = createLayoutMetrics(this.scale.width, this.scale.height, readSafeAreaInsets(ratio), ratio);
@@ -114,6 +119,7 @@ export class CollectionScene extends Phaser.Scene {
     const messages = getMessages(getPlatformRuntime().language);
 
     const content = this.add.container(0, 0);
+    this.contentRoot = content;
     root.add(content);
     if (this.view === 'shelf') {
       this.renderShelf(content);
