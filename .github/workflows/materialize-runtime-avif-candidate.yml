@@ -6,6 +6,7 @@ on:
       - perf/runtime-avif-fallback
     paths:
       - tools/perf/apply-runtime-avif-rollout.mjs
+      - tests/startup-asset-staging.test.ts
       - .github/workflows/materialize-runtime-avif-candidate.yml
 
 permissions:
