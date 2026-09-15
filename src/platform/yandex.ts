@@ -101,6 +101,41 @@ const loadYandexSdk = async (): Promise<void> => {
   });
 };
 
+type YandexStorageSdk = Pick<SDK, 'getStorage' | 'getPlayer'>;
+
+type PlayerResult =
+  | { ok: true; player: Awaited<ReturnType<YandexStorageSdk['getPlayer']>> }
+  | { ok: false; error: unknown };
+
+/**
+ * Resolve mandatory safeStorage and optional Player Data in parallel after SDK init.
+ * Player rejection is captured immediately so it can never become an unhandled
+ * rejection while safeStorage is still pending.
+ */
+export const createYandexStorageAdapter = async (sdk: YandexStorageSdk): Promise<StorageAdapter> => {
+  const safeStoragePromise = sdk.getStorage();
+  const playerResultPromise: Promise<PlayerResult> = sdk.getPlayer().then(
+    (player) => ({ ok: true, player }),
+    (error: unknown) => ({ ok: false, error }),
+  );
+
+  const safeStorage = await safeStoragePromise;
+  const localStorage = new WebStorageAdapter(safeStorage);
+  const playerResult = await playerResultPromise;
+
+  if (!playerResult.ok) {
+    // Player data is an enhancement over safeStorage. Never block game startup
+    // if Yandex account/cloud data is temporarily unavailable.
+    console.warn('[cloud-save] Yandex Player unavailable; continuing with safeStorage only', playerResult.error);
+    return localStorage;
+  }
+
+  return new YandexCloudSaveStorageAdapter(localStorage, playerResult.player, {
+    syncKey: 'mystery-pocket-tech.save',
+    cloudField: 'mysteryPocketTechSave',
+  });
+};
+
 const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   await loadYandexSdk();
   const sdk: SDK = await YaGames.init();
@@ -129,22 +164,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   sdk.on('game_api_resume', handleResume);
 
   try {
-    const safeStorage = await sdk.getStorage();
-    const localStorage = new WebStorageAdapter(safeStorage);
-    let storage: StorageAdapter = localStorage;
-
-    try {
-      const player = await sdk.getPlayer();
-      storage = new YandexCloudSaveStorageAdapter(localStorage, player, {
-        syncKey: 'mystery-pocket-tech.save',
-        cloudField: 'mysteryPocketTechSave',
-      });
-    } catch (error: unknown) {
-      // Player data is an enhancement over safeStorage. Never block game startup
-      // if Yandex account/cloud data is temporarily unavailable.
-      console.warn('[cloud-save] Yandex Player unavailable; continuing with safeStorage only', error);
-    }
-
+    const storage = await createYandexStorageAdapter(sdk);
     let readySent = false;
 
     return {
