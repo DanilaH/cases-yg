@@ -1,9 +1,6 @@
 name: Collectibles 672 experiment
 
 on:
-  push:
-    branches:
-      - experiment/collectibles-672
   workflow_dispatch:
 
 permissions:
