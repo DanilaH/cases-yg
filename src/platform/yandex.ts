@@ -1,4 +1,4 @@
-import type { SDK } from 'ysdk';
+import type { Player, SDK } from 'ysdk';
 
 import { markStartupPhase, reportStartupPerformance } from '../app/startupPerformance';
 import { GameplayActivityCoordinator } from './activity';
@@ -104,10 +104,25 @@ const loadYandexSdk = async (): Promise<void> => {
 };
 
 type YandexStorageSdk = Pick<SDK, 'getStorage' | 'getPlayer'>;
+type YandexPlayerData = Pick<Player, 'getData' | 'setData'>;
 
 type PlayerResult =
-  | { ok: true; player: Awaited<ReturnType<YandexStorageSdk['getPlayer']>> }
+  | { ok: true; player: YandexPlayerData }
   | { ok: false; error: unknown };
+
+const resolvePlayerData = (value: unknown): PlayerResult => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'getData' in value &&
+    typeof value.getData === 'function' &&
+    'setData' in value &&
+    typeof value.setData === 'function'
+  ) {
+    return { ok: true, player: value as YandexPlayerData };
+  }
+  return { ok: false, error: new Error('Yandex Player Data API unavailable') };
+};
 
 /**
  * Resolve mandatory safeStorage and optional Player Data in parallel after SDK init.
@@ -117,7 +132,7 @@ type PlayerResult =
 export const createYandexStorageAdapter = async (sdk: YandexStorageSdk): Promise<StorageAdapter> => {
   const safeStoragePromise = sdk.getStorage();
   const playerResultPromise: Promise<PlayerResult> = sdk.getPlayer().then(
-    (player) => ({ ok: true, player }),
+    (player) => resolvePlayerData(player),
     (error: unknown) => ({ ok: false, error }),
   );
 
