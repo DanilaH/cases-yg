@@ -1564,7 +1564,7 @@ export class OpeningScene extends Phaser.Scene {
     const overchargeValue = this.add.text(
       width - 14,
       chrome.compact ? 48 : 27,
-      `${formatOverchargeMultiplier(overcharge)}${overchargeMax ? ' · MAX' : ''}`,
+      `${formatOverchargeMultiplier(overcharge)}${overchargeMax ? ` · ${messages.opening.max}` : ''}`,
       {
         color: overchargeColor,
         stroke: '#160f20',
@@ -1958,7 +1958,7 @@ export class OpeningScene extends Phaser.Scene {
     const width = chrome.railCardWidth;
     const height = chrome.railCardHeight;
 
-    const sectionLabel = this.add.text(railX + 2, labelY, 'POUCH', {
+    const sectionLabel = this.add.text(railX + 2, labelY, messages.opening.pouch, {
       color: '#efe6f7',
       stroke: '#120d19',
       strokeThickness: chrome.compact ? 4 : 2,
@@ -2916,11 +2916,11 @@ export class OpeningScene extends Phaser.Scene {
     const background = this.add.graphics();
     tray.add(background);
 
-    const rarityCode = secretSelected ? 'SECRET' : pending.standard.rarity.toUpperCase();
+    const rarityCode = messages.rarity[secretSelected ? 'secret' : pending.standard.rarity].toUpperCase();
     const rarityColor = secretSelected
       ? '#ff4d6d'
       : `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`;
-    const header = this.add.text(textX, 9, 'REWARD', {
+    const header = this.add.text(textX, 9, messages.opening.reward, {
       color: '#d9cbef',
       fontFamily: DIGITAL_FONT_FAMILY,
       fontSize: chrome.compact ? '17px' : '7px',
@@ -3027,7 +3027,7 @@ export class OpeningScene extends Phaser.Scene {
         signalColor = '#ff9ed4';
       } else if (pending.signal.lockRetained) {
         const retainedMultiplier = formatOverchargeMultiplier(pending.overcharge.afterHundredths);
-        const maxSuffix = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? ' MAX' : '';
+        const maxSuffix = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? ` ${messages.opening.max}` : '';
         signalText = `${messages.opening.signalLockRetained} · ${retainedMultiplier}${maxSuffix}`;
         signalColor = pending.overcharge.afterHundredths >= LITE_V2_BALANCE.overchargeCapHundredths ? '#ff9ed4' : '#b7a7ff';
       }
@@ -3961,7 +3961,7 @@ export class OpeningScene extends Phaser.Scene {
     outline.lineStyle(3, CHARGED_ACCENT, 0.88);
     outline.strokeRoundedRect(1, 1, width - 2, height - 2, 15);
     const ready = this.add
-      .text(width - 12, compact ? 9 : 10, 'READY', {
+      .text(width - 12, compact ? 9 : 10, getMessages(getPlatformRuntime().language).opening.ready, {
         color: '#8df8ff',
         stroke: '#160f20',
         strokeThickness: 2,

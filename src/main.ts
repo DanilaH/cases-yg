@@ -112,6 +112,7 @@ const boot = async (): Promise<void> => {
 
   document.documentElement.lang = platform.language;
   document.title = messages.appTitle;
+  document.querySelector<HTMLElement>('#game')?.setAttribute('aria-label', messages.gameCanvasLabel);
 
   let blocked = false;
   let loopSuspended = false;

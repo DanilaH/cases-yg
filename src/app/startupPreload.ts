@@ -11,6 +11,7 @@ export interface StartupPreloadCopy {
   status: string;
   failedHeading: string;
   failedStatus: string;
+  progressLabel: string;
 }
 
 export interface StartupPreloadSnapshot {
@@ -51,10 +52,11 @@ interface ResolvedStartupPreloadOptions {
 }
 
 const DEFAULT_COPY: StartupPreloadCopy = {
-  heading: 'PREPARING DROP',
-  status: 'STABILIZING SIGNAL...',
-  failedHeading: 'SIGNAL LOST',
-  failedStatus: 'Startup stalled. Reload to retry.',
+  heading: 'ПОДГОТОВКА НАБОРА',
+  status: 'НАСТРАИВАЕМ СИГНАЛ...',
+  failedHeading: 'СИГНАЛ ПОТЕРЯН',
+  failedStatus: 'Запуск прерван. Перезагрузите игру и попробуйте снова.',
+  progressLabel: 'Загрузка игры',
 };
 
 const DEFAULT_OPTIONS: ResolvedStartupPreloadOptions = {
@@ -280,6 +282,7 @@ export const createStartupPreloadDomView = (root: Document = document): StartupP
       status.textContent = snapshot.phase === 'failed'
         ? snapshot.failureMessage ?? snapshot.copy.failedStatus
         : snapshot.copy.status;
+      progressBar.setAttribute('aria-label', snapshot.copy.progressLabel);
       progressBar.setAttribute('aria-valuenow', String(percent));
       progressFill.style.width = `${percent}%`;
       progressPercent.textContent = `${String(percent).padStart(2, '0')}%`;
