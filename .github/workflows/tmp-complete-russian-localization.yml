@@ -39,7 +39,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Remove temporary materializer
-        run: git rm tools/tmp-complete-russian-localization.mjs .github/workflows/tmp-complete-russian-localization.yml
+        run: git rm -f tools/tmp-complete-russian-localization.mjs .github/workflows/tmp-complete-russian-localization.yml
       - name: Commit localized build
         run: |
           git config user.name 'github-actions[bot]'
