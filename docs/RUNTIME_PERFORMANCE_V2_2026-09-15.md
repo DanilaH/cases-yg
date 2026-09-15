@@ -3,6 +3,8 @@
 Date: 2026-09-15
 Base: `main` at `a82380d21153b4584cea20b818afa3a42a247135`
 
+> **2026-09-15 product correction:** the Phase D bounded post-Ready warmup/runtime-loading strategy described below was implemented and then superseded by the explicit zero-runtime-loading decision. Signal 2000 now treats every reviewed image reachable during a session as startup-critical Phaser art. See `ZERO_RUNTIME_LOADING_2026-09-15.md`. The instrumentation, mirrored-save read reuse and parallel Yandex bootstrap parts of this document remain current.
+
 ## Goal
 
 Reduce time-to-usable-game, avoid unnecessary mobile network traffic, and create performance seams that can be reused by later Yandex Games projects without changing Signal 2000 gameplay, economy, RNG, save semantics, onboarding semantics, tear geometry, ads, or reward ownership.
@@ -50,63 +52,65 @@ After `YaGames.init()` and pause/resume listener installation, start `sdk.getSto
 
 Do not move pause/resume listener installation later and do not call Game Ready earlier.
 
-### Phase D — replace global speculative image warmup with bounded near-future warmup
+### Phase D — historical bounded near-future warmup (superseded)
 
-After the durable save determines the active Drop, warm only:
+This phase originally changed full-catalog speculative warmup to active-Drop + Collection warmup and retained runtime image loading for other Drops.
 
-- Collection-only static layers;
-- reviewed collectibles for the active Drop;
-- Basic + Charged pouch layers for the active Drop.
+That implementation was technically correct but conflicts with the later product decision that **no loader or wait-state may occur inside gameplay**. It is no longer the production policy.
 
-Do not prefetch all other Drops automatically. Their runtime loader remains the correctness path.
+Current replacement:
 
-This reduces background network consumption and keeps cache warming aligned with likely near-future interaction.
+`complete reviewed Phaser image preload -> save resolution -> playable scene -> Game Ready -> no runtime image network path`
+
+See `ZERO_RUNTIME_LOADING_2026-09-15.md` for the canonical contract and acceptance rules.
 
 ### Phase E — follow-up after measurements
 
 Do not combine these into the first implementation unless evidence justifies them:
 
-- exact-collectible-on-demand Phaser decoding;
 - texture residency / LRU eviction;
 - alpha-trim metadata pipeline;
 - custom/slim Phaser build;
 - HTML-level early Yandex SDK fetch;
 - service worker / explicit persistent asset cache.
 
-These have larger presentation, memory, invalidation, or build-surface risk and deserve their own measured change.
+The earlier exact-collectible-on-demand loading idea is incompatible with the current zero-runtime-loading product contract unless it can be proven to require no post-Ready network/decode wait. It is therefore not a current production direction.
 
 ## Independent plan review
 
-A second pass against the plan changed the original scope in four ways:
+The first review intentionally deferred texture eviction, exact collectible decoding, audio preload changes and service-worker caching because each added lifecycle or invalidation risk.
 
-1. **Texture eviction is deferred.** It can save substantial decoded/GPU memory, but removing Phaser textures while stale GameObjects or planar-depth resources still reference them is a correctness risk. Instrument first, then add ownership/leases explicitly.
-2. **Exact collectible decoding is deferred from this first PR.** It is probably the largest remaining image-residency win, but it crosses live reveal and recovery paths in `OpeningScene`. It must be implemented with a loader-covered exact-reward gate, not by allowing procedural placeholders to flash.
-3. **Audio preload is not changed yet.** The encoded audio budget is small; without real startup timing, moving decode work can trade load time for first-interaction audio inconsistency.
-4. **No service worker.** Public asset URLs are currently stable/non-hashed. Durable CacheStorage without an invalidation/versioning contract would create a more dangerous stale-art problem than the startup latency it might solve.
+After real product acceptance rejected in-game loaders, a second review changed the asset policy again:
 
-The high-confidence first slice is therefore: **instrumentation + mirrored-save read reuse + parallel Yandex bootstrap + bounded active-Drop warmup**.
+1. **Do not hide the loader while preserving runtime requests.** An invisible stall is still a broken interaction.
+2. **Do not use prefetch as correctness.** Browser cache retention is advisory and may be evicted.
+3. **Pay the complete image readiness cost under the startup loader.** The earlier asset-budget pass makes this a reasonable production experiment.
+4. **Move memory optimization to a separate pass.** Tight alpha cropping with preserved logical frame metadata is the next preferred way to reduce the residency cost without changing the no-loader contract.
+5. **No service worker yet.** Public asset URLs remain stable/non-hashed, so durable CacheStorage would introduce stale-version risk.
 
 ## Acceptance
 
-Automated:
+Automated performance/bootstrap acceptance remains:
 
 - typecheck passes;
 - full Vitest suite passes;
 - asset self-test passes;
 - asset validation passes;
 - production build passes;
-- tests prove repeated mirrored save reads do not repeat Player Data reads;
-- tests prove a failed mutation invalidates the read cache;
-- tests prove warmup includes active Drop + Collection layers and excludes unrelated Drop content.
+- repeated mirrored save reads do not repeat Player Data reads;
+- a failed mutation invalidates the read cache;
+- Yandex safeStorage and Player acquisition begin concurrently.
+
+The current image-loading acceptance is owned by `ZERO_RUNTIME_LOADING_2026-09-15.md`.
 
 Hosted / real-device:
 
 - no change to first-run/recovery/reveal behavior;
-- no placeholder leak;
+- no placeholder leak on successful asset loading;
 - no change to Drop selection semantics;
 - startup still reaches semantic Game Ready only after a usable frame;
 - debug host exposes startup phase timing;
-- real Yandex DRAFT is used to compare Game Ready and internal phase timings before starting the next optimization slice.
+- no in-game asset loading surface appears while switching Drops, pouch variants, Collection pages or reveal states.
 
 ## Reuse decision
 
@@ -115,5 +119,7 @@ If the Signal implementation validates cleanly in Yandex DRAFT, mirror the gener
 - resolved-read caching policy for Yandex mirrored storage;
 - parallel safeStorage / Player acquisition in Yandex runtime;
 - optional generic startup phase recorder only if a second project needs it.
+
+The zero-runtime-loading policy itself is a product policy, not a universal kit rule. Future games may make different asset-residency trade-offs.
 
 Do not force Signal 2000 to migrate to the extracted package merely to prove reuse.
