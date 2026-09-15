@@ -1,7 +1,7 @@
 import type { Player } from 'ysdk';
 import { describe, expect, it } from 'vitest';
 
-import { YandexCloudSaveStorageAdapter } from '../src/platform/storage';
+import { YandexCloudSaveStorageAdapter, type StorageAdapter } from '../src/platform/storage';
 import { MemoryStorageAdapter } from './helpers';
 
 const SAVE_KEY = 'mystery-pocket-tech.save';
@@ -9,10 +9,12 @@ const CLOUD_FIELD = 'mysteryPocketTechSave';
 
 class FakePlayerData {
   public readonly data = new Map<string, unknown>();
+  public reads = 0;
   public writes = 0;
   public lastFlush: boolean | undefined;
 
   public async getData(keys?: readonly string[]): Promise<Record<string, unknown>> {
+    this.reads += 1;
     const selected = keys ?? [...this.data.keys()];
     return Object.fromEntries(selected.flatMap((key) => this.data.has(key) ? [[key, this.data.get(key)]] : []));
   }
@@ -27,7 +29,29 @@ class FakePlayerData {
   }
 }
 
-const createAdapter = (local: MemoryStorageAdapter, player: FakePlayerData): YandexCloudSaveStorageAdapter =>
+class FailingOnceStorageAdapter implements StorageAdapter {
+  public failNextSaveWrite = false;
+
+  public constructor(private readonly inner: MemoryStorageAdapter) {}
+
+  public getItem(key: string): Promise<string | null> {
+    return this.inner.getItem(key);
+  }
+
+  public async setItem(key: string, value: string): Promise<void> {
+    if (key === SAVE_KEY && this.failNextSaveWrite) {
+      this.failNextSaveWrite = false;
+      throw new Error('local write failed');
+    }
+    await this.inner.setItem(key, value);
+  }
+
+  public removeItem(key: string): Promise<void> {
+    return this.inner.removeItem(key);
+  }
+}
+
+const createAdapter = (local: StorageAdapter, player: FakePlayerData): YandexCloudSaveStorageAdapter =>
   new YandexCloudSaveStorageAdapter(
     local,
     player as unknown as Pick<Player, 'getData' | 'setData'>,
@@ -82,6 +106,42 @@ describe('Yandex cloud save storage', () => {
 
     await expect(createAdapter(local, player).getItem(SAVE_KEY)).resolves.toBe(localRaw);
     expect(player.data.get(CLOUD_FIELD)).toBe(cloudRaw);
+  });
+
+  it('reuses one reconciled Player Data read until the gameplay save mutates', async () => {
+    const local = new MemoryStorageAdapter();
+    const player = new FakePlayerData();
+    const raw = committedSave(5);
+    await local.setItem(SAVE_KEY, raw);
+    player.data.set(CLOUD_FIELD, raw);
+    const adapter = createAdapter(local, player);
+
+    await expect(adapter.getItem(SAVE_KEY)).resolves.toBe(raw);
+    await expect(adapter.getItem(SAVE_KEY)).resolves.toBe(raw);
+    expect(player.reads).toBe(1);
+
+    const next = committedSave(6);
+    await adapter.setItem(SAVE_KEY, next);
+    await expect(adapter.getItem(SAVE_KEY)).resolves.toBe(next);
+    expect(player.reads).toBe(1);
+  });
+
+  it('invalidates the resolved read before a failed local mutation so recovery re-reconciles', async () => {
+    const inner = new MemoryStorageAdapter();
+    const local = new FailingOnceStorageAdapter(inner);
+    const player = new FakePlayerData();
+    const raw = committedSave(3);
+    await inner.setItem(SAVE_KEY, raw);
+    player.data.set(CLOUD_FIELD, raw);
+    const adapter = createAdapter(local, player);
+
+    await expect(adapter.getItem(SAVE_KEY)).resolves.toBe(raw);
+    expect(player.reads).toBe(1);
+
+    local.failNextSaveWrite = true;
+    await expect(adapter.setItem(SAVE_KEY, committedSave(4))).rejects.toThrow('local write failed');
+    await expect(adapter.getItem(SAVE_KEY)).resolves.toBe(raw);
+    expect(player.reads).toBe(2);
   });
 
   it('mirrors only committed gameplay saves and leaves unrelated settings local', async () => {
