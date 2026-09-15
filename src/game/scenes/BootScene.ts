@@ -65,7 +65,7 @@ export class BootScene extends Phaser.Scene {
       );
     }
 
-    const bundleKeys = new Set(RUNTIME_ART_BUNDLES.map((bundle) => bundle.key));
+    const bundleKeys = new Set<string>(RUNTIME_ART_BUNDLES.map((bundle) => bundle.key));
     const onFileComplete = (key: string, type: string, data: unknown): void => {
       if (type !== 'binary' || !bundleKeys.has(key)) return;
       if (!(data instanceof ArrayBuffer)) {
