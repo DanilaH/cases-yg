@@ -15,6 +15,8 @@
     "assets:prepare": "node tools/assets/prepare-collectibles.mjs",
     "assets:trim": "node tools/assets/trim-runtime-art.mjs",
     "assets:validate": "node tools/assets/validate-collectibles.mjs",
+    "assets:avif:build": "node tools/assets/build-runtime-avif.mjs",
+    "assets:avif:validate": "node tools/assets/validate-runtime-avif.mjs",
     "assets:atlas": "node tools/assets/build-atlas.mjs",
     "assets:model:u2netp": "node tools/assets/fetch-u2netp.mjs",
     "assets:selftest": "node tools/assets/self-test.mjs",

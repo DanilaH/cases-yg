@@ -23,4 +23,5 @@ jobs:
       - run: npm test
       - run: npm run assets:selftest
       - run: npm run assets:validate
+      - run: npm run assets:avif:validate
       - run: npm run build

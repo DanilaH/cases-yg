@@ -4,6 +4,7 @@ import '@fontsource/press-start-2p/latin-400.css';
 
 import { createObservableAnalyticsAdapter } from './app/analyticsEvents';
 import { setPlatformRuntime } from './app/runtime';
+import { detectPreferredRuntimeArtFormat, setRuntimeArtFormat } from './app/runtimeArtFormat';
 import { StartupPreloadController, createStartupPreloadDomView } from './app/startupPreload';
 import {
   resolveGameCssSize,
@@ -34,6 +35,7 @@ const VIEWPORT_WATCHDOG_MS = 500;
 
 const startupPreload = new StartupPreloadController(createStartupPreloadDomView());
 startupPreload.begin();
+const runtimeArtFormatReady = detectPreferredRuntimeArtFormat();
 
 const readOrientationMediaPortrait = (): boolean | null => {
   if (typeof window.matchMedia !== 'function') return null;
@@ -100,7 +102,12 @@ const boot = async (): Promise<void> => {
   const removeDebugPanel = createDebugPanel(platform);
   const audio = getGameAudio();
   const settings = await loadSettingsSafe(platform.storage);
-  await Promise.all([audio.preloadSamples(getRuntimeSfxAssets()), preloadAccentFont()]);
+  const [runtimeArtFormat] = await Promise.all([
+    runtimeArtFormatReady,
+    audio.preloadSamples(getRuntimeSfxAssets()),
+    preloadAccentFont(),
+  ]);
+  setRuntimeArtFormat(runtimeArtFormat);
   audio.setMuted(settings.muted);
 
   document.documentElement.lang = platform.language;

@@ -7,6 +7,7 @@ import {
   getStartupArtExperimentConfig,
   prepareStartupArtRequest,
 } from '../../app/startupArtDiagnostics';
+import { resolveRuntimeArtRequestPath } from '../../app/runtimeArtFormat';
 import { markStartupPhase } from '../../app/startupPerformance';
 import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
 import { GAME_REGISTRY } from '../data/collectibles';
@@ -59,7 +60,8 @@ export class BootScene extends Phaser.Scene {
     const queueImage = (textureKey: string, assetPath: string): void => {
       if (queuedTextureKeys.has(textureKey)) return;
       queuedTextureKeys.add(textureKey);
-      const requestPath = prepareStartupArtRequest(textureKey, assetPath);
+      const selectedPath = resolveRuntimeArtRequestPath(assetPath);
+      const requestPath = prepareStartupArtRequest(textureKey, selectedPath);
       this.load.image(textureKey, requestPath);
     };
 

@@ -1,3 +1,5 @@
+import { getRuntimeArtFormat, type RuntimeArtFormat } from './runtimeArtFormat';
+
 const ART_CONCURRENCY_PARAM = 'artConcurrency';
 const ART_RUN_PARAM = 'artRun';
 const SLOWEST_ASSET_LIMIT = 8;
@@ -20,6 +22,7 @@ export interface StartupArtSlowAsset {
 }
 
 export interface StartupArtDiagnosticsSnapshot {
+  runtimeArtFormat: RuntimeArtFormat;
   loaderMaxParallelDownloads: number | undefined;
   concurrencyOverride: StartupArtConcurrency | undefined;
   cacheBustEnabled: boolean;
@@ -218,6 +221,7 @@ const makeSnapshot = (
     .slice(0, SLOWEST_ASSET_LIMIT);
 
   return {
+    runtimeArtFormat: getRuntimeArtFormat(),
     loaderMaxParallelDownloads: activeSession.loaderMaxParallelDownloads,
     concurrencyOverride: activeSession.config.concurrencyOverride,
     cacheBustEnabled: activeSession.config.cacheBustToken !== undefined,
