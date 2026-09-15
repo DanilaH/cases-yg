@@ -147,33 +147,27 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     body.append(button);
   };
 
-  const addCopyJsonButton = (): void => {
+  const addCopyStartupDiagnosticsButton = (): void => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = 'Copy JSON';
+    button.textContent = 'Copy startup JSON';
     button.addEventListener('click', () => {
-      const value = status.textContent ?? '';
-      try {
-        JSON.parse(value);
-      } catch {
-        button.textContent = 'No JSON';
-        window.setTimeout(() => {
-          button.textContent = 'Copy JSON';
-        }, 900);
-        return;
-      }
+      const payload = JSON.stringify({
+        startupTiming: getStartupPerformanceSnapshot(),
+        startupArt: getStartupArtDiagnosticsSnapshot() ?? null,
+      });
 
-      void copyTextToClipboard(value)
+      void copyTextToClipboard(payload)
         .then(() => {
-          button.textContent = 'Copied';
+          button.textContent = 'Copied timing + art';
         })
         .catch(() => {
           button.textContent = 'Copy failed';
         })
         .finally(() => {
           window.setTimeout(() => {
-            button.textContent = 'Copy JSON';
-          }, 900);
+            button.textContent = 'Copy startup JSON';
+          }, 1200);
         });
     });
     body.append(button);
@@ -212,7 +206,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addLabel('Diagnostics');
   addButton('Startup timing', async () => getStartupPerformanceSnapshot());
   addButton('Startup art', async () => getStartupArtDiagnosticsSnapshot());
-  addCopyJsonButton();
+  addCopyStartupDiagnosticsButton();
 
   addLabel('Art loader A/B');
   addButton('Cold default', () => runColdArtProbe(undefined));
