@@ -1,0 +1,791 @@
+{
+  "version": 1,
+  "alphaThreshold": 8,
+  "gutter": 4,
+  "frames": {
+    "assets/collectibles/camera-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 125,
+      "width": 680,
+      "height": 518
+    },
+    "assets/collectibles/camera-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 126,
+      "width": 680,
+      "height": 517
+    },
+    "assets/collectibles/camera-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 126,
+      "width": 680,
+      "height": 517
+    },
+    "assets/collectibles/camera-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 126,
+      "width": 680,
+      "height": 517
+    },
+    "assets/collectibles/camera-secret-cosmic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 126,
+      "width": 680,
+      "height": 517
+    },
+    "assets/collectibles/cassette-player-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 70,
+      "width": 680,
+      "height": 628
+    },
+    "assets/collectibles/cassette-player-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 191,
+      "y": 44,
+      "width": 387,
+      "height": 680
+    },
+    "assets/collectibles/cassette-player-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 113,
+      "width": 680,
+      "height": 543
+    },
+    "assets/collectibles/cassette-player-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 45,
+      "y": 44,
+      "width": 678,
+      "height": 680
+    },
+    "assets/collectibles/cassette-player-secret-remote.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 94,
+      "width": 680,
+      "height": 580
+    },
+    "assets/collectibles/crt-tv-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 46,
+      "width": 680,
+      "height": 677
+    },
+    "assets/collectibles/crt-tv-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 118,
+      "width": 680,
+      "height": 533
+    },
+    "assets/collectibles/crt-tv-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 80,
+      "y": 44,
+      "width": 608,
+      "height": 680
+    },
+    "assets/collectibles/crt-tv-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 47,
+      "width": 680,
+      "height": 674
+    },
+    "assets/collectibles/crt-tv-secret-communicator.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 48,
+      "width": 680,
+      "height": 672
+    },
+    "assets/collectibles/flip-phone-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 216,
+      "y": 44,
+      "width": 336,
+      "height": 680
+    },
+    "assets/collectibles/flip-phone-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 205,
+      "y": 44,
+      "width": 358,
+      "height": 680
+    },
+    "assets/collectibles/flip-phone-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 218,
+      "y": 44,
+      "width": 332,
+      "height": 680
+    },
+    "assets/collectibles/flip-phone-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 208,
+      "y": 44,
+      "width": 352,
+      "height": 680
+    },
+    "assets/collectibles/flip-phone-secret-noir.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 219,
+      "y": 44,
+      "width": 330,
+      "height": 680
+    },
+    "assets/collectibles/handheld-console-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 122,
+      "y": 44,
+      "width": 524,
+      "height": 680
+    },
+    "assets/collectibles/handheld-console-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 175,
+      "width": 680,
+      "height": 419
+    },
+    "assets/collectibles/handheld-console-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 65,
+      "width": 680,
+      "height": 638
+    },
+    "assets/collectibles/handheld-console-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 131,
+      "y": 44,
+      "width": 506,
+      "height": 680
+    },
+    "assets/collectibles/handheld-console-secret-phone.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 130,
+      "width": 680,
+      "height": 508
+    },
+    "assets/collectibles/home-console-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 47,
+      "width": 680,
+      "height": 674
+    },
+    "assets/collectibles/home-console-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 52,
+      "width": 680,
+      "height": 665
+    },
+    "assets/collectibles/home-console-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 46,
+      "width": 680,
+      "height": 676
+    },
+    "assets/collectibles/home-console-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 44,
+      "width": 680,
+      "height": 680
+    },
+    "assets/collectibles/home-console-secret-noir.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 51,
+      "width": 680,
+      "height": 666
+    },
+    "assets/collectibles/mini-camcorder-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 128,
+      "width": 680,
+      "height": 512
+    },
+    "assets/collectibles/mini-camcorder-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 133,
+      "width": 680,
+      "height": 503
+    },
+    "assets/collectibles/mini-camcorder-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 125,
+      "width": 680,
+      "height": 518
+    },
+    "assets/collectibles/mini-camcorder-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 83,
+      "width": 680,
+      "height": 602
+    },
+    "assets/collectibles/mini-camcorder-secret-prototype.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 83,
+      "width": 680,
+      "height": 602
+    },
+    "assets/collectibles/mp3-player-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 156,
+      "y": 44,
+      "width": 457,
+      "height": 680
+    },
+    "assets/collectibles/mp3-player-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 74,
+      "y": 44,
+      "width": 621,
+      "height": 680
+    },
+    "assets/collectibles/mp3-player-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 122,
+      "y": 44,
+      "width": 524,
+      "height": 680
+    },
+    "assets/collectibles/mp3-player-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 56,
+      "y": 44,
+      "width": 656,
+      "height": 680
+    },
+    "assets/collectibles/mp3-player-secret-pearl.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 55,
+      "y": 44,
+      "width": 659,
+      "height": 680
+    },
+    "assets/collectibles/pager-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 111,
+      "width": 680,
+      "height": 547
+    },
+    "assets/collectibles/pager-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 121,
+      "width": 680,
+      "height": 526
+    },
+    "assets/collectibles/pager-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 67,
+      "width": 680,
+      "height": 635
+    },
+    "assets/collectibles/pager-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 87,
+      "y": 44,
+      "width": 595,
+      "height": 680
+    },
+    "assets/collectibles/pager-secret-flip.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 54,
+      "width": 680,
+      "height": 659
+    },
+    "assets/collectibles/pda-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 120,
+      "y": 44,
+      "width": 529,
+      "height": 680
+    },
+    "assets/collectibles/pda-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 110,
+      "y": 44,
+      "width": 548,
+      "height": 680
+    },
+    "assets/collectibles/pda-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 101,
+      "y": 44,
+      "width": 566,
+      "height": 680
+    },
+    "assets/collectibles/pda-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 104,
+      "y": 44,
+      "width": 560,
+      "height": 680
+    },
+    "assets/collectibles/pda-secret-flip.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 106,
+      "y": 44,
+      "width": 556,
+      "height": 680
+    },
+    "assets/collectibles/portable-disc-player-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 85,
+      "width": 680,
+      "height": 599
+    },
+    "assets/collectibles/portable-disc-player-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 87,
+      "width": 680,
+      "height": 594
+    },
+    "assets/collectibles/portable-disc-player-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 79,
+      "width": 680,
+      "height": 610
+    },
+    "assets/collectibles/portable-disc-player-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 72,
+      "width": 680,
+      "height": 624
+    },
+    "assets/collectibles/portable-disc-player-secret-remote.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 68,
+      "width": 680,
+      "height": 632
+    },
+    "assets/collectibles/portable-radio-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 131,
+      "y": 44,
+      "width": 505,
+      "height": 680
+    },
+    "assets/collectibles/portable-radio-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 70,
+      "width": 680,
+      "height": 627
+    },
+    "assets/collectibles/portable-radio-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 44,
+      "y": 87,
+      "width": 680,
+      "height": 594
+    },
+    "assets/collectibles/portable-radio-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 95,
+      "y": 44,
+      "width": 578,
+      "height": 680
+    },
+    "assets/collectibles/portable-radio-secret-shortwave.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 58,
+      "y": 44,
+      "width": 651,
+      "height": 680
+    },
+    "assets/collectibles/walkie-talkie-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 225,
+      "y": 44,
+      "width": 318,
+      "height": 680
+    },
+    "assets/collectibles/walkie-talkie-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 134,
+      "y": 44,
+      "width": 499,
+      "height": 680
+    },
+    "assets/collectibles/walkie-talkie-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 203,
+      "y": 44,
+      "width": 361,
+      "height": 680
+    },
+    "assets/collectibles/walkie-talkie-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 255,
+      "y": 44,
+      "width": 258,
+      "height": 680
+    },
+    "assets/collectibles/walkie-talkie-secret-field-radio.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 83,
+      "y": 44,
+      "width": 601,
+      "height": 680
+    },
+    "assets/collectibles/webcam-common.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 134,
+      "y": 44,
+      "width": 500,
+      "height": 680
+    },
+    "assets/collectibles/webcam-epic.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 133,
+      "y": 44,
+      "width": 503,
+      "height": 680
+    },
+    "assets/collectibles/webcam-legendary.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 131,
+      "y": 44,
+      "width": 506,
+      "height": 680
+    },
+    "assets/collectibles/webcam-rare.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 50,
+      "y": 44,
+      "width": 669,
+      "height": 680
+    },
+    "assets/collectibles/webcam-secret-stereo.webp": {
+      "logicalWidth": 768,
+      "logicalHeight": 768,
+      "x": 105,
+      "y": 44,
+      "width": 558,
+      "height": 680
+    },
+    "assets/package/airwaves-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/airwaves-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 6,
+      "width": 178,
+      "height": 169
+    },
+    "assets/package/airwaves-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 816,
+      "height": 848
+    },
+    "assets/package/airwaves-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 6,
+      "width": 178,
+      "height": 168
+    },
+    "assets/package/analog-nights-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 847
+    },
+    "assets/package/analog-nights-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/analog-nights-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/analog-nights-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 21,
+      "width": 817,
+      "height": 847
+    },
+    "assets/package/charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/game-zone-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/game-zone-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/game-zone-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 816,
+      "height": 848
+    },
+    "assets/package/game-zone-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/pocket-audio-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 816,
+      "height": 848
+    },
+    "assets/package/pocket-audio-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/pocket-audio-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 816,
+      "height": 848
+    },
+    "assets/package/pocket-audio-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/pocket-office-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/pocket-office-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/pocket-office-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/pocket-office-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 62,
+      "y": 36,
+      "width": 772,
+      "height": 811
+    },
+    "assets/package/pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 21,
+      "y": 7,
+      "width": 172,
+      "height": 167
+    },
+    "assets/package/video-link-basic-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 817,
+      "height": 848
+    },
+    "assets/package/video-link-basic-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    },
+    "assets/package/video-link-charged-pouch-body.webp": {
+      "logicalWidth": 896,
+      "logicalHeight": 896,
+      "x": 55,
+      "y": 20,
+      "width": 816,
+      "height": 848
+    },
+    "assets/package/video-link-charged-pouch-star-tab.webp": {
+      "logicalWidth": 640,
+      "logicalHeight": 640,
+      "x": 16,
+      "y": 5,
+      "width": 178,
+      "height": 171
+    }
+  }
+}
