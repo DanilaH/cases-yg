@@ -111,7 +111,7 @@ jobs:
               const webp = requests.filter((url) => url.startsWith(variant.url) && url.includes('/assets/') && url.endsWith('.webp'));
               if (webp.length !== 115) throw new Error(`${variant.name}: expected 115 runtime WebP requests, saw ${webp.length}`);
 
-              await page.getByRole('button', { name: 'Startup timing' }).click();
+              await page.getByRole('button', { name: 'Startup timing', exact: true }).click();
               await page.waitForFunction(() => document.querySelector('.mpt-debug-panel [data-status]')?.textContent?.includes('platformToArtMs'));
               const timing = JSON.parse(await page.locator('.mpt-debug-panel [data-status]').textContent());
               samples.push({ attempt, platformToArtMs: timing.platformToArtMs, moduleToReadyMs: timing.moduleToReadyMs });
@@ -123,10 +123,16 @@ jobs:
           const captureScenario = async (browser, variant, buttonName, slug) => {
             const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block' });
             const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
             await page.goto(variant.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
             await page.waitForFunction(() => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden', { timeout: 60_000 });
-            await page.getByRole('button', { name: buttonName }).click();
-            await page.waitForTimeout(1500);
+            await page.getByRole('button', { name: buttonName, exact: true }).click();
+            // Reveal/debug scenarios contain deliberate transition animation. Capture only
+            // after both variants have had enough time to settle on the final result,
+            // otherwise a faster candidate can be compared to a baseline mid-transition.
+            await page.waitForTimeout(8000);
+            if (pageErrors.length) throw new Error(`${variant.name}/${slug} page errors: ${pageErrors.join(' | ')}`);
             await page.screenshot({ path: `/tmp/visual-evidence/${variant.name}-${slug}.png`, fullPage: true });
             await context.close();
           };
