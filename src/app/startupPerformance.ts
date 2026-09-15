@@ -8,15 +8,15 @@ export type StartupPhase =
   | 'gameReady';
 
 export interface StartupPerformanceSnapshot {
-  moduleToPlatformMs?: number;
-  platformToSaveMs?: number;
-  saveToArtMs?: number;
-  artToReadyMs?: number;
-  moduleToReadyMs?: number;
+  moduleToPlatformMs: number | undefined;
+  platformToSaveMs: number | undefined;
+  saveToArtMs: number | undefined;
+  artToReadyMs: number | undefined;
+  moduleToReadyMs: number | undefined;
 }
 
 type StartupDebugWindow = Window & {
-  __SIGNAL_STARTUP_PERF__?: Readonly<Record<StartupPhase | 'moduleStart', number>>;
+  __SIGNAL_STARTUP_PERF__?: Readonly<Partial<Record<StartupPhase | 'moduleStart', number>>>;
 };
 
 const debugEnabled = (): boolean =>
