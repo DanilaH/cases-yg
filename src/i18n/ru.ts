@@ -1,6 +1,6 @@
 export const ru = {
-  appTitle: 'Сигнал 2000',
-  gameCanvasLabel: 'Игровое поле «Сигнал 2000»',
+  appTitle: 'Signal 2000',
+  gameCanvasLabel: 'Игровое поле Signal 2000',
   rotateDevice: 'Поверните устройство горизонтально',
   startup: {
     heading: 'ПОДГОТОВКА НАБОРА',
