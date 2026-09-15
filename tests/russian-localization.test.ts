@@ -11,10 +11,13 @@ const flattenStrings = (value: unknown): string[] => {
 };
 
 const forbiddenGameplayEnglish = /\b(?:DROP|SIGNAL|CHIPS|OVERCHARGE|CHARGED|POUCH|REWARD|READY|LOCK|SECRET|COMMON|RARE|EPIC|LEGENDARY)\b|Y2K Essentials|Mystery Pocket Tech/i;
+const stripAllowedProperNames = (text: string): string => text.replaceAll('Signal 2000', '');
 
 describe('Russian moderation localization', () => {
   it('keeps the Russian message catalog free of gameplay-significant English labels', () => {
-    const violations = flattenStrings(ru).filter((text) => forbiddenGameplayEnglish.test(text));
+    const violations = flattenStrings(ru)
+      .map(stripAllowedProperNames)
+      .filter((text) => forbiddenGameplayEnglish.test(text));
     expect(violations).toEqual([]);
   });
 
