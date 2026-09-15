@@ -27,7 +27,8 @@ describe('startup asset staging', () => {
 
     expect(source).toContain('getRuntimeStaticArt()');
     expect(source).toContain('getRuntimeCollectibleArt(GAME_REGISTRY)');
-    expect(source).toContain('prepareStartupArtRequest(textureKey, assetPath)');
+    expect(source).toContain('resolveRuntimeArtRequestPath(assetPath)');
+    expect(source).toContain('prepareStartupArtRequest(textureKey, selectedPath)');
     expect(source).toContain('this.load.image(textureKey, requestPath)');
     expect(source).not.toContain('ensureLootPoolArt');
     expect(source).not.toContain('installBackgroundAssetWarmup');
