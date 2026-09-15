@@ -373,66 +373,6 @@
       "family": "pager",
       "source": "assets-src/raw/pager/secret-flip.png",
       "output": "public/assets/collectibles/pager-secret-flip.webp"
-    },
-    {
-      "id": "portable-radio-common",
-      "family": "portable-radio",
-      "source": "assets-src/raw/portable-radio/common.png",
-      "output": "public/assets/collectibles/portable-radio-common.webp"
-    },
-    {
-      "id": "portable-radio-rare",
-      "family": "portable-radio",
-      "source": "assets-src/raw/portable-radio/rare.png",
-      "output": "public/assets/collectibles/portable-radio-rare.webp"
-    },
-    {
-      "id": "portable-radio-epic",
-      "family": "portable-radio",
-      "source": "assets-src/raw/portable-radio/epic.png",
-      "output": "public/assets/collectibles/portable-radio-epic.webp"
-    },
-    {
-      "id": "portable-radio-legendary",
-      "family": "portable-radio",
-      "source": "assets-src/raw/portable-radio/legendary.png",
-      "output": "public/assets/collectibles/portable-radio-legendary.webp"
-    },
-    {
-      "id": "portable-radio-secret-shortwave",
-      "family": "portable-radio",
-      "source": "assets-src/raw/portable-radio/secret-shortwave.png",
-      "output": "public/assets/collectibles/portable-radio-secret-shortwave.webp"
-    },
-    {
-      "id": "walkie-talkie-common",
-      "family": "walkie-talkie",
-      "source": "assets-src/raw/walkie-talkie/common.png",
-      "output": "public/assets/collectibles/walkie-talkie-common.webp"
-    },
-    {
-      "id": "walkie-talkie-rare",
-      "family": "walkie-talkie",
-      "source": "assets-src/raw/walkie-talkie/rare.png",
-      "output": "public/assets/collectibles/walkie-talkie-rare.webp"
-    },
-    {
-      "id": "walkie-talkie-epic",
-      "family": "walkie-talkie",
-      "source": "assets-src/raw/walkie-talkie/epic.png",
-      "output": "public/assets/collectibles/walkie-talkie-epic.webp"
-    },
-    {
-      "id": "walkie-talkie-legendary",
-      "family": "walkie-talkie",
-      "source": "assets-src/raw/walkie-talkie/legendary.png",
-      "output": "public/assets/collectibles/walkie-talkie-legendary.webp"
-    },
-    {
-      "id": "walkie-talkie-secret-field-radio",
-      "family": "walkie-talkie",
-      "source": "assets-src/raw/walkie-talkie/secret-field-radio.png",
-      "output": "public/assets/collectibles/walkie-talkie-secret-field-radio.webp"
     }
   ]
 }
