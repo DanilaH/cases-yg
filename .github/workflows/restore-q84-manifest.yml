@@ -1,0 +1,46 @@
+name: Restore canonical q84 manifest
+
+on:
+  push:
+    branches:
+      - perf/runtime-webp-q84
+    paths:
+      - .github/workflows/restore-q84-manifest.yml
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: perf/runtime-webp-q84
+          fetch-depth: 1
+
+      - name: Restore canonical manifest from main and change only quality
+        run: |
+          git fetch origin main --depth=1
+          git show FETCH_HEAD:assets-src/collectibles.manifest.json > assets-src/collectibles.manifest.json
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('assets-src/collectibles.manifest.json')
+          source = path.read_text()
+          old = '"webpQuality": 88'
+          new = '"webpQuality": 84'
+          if source.count(old) != 1:
+              raise SystemExit(f'expected one webpQuality seam, found {source.count(old)}')
+          path.write_text(source.replace(old, new, 1))
+          PY
+
+      - name: Remove one-off workflow and commit
+        run: |
+          rm .github/workflows/restore-q84-manifest.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets-src/collectibles.manifest.json .github/workflows/restore-q84-manifest.yml
+          git commit -m "Restore canonical q84 collectible manifest"
+          git push origin HEAD:perf/runtime-webp-q84
