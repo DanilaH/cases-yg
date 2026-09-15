@@ -1545,7 +1545,7 @@ export class OpeningScene extends Phaser.Scene {
       stroke: '#160f20',
       strokeThickness: 2,
       fontFamily: DIGITAL_FONT_FAMILY,
-      fontSize: chrome.compact ? '19px' : lockReady ? '8px' : '9px',
+      fontSize: chrome.compact ? (lockReady ? '13px' : '19px') : lockReady ? '8px' : '9px',
     });
     const value = this.add.text(width - 14, chrome.compact ? 11 : 7, `${clamped}/${threshold}`, {
       color: '#f7fdff',
