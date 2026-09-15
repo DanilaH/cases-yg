@@ -401,6 +401,14 @@ export const OPENING_FEEL_PRESENTATION = {
   dropSelectorArrowHitWidth: 68,
   dropSelectorSwipeThreshold: 34,
   dropSelectorSwitchMs: 120,
+  dropPreviewPouchOffsetX: 16,
+  dropPreviewPanelOffsetX: 10,
+  dropPreviewEntryScale: 0.985,
+  dropPreviewEntryAlpha: 0.74,
+  pouchSwapEntryOffsetY: 8,
+  pouchSwapEntryScale: 0.975,
+  pouchSwapEntryAlpha: 0.68,
+  pouchSwapEntryMs: 155,
   dropSelectorDotSize: 4,
   dropSelectorDotActiveWidth: 16,
   dropSelectorDotHeight: 4,
@@ -472,6 +480,19 @@ export const getRewardTrayHeight = (contentHeight: number): number =>
     OPENING_FEEL_PRESENTATION.rewardTrayMinHeight,
     Math.ceil(contentHeight / OPENING_FEEL_PRESENTATION.rewardTrayHeightStep) * OPENING_FEEL_PRESENTATION.rewardTrayHeightStep,
   );
+
+export const COLLECTION_FEEL_PRESENTATION = {
+  contentViewEntryMs: 140,
+  contentDropEntryMs: 160,
+  contentDropEntryOffsetX: 16,
+  contentViewEntryOffsetY: 5,
+  contentEntryAlpha: 0.72,
+  controlHoverScale: 1.025,
+  controlPressScale: 0.96,
+  controlPressMs: 60,
+  controlReleaseMs: 90,
+  returnHandoffMs: 60,
+} as const;
 
 export const RESULT_PRESENTATION = {
   // Keep the lower result card visually grounded near the bottom action line.

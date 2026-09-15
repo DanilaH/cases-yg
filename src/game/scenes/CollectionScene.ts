@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
 import { staticTextureKey } from '../data/artAssets';
+import { COLLECTION_FEEL_PRESENTATION } from '../data/presentation';
 import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GadgetFamilyDefinition, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
 import { getGameAudio } from '../systems/audio';
 import { ensureCollectionArt, ensureLootPoolCollectibleArt } from '../systems/artLoading';
@@ -25,6 +26,7 @@ const FAMILIES_PER_PAGE = 2;
 const RARITIES: readonly StandardRarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 type CollectionView = 'shelf' | 'library';
+type CollectionEntryMotion = 'none' | 'view' | 'next' | 'previous';
 
 export class CollectionScene extends Phaser.Scene {
   private root: Phaser.GameObjects.Container | null = null;
@@ -34,6 +36,7 @@ export class CollectionScene extends Phaser.Scene {
   private view: CollectionView = 'shelf';
   private page = 0;
   private dropBrowseInFlight = false;
+  private pendingEntryMotion: CollectionEntryMotion = 'none';
 
   public constructor() {
     super('CollectionScene');
@@ -110,11 +113,14 @@ export class CollectionScene extends Phaser.Scene {
     const metrics = this.metrics!;
     const messages = getMessages(getPlatformRuntime().language);
 
+    const content = this.add.container(0, 0);
+    root.add(content);
     if (this.view === 'shelf') {
-      this.renderShelf(root);
+      this.renderShelf(content);
     } else {
-      this.renderLibrary(root);
+      this.renderLibrary(content);
     }
+    this.animateContentEntry(content);
 
     if (this.view === 'shelf') {
       addCoverArt(
@@ -182,7 +188,19 @@ export class CollectionScene extends Phaser.Scene {
       })
       .setOrigin(0, 1)
       .setInteractive({ useHandCursor: true });
+    back.on('pointerover', () => {
+      this.tweens.killTweensOf(back);
+      this.tweens.add({ targets: back, scale: COLLECTION_FEEL_PRESENTATION.controlHoverScale, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
+    });
+    back.on('pointerout', () => {
+      this.tweens.killTweensOf(back);
+      this.tweens.add({ targets: back, scale: 1, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
+    });
     back.on('pointerdown', () => {
+      this.tweens.killTweensOf(back);
+      this.tweens.add({ targets: back, scale: COLLECTION_FEEL_PRESENTATION.controlPressScale, duration: COLLECTION_FEEL_PRESENTATION.controlPressMs, ease: 'Sine.Out' });
+    });
+    back.on('pointerup', () => {
       getGameAudio().play('ui-click');
       back.disableInteractive().setAlpha(0.65);
       const lootPoolId = this.selectedLootPoolId();
@@ -191,11 +209,40 @@ export class CollectionScene extends Phaser.Scene {
         lootPoolId,
         standardCount: this.selectedPoolProgress().standardCount,
       });
-      // Collection browsing is local. OpeningSession owns the durable switch.
-      // Defer scene replacement until the current pointer dispatch has completed.
-      this.time.delayedCall(0, () => this.scene.start('OpeningScene', { lootPoolId }));
+      this.tweens.killTweensOf(back);
+      this.tweens.add({ targets: back, scale: 1, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
+      this.time.delayedCall(COLLECTION_FEEL_PRESENTATION.returnHandoffMs, () => {
+        this.scene.start('OpeningScene', { lootPoolId });
+      });
     });
     root.add(back);
+  }
+
+  private animateContentEntry(content: Phaser.GameObjects.Container): void {
+    const motion = this.pendingEntryMotion;
+    this.pendingEntryMotion = 'none';
+    if (motion === 'none') return;
+
+    const directional = motion === 'next' || motion === 'previous';
+    const offsetX = motion === 'next'
+      ? COLLECTION_FEEL_PRESENTATION.contentDropEntryOffsetX
+      : motion === 'previous'
+        ? -COLLECTION_FEEL_PRESENTATION.contentDropEntryOffsetX
+        : 0;
+    const offsetY = motion === 'view' ? COLLECTION_FEEL_PRESENTATION.contentViewEntryOffsetY : 0;
+    content
+      .setPosition(offsetX, offsetY)
+      .setAlpha(COLLECTION_FEEL_PRESENTATION.contentEntryAlpha);
+    this.tweens.add({
+      targets: content,
+      x: 0,
+      y: 0,
+      alpha: 1,
+      duration: directional
+        ? COLLECTION_FEEL_PRESENTATION.contentDropEntryMs
+        : COLLECTION_FEEL_PRESENTATION.contentViewEntryMs,
+      ease: 'Cubic.Out',
+    });
   }
 
   private createTab(
@@ -254,6 +301,7 @@ export class CollectionScene extends Phaser.Scene {
       }
       getGameAudio().play('ui-click');
       this.view = view;
+      this.pendingEntryMotion = 'view';
       getPlatformRuntime().analytics.track('collection_view_changed', {
         view,
         lootPoolId: this.selectedLootPoolId(),
@@ -278,15 +326,29 @@ export class CollectionScene extends Phaser.Scene {
       })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
+    button.on('pointerover', () => {
+      this.tweens.killTweensOf(button);
+      this.tweens.add({ targets: button, scale: COLLECTION_FEEL_PRESENTATION.controlHoverScale, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
+    });
+    button.on('pointerout', () => {
+      this.tweens.killTweensOf(button);
+      this.tweens.add({ targets: button, scale: 1, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
+    });
+    button.on('pointerdown', () => {
+      this.tweens.killTweensOf(button);
+      this.tweens.add({ targets: button, scale: COLLECTION_FEEL_PRESENTATION.controlPressScale, duration: COLLECTION_FEEL_PRESENTATION.controlPressMs, ease: 'Sine.Out' });
+    });
     button.on('pointerup', () => {
       const wasMuted = audio.isMuted();
       if (!wasMuted) audio.play('ui-click');
       const muted = audio.toggleMuted();
       if (wasMuted && !muted) audio.play('ui-click');
+      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);
+      this.tweens.killTweensOf(button);
+      this.tweens.add({ targets: button, scale: 1, duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs, ease: 'Sine.Out' });
       void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {
         console.warn('[settings] failed to persist mute preference', error);
       });
-      this.render();
     });
     root.add(button);
   }
@@ -646,6 +708,7 @@ export class CollectionScene extends Phaser.Scene {
     }
     this.page = nextPage;
     this.dropBrowseInFlight = false;
+    this.pendingEntryMotion = direction > 0 ? 'next' : 'previous';
     getPlatformRuntime().analytics.track('collection_drop_browsed', {
       lootPoolId: nextPoolId,
       view: this.view,
