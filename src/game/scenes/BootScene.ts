@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
+import {
+  beginStartupArtDiagnostics,
+  finalizeStartupArtDiagnostics,
+  getStartupArtExperimentConfig,
+  prepareStartupArtRequest,
+} from '../../app/startupArtDiagnostics';
 import { markStartupPhase } from '../../app/startupPerformance';
 import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
 import { GAME_REGISTRY } from '../data/collectibles';
@@ -39,11 +45,22 @@ export class BootScene extends Phaser.Scene {
       },
     );
 
+    // Phaser lowers its Loader parallelism on Android by default. Debug Pages can
+    // override that value explicitly for a controlled same-device A/B; ordinary
+    // builds and debug runs without the query parameter retain Phaser's resolved
+    // platform default unchanged.
+    const artExperiment = getStartupArtExperimentConfig();
+    if (artExperiment.concurrencyOverride !== undefined) {
+      this.load.maxParallelDownloads = artExperiment.concurrencyOverride;
+    }
+    beginStartupArtDiagnostics(this.load.maxParallelDownloads, artExperiment);
+
     const queuedTextureKeys = new Set<string>();
     const queueImage = (textureKey: string, assetPath: string): void => {
       if (queuedTextureKeys.has(textureKey)) return;
       queuedTextureKeys.add(textureKey);
-      this.load.image(textureKey, assetPath);
+      const requestPath = prepareStartupArtRequest(textureKey, assetPath);
+      this.load.image(textureKey, requestPath);
     };
 
     // Product contract: once Game Ready is emitted there are no in-game image
@@ -58,9 +75,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   public create(): void {
-    // Phaser preload has fully settled before create(). Record the real art wall
-    // independently from save reconciliation so startup telemetry can show which
-    // side of the overlap actually owns the critical path.
+    // Phaser preload has fully settled before create(). Capture Resource Timing at
+    // this boundary, then record the existing coarse startup mark. The diagnostic
+    // snapshot is debug evidence only and never owns loader/gameplay behavior.
+    finalizeStartupArtDiagnostics();
     markStartupPhase('bootArtSettled');
 
     // Some runtime files are physically cropped to alpha bounds, but all scene
