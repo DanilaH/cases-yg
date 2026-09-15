@@ -1,0 +1,36 @@
+name: AVIF quality audit
+
+on:
+  push:
+    branches:
+      - perf/avif-quality-audit
+    paths:
+      - tools/perf/audit-runtime-avif-quality.mjs
+      - .github/workflows/avif-quality-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Audit q55/q60/q65 against production q70
+        run: node tools/perf/audit-runtime-avif-quality.mjs
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: avif-quality-audit
+          path: |
+            /tmp/avif-quality-audit/summary.json
+            /tmp/avif-quality-audit/assets.csv
+            /tmp/avif-quality-audit/contact-q55.png
+            /tmp/avif-quality-audit/contact-q60.png
+            /tmp/avif-quality-audit/contact-q65.png
