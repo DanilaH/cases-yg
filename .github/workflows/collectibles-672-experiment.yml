@@ -1,0 +1,51 @@
+name: Collectibles 672 experiment
+
+on:
+  push:
+    branches:
+      - experiment/collectibles-672
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout experiment branch
+        uses: actions/checkout@v6
+        with:
+          ref: experiment/collectibles-672
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resize collectible runtime art
+        run: node tools/assets/resize-collectibles-672.mjs
+
+      - name: Commit generated candidate when changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/collectibles assets-src/collectibles.manifest.json src/game/data/artTrim.generated.json
+          if git diff --cached --quiet; then
+            echo "Collectible candidate is already current."
+            exit 0
+          fi
+          git commit -m "Generate 672px collectible candidate"
+          git push origin HEAD:experiment/collectibles-672
+
+      - name: Project gate
+        run: |
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
