@@ -28,7 +28,7 @@ export class BootScene extends Phaser.Scene {
     // Phaser's loader completes. Capture rejection immediately: waiting until
     // create() to attach a handler could otherwise surface an unhandled rejection
     // during a long image preload.
-    this.initialSaveResult = new SaveRepository(platform.storage).load().then<InitialSaveResult>(
+    this.initialSaveResult = new SaveRepository(platform.storage).load().then<InitialSaveResult, InitialSaveResult>(
       (state) => {
         markStartupPhase('bootSaveSettled');
         return { ok: true, state };
