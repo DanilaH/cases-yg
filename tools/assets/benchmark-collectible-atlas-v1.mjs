@@ -147,15 +147,20 @@ for (let offset = 0, batchIndex = 0; offset < entries.length; offset += BATCH_SI
   }
 
   const pngByName = new Map(pngFiles.map((file) => [file.name, file]));
+  const pngByStem = new Map(pngFiles.map((file) => [path.parse(file.name).name, file]));
   for (const jsonFile of jsonFiles) {
     const atlasData = JSON.parse(jsonFile.buffer.toString('utf8'));
     const imageName = atlasData?.meta?.image;
-    const pngFile = typeof imageName === 'string'
-      ? pngByName.get(imageName)
-      : pngFiles.length === 1
-        ? pngFiles[0]
-        : undefined;
-    if (!pngFile) throw new Error(`Could not pair ${jsonFile.name} with an atlas image`);
+    const jsonStem = path.parse(jsonFile.name).name;
+    const pngFile =
+      (typeof imageName === 'string' ? pngByName.get(imageName) : undefined)
+      ?? pngByStem.get(jsonStem)
+      ?? (pngFiles.length === 1 ? pngFiles[0] : undefined);
+    if (!pngFile) {
+      throw new Error(
+        `Could not pair ${jsonFile.name} with an atlas image; produced PNGs: ${pngFiles.map((file) => file.name).join(', ')}`,
+      );
+    }
 
     const webpBuffer = await sharp(pngFile.buffer).webp(WEBP_OPTIONS).toBuffer();
     const webpMetadata = await sharp(webpBuffer).metadata();
@@ -171,7 +176,6 @@ for (let offset = 0, batchIndex = 0; offset < entries.length; offset += BATCH_SI
     atlas.jsonBytes += jsonFile.buffer.length;
     atlas.pixels += webpMetadata.width * webpMetadata.height;
 
-    const atlasDecoded = await decodeRgba(webpBuffer);
     let sheetFrames = 0;
     for (const [rawFrameName, frameEntry] of normalizeFrames(atlasData)) {
       if (typeof rawFrameName !== 'string' || !frameEntry?.frame) {
