@@ -10,6 +10,7 @@ export type StartupPhase =
 export interface StartupPerformanceSnapshot {
   moduleToPlatformMs: number | undefined;
   platformToSaveMs: number | undefined;
+  platformToArtMs: number | undefined;
   saveToArtMs: number | undefined;
   artToReadyMs: number | undefined;
   moduleToReadyMs: number | undefined;
@@ -55,6 +56,10 @@ const elapsed = (
 export const getStartupPerformanceSnapshot = (): StartupPerformanceSnapshot => ({
   moduleToPlatformMs: elapsed('moduleStart', 'platformBootstrapReady'),
   platformToSaveMs: elapsed('platformBootstrapReady', 'bootSaveSettled'),
+  // Save and art now intentionally overlap. Keep an absolute platform->art wall
+  // alongside the legacy relative intervals so telemetry reveals which side of
+  // the overlap is actually slower on a real Yandex device/network.
+  platformToArtMs: elapsed('platformBootstrapReady', 'bootArtSettled'),
   saveToArtMs: elapsed('bootSaveSettled', 'bootArtSettled'),
   artToReadyMs: elapsed('bootArtSettled', 'gameReady'),
   moduleToReadyMs: elapsed('moduleStart', 'gameReady'),

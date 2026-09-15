@@ -34,6 +34,7 @@ describe('startup performance diagnostics', () => {
     expect(snapshot.moduleToReadyMs).toBeTypeOf('number');
     expect(snapshot.moduleToReadyMs ?? -1).toBeGreaterThanOrEqual(0);
     expect(snapshot.platformToSaveMs ?? -1).toBeGreaterThanOrEqual(0);
+    expect(snapshot.platformToArtMs ?? -1).toBeGreaterThanOrEqual(0);
     expect(snapshot.saveToArtMs ?? -1).toBeGreaterThanOrEqual(0);
     expect(snapshot.artToReadyMs ?? -1).toBeGreaterThanOrEqual(0);
   });
