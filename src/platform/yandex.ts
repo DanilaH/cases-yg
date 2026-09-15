@@ -1,5 +1,6 @@
 import type { SDK } from 'ysdk';
 
+import { markStartupPhase, reportStartupPerformance } from '../app/startupPerformance';
 import { GameplayActivityCoordinator } from './activity';
 import { ConsoleAnalyticsAdapter, createYandexAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
 import { MockAdsAdapter, YandexAdsAdapter, type AdsAdapter } from './ads';
@@ -77,6 +78,7 @@ const createMockPlatform = (): PlatformRuntime => {
     markReady: () => {
       if (readySent) return;
       readySent = true;
+      reportStartupPerformance(analytics, 'mock');
       analytics.track('platform_ready', { platform: 'mock' });
     },
     destroy: removeVisibilityBridge,
@@ -178,6 +180,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
         if (readySent) return;
         readySent = true;
         sdk.features.LoadingAPI?.ready();
+        reportStartupPerformance(analytics, 'yandex');
         analytics.track('platform_ready', { platform: 'yandex' });
       },
       destroy: () => {
@@ -197,5 +200,9 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
 const shouldUseMockPlatform = (): boolean =>
   import.meta.env.DEV || import.meta.env.VITE_PLATFORM_RUNTIME === 'mock';
 
-export const bootstrapPlatform = async (): Promise<PlatformRuntime> =>
-  shouldUseMockPlatform() ? createMockPlatform() : createYandexPlatform();
+export const bootstrapPlatform = async (): Promise<PlatformRuntime> => {
+  markStartupPhase('platformBootstrapStart');
+  const platform = shouldUseMockPlatform() ? createMockPlatform() : await createYandexPlatform();
+  markStartupPhase('platformBootstrapReady');
+  return platform;
+};
