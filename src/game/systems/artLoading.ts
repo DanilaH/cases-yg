@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 
-import { beginRuntimeLoadOverlay } from '../../app/runtimeLoadOverlay';
 import {
   getRuntimeCollectibleArtForLootPool,
   getRuntimeCollectionStaticArt,
@@ -15,10 +14,12 @@ import type { ContentRegistry, LootPoolId } from '../data/collectibles';
 type RuntimeImageArt = Pick<RuntimeCollectibleArt | RuntimeStaticArt, 'textureKey' | 'assetPath'>;
 
 /**
- * Loads only missing reviewed image textures for the current Scene activation.
- * Shutdown settles the Promise and detaches listeners so stale async work never
- * retains a dead Scene. Failed files stay absent from the texture manager and
- * are therefore eligible for retry on the next visit.
+ * Runtime art readiness is an invariant, not a loading path.
+ *
+ * BootScene preloads every reviewed session-critical image before semantic Game
+ * Ready. These helpers intentionally never enqueue or start Phaser Loader work;
+ * they only make missing startup art explicit so the existing confirmed-failure
+ * fallback paths can degrade without introducing an in-game loading state.
  */
 const ensureRuntimeImageArt = async (
   scene: Phaser.Scene,
@@ -27,58 +28,12 @@ const ensureRuntimeImageArt = async (
 ): Promise<void> => {
   if (!scene.sys.isActive()) return;
 
-  const missing = art.filter(({ textureKey }) => !scene.textures.exists(textureKey));
-  if (missing.length === 0) return;
+  const missingKeys = art
+    .filter(({ textureKey }) => !scene.textures.exists(textureKey))
+    .map(({ textureKey }) => textureKey);
 
-  // Opening may already have rendered the user's requested Drop preview before
-  // this async loader begins. Reuse the full authored startup loader so that
-  // transient procedural art can never leak through a dim technical scrim.
-  const releaseOverlay = beginRuntimeLoadOverlay();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const pendingKeys = new Set(missing.map(({ textureKey }) => textureKey));
-      const failedKeys = new Set<string>();
-      let settled = false;
-
-      const cleanup = (): void => {
-        scene.load.off('loaderror', onLoadError);
-        scene.load.off(Phaser.Loader.Events.COMPLETE, onComplete);
-        scene.events.off(Phaser.Scenes.Events.SHUTDOWN, onShutdown);
-      };
-      const finish = (error?: Error): void => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        if (error) reject(error);
-        else resolve();
-      };
-      const onLoadError = (file: Phaser.Loader.File): void => {
-        const key = String(file.key);
-        if (pendingKeys.has(key)) failedKeys.add(key);
-      };
-      const onComplete = (): void => {
-        if (failedKeys.size > 0) {
-          finish(new Error(`Failed to load ${failureLabel}: ${[...failedKeys].join(', ')}`));
-          return;
-        }
-        finish();
-      };
-      const onShutdown = (): void => finish();
-
-      scene.load.on('loaderror', onLoadError);
-      scene.load.once(Phaser.Loader.Events.COMPLETE, onComplete);
-      scene.events.once(Phaser.Scenes.Events.SHUTDOWN, onShutdown);
-      missing.forEach(({ textureKey, assetPath }) => scene.load.image(textureKey, assetPath));
-      scene.load.start();
-    });
-
-    if (scene.sys.isActive()) {
-      // Existing Opening/Collection resize handlers rebuild presentation from the
-      // now-authored texture set. The overlay completes only after this refresh.
-      scene.scale.refresh();
-    }
-  } finally {
-    releaseOverlay();
+  if (missingKeys.length > 0) {
+    throw new Error(`Missing preloaded ${failureLabel}: ${missingKeys.join(', ')}`);
   }
 };
 
