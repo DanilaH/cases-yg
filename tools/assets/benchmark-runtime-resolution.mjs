@@ -63,9 +63,10 @@ const compareVisible = (original, candidate) => {
     const alphaB = candidate.data[offset + 3];
     if (Math.max(alphaA, alphaB) <= ALPHA_THRESHOLD) continue;
     visible += 1;
-    rgbAbs += Math.abs(original.data[offset] - candidate.data[offset]);
-      + Math.abs(original.data[offset + 1] - candidate.data[offset + 1]);
-      + Math.abs(original.data[offset + 2] - candidate.data[offset + 2]);
+    rgbAbs +=
+      Math.abs(original.data[offset] - candidate.data[offset]) +
+      Math.abs(original.data[offset + 1] - candidate.data[offset + 1]) +
+      Math.abs(original.data[offset + 2] - candidate.data[offset + 2]);
     alphaAbs += Math.abs(alphaA - alphaB);
   }
   return {
