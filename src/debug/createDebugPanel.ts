@@ -33,22 +33,41 @@ const writeCollapsedPreference = (collapsed: boolean): void => {
   }
 };
 
+const tryLegacyClipboardCopy = (text: string): boolean => {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.readOnly = true;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-10000px';
+  textarea.style.top = '0';
+  textarea.style.opacity = '0';
+  textarea.style.pointerEvents = 'none';
+  document.body.append(textarea);
+
+  try {
+    textarea.focus({ preventScroll: true });
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+};
+
 const copyTextToClipboard = async (text: string): Promise<void> => {
+  // Try the synchronous selection path first while the click still owns user
+  // activation. Hosted game previews can expose Clipboard API but deny
+  // clipboard-write to the iframe through Permissions Policy.
+  if (tryLegacyClipboardCopy(text)) return;
+
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
     return;
   }
 
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.readOnly = true;
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.append(textarea);
-  textarea.select();
-  const copied = document.execCommand('copy');
-  textarea.remove();
-  if (!copied) throw new Error('Copy failed');
+  throw new Error('Copy failed');
 };
 
 const addDebugChips = (state: SaveState, amount: number): SaveState => {
@@ -151,26 +170,48 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = 'Copy startup JSON';
+
+    const manualOutput = document.createElement('textarea');
+    manualOutput.readOnly = true;
+    manualOutput.hidden = true;
+    manualOutput.setAttribute('aria-label', 'Startup diagnostics JSON');
+    manualOutput.style.width = '100%';
+    manualOutput.style.minHeight = '120px';
+    manualOutput.style.boxSizing = 'border-box';
+    manualOutput.style.fontFamily = 'monospace';
+    manualOutput.style.fontSize = '10px';
+    manualOutput.style.userSelect = 'text';
+    manualOutput.style.touchAction = 'auto';
+
     button.addEventListener('click', () => {
       const payload = JSON.stringify({
         startupTiming: getStartupPerformanceSnapshot(),
         startupArt: getStartupArtDiagnosticsSnapshot() ?? null,
       });
+      manualOutput.value = payload;
+      manualOutput.hidden = true;
 
       void copyTextToClipboard(payload)
         .then(() => {
           button.textContent = 'Copied timing + art';
-        })
-        .catch(() => {
-          button.textContent = 'Copy failed';
-        })
-        .finally(() => {
+          status.textContent = 'Startup JSON copied';
           window.setTimeout(() => {
             button.textContent = 'Copy startup JSON';
           }, 1200);
+        })
+        .catch(() => {
+          // Yandex DRAFT can sandbox the game frame without clipboard-write.
+          // Always expose a selectable manual fallback so diagnostics remain
+          // retrievable even when both Clipboard API and execCommand are blocked.
+          manualOutput.hidden = false;
+          manualOutput.focus({ preventScroll: true });
+          manualOutput.select();
+          manualOutput.setSelectionRange(0, manualOutput.value.length);
+          button.textContent = 'JSON shown below';
+          status.textContent = 'Clipboard blocked — copy selected JSON manually';
         });
     });
-    body.append(button);
+    body.append(button, manualOutput);
   };
 
   const stageAndReload = async (scenario: DebugRevealScenario): Promise<{ scenario: DebugRevealScenario }> => {
