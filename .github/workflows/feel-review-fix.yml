@@ -1,0 +1,67 @@
+name: Apply feel review cleanup
+
+on:
+  push:
+    branches: [feel/post-sep9-polish]
+    paths: [.github/workflows/feel-review-fix.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feel/post-sep9-polish
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Apply review cleanup
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('src/game/scenes/CollectionScene.ts')
+          text = path.read_text()
+
+          replacements = [
+            (
+              "  private dropBrowseInFlight = false;\n  private pendingEntryMotion: CollectionEntryMotion = 'none';",
+              "  private dropBrowseInFlight = false;\n  private pendingEntryMotion: CollectionEntryMotion = 'none';\n  private contentRoot: Phaser.GameObjects.Container | null = null;",
+            ),
+            (
+              "  private createRoot(): Phaser.GameObjects.Container {\n    this.root?.destroy(true);",
+              "  private createRoot(): Phaser.GameObjects.Container {\n    if (this.contentRoot) {\n      this.tweens.killTweensOf(this.contentRoot);\n      this.contentRoot = null;\n    }\n    this.root?.destroy(true);",
+            ),
+            (
+              "    const content = this.add.container(0, 0);\n    root.add(content);",
+              "    const content = this.add.container(0, 0);\n    this.contentRoot = content;\n    root.add(content);",
+            ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run assets:avif:validate
+      - run: npm run build
+      - name: Commit reviewed correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/scenes/CollectionScene.ts
+          git commit -m "Feel: clean interrupted Collection entry tweens"
+          git push origin HEAD:feel/post-sep9-polish
