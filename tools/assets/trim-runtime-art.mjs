@@ -11,7 +11,7 @@ const MIN_PIXEL_SAVING_RATIO = 0.08;
 const MAX_VISIBLE_RGB_MAE = 5;
 const MAX_ALPHA_MAE = 0.5;
 const WEBP_OPTIONS = {
-  quality: 88,
+  quality: 84,
   alphaQuality: 100,
   effort: 4,
   smartSubsample: true,

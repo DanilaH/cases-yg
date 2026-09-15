@@ -3,7 +3,7 @@
   "defaults": {
     "canvas": 768,
     "padding": 48,
-    "webpQuality": 88,
+    "webpQuality": 84,
     "backgroundRemoval": "auto",
     "backgroundColorTolerance": 48,
     "edgeFeather": 0.8,
