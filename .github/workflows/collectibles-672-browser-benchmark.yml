@@ -1,0 +1,186 @@
+name: Collectibles 672 browser benchmark
+
+on:
+  push:
+    branches:
+      - experiment/collectibles-672
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v6
+        with:
+          ref: experiment/collectibles-672
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install candidate dependencies
+        run: npm ci
+
+      - name: Checkout current main baseline into worktree
+        run: |
+          git fetch origin main --depth=1
+          git worktree add --detach /tmp/cases-yg-main FETCH_HEAD
+          npm ci --prefix /tmp/cases-yg-main
+
+      - name: Install isolated browser harness
+        run: |
+          rm -rf /tmp/browser-harness
+          npm install --prefix /tmp/browser-harness --package-lock=false playwright@1.55.0
+          /tmp/browser-harness/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Build candidate
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Build main baseline
+        working-directory: /tmp/cases-yg-main
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Start both preview servers
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/vite-candidate.log 2>&1 &
+          (cd /tmp/cases-yg-main && npm run preview -- --host 127.0.0.1 --port 4174 > /tmp/vite-main.log 2>&1) &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null && \
+               curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/vite-candidate.log || true
+          cat /tmp/vite-main.log || true
+          exit 1
+
+      - name: Compare cold startup and capture reveal evidence
+        run: |
+          mkdir -p /tmp/visual-evidence
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { chromium } = require('/tmp/browser-harness/node_modules/playwright');
+
+          const profile = {
+            name: 'moderate-4g',
+            latency: 80,
+            downloadThroughput: 1_250_000,
+            uploadThroughput: 625_000,
+            connectionType: 'cellular4g',
+          };
+          const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
+          const collectStartup = async (browser, variant) => {
+            const samples = [];
+            for (let attempt = 1; attempt <= 3; attempt += 1) {
+              const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block' });
+              const page = await context.newPage();
+              const client = await context.newCDPSession(page);
+              await client.send('Network.enable');
+              await client.send('Network.setCacheDisabled', { cacheDisabled: true });
+              await client.send('Network.emulateNetworkConditions', {
+                offline: false,
+                latency: profile.latency,
+                downloadThroughput: profile.downloadThroughput,
+                uploadThroughput: profile.uploadThroughput,
+                connectionType: profile.connectionType,
+              });
+              const pageErrors = [];
+              const requests = [];
+              page.on('pageerror', (error) => pageErrors.push(error.message));
+              page.on('request', (request) => requests.push(request.url()));
+
+              await page.goto(variant.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+              await page.waitForFunction(() => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden', { timeout: 60_000 });
+              if (pageErrors.length) throw new Error(`${variant.name} page errors: ${pageErrors.join(' | ')}`);
+
+              const webp = requests.filter((url) => url.startsWith(variant.url) && url.includes('/assets/') && url.endsWith('.webp'));
+              if (webp.length !== 115) throw new Error(`${variant.name}: expected 115 runtime WebP requests, saw ${webp.length}`);
+
+              await page.getByRole('button', { name: 'Startup timing' }).click();
+              await page.waitForFunction(() => document.querySelector('.mpt-debug-panel [data-status]')?.textContent?.includes('platformToArtMs'));
+              const timing = JSON.parse(await page.locator('.mpt-debug-panel [data-status]').textContent());
+              samples.push({ attempt, platformToArtMs: timing.platformToArtMs, moduleToReadyMs: timing.moduleToReadyMs });
+              await context.close();
+            }
+            return samples;
+          };
+
+          const captureScenario = async (browser, variant, buttonName, slug) => {
+            const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block' });
+            const page = await context.newPage();
+            await page.goto(variant.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+            await page.waitForFunction(() => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden', { timeout: 60_000 });
+            await page.getByRole('button', { name: buttonName }).click();
+            await page.waitForTimeout(1500);
+            await page.screenshot({ path: `/tmp/visual-evidence/${variant.name}-${slug}.png`, fullPage: true });
+            await context.close();
+          };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const main = { name: 'main-768', url: 'http://127.0.0.1:4174/' };
+              const candidate = { name: 'candidate-672', url: 'http://127.0.0.1:4173/' };
+              const baseline = await collectStartup(browser, main);
+              const resized = await collectStartup(browser, candidate);
+              const baselineMedian = median(baseline.map((sample) => sample.platformToArtMs));
+              const candidateMedian = median(resized.map((sample) => sample.platformToArtMs));
+              const deltaMs = candidateMedian - baselineMedian;
+              const deltaPercent = Number(((deltaMs / baselineMedian) * 100).toFixed(1));
+              const result = {
+                profile,
+                baseline,
+                candidate: resized,
+                baselineMedianPlatformToArtMs: baselineMedian,
+                candidateMedianPlatformToArtMs: candidateMedian,
+                candidateDeltaMs: deltaMs,
+                candidateDeltaPercent: deltaPercent,
+              };
+              fs.writeFileSync('/tmp/visual-evidence/startup-result.json', JSON.stringify(result, null, 2));
+              console.log(JSON.stringify(result, null, 2));
+
+              for (const [button, slug] of [
+                ['Force Common', 'common'],
+                ['Force Epic Phone', 'epic-phone'],
+                ['Force Legendary (Charged)', 'legendary'],
+                ['Force Hidden Pocket', 'secret'],
+              ]) {
+                await captureScenario(browser, main, button, slug);
+                await captureScenario(browser, candidate, button, slug);
+              }
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collectibles-672-visual-evidence
+          path: /tmp/visual-evidence
+
+      - name: Show preview logs on failure
+        if: failure()
+        run: |
+          cat /tmp/vite-candidate.log || true
+          cat /tmp/vite-main.log || true
