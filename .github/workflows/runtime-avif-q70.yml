@@ -1,0 +1,247 @@
+name: Runtime AVIF q70 benchmark
+
+on:
+  push:
+    branches:
+      - experiment/runtime-avif-q70
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WebP control
+        run: npx vite build --outDir dist-webp
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Generate AVIF q70 runtime candidates
+        run: node tools/assets/generate-runtime-avif-q70.mjs
+
+      - name: Point experimental build at AVIF candidates
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = [
+            'src/game/data/artAssets.ts',
+            'src/game/data/collectibles.ts',
+            'src/game/data/artTrim.generated.json',
+          ];
+          for (const file of files) {
+            const source = fs.readFileSync(file, 'utf8');
+            fs.writeFileSync(file, source.replaceAll('.webp', '.avif'));
+          }
+          NODE
+
+      - name: Build AVIF experiment
+        run: npx vite build --outDir dist-avif
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Install isolated browser harness
+        run: |
+          rm -rf /tmp/browser-harness
+          npm install --prefix /tmp/browser-harness --package-lock=false playwright@1.55.0
+          /tmp/browser-harness/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Benchmark WebP vs AVIF on HTTP/2
+        run: |
+          mkdir -p /tmp/runtime-avif-benchmark
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout /tmp/runtime-avif-benchmark/key.pem \
+            -out /tmp/runtime-avif-benchmark/cert.pem \
+            -days 1 -subj '/CN=localhost' >/dev/null 2>&1
+
+          cat > /tmp/runtime-avif-benchmark/h2-server.cjs <<'NODE'
+          const http2 = require('node:http2');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = path.resolve(process.argv[2]);
+          const port = Number(process.argv[3]);
+          const key = fs.readFileSync('/tmp/runtime-avif-benchmark/key.pem');
+          const cert = fs.readFileSync('/tmp/runtime-avif-benchmark/cert.pem');
+          const mime = (file) => {
+            if (file.endsWith('.html')) return 'text/html; charset=utf-8';
+            if (file.endsWith('.js')) return 'text/javascript; charset=utf-8';
+            if (file.endsWith('.css')) return 'text/css; charset=utf-8';
+            if (file.endsWith('.json')) return 'application/json';
+            if (file.endsWith('.webp')) return 'image/webp';
+            if (file.endsWith('.avif')) return 'image/avif';
+            if (file.endsWith('.woff2')) return 'font/woff2';
+            if (file.endsWith('.mp3')) return 'audio/mpeg';
+            if (file.endsWith('.ogg')) return 'audio/ogg';
+            return 'application/octet-stream';
+          };
+          const server = http2.createSecureServer({ key, cert });
+          server.on('stream', (stream, headers) => {
+            try {
+              const url = new URL(headers[':path'], 'https://localhost');
+              const decoded = decodeURIComponent(url.pathname);
+              const requested = decoded === '/' ? '/index.html' : decoded;
+              const file = path.resolve(root, `.${requested}`);
+              if (!file.startsWith(root + path.sep)) throw new Error('bad path');
+              const stat = fs.statSync(file);
+              if (!stat.isFile()) throw new Error('not file');
+              stream.respond({ ':status': 200, 'content-type': mime(file), 'content-length': stat.size, 'cache-control': 'no-store' });
+              fs.createReadStream(file).pipe(stream);
+            } catch {
+              stream.respond({ ':status': 404 });
+              stream.end('not found');
+            }
+          });
+          server.listen(port, '127.0.0.1', () => console.log(`h2 ${root} on ${port}`));
+          NODE
+
+          node /tmp/runtime-avif-benchmark/h2-server.cjs dist-webp 4173 > /tmp/runtime-avif-benchmark/webp-server.log 2>&1 &
+          WEBP_PID=$!
+          node /tmp/runtime-avif-benchmark/h2-server.cjs dist-avif 4174 > /tmp/runtime-avif-benchmark/avif-server.log 2>&1 &
+          AVIF_PID=$!
+          trap 'kill $WEBP_PID $AVIF_PID || true' EXIT
+          sleep 1
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { chromium, devices } = require('/tmp/browser-harness/node_modules/playwright');
+
+          const PROFILE = {
+            latencyMs: 80,
+            downloadBytesPerSecond: 1_250_000,
+            uploadBytesPerSecond: 625_000,
+            connectionType: 'cellular4g',
+          };
+          const VARIANTS = [
+            { label: 'webp', url: 'https://127.0.0.1:4173/' },
+            { label: 'avif-q70', url: 'https://127.0.0.1:4174/' },
+          ];
+          const ROUNDS = 5;
+          const median = (values) => {
+            const sorted = [...values].sort((a, b) => a - b);
+            return sorted[Math.floor(sorted.length / 2)];
+          };
+          const p90 = (values) => {
+            const sorted = [...values].sort((a, b) => a - b);
+            return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.9) - 1)];
+          };
+
+          const collect = async (browser, variant, round) => {
+            const context = await browser.newContext({
+              ...devices['Pixel 7'],
+              serviceWorkers: 'block',
+              ignoreHTTPSErrors: true,
+            });
+            const page = await context.newPage();
+            const client = await context.newCDPSession(page);
+            await client.send('Network.enable');
+            await client.send('Network.setCacheDisabled', { cacheDisabled: true });
+            await client.send('Network.emulateNetworkConditions', {
+              offline: false,
+              latency: PROFILE.latencyMs,
+              downloadThroughput: PROFILE.downloadBytesPerSecond,
+              uploadThroughput: PROFILE.uploadBytesPerSecond,
+              connectionType: PROFILE.connectionType,
+            });
+            const pageErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(error.message));
+            const startedAt = Date.now();
+            await page.goto(`${variant.url}?round=${round}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+            await page.waitForFunction(
+              () => document.querySelector('#startup-preload')?.getAttribute('data-state') === 'hidden',
+              { timeout: 120_000 },
+            );
+            const wallClockMs = Date.now() - startedAt;
+            if (pageErrors.length) throw new Error(`${variant.label} page errors: ${pageErrors.join(' | ')}`);
+
+            await page.getByRole('button', { name: 'Startup timing', exact: true }).click();
+            await page.waitForFunction(() => document.querySelector('.mpt-debug-panel [data-status]')?.textContent?.includes('platformToArtMs'));
+            const timing = JSON.parse(await page.locator('.mpt-debug-panel [data-status]').textContent());
+            await page.getByRole('button', { name: 'Startup art', exact: true }).click();
+            await page.waitForFunction(() => document.querySelector('.mpt-debug-panel [data-status]')?.textContent?.includes('loaderWallMs'));
+            const art = JSON.parse(await page.locator('.mpt-debug-panel [data-status]').textContent());
+
+            if (art.queuedCount !== 115 || art.observedCount !== 115) throw new Error(`${variant.label}: expected 115/115, got ${art.queuedCount}/${art.observedCount}`);
+            if (art.cacheLikeCount !== 0) throw new Error(`${variant.label}: cache contamination ${art.cacheLikeCount}`);
+
+            const result = {
+              round,
+              label: variant.label,
+              platformToArtMs: timing.platformToArtMs,
+              artToReadyMs: timing.artToReadyMs,
+              moduleToReadyMs: timing.moduleToReadyMs,
+              loaderWallMs: art.loaderWallMs,
+              resourceSpanMs: art.resourceSpanMs,
+              settleAfterLastResponseMs: art.settleAfterLastResponseMs,
+              transferKiB: art.transferKiB,
+              encodedKiB: art.encodedKiB,
+              protocols: art.protocols,
+              maxObservedNetworkConcurrency: art.maxObservedNetworkConcurrency,
+              wallClockMs,
+            };
+            console.log(JSON.stringify(result));
+            await context.close();
+            return result;
+          };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const samples = [];
+            try {
+              for (let round = 1; round <= ROUNDS; round += 1) {
+                const order = round % 2 === 1 ? VARIANTS : [...VARIANTS].reverse();
+                for (const variant of order) samples.push(await collect(browser, variant, round));
+              }
+            } finally {
+              await browser.close();
+            }
+
+            const summary = VARIANTS.map((variant) => {
+              const rows = samples.filter((row) => row.label === variant.label);
+              const art = rows.map((row) => row.platformToArtMs);
+              const tail = rows.map((row) => row.settleAfterLastResponseMs);
+              return {
+                label: variant.label,
+                platformToArtSamples: art,
+                medianPlatformToArtMs: median(art),
+                p90PlatformToArtMs: p90(art),
+                medianLoaderWallMs: median(rows.map((row) => row.loaderWallMs)),
+                medianResourceSpanMs: median(rows.map((row) => row.resourceSpanMs)),
+                medianSettleAfterLastResponseMs: median(tail),
+                medianTransferKiB: median(rows.map((row) => row.transferKiB)),
+                medianEncodedKiB: median(rows.map((row) => row.encodedKiB)),
+              };
+            });
+            const result = { profile: PROFILE, rounds: ROUNDS, summary, samples };
+            fs.writeFileSync('/tmp/runtime-avif-benchmark/browser-result.json', JSON.stringify(result, null, 2));
+            console.log('\n=== AVIF BROWSER SUMMARY ===');
+            console.log(JSON.stringify(summary, null, 2));
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload experiment results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-avif-q70-benchmark
+          path: |
+            .asset-build/runtime-avif-q70.json
+            /tmp/runtime-avif-benchmark/browser-result.json
