@@ -4,6 +4,7 @@ import { getPlatformRuntime } from '../../app/runtime';
 import { markStartupPhase } from '../../app/startupPerformance';
 import { getRuntimeCollectibleArt, getRuntimeStaticArt } from '../data/artAssets';
 import { GAME_REGISTRY } from '../data/collectibles';
+import { applyRuntimeArtTrim } from '../systems/artTrim';
 import { shouldRunPrimaryOnboarding } from '../systems/onboarding';
 import { SaveRepository } from '../systems/save';
 
@@ -32,6 +33,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   public create(): void {
+    // Some runtime files are physically cropped to alpha bounds, but all scene
+    // composition continues to use their original logical canvases. Apply Phaser
+    // frame trim metadata before any presentation Scene can instantiate Images.
+    applyRuntimeArtTrim(this, GAME_REGISTRY);
     void this.routeInitialScene();
   }
 
