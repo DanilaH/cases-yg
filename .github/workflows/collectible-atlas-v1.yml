@@ -1,4 +1,4 @@
-name: Collectible atlas v1
+name: Collectible atlas benchmark
 
 on:
   push:
@@ -25,21 +25,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Benchmark collectible atlases
+      - name: Benchmark batch atlases
         run: node tools/assets/benchmark-collectible-atlas-v1.mjs
 
-      - name: Show summary
-        run: cat .asset-build/collectible-atlas-v1/summary.md
+      - name: Benchmark global multi-atlas
+        run: node tools/assets/benchmark-collectible-atlas-v2.mjs
+
+      - name: Show summaries
+        run: |
+          cat .asset-build/collectible-atlas-v1/summary.md
+          cat .asset-build/collectible-atlas-v2/summary.md
 
       - name: Upload evidence
         uses: actions/upload-artifact@v4
         with:
-          name: collectible-atlas-v1
+          name: collectible-atlas-benchmark
           path: |
             .asset-build/collectible-atlas-v1/report.json
             .asset-build/collectible-atlas-v1/summary.md
-            .asset-build/collectible-atlas-v1/*.webp
-            .asset-build/collectible-atlas-v1/*.json
+            .asset-build/collectible-atlas-v2/report.json
+            .asset-build/collectible-atlas-v2/summary.md
+            .asset-build/collectible-atlas-v2/*.webp
+            .asset-build/collectible-atlas-v2/*.json
 
       - name: Project gate
         run: |
