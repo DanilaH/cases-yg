@@ -84,8 +84,16 @@ export interface YandexCloudSaveStorageOptions {
  * Staged reveal transactions stay local until commit so one completed opening
  * produces one cloud write instead of two and cannot expose a half-finished
  * reward transaction on another device.
+ *
+ * The reconciled gameplay save is cached for the current adapter lifetime. Boot
+ * and the first Scene can therefore read the same already-resolved snapshot
+ * without issuing a second Player.getData() request. Any gameplay-save mutation
+ * invalidates that cache before touching storage, so ambiguous/failed writes can
+ * still force a real reconciliation on the next recovery read.
  */
 export class YandexCloudSaveStorageAdapter implements StorageAdapter {
+  private cachedSyncRaw: string | null | undefined;
+
   public constructor(
     private readonly local: StorageAdapter,
     private readonly player: Pick<Player, 'getData' | 'setData'>,
@@ -95,6 +103,9 @@ export class YandexCloudSaveStorageAdapter implements StorageAdapter {
   public async getItem(key: string): Promise<string | null> {
     if (key !== this.options.syncKey) {
       return this.local.getItem(key);
+    }
+    if (this.cachedSyncRaw !== undefined) {
+      return this.cachedSyncRaw;
     }
 
     const localRaw = await this.local.getItem(key);
@@ -120,18 +131,35 @@ export class YandexCloudSaveStorageAdapter implements StorageAdapter {
       await this.mirrorBestEffort(selected);
     }
 
+    this.cachedSyncRaw = selected;
     return selected;
   }
 
   public async setItem(key: string, value: string): Promise<void> {
+    if (key !== this.options.syncKey) {
+      await this.local.setItem(key, value);
+      return;
+    }
+
+    // Invalidate before the local mutation. If local storage throws after or
+    // during a write, the caller's recovery read must reconcile real storage
+    // instead of trusting the previous resolved snapshot.
+    this.cachedSyncRaw = undefined;
     await this.local.setItem(key, value);
-    if (key !== this.options.syncKey || !this.shouldMirror(value)) return;
+    this.cachedSyncRaw = value;
+    if (!this.shouldMirror(value)) return;
     await this.mirrorBestEffort(value);
   }
 
   public async removeItem(key: string): Promise<void> {
+    if (key !== this.options.syncKey) {
+      await this.local.removeItem(key);
+      return;
+    }
+
+    this.cachedSyncRaw = undefined;
     await this.local.removeItem(key);
-    if (key !== this.options.syncKey) return;
+    this.cachedSyncRaw = null;
 
     try {
       await this.player.setData({ [this.options.cloudField]: null }, true);
@@ -152,8 +180,8 @@ export class YandexCloudSaveStorageAdapter implements StorageAdapter {
       // gameplay on a forced network flush for every pouch opening.
       await this.player.setData({ [this.options.cloudField]: raw }, false);
     } catch (error: unknown) {
-      // safeStorage already contains the authoritative local copy. A later load
-      // or committed write will retry cloud synchronization automatically.
+      // safeStorage already contains the authoritative local copy. The next
+      // committed write or a future session will retry cloud synchronization.
       console.warn('[cloud-save] failed to mirror save to Yandex player data', error);
     }
   }

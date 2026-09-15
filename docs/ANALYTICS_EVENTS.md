@@ -5,6 +5,7 @@ The production analytics boundary is `PlatformRuntime.analytics.track(event, par
 ## Core activation / opening funnel
 
 - `platform_ready` — one-shot runtime-ready marker; aligned with Yandex `LoadingAPI.ready()`.
+- `startup_performance` — one-shot startup diagnostic emitted at the same semantic Game Ready boundary. Params include `platform` plus available phase durations in milliseconds: `moduleToPlatformMs`, `platformToSaveMs`, `saveToArtMs`, `artToReadyMs`, `moduleToReadyMs`. Missing phases are omitted rather than fabricated.
 - `first_package_interaction` — first successful package interaction for a new save.
 - `pouch_selected` — player explicitly changes Basic/Charged selection; params include `pouchType`, `lootPoolId`, and current `chips`.
 - `opening_started` — durable reveal preparation succeeded; params include `openingNumber`, `lootPoolId`, and `pouchType`.
@@ -14,6 +15,8 @@ The production analytics boundary is `PlatformRuntime.analytics.track(event, par
 Recommended activation funnel:
 
 `platform_ready → first_package_interaction → opening_started → reveal_complete → result_collected`
+
+`startup_performance` is diagnostic telemetry, not an additional funnel step.
 
 ## Drop / collection exploration
 
@@ -52,4 +55,4 @@ These ad events currently validate the adapter and debug probes. Normal-player m
 - Secret loop: `hidden_pocket_triggered → secret_discovered|secret_duplicate → result_collected`.
 - Meta engagement: `collection_open → collection_view_changed|collection_drop_browsed → collection_return`.
 
-The event contract is intentionally compact. Add events only when they answer a concrete product, economy, retention, or monetization question.
+The event contract is intentionally compact. Add events only when they answer a concrete product, economy, retention, monetization, or production-performance question.

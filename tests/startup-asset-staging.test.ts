@@ -4,29 +4,34 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getRuntimeBootStaticArt,
-  getRuntimeCollectibleArt,
+  getRuntimeCollectibleArtForLootPool,
   getRuntimeCollectionStaticArt,
-  getRuntimeStaticArt,
+  getRuntimePouchArtForLootPool,
 } from '../src/game/data/artAssets';
-import { GAME_REGISTRY } from '../src/game/data/collectibles';
+import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../src/game/data/collectibles';
 import {
   createAssetPrefetchBatches,
   getBackgroundWarmupAssetPaths,
 } from '../src/game/systems/backgroundAssetWarmup';
 
 describe('startup asset staging', () => {
-  it('warms the complete reviewed image catalog without duplicate requests', () => {
+  it('warms only Collection layers plus the resolved active Drop without duplicate requests', () => {
     const expected = new Set([
-      ...getRuntimeCollectibleArt(GAME_REGISTRY).map(({ assetPath }) => assetPath),
-      ...getRuntimeStaticArt().map(({ assetPath }) => assetPath),
+      ...getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
+      ...getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, DEFAULT_LOOT_POOL_ID).map(({ assetPath }) => assetPath),
+      ...getRuntimePouchArtForLootPool(DEFAULT_LOOT_POOL_ID).map(({ assetPath }) => assetPath),
     ]);
-    const paths = getBackgroundWarmupAssetPaths();
+    const paths = getBackgroundWarmupAssetPaths(DEFAULT_LOOT_POOL_ID);
 
     expect(paths).toHaveLength(expected.size);
     expect(new Set(paths)).toEqual(expected);
     expect(paths.slice(0, 2)).toEqual(
       getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
     );
+
+    const unrelatedDropPath = getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, 'game-zone')[0]?.assetPath;
+    expect(unrelatedDropPath).toBeDefined();
+    expect(paths).not.toContain(unrelatedDropPath);
   });
 
   it('batches speculative prefetch work instead of emitting one unbounded burst', () => {
@@ -45,9 +50,10 @@ describe('startup asset staging', () => {
     ]);
   });
 
-  it('loads durable save state before awaiting only the active Drop handoff art', () => {
+  it('resolves durable active Drop before installing warmup and awaiting handoff art', () => {
     const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
-    const saveLoad = source.indexOf('new SaveRepository(getPlatformRuntime().storage).load()');
+    const saveLoad = source.indexOf('new SaveRepository(platform.storage).load()');
+    const warmupInstall = source.indexOf('installBackgroundAssetWarmup(platform, activeLootPoolId)');
     const activeDropLoad = source.indexOf('await ensureLootPoolArt(this, GAME_REGISTRY, activeLootPoolId)');
 
     expect(source).not.toContain('GAME_LOOT_POOL_IDS');
@@ -56,7 +62,8 @@ describe('startup asset staging', () => {
     expect(source).toContain('getRuntimeBootStaticArt()');
     expect(source).not.toContain("art.id === 'collection-bg'");
     expect(saveLoad).toBeGreaterThanOrEqual(0);
-    expect(activeDropLoad).toBeGreaterThan(saveLoad);
+    expect(warmupInstall).toBeGreaterThan(saveLoad);
+    expect(activeDropLoad).toBeGreaterThan(warmupInstall);
   });
 
   it('requires authored Collection layers before its first render', () => {

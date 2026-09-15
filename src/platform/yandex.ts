@@ -1,5 +1,6 @@
-import type { SDK } from 'ysdk';
+import type { Player, SDK } from 'ysdk';
 
+import { markStartupPhase, reportStartupPerformance } from '../app/startupPerformance';
 import { GameplayActivityCoordinator } from './activity';
 import { ConsoleAnalyticsAdapter, createYandexAnalyticsAdapter, type AnalyticsAdapter } from './analytics';
 import { MockAdsAdapter, YandexAdsAdapter, type AdsAdapter } from './ads';
@@ -77,6 +78,7 @@ const createMockPlatform = (): PlatformRuntime => {
     markReady: () => {
       if (readySent) return;
       readySent = true;
+      reportStartupPerformance(analytics, 'mock');
       analytics.track('platform_ready', { platform: 'mock' });
     },
     destroy: removeVisibilityBridge,
@@ -98,6 +100,56 @@ const loadYandexSdk = async (): Promise<void> => {
       once: true,
     });
     document.head.append(script);
+  });
+};
+
+type YandexStorageSdk = Pick<SDK, 'getStorage' | 'getPlayer'>;
+type YandexPlayerData = Pick<Player, 'getData' | 'setData'>;
+
+type PlayerResult =
+  | { ok: true; player: YandexPlayerData }
+  | { ok: false; error: unknown };
+
+const resolvePlayerData = (value: unknown): PlayerResult => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'getData' in value &&
+    typeof value.getData === 'function' &&
+    'setData' in value &&
+    typeof value.setData === 'function'
+  ) {
+    return { ok: true, player: value as YandexPlayerData };
+  }
+  return { ok: false, error: new Error('Yandex Player Data API unavailable') };
+};
+
+/**
+ * Resolve mandatory safeStorage and optional Player Data in parallel after SDK init.
+ * Player rejection is captured immediately so it can never become an unhandled
+ * rejection while safeStorage is still pending.
+ */
+export const createYandexStorageAdapter = async (sdk: YandexStorageSdk): Promise<StorageAdapter> => {
+  const safeStoragePromise = sdk.getStorage();
+  const playerResultPromise: Promise<PlayerResult> = sdk.getPlayer().then(
+    (player) => resolvePlayerData(player),
+    (error: unknown) => ({ ok: false, error }),
+  );
+
+  const safeStorage = await safeStoragePromise;
+  const localStorage = new WebStorageAdapter(safeStorage);
+  const playerResult = await playerResultPromise;
+
+  if (!playerResult.ok) {
+    // Player data is an enhancement over safeStorage. Never block game startup
+    // if Yandex account/cloud data is temporarily unavailable.
+    console.warn('[cloud-save] Yandex Player unavailable; continuing with safeStorage only', playerResult.error);
+    return localStorage;
+  }
+
+  return new YandexCloudSaveStorageAdapter(localStorage, playerResult.player, {
+    syncKey: 'mystery-pocket-tech.save',
+    cloudField: 'mysteryPocketTechSave',
   });
 };
 
@@ -129,22 +181,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
   sdk.on('game_api_resume', handleResume);
 
   try {
-    const safeStorage = await sdk.getStorage();
-    const localStorage = new WebStorageAdapter(safeStorage);
-    let storage: StorageAdapter = localStorage;
-
-    try {
-      const player = await sdk.getPlayer();
-      storage = new YandexCloudSaveStorageAdapter(localStorage, player, {
-        syncKey: 'mystery-pocket-tech.save',
-        cloudField: 'mysteryPocketTechSave',
-      });
-    } catch (error: unknown) {
-      // Player data is an enhancement over safeStorage. Never block game startup
-      // if Yandex account/cloud data is temporarily unavailable.
-      console.warn('[cloud-save] Yandex Player unavailable; continuing with safeStorage only', error);
-    }
-
+    const storage = await createYandexStorageAdapter(sdk);
     let readySent = false;
 
     return {
@@ -158,6 +195,7 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
         if (readySent) return;
         readySent = true;
         sdk.features.LoadingAPI?.ready();
+        reportStartupPerformance(analytics, 'yandex');
         analytics.track('platform_ready', { platform: 'yandex' });
       },
       destroy: () => {
@@ -177,5 +215,9 @@ const createYandexPlatform = async (): Promise<PlatformRuntime> => {
 const shouldUseMockPlatform = (): boolean =>
   import.meta.env.DEV || import.meta.env.VITE_PLATFORM_RUNTIME === 'mock';
 
-export const bootstrapPlatform = async (): Promise<PlatformRuntime> =>
-  shouldUseMockPlatform() ? createMockPlatform() : createYandexPlatform();
+export const bootstrapPlatform = async (): Promise<PlatformRuntime> => {
+  markStartupPhase('platformBootstrapStart');
+  const platform = shouldUseMockPlatform() ? createMockPlatform() : await createYandexPlatform();
+  markStartupPhase('platformBootstrapReady');
+  return platform;
+};

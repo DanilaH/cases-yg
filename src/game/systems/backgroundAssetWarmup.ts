@@ -1,20 +1,27 @@
 import type { PlatformRuntime } from '../../platform/yandex';
 import {
-  getRuntimeCollectibleArt,
+  getRuntimeCollectibleArtForLootPool,
   getRuntimeCollectionStaticArt,
-  getRuntimeStaticArt,
+  getRuntimePouchArtForLootPool,
 } from '../data/artAssets';
-import { GAME_REGISTRY } from '../data/collectibles';
+import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY, type LootPoolId } from '../data/collectibles';
 
 const DEFAULT_DELAY_MS = 1500;
 const BATCH_SIZE = 4;
 const BATCH_GAP_MS = 450;
 
-export const getBackgroundWarmupAssetPaths = (): readonly string[] =>
+/**
+ * Warm only near-future art after Game Ready. Runtime loading remains the
+ * correctness path for every other Drop, so speculative network work never
+ * needs to download the entire catalog for a player who may not browse it.
+ */
+export const getBackgroundWarmupAssetPaths = (
+  activeLootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
+): readonly string[] =>
   [...new Set([
     ...getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
-    ...getRuntimeCollectibleArt(GAME_REGISTRY).map(({ assetPath }) => assetPath),
-    ...getRuntimeStaticArt().map(({ assetPath }) => assetPath),
+    ...getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, activeLootPoolId).map(({ assetPath }) => assetPath),
+    ...getRuntimePouchArtForLootPool(activeLootPoolId).map(({ assetPath }) => assetPath),
   ])];
 
 export const createAssetPrefetchBatches = (
@@ -34,6 +41,7 @@ let installed = false;
 
 export const installBackgroundAssetWarmup = (
   platform: PlatformRuntime,
+  activeLootPoolId: LootPoolId = DEFAULT_LOOT_POOL_ID,
   delayMs = DEFAULT_DELAY_MS,
 ): void => {
   if (installed || typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -53,7 +61,7 @@ export const installBackgroundAssetWarmup = (
   };
 
   const scheduleBatches = (): void => {
-    const batches = createAssetPrefetchBatches(getBackgroundWarmupAssetPaths());
+    const batches = createAssetPrefetchBatches(getBackgroundWarmupAssetPaths(activeLootPoolId));
     batches.forEach((batch, batchIndex) => {
       const timer = window.setTimeout(() => {
         timers.delete(timer);

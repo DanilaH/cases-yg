@@ -1,6 +1,6 @@
 # Startup asset staging — 2026-09-14
 
-Status: implementation pass.
+Status: implementation pass, updated 2026-09-15 by Runtime Performance V2.
 
 Real-phone acceptance showed that cold startup can exceed 30 seconds. The current boot path also preloads pouch art for every Drop before the first playable frame. This pass reduces the blocking startup set while preserving the invariant that slow asset loading must never produce temporary procedural placeholders.
 
@@ -11,7 +11,8 @@ Real-phone acceptance showed that cold startup can exceed 30 seconds. The curren
 - Active Drop collectible and pouch textures are awaited through the existing Phaser loader before FirstRun/Opening can render them.
 - A slow request waits; it is not treated as a missing asset.
 - Procedural fallback remains only for a confirmed load failure.
-- After semantic Game Ready, the complete reviewed image catalog is offered to the browser as low-priority `prefetch` work in small staggered batches.
+- After semantic Game Ready, browser `prefetch` work is intentionally bounded to likely near-future assets: Collection-only static layers, collectibles for the resolved active Drop, and Basic + Charged pouch layers for that Drop.
+- Other Drops are **not** downloaded speculatively merely because the game reached Ready. Their existing runtime loader remains the correctness path when the player actually browses them.
 - Background warmup never inserts speculative assets into Phaser's TextureManager, so it does not decode the full catalog into GPU/mobile memory.
 - Browser HTTP-cache retention is an optimization, not durable state: the browser may evict or ignore speculative cache work. Correctness always remains on the existing on-demand Phaser readiness gates.
 
@@ -19,7 +20,7 @@ Real-phone acceptance showed that cold startup can exceed 30 seconds. The curren
 
 Cold/new or uncached launch:
 
-`shared backgrounds -> load save -> active Drop art -> first usable frame -> Game Ready -> background cache warmup`
+`shared backgrounds -> load save -> active Drop art -> first usable frame -> Game Ready -> bounded active-Drop/Collection cache warmup`
 
 Later launch when the browser retained the warmed responses:
 
@@ -45,6 +46,16 @@ Therefore:
 - `confirmed loaderror` may use the existing procedural emergency fallback;
 - procedural preview art must never be visible through the loading surface.
 
+## Runtime Performance V2 correction
+
+The original warmup deliberately offered the **entire** reviewed image catalog to the browser after Game Ready. That was acceptable as a first correctness-preserving experiment, but it is too eager for production mobile traffic once seven Drops exist.
+
+The revised policy is:
+
+`critical correctness load -> semantic Game Ready -> active-Drop/Collection near-future warm -> intent-driven loading for every other Drop`
+
+This change is network-policy only. It does not weaken any Phaser texture readiness gate and does not introduce durable CacheStorage or a service worker.
+
 ## Acceptance
 
 1. No Drop/pouch/collectible placeholder may appear merely because an asset is still downloading.
@@ -53,6 +64,7 @@ Therefore:
 4. Browsing/switching to a not-yet-decoded Drop uses the same polished loader language as startup and rebuilds with authored textures before uncovering the canvas.
 5. No translucent debug-style art scrim or standalone center glyph remains.
 6. Background warmup is staggered, low-priority and non-fatal; speculative misses do not block gameplay.
-7. The full catalog is not eagerly decoded into Phaser/GPU memory.
-8. Orientation gate still owns portrait presentation above any loading surface.
-9. Full typecheck/tests/assets/build gate remains green.
+7. Background warmup excludes unrelated Drops until player intent requires them.
+8. The full catalog is not eagerly decoded into Phaser/GPU memory.
+9. Orientation gate still owns portrait presentation above any loading surface.
+10. Full typecheck/tests/assets/build gate remains green.
