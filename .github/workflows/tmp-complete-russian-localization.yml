@@ -1,0 +1,49 @@
+name: Temporary Russian localization materializer
+
+on:
+  push:
+    branches:
+      - fix/complete-russian-localization
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.head_commit.message != 'Localization: complete Russian player-facing copy'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/complete-russian-localization
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - name: Fix escaped template literal in temporary patcher
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/tmp-complete-russian-localization.mjs')
+          text = path.read_text()
+          old = "? \\` ${messages.opening.max}\\` : '';"
+          new = "? \\` \\${messages.opening.max}\\` : '';"
+          if old not in text:
+              raise SystemExit('expected temporary patcher target not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - run: node tools/tmp-complete-russian-localization.mjs
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Remove temporary materializer
+        run: git rm tools/tmp-complete-russian-localization.mjs .github/workflows/tmp-complete-russian-localization.yml
+      - name: Commit localized build
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html src tests
+          git commit -m 'Localization: complete Russian player-facing copy'
+          git push origin HEAD:fix/complete-russian-localization
