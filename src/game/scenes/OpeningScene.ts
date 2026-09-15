@@ -1347,6 +1347,24 @@ export class OpeningScene extends Phaser.Scene {
     if (animateEntry) this.animateIdleEntry();
   }
 
+  private animatePouchSwapEntry(): void {
+    const pouch = this.pouch?.group;
+    if (!pouch?.active) return;
+    const targetY = pouch.y;
+    pouch
+      .setY(targetY + OPENING_FEEL_PRESENTATION.pouchSwapEntryOffsetY)
+      .setScale(OPENING_FEEL_PRESENTATION.pouchSwapEntryScale)
+      .setAlpha(OPENING_FEEL_PRESENTATION.pouchSwapEntryAlpha);
+    this.tweens.add({
+      targets: pouch,
+      y: targetY,
+      scale: 1,
+      alpha: 1,
+      duration: OPENING_FEEL_PRESENTATION.pouchSwapEntryMs,
+      ease: 'Back.Out',
+    });
+  }
+
   private animateIdleEntry(): void {
     if (!this.pouch) return;
 
@@ -1839,11 +1857,17 @@ export class OpeningScene extends Phaser.Scene {
     const panel = this.dropSelectorContainer;
     const pouchX = pouch.x;
     const panelX = panel.x;
-    pouch.setX(pouchX + direction * 12).setAlpha(0.78);
-    panel.setX(panelX + direction * 8).setAlpha(0.82);
+    pouch
+      .setX(pouchX + direction * OPENING_FEEL_PRESENTATION.dropPreviewPouchOffsetX)
+      .setScale(OPENING_FEEL_PRESENTATION.dropPreviewEntryScale)
+      .setAlpha(OPENING_FEEL_PRESENTATION.dropPreviewEntryAlpha);
+    panel
+      .setX(panelX + direction * OPENING_FEEL_PRESENTATION.dropPreviewPanelOffsetX)
+      .setAlpha(0.8);
     this.tweens.add({
       targets: pouch,
       x: pouchX,
+      scale: 1,
       alpha: 1,
       duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,
       ease: 'Cubic.Out',
@@ -2274,7 +2298,10 @@ export class OpeningScene extends Phaser.Scene {
     }
     this.time.delayedCall(95, () => {
       this.pouchArtLoadInFlight = false;
-      if (this.phase === 'idle' && !this.isSceneShutdown()) this.renderIdle();
+      if (this.phase === 'idle' && !this.isSceneShutdown()) {
+        this.renderIdle();
+        this.animatePouchSwapEntry();
+      }
     });
   }
 
