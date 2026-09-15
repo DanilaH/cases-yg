@@ -27,7 +27,7 @@ describe('Russian moderation localization', () => {
   it('uses a Russian-safe pre-module shell before Yandex locale detection finishes', () => {
     const html = fs.readFileSync('index.html', 'utf8');
     expect(html).toContain('<html lang="ru">');
-    expect(html).toContain('<title>Сигнал 2000</title>');
+    expect(html).toContain('<title>Signal 2000</title>');
     expect(html).toContain('ПОДГОТОВКА НАБОРА');
     expect(html).toContain('НАСТРАИВАЕМ СИГНАЛ...');
     expect(html).toContain('Поверните устройство горизонтально');
