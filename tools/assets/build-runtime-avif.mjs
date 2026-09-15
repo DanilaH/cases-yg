@@ -6,7 +6,6 @@ import sharp from 'sharp';
 sharp.cache(false);
 
 const repoRoot = process.cwd();
-const QUALITY = 70;
 const EFFORT = 4;
 const PARALLEL = 4;
 const artAssetsSource = await fs.readFile(path.join(repoRoot, 'src/game/data/artAssets.ts'), 'utf8');
@@ -24,18 +23,30 @@ const collectiblePaths = [...collectibleBlockMatch[1].matchAll(/'([^']+)'/g)]
 const assetPaths = [...new Set([...staticPaths, ...collectiblePaths])];
 if (assetPaths.length === 0) throw new Error('No runtime art paths found');
 
+// Evidence from issue #183: q65 is visually indistinguishable at reviewed game scale
+// for the large/high-frequency surfaces, while q60 remains a safer byte win for
+// backgrounds and small package layers. Secret collectibles retain q70 headroom.
+const qualityForAssetPath = (assetPath) => {
+  if (assetPath.includes('/collectibles/') && assetPath.includes('-secret-')) return 70;
+  if (assetPath.includes('/backgrounds/')) return 60;
+  if (assetPath.includes('tear-strip') || assetPath.includes('star-tab')) return 60;
+  return 65;
+};
+
 let webpBytes = 0;
 let avifBytes = 0;
+const qualityCounts = new Map();
 
 const encode = async (assetPath) => {
+  const quality = qualityForAssetPath(assetPath);
   const webpPath = path.join(repoRoot, 'public', assetPath);
   const avifPath = path.join(repoRoot, 'public', assetPath.replace(/\.webp$/, '.avif'));
   const webpStat = await fs.stat(webpPath);
   await sharp(webpPath)
-    .avif({ quality: QUALITY, effort: EFFORT })
+    .avif({ quality, effort: EFFORT })
     .toFile(avifPath);
   const avifStat = await fs.stat(avifPath);
-  return { webpBytes: webpStat.size, avifBytes: avifStat.size };
+  return { quality, webpBytes: webpStat.size, avifBytes: avifStat.size };
 };
 
 for (let index = 0; index < assetPaths.length; index += PARALLEL) {
@@ -43,13 +54,18 @@ for (let index = 0; index < assetPaths.length; index += PARALLEL) {
   for (const row of batch) {
     webpBytes += row.webpBytes;
     avifBytes += row.avifBytes;
+    qualityCounts.set(row.quality, (qualityCounts.get(row.quality) ?? 0) + 1);
   }
 }
 
 const mib = (bytes) => bytes / 1024 / 1024;
 const savingRatio = 1 - avifBytes / webpBytes;
+const profile = [...qualityCounts.entries()]
+  .sort(([left], [right]) => left - right)
+  .map(([quality, count]) => `q${quality}:${count}`)
+  .join(', ');
 console.log(
-  `Runtime AVIF q${QUALITY}: ${assetPaths.length} textures, ` +
+  `Runtime AVIF profile (${profile}): ${assetPaths.length} textures, ` +
   `${mib(webpBytes).toFixed(2)} -> ${mib(avifBytes).toFixed(2)} MiB ` +
   `(-${(savingRatio * 100).toFixed(1)}%).`,
 );
