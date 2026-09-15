@@ -6,6 +6,7 @@ on:
       - perf/runtime-avif-fallback
     paths:
       - public/**/*.avif
+      - .github/workflows/runtime-avif-rollout-qa.yml
 
 permissions:
   contents: read
