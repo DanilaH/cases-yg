@@ -1,0 +1,35 @@
+name: Verify runtime trim idempotence
+
+on:
+  push:
+    branches:
+      - tight-alpha-trim
+    paths:
+      - .github/workflows/trim-idempotence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: tight-alpha-trim
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run trim again
+        run: npm run assets:trim
+
+      - name: Require zero tracked diff
+        run: git diff --exit-code -- public/assets/collectibles public/assets/package src/game/data/artTrim.generated.json
