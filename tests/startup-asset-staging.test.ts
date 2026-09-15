@@ -27,7 +27,8 @@ describe('startup asset staging', () => {
 
     expect(source).toContain('getRuntimeStaticArt()');
     expect(source).toContain('getRuntimeCollectibleArt(GAME_REGISTRY)');
-    expect(source).toContain('this.load.image(textureKey, assetPath)');
+    expect(source).toContain('prepareStartupArtRequest(textureKey, assetPath)');
+    expect(source).toContain('this.load.image(textureKey, requestPath)');
     expect(source).not.toContain('ensureLootPoolArt');
     expect(source).not.toContain('installBackgroundAssetWarmup');
   });
@@ -42,6 +43,15 @@ describe('startup asset staging', () => {
     expect(source).toContain('(error: unknown) => {');
     expect(source).toContain("markStartupPhase('bootSaveSettled')");
     expect(source).toContain("markStartupPhase('bootArtSettled')");
+  });
+
+  it('keeps loader concurrency overrides debug-scoped and preserves the default when absent', () => {
+    const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
+
+    expect(source).toContain('getStartupArtExperimentConfig()');
+    expect(source).toContain('if (artExperiment.concurrencyOverride !== undefined)');
+    expect(source).toContain('this.load.maxParallelDownloads = artExperiment.concurrencyOverride');
+    expect(source).toContain('beginStartupArtDiagnostics(this.load.maxParallelDownloads, artExperiment)');
   });
 
   it('keeps runtime art helpers assertion-only with no Phaser loader transaction', () => {
