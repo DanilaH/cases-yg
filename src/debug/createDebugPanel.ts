@@ -1,3 +1,4 @@
+import { getStartupPerformanceSnapshot } from '../app/startupPerformance';
 import { LITE_V2_BALANCE } from '../game/data/balance';
 import { SaveRepository, type SaveState } from '../game/systems/save';
 import {
@@ -139,6 +140,9 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     window.setTimeout(() => window.location.reload(), 80);
     return { language, reload: true };
   };
+
+  addLabel('Diagnostics');
+  addButton('Startup timing', async () => getStartupPerformanceSnapshot());
 
   addLabel('Language');
   addButton('Русский', () => switchLanguage('ru'));
