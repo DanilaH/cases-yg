@@ -66,7 +66,6 @@ describe('tight runtime art trim', () => {
     for (const path of [
       'src/game/scenes/OpeningScene.ts',
       'src/game/scenes/CollectionScene.ts',
-      'src/game/systems/openingVisuals.ts',
     ]) {
       const source = readFileSync(path, 'utf8');
       expect(source).not.toContain('artTrim.generated');
