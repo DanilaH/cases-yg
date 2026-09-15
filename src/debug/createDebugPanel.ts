@@ -33,6 +33,24 @@ const writeCollapsedPreference = (collapsed: boolean): void => {
   }
 };
 
+const copyTextToClipboard = async (text: string): Promise<void> => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.readOnly = true;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Copy failed');
+};
+
 const addDebugChips = (state: SaveState, amount: number): SaveState => {
   const pendingReveal = state.pendingReveal
     ? {
@@ -129,6 +147,32 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     body.append(button);
   };
 
+  const addCopyStartupDiagnosticsButton = (): void => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = 'Copy startup JSON';
+    button.addEventListener('click', () => {
+      const payload = JSON.stringify({
+        startupTiming: getStartupPerformanceSnapshot(),
+        startupArt: getStartupArtDiagnosticsSnapshot() ?? null,
+      });
+
+      void copyTextToClipboard(payload)
+        .then(() => {
+          button.textContent = 'Copied timing + art';
+        })
+        .catch(() => {
+          button.textContent = 'Copy failed';
+        })
+        .finally(() => {
+          window.setTimeout(() => {
+            button.textContent = 'Copy startup JSON';
+          }, 1200);
+        });
+    });
+    body.append(button);
+  };
+
   const stageAndReload = async (scenario: DebugRevealScenario): Promise<{ scenario: DebugRevealScenario }> => {
     await stageDebugReveal(repository, scenario);
     window.setTimeout(() => window.location.reload(), 80);
@@ -162,6 +206,7 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
   addLabel('Diagnostics');
   addButton('Startup timing', async () => getStartupPerformanceSnapshot());
   addButton('Startup art', async () => getStartupArtDiagnosticsSnapshot());
+  addCopyStartupDiagnosticsButton();
 
   addLabel('Art loader A/B');
   addButton('Cold default', () => runColdArtProbe(undefined));
