@@ -108,22 +108,89 @@ const compareVisible = (original, reconstructed) => {
   };
 };
 
+const assertFrameInsideLogicalCanvas = (assetPath, frame) => {
+  const valid =
+    Number.isInteger(frame.logicalWidth) &&
+    Number.isInteger(frame.logicalHeight) &&
+    Number.isInteger(frame.x) &&
+    Number.isInteger(frame.y) &&
+    Number.isInteger(frame.width) &&
+    Number.isInteger(frame.height) &&
+    frame.logicalWidth > 0 &&
+    frame.logicalHeight > 0 &&
+    frame.x >= 0 &&
+    frame.y >= 0 &&
+    frame.width > 0 &&
+    frame.height > 0 &&
+    frame.x + frame.width <= frame.logicalWidth &&
+    frame.y + frame.height <= frame.logicalHeight;
+  if (!valid) throw new Error(`Invalid existing trim metadata for ${assetPath}`);
+};
+
+let existingFrames = {};
+try {
+  const existingManifest = JSON.parse(await fs.readFile(generatedManifestPath, 'utf8'));
+  if (existingManifest?.version === 1 && typeof existingManifest.frames === 'object') {
+    existingFrames = existingManifest.frames;
+  }
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error;
+}
+
 const frames = {};
 const files = [];
 let beforeBytes = 0;
 let afterBytes = 0;
 let beforePixels = 0;
 let afterPixels = 0;
+let alreadyTrimmedCount = 0;
 
 await fs.mkdir(path.dirname(reportPath), { recursive: true });
 
 for (const filePath of targetFiles) {
   const originalBuffer = await fs.readFile(filePath);
   const original = await decodeRgba(originalBuffer);
-  const bounds = findBounds(original);
-  const logicalPixels = original.width * original.height;
   const assetPath = toAssetPath(filePath);
   const beforeStat = await fs.stat(filePath);
+  const existingFrame = existingFrames[assetPath];
+
+  // A committed trimmed runtime file is already the physical crop described by
+  // the generated frame metadata. Treat that pair as canonical and do not crop
+  // or lossy-encode it again. If assets:prepare later restores a full logical
+  // canvas, its dimensions no longer match this frame and the normal generation
+  // path below recomputes a fresh crop.
+  if (
+    existingFrame &&
+    original.width === existingFrame.width &&
+    original.height === existingFrame.height
+  ) {
+    assertFrameInsideLogicalCanvas(assetPath, existingFrame);
+    const logicalPixels = existingFrame.logicalWidth * existingFrame.logicalHeight;
+    const physicalPixels = original.width * original.height;
+    const pixelSavingRatio = 1 - physicalPixels / logicalPixels;
+
+    frames[assetPath] = existingFrame;
+    beforeBytes += beforeStat.size;
+    afterBytes += beforeStat.size;
+    beforePixels += logicalPixels;
+    afterPixels += physicalPixels;
+    alreadyTrimmedCount += 1;
+    files.push({
+      assetPath,
+      trimmed: true,
+      alreadyTrimmed: true,
+      ...existingFrame,
+      beforeBytes: beforeStat.size,
+      afterBytes: beforeStat.size,
+      beforePixels: logicalPixels,
+      afterPixels: physicalPixels,
+      pixelSavingRatio,
+    });
+    continue;
+  }
+
+  const bounds = findBounds(original);
+  const logicalPixels = original.width * original.height;
 
   beforeBytes += beforeStat.size;
   beforePixels += logicalPixels;
@@ -191,6 +258,7 @@ for (const filePath of targetFiles) {
     files.push({
       assetPath,
       trimmed: true,
+      alreadyTrimmed: false,
       logicalWidth: original.width,
       logicalHeight: original.height,
       ...bounds,
@@ -220,6 +288,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   targetCount: targetFiles.length,
   trimmedCount: Object.keys(frames).length,
+  alreadyTrimmedCount,
   beforeBytes,
   afterBytes,
   byteSavingRatio: beforeBytes === 0 ? 0 : 1 - afterBytes / beforeBytes,
@@ -233,7 +302,8 @@ const report = {
 await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 
 console.log(
-  `[trim] ${report.trimmedCount}/${report.targetCount} textures trimmed; ` +
+  `[trim] ${report.trimmedCount}/${report.targetCount} textures trimmed ` +
+  `(${alreadyTrimmedCount} already canonical); ` +
   `encoded ${(beforeBytes / 1024 / 1024).toFixed(2)} -> ${(afterBytes / 1024 / 1024).toFixed(2)} MiB ` +
   `(${(report.byteSavingRatio * 100).toFixed(1)}%); ` +
   `RGBA ${(report.estimatedRgbaBeforeBytes / 1024 / 1024).toFixed(1)} -> ` +
