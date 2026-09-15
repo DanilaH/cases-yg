@@ -1,0 +1,55 @@
+name: Trim runtime art experiment
+
+on:
+  push:
+    branches:
+      - tight-alpha-trim
+    paths:
+      - .github/workflows/trim-runtime-art.yml
+
+permissions:
+  contents: write
+
+jobs:
+  trim:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: tight-alpha-trim
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate tight runtime textures
+        run: node tools/assets/trim-runtime-art.mjs
+
+      - name: Show trim report
+        run: cat .asset-build/trim-report.json
+
+      - name: Upload trim report
+        uses: actions/upload-artifact@v4
+        with:
+          name: tight-alpha-trim-report
+          path: .asset-build/trim-report.json
+
+      - name: Commit generated candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/collectibles public/assets/package src/game/data/artTrim.generated.json
+          if git diff --cached --quiet; then
+            echo "No trim candidate changes"
+            exit 0
+          fi
+          git commit -m "Generate tight alpha runtime textures"
+          git push origin HEAD:tight-alpha-trim
