@@ -13,6 +13,7 @@
     "test": "vitest run",
     "preview": "vite preview",
     "assets:prepare": "node tools/assets/prepare-collectibles.mjs",
+    "assets:trim": "node tools/assets/trim-runtime-art.mjs",
     "assets:validate": "node tools/assets/validate-collectibles.mjs",
     "assets:atlas": "node tools/assets/build-atlas.mjs",
     "assets:model:u2netp": "node tools/assets/fetch-u2netp.mjs",
