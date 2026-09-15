@@ -1,5 +1,6 @@
 name: Materialize runtime AVIF candidate
 
+# Temporary branch-only materializer. Remove before the production PR merges.
 on:
   push:
     branches:
