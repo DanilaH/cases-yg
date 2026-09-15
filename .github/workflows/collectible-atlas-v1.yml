@@ -1,0 +1,50 @@
+name: Collectible atlas v1
+
+on:
+  push:
+    branches:
+      - experiment/collectible-atlas-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Benchmark collectible atlases
+        run: node tools/assets/benchmark-collectible-atlas-v1.mjs
+
+      - name: Show summary
+        run: cat .asset-build/collectible-atlas-v1/summary.md
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: collectible-atlas-v1
+          path: |
+            .asset-build/collectible-atlas-v1/report.json
+            .asset-build/collectible-atlas-v1/summary.md
+            .asset-build/collectible-atlas-v1/*.webp
+            .asset-build/collectible-atlas-v1/*.json
+
+      - name: Project gate
+        run: |
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
