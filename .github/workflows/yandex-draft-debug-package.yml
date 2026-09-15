@@ -1,0 +1,70 @@
+name: Yandex draft debug package
+
+on:
+  push:
+    branches:
+      - ops/yandex-draft-debug-package
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Asset self-test
+        run: npm run assets:selftest
+
+      - name: Validate canonical assets
+        run: npm run assets:validate
+
+      - name: Validate AVIF assets
+        run: npm run assets:avif:validate
+
+      - name: Build hosted Yandex draft with diagnostics
+        env:
+          VITE_DEBUG_PANEL: 'true'
+        run: npm run build
+
+      - name: Verify archive contract
+        run: |
+          test -f dist/index.html
+          if find dist -type f -name '*.map' | grep -q .; then
+            echo 'Unexpected source maps in draft build' >&2
+            exit 1
+          fi
+          bytes=$(du -sb dist | cut -f1)
+          echo "dist bytes: $bytes"
+          test "$bytes" -le 100000000
+
+      - name: Create Yandex archive
+        run: |
+          (cd dist && zip -9 -r ../signal-2000-yandex-draft-debug.zip .)
+          unzip -l signal-2000-yandex-draft-debug.zip | sed -n '1,40p'
+          unzip -Z1 signal-2000-yandex-draft-debug.zip | grep -qx 'index.html'
+          sha256sum signal-2000-yandex-draft-debug.zip > signal-2000-yandex-draft-debug.zip.sha256
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-2000-yandex-draft-debug
+          path: |
+            signal-2000-yandex-draft-debug.zip
+            signal-2000-yandex-draft-debug.zip.sha256
+          if-no-files-found: error
+          compression-level: 0
