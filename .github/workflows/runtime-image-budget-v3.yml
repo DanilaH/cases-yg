@@ -1,0 +1,72 @@
+name: Runtime image budget v3
+
+on:
+  push:
+    branches:
+      - experiment/runtime-image-budget-v3
+    paths:
+      - .github/workflows/runtime-image-budget-v3.yml
+      - tools/assets/benchmark-runtime-images-v3.mjs
+      - docs/RUNTIME_IMAGE_BUDGET_V3_2026-09-15.md
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Benchmark runtime image candidates
+        run: node tools/assets/benchmark-runtime-images-v3.mjs
+
+      - name: Show summary
+        run: cat .asset-build/runtime-image-budget-v3/summary.md
+
+      - name: Collect representative samples
+        run: |
+          mkdir -p .asset-build/runtime-image-budget-v3-samples/baseline/collectibles
+          mkdir -p .asset-build/runtime-image-budget-v3-samples/baseline/package
+          cp public/assets/collectibles/camera-common.webp .asset-build/runtime-image-budget-v3-samples/baseline/collectibles/
+          cp public/assets/collectibles/flip-phone-common.webp .asset-build/runtime-image-budget-v3-samples/baseline/collectibles/
+          cp public/assets/collectibles/crt-tv-legendary.webp .asset-build/runtime-image-budget-v3-samples/baseline/collectibles/
+          cp public/assets/collectibles/handheld-console-secret-phone.webp .asset-build/runtime-image-budget-v3-samples/baseline/collectibles/
+          cp public/assets/package/pouch-body.webp .asset-build/runtime-image-budget-v3-samples/baseline/package/
+          cp public/assets/package/pouch-star-tab.webp .asset-build/runtime-image-budget-v3-samples/baseline/package/
+          for variant in q84 q82 scale90-q88 scale85-q88; do
+            mkdir -p ".asset-build/runtime-image-budget-v3-samples/$variant/collectibles" ".asset-build/runtime-image-budget-v3-samples/$variant/package"
+            cp ".asset-build/runtime-image-budget-v3/$variant/collectibles/camera-common.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/collectibles/"
+            cp ".asset-build/runtime-image-budget-v3/$variant/collectibles/flip-phone-common.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/collectibles/"
+            cp ".asset-build/runtime-image-budget-v3/$variant/collectibles/crt-tv-legendary.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/collectibles/"
+            cp ".asset-build/runtime-image-budget-v3/$variant/collectibles/handheld-console-secret-phone.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/collectibles/"
+            cp ".asset-build/runtime-image-budget-v3/$variant/package/pouch-body.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/package/"
+            cp ".asset-build/runtime-image-budget-v3/$variant/package/pouch-star-tab.webp" ".asset-build/runtime-image-budget-v3-samples/$variant/package/"
+          done
+
+      - name: Upload benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-image-budget-v3
+          path: |
+            .asset-build/runtime-image-budget-v3/report.json
+            .asset-build/runtime-image-budget-v3/summary.md
+            .asset-build/runtime-image-budget-v3-samples
+
+      - name: Project gate
+        run: |
+          npm run typecheck
+          npm test
+          npm run assets:selftest
+          npm run assets:validate
+          npm run build
