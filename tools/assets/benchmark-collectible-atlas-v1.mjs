@@ -84,6 +84,13 @@ const compareVisible = (source, candidate) => {
 };
 
 const normalizeFrames = (atlasData) => {
+  if (Array.isArray(atlasData.textures)) {
+    return atlasData.textures.flatMap((texture) =>
+      Array.isArray(texture?.frames)
+        ? texture.frames.map((entry) => [entry.filename ?? entry.name, entry])
+        : [],
+    );
+  }
   if (Array.isArray(atlasData.frames)) {
     return atlasData.frames.map((entry) => [entry.filename ?? entry.name, entry]);
   }
@@ -91,6 +98,15 @@ const normalizeFrames = (atlasData) => {
     return Object.entries(atlasData.frames);
   }
   throw new Error('Unsupported Phaser atlas JSON: missing frames');
+};
+
+const getDeclaredImageName = (atlasData) => {
+  if (typeof atlasData?.meta?.image === 'string') return atlasData.meta.image;
+  if (Array.isArray(atlasData?.textures) && atlasData.textures.length === 1) {
+    const imageName = atlasData.textures[0]?.image;
+    return typeof imageName === 'string' ? imageName : undefined;
+  }
+  return undefined;
 };
 
 const packBatch = async (batch, batchIndex) => {
@@ -150,7 +166,7 @@ for (let offset = 0, batchIndex = 0; offset < entries.length; offset += BATCH_SI
   const pngByStem = new Map(pngFiles.map((file) => [path.parse(file.name).name, file]));
   for (const jsonFile of jsonFiles) {
     const atlasData = JSON.parse(jsonFile.buffer.toString('utf8'));
-    const imageName = atlasData?.meta?.image;
+    const imageName = getDeclaredImageName(atlasData);
     const jsonStem = path.parse(jsonFile.name).name;
     const pngFile =
       (typeof imageName === 'string' ? pngByName.get(imageName) : undefined)
@@ -158,7 +174,7 @@ for (let offset = 0, batchIndex = 0; offset < entries.length; offset += BATCH_SI
       ?? (pngFiles.length === 1 ? pngFiles[0] : undefined);
     if (!pngFile) {
       throw new Error(
-        `Could not pair ${jsonFile.name} with an atlas image; produced PNGs: ${pngFiles.map((file) => file.name).join(', ')}`,
+        `Could not pair ${jsonFile.name} with an atlas image; declared ${String(imageName)}; produced PNGs: ${pngFiles.map((file) => file.name).join(', ')}`,
       );
     }
 
@@ -177,7 +193,11 @@ for (let offset = 0, batchIndex = 0; offset < entries.length; offset += BATCH_SI
     atlas.pixels += webpMetadata.width * webpMetadata.height;
 
     let sheetFrames = 0;
-    for (const [rawFrameName, frameEntry] of normalizeFrames(atlasData)) {
+    const normalizedFrames = normalizeFrames(atlasData);
+    if (normalizedFrames.length === 0) {
+      throw new Error(`No frames found in ${jsonFile.name}`);
+    }
+    for (const [rawFrameName, frameEntry] of normalizedFrames) {
       if (typeof rawFrameName !== 'string' || !frameEntry?.frame) {
         throw new Error(`Malformed frame in ${jsonFile.name}`);
       }
