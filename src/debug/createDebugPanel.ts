@@ -1,3 +1,9 @@
+import {
+  buildStartupArtExperimentUrl,
+  getStartupArtDiagnosticsSnapshot,
+  STARTUP_ART_CONCURRENCY_VALUES,
+  type StartupArtConcurrency,
+} from '../app/startupArtDiagnostics';
 import { getStartupPerformanceSnapshot } from '../app/startupPerformance';
 import { LITE_V2_BALANCE } from '../game/data/balance';
 import { SaveRepository, type SaveState } from '../game/systems/save';
@@ -141,8 +147,27 @@ export const createDebugPanel = (platform: PlatformRuntime): (() => void) => {
     return { language, reload: true };
   };
 
+  const runColdArtProbe = async (
+    concurrency: StartupArtConcurrency | undefined,
+  ): Promise<{ concurrency: StartupArtConcurrency | 'default'; coldRun: true }> => {
+    const nextUrl = buildStartupArtExperimentUrl(
+      window.location.href,
+      concurrency,
+      `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    window.setTimeout(() => window.location.assign(nextUrl), 80);
+    return { concurrency: concurrency ?? 'default', coldRun: true };
+  };
+
   addLabel('Diagnostics');
   addButton('Startup timing', async () => getStartupPerformanceSnapshot());
+  addButton('Startup art', async () => getStartupArtDiagnosticsSnapshot());
+
+  addLabel('Art loader A/B');
+  addButton('Cold default', () => runColdArtProbe(undefined));
+  for (const concurrency of STARTUP_ART_CONCURRENCY_VALUES) {
+    addButton(`Cold x${concurrency}`, () => runColdArtProbe(concurrency));
+  }
 
   addLabel('Language');
   addButton('Русский', () => switchLanguage('ru'));
