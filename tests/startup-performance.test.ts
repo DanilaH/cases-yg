@@ -11,7 +11,7 @@ class CaptureAnalytics implements AnalyticsAdapter {
   public readonly events: Array<{ event: string; params?: AnalyticsParams }> = [];
 
   public track(event: string, params?: AnalyticsParams): void {
-    this.events.push({ event, params });
+    this.events.push(params === undefined ? { event } : { event, params });
   }
 }
 
@@ -32,9 +32,9 @@ describe('startup performance diagnostics', () => {
 
     const snapshot = getStartupPerformanceSnapshot();
     expect(snapshot.moduleToReadyMs).toBeTypeOf('number');
-    expect(snapshot.moduleToReadyMs).toBeGreaterThanOrEqual(0);
-    expect(snapshot.platformToSaveMs).toBeGreaterThanOrEqual(0);
-    expect(snapshot.saveToArtMs).toBeGreaterThanOrEqual(0);
-    expect(snapshot.artToReadyMs).toBeGreaterThanOrEqual(0);
+    expect(snapshot.moduleToReadyMs ?? -1).toBeGreaterThanOrEqual(0);
+    expect(snapshot.platformToSaveMs ?? -1).toBeGreaterThanOrEqual(0);
+    expect(snapshot.saveToArtMs ?? -1).toBeGreaterThanOrEqual(0);
+    expect(snapshot.artToReadyMs ?? -1).toBeGreaterThanOrEqual(0);
   });
 });
