@@ -1,0 +1,116 @@
+name: Runtime asset baseline browser smoke
+
+on:
+  push:
+    branches:
+      - experiment/runtime-asset-baseline-smoke
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install isolated browser harness
+        run: |
+          rm -rf /tmp/browser-harness
+          npm install --prefix /tmp/browser-harness --package-lock=false playwright@1.55.0
+          /tmp/browser-harness/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Build Pages-like mock runtime
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/vite-preview.log 2>&1 &
+          echo $! > /tmp/vite-preview.pid
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/vite-preview.log
+          exit 1
+
+      - name: Verify baseline cold startup in Chromium
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/browser-harness/node_modules/playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+              const pageErrors = [];
+              const consoleErrors = [];
+              const requests = [];
+
+              page.on('pageerror', (error) => pageErrors.push(error.message));
+              page.on('console', (message) => {
+                if (message.type() === 'error') consoleErrors.push(message.text());
+              });
+              page.on('request', (request) => requests.push(request.url()));
+
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded' });
+              await page.waitForFunction(() => {
+                const overlay = document.querySelector('#startup-preload');
+                return overlay?.getAttribute('data-state') === 'hidden';
+              }, { timeout: 45_000 });
+
+              if (pageErrors.length > 0) throw new Error(`Page errors: ${pageErrors.join(' | ')}`);
+
+              const packRequests = requests.filter((url) => url.includes('/assets/bundles/') && url.endsWith('.mptpack'));
+              const directRuntimeWebp = requests.filter((url) =>
+                url.startsWith('http://127.0.0.1:4173/') &&
+                url.includes('/assets/') &&
+                url.endsWith('.webp')
+              );
+              if (packRequests.length !== 0) throw new Error(`Unexpected bundle requests: ${packRequests.length}`);
+              if (directRuntimeWebp.length !== 115) {
+                throw new Error(`Expected 115 direct runtime WebP requests, saw ${directRuntimeWebp.length}`);
+              }
+
+              const startupTimingButton = page.getByRole('button', { name: 'Startup timing' });
+              await startupTimingButton.click();
+              await page.waitForFunction(() => {
+                const status = document.querySelector('.mpt-debug-panel [data-status]');
+                return status?.textContent?.includes('platformToArtMs') ?? false;
+              });
+              const timingText = await page.locator('.mpt-debug-panel [data-status]').textContent();
+
+              console.log(JSON.stringify({
+                packRequests: packRequests.length,
+                directRuntimeWebp: directRuntimeWebp.length,
+                timingText,
+                consoleErrors,
+              }, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/vite-preview.log || true
