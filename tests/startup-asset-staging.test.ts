@@ -7,6 +7,10 @@ import {
   getRuntimeStaticArt,
 } from '../src/game/data/artAssets';
 import { GAME_REGISTRY } from '../src/game/data/collectibles';
+import {
+  RUNTIME_ART_BUNDLES,
+  RUNTIME_ART_BUNDLE_TEXTURE_COUNT,
+} from '../src/game/data/runtimeAssetBundles.generated';
 
 describe('startup asset staging', () => {
   it('defines one complete deduplicated reviewed session image set', () => {
@@ -20,28 +24,42 @@ describe('startup asset staging', () => {
     expect(textureKeys.length).toBeGreaterThan(0);
     expect(new Set(textureKeys).size).toBe(textureKeys.length);
     expect(new Set(assetPaths).size).toBe(assetPaths.length);
+    expect(RUNTIME_ART_BUNDLE_TEXTURE_COUNT).toBe(art.length);
+    expect(RUNTIME_ART_BUNDLES).toHaveLength(6);
+    expect(RUNTIME_ART_BUNDLES.reduce((sum, bundle) => sum + bundle.textureCount, 0)).toBe(art.length);
   });
 
-  it('queues the complete reviewed session art set in Boot before Game Ready', () => {
+  it('expands runtime bundles back into the complete reviewed art set inside Boot preload', () => {
     const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
 
     expect(source).toContain('getRuntimeStaticArt()');
     expect(source).toContain('getRuntimeCollectibleArt(GAME_REGISTRY)');
-    expect(source).toContain('this.load.image(textureKey, assetPath)');
+    expect(source).toContain('this.load.binary(bundle.key, bundle.assetPath)');
+    expect(source).toContain('parseRuntimeAssetBundle(data)');
+    expect(source).toContain('this.load.image(entry.textureKey, objectUrl)');
+    expect(source).toContain('this.textures.exists(textureKey)');
     expect(source).not.toContain('ensureLootPoolArt');
     expect(source).not.toContain('installBackgroundAssetWarmup');
   });
 
-  it('starts save reconciliation before the image queue and captures rejection immediately', () => {
+  it('starts save reconciliation before bundle/image work and captures rejection immediately', () => {
     const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
     const saveStart = source.indexOf('this.initialSaveResult = new SaveRepository(platform.storage).load()');
-    const imageQueue = source.indexOf('for (const art of getRuntimeStaticArt())');
+    const bundleQueue = source.indexOf('for (const bundle of RUNTIME_ART_BUNDLES)');
 
     expect(saveStart).toBeGreaterThanOrEqual(0);
-    expect(imageQueue).toBeGreaterThan(saveStart);
+    expect(bundleQueue).toBeGreaterThan(saveStart);
     expect(source).toContain('(error: unknown) => {');
     expect(source).toContain("markStartupPhase('bootSaveSettled')");
     expect(source).toContain("markStartupPhase('bootArtSettled')");
+  });
+
+  it('keeps bundle transport startup-only and releases transient binary/blob state', () => {
+    const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
+
+    expect(source).toContain('this.cache.binary.remove(key)');
+    expect(source).toContain('URL.revokeObjectURL(objectUrl)');
+    expect(source).toContain('Phaser.Loader.Events.COMPLETE');
   });
 
   it('keeps runtime art helpers assertion-only with no Phaser loader transaction', () => {
