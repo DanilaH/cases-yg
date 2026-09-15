@@ -1,70 +1,56 @@
 # Startup asset staging — 2026-09-14
 
-Status: implementation pass, updated 2026-09-15 by Runtime Performance V2.
+Status: superseded on 2026-09-15 by the zero-runtime-loading product decision.
 
-Real-phone acceptance showed that cold startup can exceed 30 seconds. The current boot path also preloads pouch art for every Drop before the first playable frame. This pass reduces the blocking startup set while preserving the invariant that slow asset loading must never produce temporary procedural placeholders.
+Real-phone acceptance originally showed cold startup above 30 seconds, which led to staged active-Drop loading and later a polished runtime loading surface. Subsequent product acceptance rejected any in-game loading surface as a class of UX.
 
-## Contract
+The current canonical contract is recorded in `docs/ZERO_RUNTIME_LOADING_2026-09-15.md`.
 
-- Phaser's first blocking preload contains only the shared authored scene backgrounds.
-- The active Drop is resolved from the durable save before scene handoff.
-- Active Drop collectible and pouch textures are awaited through the existing Phaser loader before FirstRun/Opening can render them.
-- A slow request waits; it is not treated as a missing asset.
-- Procedural fallback remains only for a confirmed load failure.
-- After semantic Game Ready, browser `prefetch` work is intentionally bounded to likely near-future assets: Collection-only static layers, collectibles for the resolved active Drop, and Basic + Charged pouch layers for that Drop.
-- Other Drops are **not** downloaded speculatively merely because the game reached Ready. Their existing runtime loader remains the correctness path when the player actually browses them.
-- Background warmup never inserts speculative assets into Phaser's TextureManager, so it does not decode the full catalog into GPU/mobile memory.
-- Browser HTTP-cache retention is an optimization, not durable state: the browser may evict or ignore speculative cache work. Correctness always remains on the existing on-demand Phaser readiness gates.
+## Historical staging approach
+
+The previous implementation reduced cold-start work by loading only the active Drop before first play and relying on browser prefetch plus Phaser runtime loading for other Drops. It preserved correctness, but it necessarily meant that visiting uncached content could create an in-game wait state.
+
+That trade-off is no longer accepted.
+
+## Current contract
+
+- The only loading surface is the startup loader.
+- `BootScene.preload()` owns the complete reviewed session-critical image set: Opening/Collection static art, every Basic/Charged pouch layer for every Drop, and every reviewed collectible.
+- Semantic Game Ready is not reached until Phaser's blocking preload has settled and the playable/recoverable scene is ready.
+- Runtime `ensure*Art` helpers are readiness assertions only. They never enqueue or start a Phaser Loader transaction.
+- There is no post-Ready image prefetch/warmup system because the complete session set is already Phaser-ready.
+- There is no runtime loading overlay.
+- A confirmed missing startup texture may still exercise the existing emergency procedural fallback, but normal network/decode latency must never create a placeholder or loading UI after Game Ready.
 
 ## Expected startup shape
 
 Cold/new or uncached launch:
 
-`shared backgrounds -> load save -> active Drop art -> first usable frame -> Game Ready -> bounded active-Drop/Collection cache warmup`
+`complete reviewed image preload -> load/reconcile save -> scene handoff -> first usable frame -> Game Ready -> uninterrupted session`
 
-Later launch when the browser retained the warmed responses:
+Warm launch:
 
-`shared backgrounds from cache -> load save -> active Drop art from cache -> first usable frame`
+`same correctness path with browser HTTP cache acceleration -> uninterrupted session`
 
-The later launch must still work normally when the cache was cleared or evicted; it simply falls back to the same awaited on-demand loading path.
+The browser cache is an optimization only; correctness does not depend on speculative prefetch retention.
 
-## Placeholder invariant
+## Why the policy changed
 
-Background cache warmup is never considered proof that a texture exists in Phaser. Before a Drop is shown, its scene path still awaits the Phaser loader's `COMPLETE` signal. That applies to initial active-Drop handoff and the existing Opening/Collection lazy-loading paths.
+The previous runtime loader was technically correct but product-wrong. Hiding missing art behind a polished loading screen still interrupted a tiny high-frequency game loop. Hiding the loading UI while keeping network work would be worse because it would create an unexplained stall.
 
-Opening has one important edge case: Drop switching intentionally renders the user's target preview before its asynchronous loader starts. Removing the previous all-Drop pouch preload would otherwise expose procedural pouch art during a slow first visit.
+The selected trade-off is therefore explicit: pay the complete session image cost once under the startup loader, then keep the live session interruption-free. The earlier image-budget pass reduced shipped image bytes enough to make this worth testing on target phones.
 
-The first implementation hid that preview with a separate translucent technical art gate. Real-device acceptance rejected it: the underlying placeholder remained visible through the scrim and the tiny center marker looked like debug UI rather than authored game presentation.
+## Memory follow-up
 
-Runtime missing-texture loads now reuse the same authored full-screen startup preload surface: themed opaque background, spinner, status copy and fake progress. The overlay only takes ownership after startup itself is hidden, so initial boot ownership is unchanged. When dynamic art finishes, the scene emits the existing ScaleManager refresh path while the loader still covers the canvas; the overlay then completes to 100% and exits after a short minimum-visible hold.
-
-Therefore:
-
-- `slow` means wait behind the authored loader;
-- `already decoded in Phaser` means no loader at all;
-- `HTTP-cached but not decoded` means a short polished Phaser load/decode;
-- `confirmed loaderror` may use the existing procedural emergency fallback;
-- procedural preview art must never be visible through the loading surface.
-
-## Runtime Performance V2 correction
-
-The original warmup deliberately offered the **entire** reviewed image catalog to the browser after Game Ready. That was acceptable as a first correctness-preserving experiment, but it is too eager for production mobile traffic once seven Drops exist.
-
-The revised policy is:
-
-`critical correctness load -> semantic Game Ready -> active-Drop/Collection near-future warm -> intent-driven loading for every other Drop`
-
-This change is network-policy only. It does not weaken any Phaser texture readiness gate and does not introduce durable CacheStorage or a service worker.
+Full session residency raises the importance of decoded/GPU memory. The next independent optimization is tight alpha cropping with preserved logical frame metadata. That work is intentionally separate from the loading-policy change so coordinate/presentation regressions cannot be confused with loader-policy regressions.
 
 ## Acceptance
 
-1. No Drop/pouch/collectible placeholder may appear merely because an asset is still downloading.
-2. First-run pouch/reveal remains fully authored.
-3. Returning saves start with their actual active Drop rather than paying for the default Drop first.
-4. Browsing/switching to a not-yet-decoded Drop uses the same polished loader language as startup and rebuilds with authored textures before uncovering the canvas.
-5. No translucent debug-style art scrim or standalone center glyph remains.
-6. Background warmup is staggered, low-priority and non-fatal; speculative misses do not block gameplay.
-7. Background warmup excludes unrelated Drops until player intent requires them.
-8. The full catalog is not eagerly decoded into Phaser/GPU memory.
-9. Orientation gate still owns portrait presentation above any loading surface.
-10. Full typecheck/tests/assets/build gate remains green.
+1. Exactly one loading surface exists: startup.
+2. Switching through all Drops never shows loading UI.
+3. Basic/Charged switching never shows loading UI.
+4. Collection opening/paging never shows loading UI.
+5. Reward reveal never exposes a temporary authored-art placeholder under normal successful loading.
+6. Runtime art helpers contain no Phaser loader start/enqueue path.
+7. Orientation gate remains independent and may still cover portrait presentation; it is not an asset loader.
+8. Full typecheck/tests/assets/build gate remains green.

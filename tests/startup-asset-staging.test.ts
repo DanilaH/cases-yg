@@ -1,94 +1,62 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
 import {
-  getRuntimeBootStaticArt,
-  getRuntimeCollectibleArtForLootPool,
-  getRuntimeCollectionStaticArt,
-  getRuntimePouchArtForLootPool,
+  getRuntimeCollectibleArt,
+  getRuntimeStaticArt,
 } from '../src/game/data/artAssets';
-import { DEFAULT_LOOT_POOL_ID, GAME_REGISTRY } from '../src/game/data/collectibles';
-import {
-  createAssetPrefetchBatches,
-  getBackgroundWarmupAssetPaths,
-} from '../src/game/systems/backgroundAssetWarmup';
+import { GAME_REGISTRY } from '../src/game/data/collectibles';
 
 describe('startup asset staging', () => {
-  it('warms only Collection layers plus the resolved active Drop without duplicate requests', () => {
-    const expected = new Set([
-      ...getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
-      ...getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, DEFAULT_LOOT_POOL_ID).map(({ assetPath }) => assetPath),
-      ...getRuntimePouchArtForLootPool(DEFAULT_LOOT_POOL_ID).map(({ assetPath }) => assetPath),
-    ]);
-    const paths = getBackgroundWarmupAssetPaths(DEFAULT_LOOT_POOL_ID);
+  it('defines one complete deduplicated reviewed session image set', () => {
+    const art = [
+      ...getRuntimeStaticArt(),
+      ...getRuntimeCollectibleArt(GAME_REGISTRY),
+    ];
+    const textureKeys = art.map(({ textureKey }) => textureKey);
+    const assetPaths = art.map(({ assetPath }) => assetPath);
 
-    expect(paths).toHaveLength(expected.size);
-    expect(new Set(paths)).toEqual(expected);
-    expect(paths.slice(0, 2)).toEqual(
-      getRuntimeCollectionStaticArt().map(({ assetPath }) => assetPath),
-    );
-
-    const unrelatedDropPath = getRuntimeCollectibleArtForLootPool(GAME_REGISTRY, 'game-zone')[0]?.assetPath;
-    expect(unrelatedDropPath).toBeDefined();
-    expect(paths).not.toContain(unrelatedDropPath);
+    expect(textureKeys.length).toBeGreaterThan(0);
+    expect(new Set(textureKeys).size).toBe(textureKeys.length);
+    expect(new Set(assetPaths).size).toBe(assetPaths.length);
   });
 
-  it('batches speculative prefetch work instead of emitting one unbounded burst', () => {
-    expect(createAssetPrefetchBatches(['a', 'b', 'a', 'c', 'd', 'e'], 2)).toEqual([
-      ['a', 'b'],
-      ['c', 'd'],
-      ['e'],
-    ]);
-  });
-
-  it('keeps only first-frame shared art in Boot and defers Collection layers', () => {
-    expect(getRuntimeBootStaticArt().map(({ id }) => id)).toEqual(['opening-bg']);
-    expect(getRuntimeCollectionStaticArt().map(({ id }) => id)).toEqual([
-      'collection-bg',
-      'collection-foreground',
-    ]);
-  });
-
-  it('resolves durable active Drop before installing warmup and awaiting handoff art', () => {
+  it('queues the complete reviewed session art set in Boot before Game Ready', () => {
     const source = readFileSync('src/game/scenes/BootScene.ts', 'utf8');
-    const saveLoad = source.indexOf('new SaveRepository(platform.storage).load()');
-    const warmupInstall = source.indexOf('installBackgroundAssetWarmup(platform, activeLootPoolId)');
-    const activeDropLoad = source.indexOf('await ensureLootPoolArt(this, GAME_REGISTRY, activeLootPoolId)');
 
-    expect(source).not.toContain('GAME_LOOT_POOL_IDS');
-    expect(source).not.toContain('getRuntimeCollectibleArtForLootPool');
-    expect(source).not.toContain('getRuntimePouchArtForLootPool');
-    expect(source).toContain('getRuntimeBootStaticArt()');
-    expect(source).not.toContain("art.id === 'collection-bg'");
-    expect(saveLoad).toBeGreaterThanOrEqual(0);
-    expect(warmupInstall).toBeGreaterThan(saveLoad);
-    expect(activeDropLoad).toBeGreaterThan(warmupInstall);
+    expect(source).toContain('getRuntimeStaticArt()');
+    expect(source).toContain('getRuntimeCollectibleArt(GAME_REGISTRY)');
+    expect(source).toContain('this.load.image(textureKey, assetPath)');
+    expect(source).not.toContain('ensureLootPoolArt');
+    expect(source).not.toContain('installBackgroundAssetWarmup');
   });
 
-  it('requires authored Collection layers before its first render', () => {
-    const source = readFileSync('src/game/scenes/CollectionScene.ts', 'utf8');
-    const ensureArt = source.indexOf('await ensureCollectionArt(this, GAME_REGISTRY, this.selectedLootPoolId())');
-    const firstRender = source.indexOf('this.render();');
+  it('keeps runtime art helpers assertion-only with no Phaser loader transaction', () => {
+    const source = readFileSync('src/game/systems/artLoading.ts', 'utf8');
 
-    expect(ensureArt).toBeGreaterThanOrEqual(0);
-    expect(firstRender).toBeGreaterThan(ensureArt);
+    expect(source).toContain('Missing preloaded');
+    expect(source).toContain('scene.textures.exists(textureKey)');
+    expect(source).not.toContain('scene.load.image');
+    expect(source).not.toContain('scene.load.start');
+    expect(source).not.toContain('Loader.Events');
+    expect(source).not.toContain('beginRuntimeLoadOverlay');
   });
 
-  it('keeps missing dynamic art behind the authored preload surface until Phaser rebuilds the scene', () => {
-    const artLoadingSource = readFileSync('src/game/systems/artLoading.ts', 'utf8');
-    const overlaySource = readFileSync('src/app/runtimeLoadOverlay.ts', 'utf8');
-    const overlayShown = artLoadingSource.indexOf('const releaseOverlay = beginRuntimeLoadOverlay()');
-    const loaderWait = artLoadingSource.indexOf('await new Promise<void>');
-    const refresh = artLoadingSource.indexOf('scene.scale.refresh()');
-    const release = artLoadingSource.indexOf('releaseOverlay()');
+  it('ships no post-ready image warmup or in-game loading overlay implementation', () => {
+    expect(existsSync('src/app/runtimeLoadOverlay.ts')).toBe(false);
+    expect(existsSync('src/game/systems/backgroundAssetWarmup.ts')).toBe(false);
+  });
 
-    expect(artLoadingSource).not.toContain('runtime-art-gate');
-    expect(overlaySource).toContain("#startup-preload");
-    expect(overlaySource).toContain("#startup-preload-progress-fill");
-    expect(overlayShown).toBeGreaterThanOrEqual(0);
-    expect(loaderWait).toBeGreaterThan(overlayShown);
-    expect(refresh).toBeGreaterThan(loaderWait);
-    expect(release).toBeGreaterThan(refresh);
+  it('keeps scene-level readiness checks but never gives them network ownership', () => {
+    const opening = readFileSync('src/game/scenes/OpeningScene.ts', 'utf8');
+    const collection = readFileSync('src/game/scenes/CollectionScene.ts', 'utf8');
+
+    expect(opening).toContain('await ensureLootPoolArt');
+    expect(opening).toContain('await ensurePouchArt');
+    expect(collection).toContain('await ensureCollectionArt');
+    expect(collection).toContain('await ensureLootPoolCollectibleArt');
+    expect(opening).not.toContain('scene.load.image');
+    expect(collection).not.toContain('scene.load.image');
   });
 });
