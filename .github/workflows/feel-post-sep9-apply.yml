@@ -1,0 +1,129 @@
+name: Apply post-Sep-9 feel polish
+
+on:
+  push:
+    branches:
+      - feel/post-sep9-polish
+    paths:
+      - .github/workflows/feel-post-sep9-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feel/post-sep9-polish
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Apply bounded feel corrections
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}")
+              p.write_text(text.replace(old, new, 1))
+
+          # Presentation policy: keep changes small, explicit and project-local.
+          replace_once(
+              'src/game/data/presentation.ts',
+              "  dropSelectorSwitchMs: 120,\n  dropSelectorDotSize: 4,",
+              "  dropSelectorSwitchMs: 120,\n  dropPreviewPouchOffsetX: 16,\n  dropPreviewPanelOffsetX: 10,\n  dropPreviewEntryScale: 0.985,\n  dropPreviewEntryAlpha: 0.74,\n  pouchSwapEntryOffsetY: 8,\n  pouchSwapEntryScale: 0.975,\n  pouchSwapEntryAlpha: 0.68,\n  pouchSwapEntryMs: 155,\n  dropSelectorDotSize: 4,",
+          )
+          replace_once(
+              'src/game/data/presentation.ts',
+              "export const RESULT_PRESENTATION = {",
+              "export const COLLECTION_FEEL_PRESENTATION = {\n  contentViewEntryMs: 140,\n  contentDropEntryMs: 160,\n  contentDropEntryOffsetX: 16,\n  contentViewEntryOffsetY: 5,\n  contentEntryAlpha: 0.72,\n  controlHoverScale: 1.025,\n  controlPressScale: 0.96,\n  controlPressMs: 60,\n  controlReleaseMs: 90,\n  returnHandoffMs: 60,\n} as const;\n\nexport const RESULT_PRESENTATION = {",
+          )
+
+          # Opening: preserve latest-intent Drop switching and mature reveal choreography.
+          replace_once(
+              'src/game/scenes/OpeningScene.ts',
+              "    pouch.setX(pouchX + direction * 12).setAlpha(0.78);\n    panel.setX(panelX + direction * 8).setAlpha(0.82);\n    this.tweens.add({\n      targets: pouch,\n      x: pouchX,\n      alpha: 1,\n      duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,\n      ease: 'Cubic.Out',\n    });",
+              "    pouch\n      .setX(pouchX + direction * OPENING_FEEL_PRESENTATION.dropPreviewPouchOffsetX)\n      .setScale(OPENING_FEEL_PRESENTATION.dropPreviewEntryScale)\n      .setAlpha(OPENING_FEEL_PRESENTATION.dropPreviewEntryAlpha);\n    panel\n      .setX(panelX + direction * OPENING_FEEL_PRESENTATION.dropPreviewPanelOffsetX)\n      .setAlpha(0.8);\n    this.tweens.add({\n      targets: pouch,\n      x: pouchX,\n      scale: 1,\n      alpha: 1,\n      duration: OPENING_FEEL_PRESENTATION.dropSelectorSwitchMs,\n      ease: 'Cubic.Out',\n    });",
+          )
+          replace_once(
+              'src/game/scenes/OpeningScene.ts',
+              "    if (animateEntry) this.animateIdleEntry();\n  }\n\n  private animateIdleEntry(): void {",
+              "    if (animateEntry) this.animateIdleEntry();\n  }\n\n  private animatePouchSwapEntry(): void {\n    const pouch = this.pouch?.group;\n    if (!pouch?.active) return;\n    const targetY = pouch.y;\n    pouch\n      .setY(targetY + OPENING_FEEL_PRESENTATION.pouchSwapEntryOffsetY)\n      .setScale(OPENING_FEEL_PRESENTATION.pouchSwapEntryScale)\n      .setAlpha(OPENING_FEEL_PRESENTATION.pouchSwapEntryAlpha);\n    this.tweens.add({\n      targets: pouch,\n      y: targetY,\n      scale: 1,\n      alpha: 1,\n      duration: OPENING_FEEL_PRESENTATION.pouchSwapEntryMs,\n      ease: 'Back.Out',\n    });\n  }\n\n  private animateIdleEntry(): void {",
+          )
+          replace_once(
+              'src/game/scenes/OpeningScene.ts',
+              "      this.pouchArtLoadInFlight = false;\n      if (this.phase === 'idle' && !this.isSceneShutdown()) this.renderIdle();\n    });",
+              "      this.pouchArtLoadInFlight = false;\n      if (this.phase === 'idle' && !this.isSceneShutdown()) {\n        this.renderIdle();\n        this.animatePouchSwapEntry();\n      }\n    });",
+          )
+
+          # Collection: animate only the changing content; keep edge-to-edge environment and top chrome stable.
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "import { staticTextureKey } from '../data/artAssets';\nimport { LITE_V2_BALANCE } from '../data/balance';",
+              "import { staticTextureKey } from '../data/artAssets';\nimport { LITE_V2_BALANCE } from '../data/balance';\nimport { COLLECTION_FEEL_PRESENTATION } from '../data/presentation';",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "type CollectionView = 'shelf' | 'library';\n\nexport class CollectionScene extends Phaser.Scene {",
+              "type CollectionView = 'shelf' | 'library';\ntype CollectionEntryMotion = 'none' | 'view' | 'next' | 'previous';\n\nexport class CollectionScene extends Phaser.Scene {",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "  private page = 0;\n  private dropBrowseInFlight = false;",
+              "  private page = 0;\n  private dropBrowseInFlight = false;\n  private pendingEntryMotion: CollectionEntryMotion = 'none';",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "    if (this.view === 'shelf') {\n      this.renderShelf(root);\n    } else {\n      this.renderLibrary(root);\n    }\n\n    if (this.view === 'shelf') {",
+              "    const content = this.add.container(0, 0);\n    root.add(content);\n    if (this.view === 'shelf') {\n      this.renderShelf(content);\n    } else {\n      this.renderLibrary(content);\n    }\n    this.animateContentEntry(content);\n\n    if (this.view === 'shelf') {",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "  private createTab(\n",
+              "  private animateContentEntry(content: Phaser.GameObjects.Container): void {\n    const motion = this.pendingEntryMotion;\n    this.pendingEntryMotion = 'none';\n    if (motion === 'none') return;\n\n    const directional = motion === 'next' || motion === 'previous';\n    const offsetX = motion === 'next'\n      ? COLLECTION_FEEL_PRESENTATION.contentDropEntryOffsetX\n      : motion === 'previous'\n        ? -COLLECTION_FEEL_PRESENTATION.contentDropEntryOffsetX\n        : 0;\n    const offsetY = motion === 'view' ? COLLECTION_FEEL_PRESENTATION.contentViewEntryOffsetY : 0;\n    content\n      .setPosition(offsetX, offsetY)\n      .setAlpha(COLLECTION_FEEL_PRESENTATION.contentEntryAlpha);\n    this.tweens.add({\n      targets: content,\n      x: 0,\n      y: 0,\n      alpha: 1,\n      duration: directional\n        ? COLLECTION_FEEL_PRESENTATION.contentDropEntryMs\n        : COLLECTION_FEEL_PRESENTATION.contentViewEntryMs,\n      ease: 'Cubic.Out',\n    });\n  }\n\n  private createTab(\n",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "      getGameAudio().play('ui-click');\n      this.view = view;\n      getPlatformRuntime().analytics.track('collection_view_changed', {",
+              "      getGameAudio().play('ui-click');\n      this.view = view;\n      this.pendingEntryMotion = 'view';\n      getPlatformRuntime().analytics.track('collection_view_changed', {",
+          )
+          replace_once(
+              'src/game/scenes/CollectionScene.ts',
+              "    this.page = nextPage;\n    this.dropBrowseInFlight = false;\n    getPlatformRuntime().analytics.track('collection_drop_browsed', {",
+              "    this.page = nextPage;\n    this.dropBrowseInFlight = false;\n    this.pendingEntryMotion = direction > 0 ? 'next' : 'previous';\n    getPlatformRuntime().analytics.track('collection_drop_browsed', {",
+          )
+
+          old_back = """    back.on('pointerdown', () => {\n      getGameAudio().play('ui-click');\n      back.disableInteractive().setAlpha(0.65);\n      const lootPoolId = this.selectedLootPoolId();\n      getPlatformRuntime().analytics.track('collection_return', {\n        view: this.view,\n        lootPoolId,\n        standardCount: this.selectedPoolProgress().standardCount,\n      });\n      // Collection browsing is local. OpeningSession owns the durable switch.\n      // Defer scene replacement until the current pointer dispatch has completed.\n      this.time.delayedCall(0, () => this.scene.start('OpeningScene', { lootPoolId }));\n    });"""
+          new_back = """    back.on('pointerover', () => {\n      this.tweens.killTweensOf(back);\n      this.tweens.add({\n        targets: back,\n        scale: COLLECTION_FEEL_PRESENTATION.controlHoverScale,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n    });\n    back.on('pointerout', () => {\n      this.tweens.killTweensOf(back);\n      this.tweens.add({\n        targets: back,\n        scale: 1,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n    });\n    back.on('pointerdown', () => {\n      this.tweens.killTweensOf(back);\n      this.tweens.add({\n        targets: back,\n        scale: COLLECTION_FEEL_PRESENTATION.controlPressScale,\n        duration: COLLECTION_FEEL_PRESENTATION.controlPressMs,\n        ease: 'Sine.Out',\n      });\n    });\n    back.on('pointerup', () => {\n      getGameAudio().play('ui-click');\n      back.disableInteractive().setAlpha(0.65);\n      const lootPoolId = this.selectedLootPoolId();\n      getPlatformRuntime().analytics.track('collection_return', {\n        view: this.view,\n        lootPoolId,\n        standardCount: this.selectedPoolProgress().standardCount,\n      });\n      this.tweens.killTweensOf(back);\n      this.tweens.add({\n        targets: back,\n        scale: 1,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n      // Keep a tiny release beat so the control acknowledges the completed tap\n      // before the scene handoff; no gameplay state waits on this presentation.\n      this.time.delayedCall(COLLECTION_FEEL_PRESENTATION.returnHandoffMs, () => {\n        this.scene.start('OpeningScene', { lootPoolId });\n      });\n    });"""
+          replace_once('src/game/scenes/CollectionScene.ts', old_back, new_back)
+
+          old_mute = """    button.on('pointerup', () => {\n      const wasMuted = audio.isMuted();\n      if (!wasMuted) audio.play('ui-click');\n      const muted = audio.toggleMuted();\n      if (wasMuted && !muted) audio.play('ui-click');\n      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {\n        console.warn('[settings] failed to persist mute preference', error);\n      });\n      this.render();\n    });"""
+          new_mute = """    button.on('pointerover', () => {\n      this.tweens.killTweensOf(button);\n      this.tweens.add({\n        targets: button,\n        scale: COLLECTION_FEEL_PRESENTATION.controlHoverScale,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n    });\n    button.on('pointerout', () => {\n      this.tweens.killTweensOf(button);\n      this.tweens.add({\n        targets: button,\n        scale: 1,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n    });\n    button.on('pointerdown', () => {\n      this.tweens.killTweensOf(button);\n      this.tweens.add({\n        targets: button,\n        scale: COLLECTION_FEEL_PRESENTATION.controlPressScale,\n        duration: COLLECTION_FEEL_PRESENTATION.controlPressMs,\n        ease: 'Sine.Out',\n      });\n    });\n    button.on('pointerup', () => {\n      const wasMuted = audio.isMuted();\n      if (!wasMuted) audio.play('ui-click');\n      const muted = audio.toggleMuted();\n      if (wasMuted && !muted) audio.play('ui-click');\n      button.setText(muted ? `🔇 ${messages.audio.unmute}` : `🔊 ${messages.audio.mute}`);\n      this.tweens.killTweensOf(button);\n      this.tweens.add({\n        targets: button,\n        scale: 1,\n        duration: COLLECTION_FEEL_PRESENTATION.controlReleaseMs,\n        ease: 'Sine.Out',\n      });\n      void persistMutedPreference(getPlatformRuntime().storage, muted).catch((error: unknown) => {\n        console.warn('[settings] failed to persist mute preference', error);\n      });\n    });"""
+          replace_once('src/game/scenes/CollectionScene.ts', old_mute, new_mute)
+
+          Path('docs/FEEL_AUDIT_2026-09-16.md').write_text('''# Signal 2000 — feel audit 2026-09-16\n\nStatus: **bounded correction implemented; automated gates required; final subjective hands-on remains human-owned**.\n\n## Audit frame\n\nThis pass deliberately audits the current product rather than reopening the Sep-9 feel work. The mature tear/reveal/reward/audio choreography already has strong structural repeated-use evidence, so code inspection alone is not a reason to retune it. The audit instead targets presentation seams introduced by later product work: multi-Drop navigation, Basic/Charged selection, Collection browsing, onboarding and responsive chrome.\n\n## What remains strong and is intentionally preserved\n\n- tear drag has immediate grab response plus continuous progress/velocity texture;\n- pouch/result pointer depth and idle life already make the hero object responsive;\n- reveal hierarchy, anticipation and persistent rarity states are differentiated;\n- environment continuity survives reveal/result/idle instead of rebuilding the room;\n- NEW, duplicate, rarity, Signal and banking meanings stay independent;\n- reward acceptance visibly banks value to real HUD destinations;\n- rarity ambience owns/ducks the base mix and lifecycle cleanup is deterministic;\n- onboarding uses a physical pouch arrival and the real tear control instead of a modal tutorial.\n\nThese areas remain hands-on-sensitive. Audio timbre and long-hold comfort in particular must not be “fixed” from source inspection alone.\n\n## High-ROI seams found\n\n### 1. Basic ↔ Charged swap continuity\n\nThe outgoing pouch had a short shrink/fade, but the replacement pouch appeared after `renderIdle()` at its final state. The input was acknowledged, yet the material object itself visually popped between variants.\n\nCorrection: the incoming pouch now gets a short local fade/scale/vertical settle. The rest of the HUD is not replayed, so the change reads as a pouch material swap rather than a scene transition.\n\n### 2. Opening Drop preview needed a slightly clearer arrival\n\nThe multi-Drop selector already had the right architecture: latest intent previews immediately, storage reconciles in the background, and rapid browsing is never blocked by an outgoing animation. That architecture is preserved.\n\nCorrection: the existing incoming pouch preview gains a slightly stronger directional offset plus a tiny scale settle. No extra wait or blocking phase was added.\n\n### 3. Collection content changed as a hard cut\n\nShelf ↔ Catalog and Drop browsing rebuilt the Collection root immediately. Controls themselves had hover/press feedback, but the content state arrived as a hard cut, which was noticeably less polished than Opening.\n\nCorrection: changing collection content now enters inside its own local container. View changes use a short neutral settle; Drop browsing uses a short directional entry. Background and top chrome stay stable, so the transition cannot expose canvas edges or make the room jump.\n\n### 4. Collection Return / Mute controls were below the interaction bar\n\nThe Return control navigated on pointer-down and the mute control changed on pointer-up without the same tactile press vocabulary as the surrounding UI.\n\nCorrection: both now acknowledge hover/press/release. Return activates on completed pointer-up and keeps only a 60 ms visual handoff before scene replacement. Mute updates its label in place instead of rebuilding the entire Collection scene.\n\n## Explicit non-changes after independent review\n\n- no reward/economy/RNG/save changes;\n- no tear geometry or threshold changes;\n- no reveal-hold retuning without fresh hands-on evidence;\n- no new particles, shaders, ambience layers or audio retuning;\n- no onboarding rewrite or extra tutorial copy;\n- no blocking Drop-switch animation;\n- no Collection feature expansion;\n- no broad `OpeningScene` framework refactor.\n\n## Acceptance boundary\n\nAutomated green proves correctness/lifecycle compatibility, not subjective feel. After merge, the remaining hands-on check is intentionally small: repeat Basic ↔ Charged switching, rapid Drop browsing, Shelf ↔ Catalog, Collection Drop browsing and Return/Mute at desktop and compact landscape sizes. Reject the change if transitions feel slower or more ornamental than the information change they explain.\n''')
+          PY
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run assets:selftest
+      - run: npm run assets:validate
+      - run: npm run assets:avif:validate
+      - run: npm run build
+      - name: Commit validated correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/game/data/presentation.ts src/game/scenes/OpeningScene.ts src/game/scenes/CollectionScene.ts docs/FEEL_AUDIT_2026-09-16.md
+          git commit -m "Feel: polish late-added interaction seams"
+          git push origin HEAD:feel/post-sep9-polish
