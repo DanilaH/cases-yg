@@ -28,11 +28,16 @@ jobs:
       - name: Audit runtime art
         run: node tools/assets/audit-runtime-art.mjs
 
-      - name: Upload report
+      - name: Benchmark resolution candidates
+        run: node tools/assets/benchmark-runtime-resolution.mjs
+
+      - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
-          name: runtime-art-audit
-          path: .asset-build/runtime-art-audit.json
+          name: runtime-art-resolution-audit
+          path: |
+            .asset-build/runtime-art-audit.json
+            .asset-build/runtime-resolution-benchmark.json
 
       - name: Project gate
         run: |
