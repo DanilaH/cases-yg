@@ -1,0 +1,34 @@
+name: Startup art opportunity audit
+
+on:
+  push:
+    branches:
+      - perf/startup-art-opportunity-audit
+    paths:
+      - tools/perf/audit-startup-art-opportunities.mjs
+      - .github/workflows/startup-art-opportunity-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Audit remaining startup-art opportunities
+        run: node tools/perf/audit-startup-art-opportunities.mjs
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-art-opportunity-audit
+          path: |
+            /tmp/startup-art-opportunity-audit/summary.json
+            /tmp/startup-art-opportunity-audit/atlases
