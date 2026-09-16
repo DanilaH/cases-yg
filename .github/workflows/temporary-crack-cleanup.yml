@@ -1,0 +1,25 @@
+name: Temporary crack QA cleanup
+on:
+  push:
+    branches: [feat/pouch-crack-dissolve-prototype-20260916]
+    paths: [.github/workflows/temporary-crack-cleanup.yml]
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Remove all temporary workflows, leaving only production source and project evidence
+        run: |
+          set -euo pipefail
+          echo 'Temporary workflow paths being removed:'
+          git ls-files '.github/workflows/temporary-crack-*.yml'
+          count=$(git ls-files '.github/workflows/temporary-crack-*.yml' | wc -l)
+          test "$count" -ge 9
+          git rm .github/workflows/temporary-crack-*.yml
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'chore: remove temporary crack prototype and browser QA workflows'
+          git push origin HEAD:feat/pouch-crack-dissolve-prototype-20260916
