@@ -2920,20 +2920,34 @@ export class OpeningScene extends Phaser.Scene {
       perspective.crackStrength = profile.crackStrength;
       perspective.crackTint = [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
     }
+      const proxy = { progress: 0.12 };
+    const syncPreview = (): void => {
+      if (perspective) perspective.crackProgress = proxy.progress;
+    };
+    // Make cracks readable before the foil disappears. This first stage
+    // uses part of the existing duration instead of slowing every open.
+    await this.runSkippableTween({
+      targets: proxy,
+      progress: 0.66,
+      duration: Math.round(profile.crackDurationMs * 0.42),
+      ease: 'Sine.Out',
+      onUpdate: syncPreview,
+    }, () => {
+      proxy.progress = 0.66;
+      syncPreview();
+    });
+    if (this.isSceneShutdown() || !pouch.group.active) return;
     this.spawnCrackDebris(rarity);
-    const proxy = { progress: 0.12 };
     await this.runSkippableTween({
       targets: proxy,
       progress: 1,
-      duration: profile.crackDurationMs,
+      duration: profile.crackDurationMs - Math.round(profile.crackDurationMs * 0.42),
       ease: 'Cubic.In',
       onUpdate: () => {
         if (perspective) perspective.crackProgress = proxy.progress;
         else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(1 - proxy.progress * 0.6);
-        // Fade the last intact foil frame before the reward appears, so no
-        // rectangle-shaped rim can survive as a flash around the new item.
-        if (pouch.group.active && proxy.progress > 0.68) {
-          pouch.group.setAlpha(1 - (proxy.progress - 0.68) / 0.32);
+        if (pouch.group.active && proxy.progress > 0.78) {
+          pouch.group.setAlpha(1 - (proxy.progress - 0.78) / 0.22);
         }
       },
     }, () => {
