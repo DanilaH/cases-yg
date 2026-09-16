@@ -1,0 +1,52 @@
+name: Temporary viewport and vignette QA
+on:
+  push:
+    branches: [fix/ultrawide-backdrop-rarity-pulses-20260916]
+    paths: [.github/workflows/temporary-viewport-impact-qa.yml]
+permissions:
+  contents: write
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-24.04
+    env:
+      VITE_PLATFORM_RUNTIME: mock
+      VITE_DEBUG_PANEL: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply narrow code patch
+        run: python tools/temporary-viewport-impact-qa.py patch
+      - name: Check, test and build patched game
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Install headless browser
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Check ultrawide backdrop and real pouch drag
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/viewport-impact-preview.log 2>&1 &
+          sleep 2
+          python tools/temporary-viewport-impact-qa.py qa
+      - name: Commit only production changes after QA passes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/styles.css src/game/ui/staticArt.ts src/game/data/rarityPouchImpact.ts src/game/data/rarityPouchImpact.test.ts src/game/scenes/OpeningScene.ts
+          git commit -m 'fix(feel): fill ultrawide backdrop and make rarity edge pulses readable'
+          git push origin HEAD:fix/ultrawide-backdrop-rarity-pulses-20260916
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signal-2000-ultrawide-pulse-review
+          path: viewport-impact-qa/
+          if-no-files-found: ignore
+          retention-days: 7
