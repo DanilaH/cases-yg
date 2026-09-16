@@ -45,36 +45,43 @@ body {
 
 #game-shell {
   position: relative;
-  /* A full-bleed, non-interactive continuation behind the 2:1 capped game.
-     Match the scene's opening-art height; cover fills exceptionally wide tails. */
+  /* Fill wide margins without expanding the capped interactive game canvas. */
   background-color: #171421;
-background-image: var(--shell-backdrop-url);
-background-size: cover;
-background-position: center center;
-background-repeat: no-repeat;
-display: grid;
+  display: grid;
   place-items: center;
   overflow: hidden;
 }
 
-#game-shell::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  /* Match the scene artwork exactly next to the capped canvas;
-     progressively blend to a full-bleed cover only beyond its edges. */
-  background-image: var(--shell-backdrop-url);
-  background-size: auto var(--shell-backdrop-height, 100%);
-  background-position: center center;
-  background-repeat: no-repeat;
-  -webkit-mask-image: linear-gradient(to right,
-    transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
-    #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
-  mask-image: linear-gradient(to right,
-    transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
-    #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
-}
+#game-shell::before,
+  #game-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--shell-backdrop-url);
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* The outermost pixels are a subdued soft extension, not a second
+     sharp copy of desk objects. This layer never touches game input. */
+  #game-shell::before {
+    inset: -20px;
+    background-size: cover;
+    filter: blur(24px) brightness(0.75);
+  }
+
+  /* Preserve the original background's 1:1 scale at the game edge,
+     then feather it into the wide decorative sidebars. */
+  #game-shell::after {
+    background-size: auto var(--shell-backdrop-height, 100%);
+    -webkit-mask-image: linear-gradient(to right,
+      transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
+      #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
+    mask-image: linear-gradient(to right,
+      transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
+      #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
+  }
 
 #game {
   position: relative;
