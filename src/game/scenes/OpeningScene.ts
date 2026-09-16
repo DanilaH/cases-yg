@@ -182,6 +182,7 @@ export class OpeningScene extends Phaser.Scene {
   private chargedReadyPulsePending = false;
   private chargedAura: Phaser.GameObjects.Container | null = null;
   private impactVignette: Phaser.GameObjects.Graphics | null = null;
+  private crackDebris: Phaser.GameObjects.Ellipse[] = [];
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
   private collectionMilestoneTarget: Phaser.GameObjects.Container | null = null;
   private tearHint: Phaser.GameObjects.Text | null = null;
@@ -495,6 +496,7 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().clearResultAmbience();
     this.clearAmbientMotion();
     this.clearImpactVignette();
+    this.clearCrackDebris();
     if (this.environmentRoot?.active) this.environmentRoot.destroy(true);
     this.environmentRoot = null;
     this.environmentBackgroundLayer = null;
@@ -541,6 +543,7 @@ export class OpeningScene extends Phaser.Scene {
     this.clearCollectionMilestoneMotion();
     this.clearHudMotion();
     this.clearImpactVignette();
+    this.clearCrackDebris();
     if (this.chargedAura) this.killContainerTreeTweens(this.chargedAura);
     this.root?.destroy(true);
     this.pouch = null;
@@ -1215,6 +1218,7 @@ export class OpeningScene extends Phaser.Scene {
 
   private requestPresentationFastForward(): boolean {
     this.clearImpactVignette();
+    this.clearCrackDebris();
     return this.presentationSkip.request(this.time.now);
   }
 
@@ -2859,6 +2863,80 @@ export class OpeningScene extends Phaser.Scene {
     });
   }
 
+  private clearCrackDebris(): void {
+    for (const fragment of this.crackDebris) {
+      this.tweens.killTweensOf(fragment);
+      if (fragment.active) fragment.destroy();
+    }
+    this.crackDebris = [];
+  }
+
+  // An intentionally bounded burst; fragment paths are deterministic presentation data,
+  // not samples from the RNG that resolves rewards or from Phaser's global RNG.
+  private spawnCrackDebris(rarity: StandardRarity): void {
+    const pouch = this.pouch;
+    if (!pouch?.group.active) return;
+    const profile = RARITY_POUCH_IMPACT[rarity];
+    const warm = rarity === 'legendary';
+    const color = warm ? 0xffd45a : RARITY_REVEAL_COLORS[rarity];
+    const total = profile.fallingFragments + profile.lateralSparks;
+    for (let index = 0; index < total; index += 1) {
+      const lateral = index >= profile.fallingFragments;
+      const sequence = (index * 17 + 9) % 29;
+      const side = index % 2 === 0 ? -1 : 1;
+      const startX = (sequence - 14) * 5.0;
+      const startY = POUCH_PRESENTATION.body.y + ((index * 11) % 21 - 10) * 5.4;
+      const fragment = this.add.ellipse(startX, startY, lateral ? 9 : 4, lateral ? 2.4 : 3.7,
+        lateral && index % 3 === 0 ? 0xfff0a2 : color, lateral ? 0.96 : 0.80);
+      fragment.setAngle(lateral ? (side < 0 ? -16 : 16) : (index * 19) % 90);
+      pouch.group.add(fragment);
+      this.crackDebris.push(fragment);
+      this.tweens.add({
+        targets: fragment,
+        x: startX + (lateral ? side * (80 + sequence * 3) : (sequence - 14) * 0.85),
+        y: startY + (lateral ? -22 + (index % 5) * 10 : 65 + sequence * 2.3),
+        alpha: 0,
+        scaleX: lateral ? 0.5 : 0.62,
+        scaleY: 0.5,
+        duration: lateral ? 250 + sequence * 4 : 240 + sequence * 6,
+        delay: (index % 4) * 24,
+        ease: lateral ? 'Cubic.Out' : 'Quad.In',
+        onComplete: () => {
+          if (fragment.active) fragment.destroy();
+          this.crackDebris = this.crackDebris.filter((entry) => entry !== fragment);
+        },
+      });
+    }
+  }
+
+  private async animateCrackDissolve(rarity: StandardRarity): Promise<void> {
+    const pouch = this.pouch;
+    if (!pouch?.group.active || this.isSceneShutdown()) return;
+    const profile = RARITY_POUCH_IMPACT[rarity];
+    const perspective = pouch.perspective;
+    const color = RARITY_REVEAL_COLORS[rarity];
+    if (perspective) {
+      perspective.crackStrength = profile.crackStrength;
+      perspective.crackTint = [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
+    }
+    this.spawnCrackDebris(rarity);
+    const proxy = { progress: 0.10 };
+    await this.runSkippableTween({
+      targets: proxy,
+      progress: 1,
+      duration: profile.crackDurationMs,
+      ease: 'Cubic.In',
+      onUpdate: () => {
+        if (perspective) perspective.crackProgress = proxy.progress;
+        else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(1 - proxy.progress * 0.6);
+      },
+    }, () => {
+      if (perspective) perspective.crackProgress = 1;
+      else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(0.4);
+    });
+    this.clearCrackDebris();
+  }
+
   private async animateRarityPouchImpact(rarity: StandardRarity): Promise<void> {
     const pouch = this.pouch;
     if (!pouch?.group.active || this.isSceneShutdown()) return;
@@ -2869,6 +2947,12 @@ export class OpeningScene extends Phaser.Scene {
     const baseScaleX = group.scaleX;
     const baseScaleY = group.scaleY;
     this.pulseImpactVignette(rarity);
+    if (pouch.perspective) {
+      const color = RARITY_REVEAL_COLORS[rarity];
+      pouch.perspective.crackTint = [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
+      pouch.perspective.crackStrength = profile.crackStrength;
+      pouch.perspective.crackProgress = 0.12;
+    }
 
     // A tiny backwards pull, forward kick and damped settle, all on the pouch
     // itself. Existing rarity-specific item reveal / audio remain unchanged.
@@ -4173,6 +4257,8 @@ export class OpeningScene extends Phaser.Scene {
       if (this.isSceneShutdown()) return pouch.group;
     }
 
+    await this.animateCrackDissolve(pending.standard.rarity);
+    if (this.isSceneShutdown()) return pouch.group;
     this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
     audio.play('reveal-pop');
 

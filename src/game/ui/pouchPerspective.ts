@@ -19,6 +19,9 @@ const FRAGMENT_SHADER = [
   'uniform float outlineStrength;',
   'uniform vec3 materialTint;',
   'uniform vec2 texelSize;',
+  'uniform float crackProgress;',
+  'uniform float crackStrength;',
+  'uniform vec3 crackTint;',
   'varying vec2 outTexCoord;',
   '#pragma phaserTemplate(fragmentHeader)',
   'void main()',
@@ -63,6 +66,30 @@ const FRAGMENT_SHADER = [
   '        float outlineAlpha = outlineStrength * outlineMask * (1.0 - sampled.a);',
   '        sampled.rgb += materialTint * (sheenAmount + rimAmount + outlineAlpha);',
   '        sampled.a = max(sampled.a, outlineAlpha);',
+  '        // Only the pouch filter receives a nonzero progress; collectibles retain their shader.',
+  '        if (crackProgress > 0.001 && pouchMaterial > 0.5)',
+  '        {',
+  '            vec2 centered = uv - vec2(0.5);',
+  '            float jagA = 0.075 * sin(uv.y * 20.0) + 0.021 * sin(uv.y * 61.0);',
+  '            float jagB = 0.020 * sin(uv.x * 47.0);',
+  '            float trunk = abs(centered.x - jagA);',
+  '            float branchA = abs(centered.y - 0.3 * centered.x - jagB);',
+  '            float branchB = abs(centered.y + 0.43 * centered.x + 0.023 * sin(uv.x * 39.0));',
+  '            float crack = min(trunk, min(branchA, branchB));',
+  '            float radius = length(centered * vec2(0.9, 1.2));',
+  '            float growth = 1.0 - smoothstep(crackProgress * 0.58 - 0.02, crackProgress * 0.58 + 0.055, radius);',
+  '            float noise = fract(sin(dot(floor(uv * vec2(167.0, 191.0)), vec2(12.9898, 78.233))) * 43758.5453);',
+  '            float width = smoothstep(0.21, 1.0, crackProgress) * crackStrength * 0.28;',
+  '            float ragged = crack + (noise - 0.5) * 0.018;',
+  '            float hole = (1.0 - smoothstep(width, width + 0.007, ragged)) * growth;',
+  '            float hot = (1.0 - smoothstep(width + 0.001, width + 0.023, ragged)) * growth;',
+  '            float ember = (1.0 - smoothstep(0.0, 0.012, crack)) * growth;',
+  '            float cover = smoothstep(0.13, 0.23, uv.x) * (1.0 - smoothstep(0.77, 0.87, uv.x));',
+  '            cover *= smoothstep(0.12, 0.25, uv.y) * (1.0 - smoothstep(0.77, 0.88, uv.y));',
+  '            sampled.rgb += crackTint * (0.65 * hot + 0.56 * ember) * crackStrength * cover;',
+  '            sampled.rgb += vec3(0.37) * ember * crackStrength * cover;',
+  '            sampled.a *= 1.0 - hole * cover;',
+  '        }',
   '        gl_FragColor = sampled;',
   '    }',
   '}',
@@ -200,6 +227,9 @@ export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public outlineStrength = 0;
   public materialTint: [number, number, number] = [1, 1, 1];
   public texelSize: [number, number] = [1 / FILTER_BASE_WIDTH, 1 / FILTER_BASE_HEIGHT];
+  public crackProgress = 0;
+  public crackStrength = 0;
+  public crackTint: [number, number, number] = [1, 0.8, 0.4];
 
   public constructor(camera: Phaser.Cameras.Scene2D.Camera) {
     super(camera, FILTER_NODE);
@@ -227,6 +257,9 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
     this.programManager.setUniform('outlineStrength', perspective.outlineStrength);
     this.programManager.setUniform('materialTint', perspective.materialTint);
     this.programManager.setUniform('texelSize', perspective.texelSize);
+    this.programManager.setUniform('crackProgress', perspective.crackProgress);
+    this.programManager.setUniform('crackStrength', perspective.crackStrength);
+    this.programManager.setUniform('crackTint', perspective.crackTint);
   }
 }
 
