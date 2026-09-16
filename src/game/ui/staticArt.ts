@@ -20,6 +20,23 @@ const getViewportBoundsInContainer = (
   };
 };
 
+// Keep the decorative sidebars in sync with the actual scene artwork.
+// Phaser's canvas is intentionally capped at 2:1, so the shell paints ONLY
+// the extra-wide margins; no input geometry or game-canvas resize is needed.
+const syncShellBackdrop = (textureKey: string): void => {
+  const background = textureKey === 'art:static:opening-bg'
+    ? 'opening-bg'
+    : textureKey === 'art:static:collection-bg'
+      ? 'collection-bg'
+      : null;
+  if (!background || typeof document === 'undefined') return;
+  const shell = document.getElementById('game-shell');
+  if (!shell) return;
+  const url = new URL(`assets/backgrounds/${background}.webp`, document.baseURI).href;
+  shell.style.setProperty('--shell-backdrop-url', `url("${url}")`);
+  shell.style.setProperty('--shell-backdrop-height', background === 'opening-bg' ? '101.2%' : '100%');
+};
+
 export const addCoverArt = (
   scene: Phaser.Scene,
   root: Phaser.GameObjects.Container,
@@ -27,6 +44,7 @@ export const addCoverArt = (
   width: number,
   height: number,
 ): Phaser.GameObjects.Image | null => {
+  syncShellBackdrop(textureKey);
   if (!scene.textures.exists(textureKey)) return null;
 
   // Gameplay chrome intentionally lives on a capped logical surface, but cover

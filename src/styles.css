@@ -45,10 +45,42 @@ body {
 
 #game-shell {
   position: relative;
-  display: grid;
+  /* A full-bleed, non-interactive continuation behind the 2:1 capped game.
+     Match the scene's opening-art height; cover fills exceptionally wide tails. */
+  background-color: #171421;
+background-image: var(--shell-backdrop-url);
+background-size: cover;
+background-position: center center;
+background-repeat: no-repeat;
+display: grid;
   place-items: center;
   overflow: hidden;
 }
+
+#game-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Match the scene artwork exactly next to the capped canvas;
+     progressively blend to a full-bleed cover only beyond its edges. */
+  background-image: var(--shell-backdrop-url);
+  background-size: auto var(--shell-backdrop-height, 100%);
+  background-position: center center;
+  background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(to right,
+    transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
+    #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
+  mask-image: linear-gradient(to right,
+    transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
+    #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
+}
+
+#game {
+  position: relative;
+  z-index: 1;
+}
+
 
 #game {
   max-width: var(--app-viewport-max-game-width);
