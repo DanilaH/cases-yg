@@ -1,0 +1,44 @@
+name: Temporary Signal 2000 Screenshot Probe
+on:
+  push:
+    branches:
+      - capture/signal-store-20260916
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshot-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact gameplay snapshot
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser
+        run: |
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Capture probe
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 --directory dist > /tmp/signal-preview.log 2>&1 &
+          sleep 2
+          python tools/store-capture-probe.py
+      - name: Upload real browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-2000-probe
+          path: capture-probe/
+          if-no-files-found: warn
+          retention-days: 3
