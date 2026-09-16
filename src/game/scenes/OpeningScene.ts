@@ -3816,6 +3816,7 @@ export class OpeningScene extends Phaser.Scene {
       .setStrokeStyle(3, 0x9d7cff, 0.76)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.root.add([ring, discharge]);
+    getGameAudio().play('signal-launch');
     getGameAudio().play('signal-lock');
     this.tweens.add({
       targets: ring,
@@ -3858,6 +3859,7 @@ export class OpeningScene extends Phaser.Scene {
       () => discharge.destroy(),
     );
     if (!this.root || this.isSceneShutdown()) return;
+    getGameAudio().play('signal-dock');
 
     const impact = this.add
       .circle(pouchTarget.x, pouchTarget.y, 16, 0x8df8ff, 0.28)
@@ -3959,6 +3961,7 @@ export class OpeningScene extends Phaser.Scene {
         .circle(origin.x + 26, origin.y + 7, 7, color, 0.96)
         .setStrokeStyle(2, 0xffffff, 0.58);
       this.root.add(fragment);
+      getGameAudio().play('signal-launch');
       getGameAudio().play('signal-gain');
       await this.runSkippableTween(
         {
@@ -3973,6 +3976,7 @@ export class OpeningScene extends Phaser.Scene {
         () => fragment.destroy(),
       );
       if (this.isSceneShutdown()) return;
+      getGameAudio().play('signal-dock');
       this.renderSignalHud(this.root, { ...this.saveState, signal: pending.signal.after, overchargeHundredths: after });
       if (this.signalHudContainer) {
         this.tweens.killTweensOf(this.signalHudContainer);
