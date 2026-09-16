@@ -56,7 +56,7 @@ export const ru = {
     chipCache: 'ТАЙНИК ЧИПОВ',
     bigCache: 'БОЛЬШОЙ ТАЙНИК',
     megaCache: 'МЕГА-ТАЙНИК',
-    hiddenPocket: 'ТАЙНЫЙ КАРМАН!',
+    hiddenPocket: 'СЕКРЕТКА!',
     secretDiscovered: 'СЕКРЕТ НАЙДЕН',
     secretDuplicate: 'ДУБЛИКАТ СЕКРЕТА',
     milestoneStandardsHalf: 'ОСНОВНЫЕ · ПОЛОВИНА',
