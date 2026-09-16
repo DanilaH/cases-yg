@@ -26,20 +26,19 @@ jobs:
           npm ci
           python -m pip install playwright==1.55.0
           python -m playwright install --with-deps chromium
-      - name: Force test-only rarity by recompiling runner checkout (not a commit)
+      - name: Force test-only rarity weights in isolated runner
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('src/game/data/balance.ts')
-          s=p.read_text()
+          p=Path('src/game/data/balance.ts');s=p.read_text()
           for before in ('      rarityWeights: {\n        common: 72,\n        rare: 25,\n        epic: 3,\n        legendary: 0,\n      },','      rarityWeights: {\n        common: 35,\n        rare: 40,\n        epic: 20,\n        legendary: 5,\n      },'):
               assert s.count(before)==1
-              s=s.replace(before, '      rarityWeights: {\n        common: 0,\n        rare: 100,\n        epic: 0,\n        legendary: 0,\n      },',1)
+              s=s.replace(before,'      rarityWeights: {\n        common: 0,\n        rare: 100,\n        epic: 0,\n        legendary: 0,\n      },',1)
           p.write_text(s)
-          print('Runner-only Basic and Charged rarity = rare; no source or balance commit')
+          print('Runner-only rarity weights set, no committed balance changes')
           PY
           npm run build
-      - name: Real input — skip, repeated opening, recovery and ultrawide
+      - name: Actual tear — skip, repeat, refresh, ultrawide
         run: |
           python -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/crack-lifecycle-preview.log 2>&1 &
           server=$!
@@ -76,12 +75,10 @@ jobs:
               await page.mouse.move(770,226,steps=9)
               await page.mouse.move(1003,227,steps=13)
               await page.mouse.up()
-          async def pending(page):
-              await page.wait_for_function("Boolean(JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))?.pendingReveal)",timeout=20000)
           async def committed(page,number):
               await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=number,timeout=90000)
               s=await state(page)
-              assert s['discoveredStandard'] and any(item.endswith('-rare') for item in s['discoveredStandard']),s
+              assert s['discoveredStandard'],s
               return s
           async def main():
               async with async_playwright() as p:
@@ -98,29 +95,31 @@ jobs:
                                   await page.mouse.click(163,386)
                                   await page.wait_for_timeout(650)
                               await tear(page)
-                              await pending(page)
+                              await page.wait_for_function("Boolean(JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))?.pendingReveal)",timeout=20000)
                               if scenario=='skip-repeat-basic':
                                   for i in range(13):
                                       await page.mouse.click(1210,530)
                                       await page.wait_for_timeout(380)
                                   first=await committed(page,18)
-                                  print('FIRST_OPEN',first['totalOpens'],first['discoveredStandard'],flush=True)
+                                  assert any(item.endswith('-rare') for item in first['discoveredStandard']),first
                                   await page.screenshot(path=str(OUT/'skip-first-result.png'),style='.mpt-debug-panel {visibility:hidden!important}')
                                   await page.wait_for_timeout(2200)
                                   await page.mouse.click(800,760)
                                   await page.wait_for_timeout(2700)
                                   await tear(page)
                                   second=await committed(page,19)
-                                  assert not second['pendingReveal'] and second['totalOpens']==19,second
+                                  assert any(item.endswith('-rare') for item in second['discoveredStandard']),second
                                   await page.screenshot(path=str(OUT/'skip-repeat-basic.png'),style='.mpt-debug-panel {visibility:hidden!important}')
-                                  print('PASS skip + second real tear + exactly two durable openings',flush=True)
+                                  print('PASS skip + second actual tear + exactly two durable openings',flush=True)
                               else:
                                   await page.set_viewport_size({'width':1848,'height':635})
                                   await page.reload(wait_until='domcontentloaded',timeout=60000)
                                   await ready(page)
                                   result=await committed(page,18)
+                                  # Authored first-Charged onboarding profile grants legendary even with runner-only rare weights.
+                                  assert any(item.endswith('-legendary') for item in result['discoveredStandard']),result
                                   await page.screenshot(path=str(OUT/'refresh-recovery-ultrawide.png'),style='.mpt-debug-panel {visibility:hidden!important}')
-                                  print('PASS charged pending refresh/recovery + ultrawide resize + exactly one durable opening',flush=True)
+                                  print('PASS Charged legendary pending refresh/recovery + ultrawide + one durable opening',flush=True)
                               assert not errors,(scenario,errors)
                               print('PASS no browser errors',scenario,flush=True)
                           finally:
