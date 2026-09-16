@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
+import { formatBaseChipReward, formatChipAmount, formatChipGain, formatDuplicateReward, getRarityBadge } from '../../i18n/format';
 import { staticTextureKey } from '../data/artAssets';
 import { LITE_V2_BALANCE, type ChipsCacheTierId, type PouchType } from '../data/balance';
 import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
@@ -2083,8 +2084,8 @@ export class OpeningScene extends Phaser.Scene {
       geometry.charged.y,
       `⚡ ${messages.opening.chargedPouch}`,
       chargedAvailable
-        ? `${cost} ${messages.opening.chips}`
-        : `${this.saveState.chips}/${cost} ${messages.opening.chips}`,
+        ? `${formatChipAmount(cost, getPlatformRuntime().language)}`
+        : `${this.saveState.chips}/${formatChipAmount(cost, getPlatformRuntime().language)}`,
       chargedAvailable,
     );
     this.renderPouchOdds(root, geometry.odds.x, geometry.odds.y, geometry.odds.width);
@@ -2978,7 +2979,7 @@ export class OpeningScene extends Phaser.Scene {
 
       if (pending.chips.secretBonus > 0) {
         const token = createChipToken(this, iconX, cursorY + 4, 0.48);
-        const bonus = this.add.text(textX, cursorY - 3, `+${pending.chips.secretBonus} ${messages.opening.chips}`, {
+        const bonus = this.add.text(textX, cursorY - 3, `${formatChipGain(pending.chips.secretBonus, getPlatformRuntime().language)}`, {
           color: '#ffd36a',
           stroke: '#100b16',
           strokeThickness: 2,
@@ -3003,16 +3004,16 @@ export class OpeningScene extends Phaser.Scene {
     } else {
       const cacheLabel = this.getCacheLabel(pending.chips.cacheTier);
       const standardTotal = pending.chips.totalEarned - pending.chips.secretBonus;
-      const breakdownParts = [`${messages.opening.chips} +${pending.chips.base}`];
+      const breakdownParts = [`${formatBaseChipReward(pending.chips.base, getPlatformRuntime().language)}`];
       if (cacheLabel && pending.chips.cacheBonus > 0) breakdownParts.push(`${cacheLabel} +${pending.chips.cacheBonus}`);
-      if (pending.chips.recycle > 0) breakdownParts.push(`${messages.opening.recycled} +${pending.chips.recycle}`);
+      if (pending.chips.recycle > 0) breakdownParts.push(`${formatDuplicateReward(pending.chips.recycle, getPlatformRuntime().language)}`);
       if (pending.chips.overchargeBonus > 0) breakdownParts.push(`${messages.opening.overcharge} +${pending.chips.overchargeBonus}`);
 
       const totalIcon = createChipToken(this, iconX, cursorY + 4, 0.48);
       const animatedTotalStart = animate && pending.chips.overchargeBonus > 0
         ? pending.chips.rawEarned
         : standardTotal;
-      const totalText = this.add.text(textX, cursorY - 3, `+${animatedTotalStart} ${messages.opening.chips}`, {
+      const totalText = this.add.text(textX, cursorY - 3, `${formatChipGain(animatedTotalStart, getPlatformRuntime().language)}`, {
         color: '#f4feff',
         stroke: '#100b16',
         strokeThickness: 2,
@@ -3101,10 +3102,10 @@ export class OpeningScene extends Phaser.Scene {
           duration: 360,
           ease: 'Cubic.Out',
           onUpdate: () => {
-            if (totalText.active) totalText.setText(`+${Math.round(counter.value)} ${messages.opening.chips}`);
+            if (totalText.active) totalText.setText(`${formatChipGain(Math.round(counter.value), getPlatformRuntime().language)}`);
           },
           onComplete: () => {
-            if (totalText.active) totalText.setText(`+${standardTotal} ${messages.opening.chips}`);
+            if (totalText.active) totalText.setText(`${formatChipGain(standardTotal, getPlatformRuntime().language)}`);
           },
         });
       }
@@ -3408,7 +3409,7 @@ export class OpeningScene extends Phaser.Scene {
       const traySide = String(tray.getData('side') ?? 'right');
       const badgeSide: -1 | 1 = traySide === 'left' ? 1 : -1;
       const conversionLabel = this.createRevealInfoBadge(
-        `${messages.opening.recycled} +${pending.chips.recycle}`,
+        `${formatDuplicateReward(pending.chips.recycle, getPlatformRuntime().language)}`,
         0xffd36a,
         this.getRevealInfoBadgeX(badgeSide),
         heroY + 102,
@@ -4979,7 +4980,7 @@ export class OpeningScene extends Phaser.Scene {
       const family = GAME_REGISTRY.familyById.get(pending.hiddenPocket.familyId);
       return {
         title: family?.name[language] ?? pending.hiddenPocket.familyId,
-        rarity: messages.rarity.secret,
+        rarity: getRarityBadge(language, 'secret'),
         rarityColor: '#ff4d6d',
         status: pending.hiddenPocket.isNew ? messages.opening.secretDiscovered : messages.opening.secretDuplicate,
         statusColor: pending.hiddenPocket.isNew ? '#ffdca0' : '#ffb0be',
@@ -4992,7 +4993,7 @@ export class OpeningScene extends Phaser.Scene {
     const statusParts = this.getStandardResultStatusParts(pending);
     return {
       title: `${pending.pouchType === 'charged' ? '⚡ ' : ''}${family?.name[language] ?? pending.standard.familyId}`,
-      rarity: messages.rarity[pending.standard.rarity],
+      rarity: getRarityBadge(language, pending.standard.rarity),
       rarityColor: `#${RARITY_REVEAL_COLORS[pending.standard.rarity].toString(16).padStart(6, '0')}`,
       status: statusParts.base,
       statusColor: pending.standard.isNew ? '#f7f2ff' : '#c7f8ff',
