@@ -1,0 +1,21 @@
+name: Temporary source export for Signal feel revision
+on:
+  push:
+    branches: [feat/crack-variation-signal-audio-20260916]
+    paths: [.github/workflows/temporary-signal-revision-source-export.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Pack exact reviewed baseline
+        run: |
+          git rev-parse HEAD > BASELINE_COMMIT.txt
+          zip -q -r /tmp/source.zip src tests package.json package-lock.json tsconfig.json vite.config.ts AGENTS.md docs/ONBOARDING.md BASELINE_COMMIT.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-signal-feel-revision
+          path: /tmp/source.zip
+          retention-days: 2
