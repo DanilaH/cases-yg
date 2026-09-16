@@ -1,0 +1,37 @@
+name: Temporary rarity pouch impact integration
+on:
+  push:
+    branches:
+      - feel/rarity-pouch-impact-20260916
+    paths:
+      - .github/workflows/rarity-impact-patch.yml
+permissions:
+  contents: write
+jobs:
+  integrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply source-aware patch
+        run: python3 tools/rarity-impact-patch.py
+      - name: Validate exact source changes
+        run: |
+          git diff --check
+          git diff --stat
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Commit validated game code without temporary patch infrastructure
+        run: |
+          git rm tools/rarity-impact-patch.py .github/workflows/rarity-impact-patch.yml
+          git add src/game/scenes/OpeningScene.ts
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(feel): rarity-paced pouch recoil and edge pulse'
+          git push origin HEAD:feel/rarity-pouch-impact-20260916
