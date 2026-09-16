@@ -38,9 +38,8 @@ jobs:
           script=Path('scripts/temporary-signal-visual-qa.py');code=script.read_text()
           old='                    s = await state(page)\n                    expected = '
           assert code.count(old)==1
-          code=code.replace(old,'''                    await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=18,timeout=90000)
-                    s = await state(page)
-                    expected = ''')
+          wait='                    await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem(\'mystery-pocket-tech.save\'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=18,timeout=90000)\n'
+          code=code.replace(old,wait+old)
           code=code.replace('1600, 1170','1600, 1350').replace('row * 234','row * 270')
           script.write_text(code)
           print('QA runner-only rarity and capture timing prepared; no balance commit')
