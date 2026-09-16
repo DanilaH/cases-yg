@@ -2946,8 +2946,8 @@ export class OpeningScene extends Phaser.Scene {
       onUpdate: () => {
         if (perspective) perspective.crackProgress = proxy.progress;
         else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(1 - proxy.progress * 0.6);
-        if (pouch.group.active && proxy.progress > 0.78) {
-          pouch.group.setAlpha(1 - (proxy.progress - 0.78) / 0.22);
+        if (pouch.group.active && proxy.progress > 0.94) {
+          pouch.group.setAlpha(1 - (proxy.progress - 0.94) / 0.06);
         }
       },
     }, () => {
