@@ -1,4 +1,4 @@
-name: Temporary viewport and vignette QA
+name: Temporary viewport QA cleanup
 on:
   push:
     branches: [fix/ultrawide-backdrop-rarity-pulses-20260916]
@@ -6,117 +6,40 @@ on:
 permissions:
   contents: write
 jobs:
-  smooth-and-verify:
+  cleanup:
+    if: ${{ !contains(github.event.head_commit.message, 'clean temporary viewport QA') }}
     runs-on: ubuntu-24.04
-    env:
-      VITE_PLATFORM_RUNTIME: mock
-      VITE_DEBUG_PANEL: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Replace sharp duplicate backdrops with one feathered edge and a soft cover
+      - name: Normalize CSS formatting
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('src/styles.css')
           text = path.read_text()
-          start = text.index('  /* A full-bleed, non-interactive continuation behind the 2:1 capped game.')
-          end = text.index('  place-items: center;', start)
-          text = text[:start] + '''  /* Fill wide margins without expanding the capped interactive game canvas. */
-            background-color: #171421;
-            display: grid;
-          '''.replace('            ', '  ') + text[end:]
-          layer_start = text.index('#game-shell::before {')
-          layer_end = text.index('#game {\n  position: relative;', layer_start)
-          layer = '''#game-shell::before,
-            #game-shell::after {
-              content: '';
-              position: absolute;
-              inset: 0;
-              pointer-events: none;
-              background-image: var(--shell-backdrop-url);
-              background-position: center;
-              background-repeat: no-repeat;
-            }
-
-            /* The outermost pixels are a subdued soft extension, not a second
-               sharp copy of desk objects. This layer never touches game input. */
-            #game-shell::before {
-              inset: -20px;
-              background-size: cover;
-              filter: blur(24px) brightness(0.75);
-            }
-
-            /* Preserve the original background's 1:1 scale at the game edge,
-               then feather it into the wide decorative sidebars. */
-            #game-shell::after {
-              background-size: auto var(--shell-backdrop-height, 100%);
-              -webkit-mask-image: linear-gradient(to right,
-                transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
-                #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
-              mask-image: linear-gradient(to right,
-                transparent calc(50% - 121.5dvh), #000 calc(50% - 100dvh),
-                #000 calc(50% + 100dvh), transparent calc(50% + 121.5dvh));
-            }
-
-          '''.replace('            ', '  ')
-          text = text[:layer_start] + layer + text[layer_end:]
-          assert '#game-shell::after' in text and 'filter: blur(24px)' in text
+          start = text.index('#game-shell::before,')
+          end = text.index('\n#game {\n  position: relative;', start)
+          region = text[start:end]
+          lines = region.splitlines(keepends=True)
+          normalized = lines[0] + ''.join(line[2:] if line.startswith('  ') else line for line in lines[1:])
+          text = text[:start] + normalized + text[end:]
+          text = text.replace('\n\n\n#game {\n  max-width:', '\n\n#game {\n  max-width:')
           path.write_text(text)
           PY
-      - name: Check production code
+      - name: Final code validation
         run: |
           npm ci
           npm run typecheck
           npm test
           npm run build
-      - name: Install Chromium
-        run: |
-          python -m pip install playwright==1.55.0
-          python -m playwright install --with-deps chromium
-      - name: Verify wide art and take real browser screenshot
-        run: |
-          python -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/viewport-impact-preview.log 2>&1 &
-          sleep 2
-          python - <<'PY'
-          import asyncio
-          from pathlib import Path
-          from playwright.async_api import async_playwright
-          async def main():
-              async with async_playwright() as p:
-                  browser = await p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
-                  page = await browser.new_page(viewport={'width':1848,'height':635})
-                  errors = []
-                  page.on('pageerror', lambda err: errors.append(str(err)))
-                  await page.goto('http://127.0.0.1:4173/', wait_until='domcontentloaded',timeout=60000)
-                  await page.wait_for_timeout(3400)
-                  info = await page.evaluate('''() => {const shell=document.querySelector('#game-shell');const game=document.querySelector('#game').getBoundingClientRect();return {outer:getComputedStyle(shell,'::before').backgroundImage,center:getComputedStyle(shell,'::after').backgroundImage,blur:getComputedStyle(shell,'::before').filter,gameWidth:game.width,gameHeight:game.height,shellWidth:shell.getBoundingClientRect().width}}''')
-                  print('ULTRAWIDE',info,'ERRORS',errors,flush=True)
-                  assert 'opening-bg.webp' in info['outer'] and 'opening-bg.webp' in info['center'],info
-                  assert 'blur(24px)' in info['blur'],info
-                  assert info['gameWidth'] <= info['gameHeight']*2+1 and info['shellWidth']>info['gameWidth']+100,info
-                  assert not errors,errors
-                  Path('viewport-impact-qa').mkdir(exist_ok=True)
-                  await page.screenshot(path='viewport-impact-qa/ultrawide-feathered.png',style='.mpt-debug-panel {visibility:hidden!important}')
-                  await browser.close()
-          asyncio.run(main())
-          PY
-      - name: Commit verified CSS refinement
+      - name: Remove temporary QA files and commit only product changes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/temporary-viewport-impact-qa.yml tools/temporary-viewport-impact-qa.py
           git add src/styles.css
-          git commit -m 'fix(ui): feather ultrawide background beyond game canvas'
+          git commit -m 'chore: clean temporary viewport QA after verified visual polish'
           git push origin HEAD:fix/ultrawide-backdrop-rarity-pulses-20260916
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: signal-2000-feathered-ultrawide-review
-          path: viewport-impact-qa/
-          if-no-files-found: ignore
-          retention-days: 7
