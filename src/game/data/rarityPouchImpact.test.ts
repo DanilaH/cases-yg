@@ -21,6 +21,15 @@ describe('rarity pouch impact', () => {
     }
   });
 
+  it('keeps rare debris downward and lets legendary throw yellow side sparks', () => {
+    expect(RARITY_POUCH_IMPACT.common.lateralSparks).toBe(0);
+    expect(RARITY_POUCH_IMPACT.rare.lateralSparks).toBe(0);
+    expect(RARITY_POUCH_IMPACT.rare.fallingFragments).toBeGreaterThan(0);
+    expect(RARITY_POUCH_IMPACT.epic.lateralSparks).toBeGreaterThan(0);
+    expect(RARITY_POUCH_IMPACT.legendary.lateralSparks).toBeGreaterThan(RARITY_POUCH_IMPACT.epic.lateralSparks);
+    expect(RARITY_POUCH_IMPACT.legendary.crackStrength).toBeGreaterThan(RARITY_POUCH_IMPACT.rare.crackStrength);
+  });
+
   it('reserves secret for a second vignette without animating the departed pouch', () => {
     const secret = RARITY_POUCH_IMPACT.secret;
     expect(secret.vignettePulses).toBe(3);
