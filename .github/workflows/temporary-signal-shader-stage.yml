@@ -45,11 +45,12 @@ jobs:
           import asyncio
           from pathlib import Path
           from playwright.async_api import async_playwright
-          from PIL import Image,ImageDraw
+          from PIL import Image, ImageDraw
           OUT=Path('signal-shader-stages');OUT.mkdir(exist_ok=True)
           async def ready(page):
               await page.locator('.mpt-debug-panel__meta strong').wait_for(timeout=90000)
               await page.locator('#startup-preload').wait_for(state='hidden',timeout=90000)
+              await page.wait_for_function("Boolean(localStorage.getItem('mystery-pocket-tech.save'))",timeout=90000)
           async def main():
               async with async_playwright() as p:
                   browser=await p.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader'])
@@ -58,19 +59,20 @@ jobs:
                       page.on('pageerror',lambda e:errors.append(str(e)))
                       await page.goto('http://127.0.0.1:4173/',wait_until='domcontentloaded')
                       await ready(page)
-                      await page.evaluate('''() => {const k='mystery-pocket-tech.save'; const s=JSON.parse(localStorage.getItem(k));Object.assign(s,{version:5,chips:650,totalOpens:17,signal:0,overchargeHundredths:100,activeLootPoolId:'y2k-essentials',pendingReveal:null,onboarding:{primaryCompleted:true,firstRevealReceipt:null},discoveredStandard:[],discoveredSecrets:[],stats:{duplicates:0,hiddenPockets:0}});localStorage.setItem(k,JSON.stringify(s));}''')
+                      await page.evaluate('''() => {const k='mystery-pocket-tech.save'; const s=JSON.parse(localStorage.getItem(k));Object.assign(s,{version:5,chips:700,totalOpens:17,signal:0,overchargeHundredths:100,activeLootPoolId:'y2k-essentials',pendingReveal:null,onboarding:{primaryCompleted:true,firstRevealReceipt:null},discoveredStandard:[],discoveredSecrets:[],stats:{duplicates:0,hiddenPockets:0}});localStorage.setItem(k,JSON.stringify(s));}''')
                       await page.reload(wait_until='domcontentloaded');await ready(page)
-                      await page.wait_for_timeout(3200)
+                      await page.wait_for_timeout(3500)
+                      diag=await page.evaluate('''() => {const game=window.__qaGame;const scene=game?.scene?.getScene('OpeningScene');return {renderer:game?.renderer?.type,phase:scene?.phase,sceneActive:scene?.sys?.isActive(),pouch:!!scene?.pouch,perspective:!!scene?.pouch?.perspective,receipt:JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))?.onboarding?.firstRevealReceipt};}''')
+                      print('SHADER_DIAGNOSTICS',diag,flush=True)
+                      if not diag['perspective']:
+                          await page.screenshot(path=str(OUT/'missing-filter.png'))
+                          raise AssertionError(f'No live WebGL pouch filter: {diag}')
                       images=[]
                       for rarity,values in [('rare',[0.396,0.788,0.933]),('legendary',[0.996,0.829,0.349])]:
-                          if rarity=='legendary':
-                              await page.evaluate("window.__qaGame.scene.getScene('OpeningScene').pouch.perspective.crackProgress = 0")
-                              await page.mouse.click(163,386)
-                              await page.wait_for_timeout(750)
                           for variant in (0.17,0.67):
                               for step,progress in enumerate((0.25,0.54,0.73,0.85)):
                                   await page.evaluate('''({v,s,t,p}) => {const scene=window.__qaGame.scene.getScene('OpeningScene');const filter=scene.pouch?.perspective;if(!filter) throw Error('Missing pouch filter');filter.crackVariant=v;filter.crackStrength=s;filter.crackTint=t;filter.crackProgress=p;}''', {'v':variant,'s':0.7 if rarity=='rare' else 1,'t':values,'p':progress})
-                                  await page.wait_for_timeout(85)
+                                  await page.wait_for_timeout(95)
                                   image=OUT/f'{rarity}-v{variant}-{step}.png'
                                   await page.screenshot(path=str(image),clip={'x':550,'y':115,'width':500,'height':560},style='.mpt-debug-panel {visibility:hidden!important}')
                                   images.append(image)
