@@ -1,0 +1,60 @@
+name: Temporary crack erosion refinement
+on:
+  push:
+    branches: [feat/pouch-crack-dissolve-prototype-20260916]
+    paths: [.github/workflows/temporary-crack-erosion.yml]
+permissions:
+  contents: write
+jobs:
+  refine:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Grow burn outward from visible crack paths
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('src/game/ui/pouchPerspective.ts')
+          s=path.read_text()
+          before="  '            float width = 0.0025 + crackProgress * crackProgress * crackStrength * 0.027;',"
+          after="  '            float burnSpread = smoothstep(0.45, 1.0, crackProgress);',\n  '            float width = 0.0025 + crackProgress * crackProgress * crackStrength * 0.013 + 0.30 * burnSpread * burnSpread;',"
+          assert s.count(before)==1
+          s=s.replace(before,after)
+          before="  '            float edge = (1.0 - smoothstep(width + 0.002, width + 0.016, ragged)) * material;',"
+          after="  '            float edge = (1.0 - smoothstep(width + 0.002, width + 0.013, ragged)) * material;',"
+          assert s.count(before)==1
+          s=s.replace(before,after)
+          before="  '            float core = (1.0 - smoothstep(0.0, 0.009, ragged)) * material;',"
+          after="  '            float core = (1.0 - smoothstep(width + 0.001, width + 0.004, ragged)) * material;',"
+          assert s.count(before)==1
+          s=s.replace(before,after)
+          before="  '            sampled.rgb += crackTint * (edge * 0.64 + core * 0.92) * crackStrength;',"
+          after="  '            sampled.rgb += crackTint * (edge * 0.31 + core * 0.62) * crackStrength;',"
+          assert s.count(before)==1
+          s=s.replace(before,after)
+          before="  '            float hole = (1.0 - smoothstep(width * 0.68, width + 0.003, ragged)) * material;',"
+          after="  '            float hole = (1.0 - smoothstep(width - 0.006, width + 0.002, ragged)) * material;',"
+          assert s.count(before)==1
+          s=s.replace(before,after)
+          path.write_text(s)
+
+          scene=Path('src/game/scenes/OpeningScene.ts')
+          s=scene.read_text()
+          before='if (pouch.group.active && proxy.progress > 0.78) {\n          pouch.group.setAlpha(1 - (proxy.progress - 0.78) / 0.22);'
+          assert s.count(before)==1
+          s=s.replace(before,'if (pouch.group.active && proxy.progress > 0.94) {\n          pouch.group.setAlpha(1 - (proxy.progress - 0.94) / 0.06);')
+          scene.write_text(s)
+          PY
+      - name: Verify and commit only production source
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+          git add src/game/ui/pouchPerspective.ts src/game/scenes/OpeningScene.ts
+          git diff --cached --check
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(feel): erode foil outward along glowing cracks'
+          git push origin HEAD:feat/pouch-crack-dissolve-prototype-20260916
