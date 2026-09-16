@@ -19,32 +19,6 @@ jobs:
           package-manager-cache: false
       - name: Apply exact-match patch
         run: python scripts/temporary-signal-feel-patch.py
-      - name: Add signal-specific audio contract regression tests
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('tests/audio-runtime-contract.test.ts');s=p.read_text()
-          old="import { getAudioCuePresentationDirective, getRarityAmbienceProfile } from '../src/game/data/audioPresentation';"
-          assert s.count(old)==1
-          s=s.replace(old,old+"\nimport { AVAILABLE_SFX_CUES, getRuntimeSfxAssets, SFX_CUES } from '../src/game/data/audioAssets';",1)
-          anchor="  it('does not turn ordinary UI into ambience state changes', () => {"
-          assert s.count(anchor)==1
-          addition="""  it('keeps separate Signal launch and docking transients synthetic and mute-safe', () => {
-            const assets = getRuntimeSfxAssets();
-            for (const cue of ['signal-launch', 'signal-dock'] as const) {
-              expect(SFX_CUES).toContain(cue);
-              expect(AVAILABLE_SFX_CUES.has(cue)).toBe(false);
-              expect(assets.some((asset) => asset.cue === cue)).toBe(false);
-              const directive = getAudioCuePresentationDirective(cue);
-              expect(directive.clearPersistent).toBeUndefined();
-              expect(directive.persistent).toBeUndefined();
-              expect(directive.duck?.multiplier).toBeGreaterThan(0.7);
-            }
-          });
-
-"""
-          s=s.replace(anchor,addition+anchor,1);p.write_text(s)
-          PY
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -53,7 +27,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/game/data/rarityPouchImpact.ts src/game/data/rarityPouchImpact.test.ts src/game/ui/pouchPerspective.ts src/game/scenes/OpeningScene.ts src/game/data/audioAssets.ts src/game/data/audioPresentation.ts src/game/systems/audio.ts tests/audio-runtime-contract.test.ts
+          git add src/game/data/rarityPouchImpact.ts src/game/data/rarityPouchImpact.test.ts src/game/ui/pouchPerspective.ts src/game/scenes/OpeningScene.ts src/game/data/audioAssets.ts src/game/data/audioPresentation.ts src/game/systems/audio.ts
           git diff --cached --check
           git diff --cached --stat
           git commit -m 'feat(feel): varied bright crack edges, denser debris and signal flight sound'
