@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply source-aware copy changes
+      - name: Apply source-aware copy changes (retry)
         run: node scripts/ru-copy-patch.cjs
       - name: Commit product changes only
         run: |
