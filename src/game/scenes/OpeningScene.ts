@@ -33,6 +33,7 @@ import {
   getOpeningChromeSizing,
   getPouchSelectorGeometry,
 } from '../systems/openingChromeLayout';
+import { RARITY_POUCH_IMPACT, type PouchImpactProfile } from '../data/rarityPouchImpact';
 import { getRenderPixelRatio } from '../systems/renderDensity';
 import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { computeRewardTrayPlacement } from '../systems/rewardLayout';
@@ -180,6 +181,7 @@ export class OpeningScene extends Phaser.Scene {
   private hudShimmers: Phaser.GameObjects.Rectangle[] = [];
   private chargedReadyPulsePending = false;
   private chargedAura: Phaser.GameObjects.Container | null = null;
+  private impactVignette: Phaser.GameObjects.Graphics | null = null;
   private rewardTrayContainer: Phaser.GameObjects.Container | null = null;
   private collectionMilestoneTarget: Phaser.GameObjects.Container | null = null;
   private tearHint: Phaser.GameObjects.Text | null = null;
@@ -492,6 +494,7 @@ export class OpeningScene extends Phaser.Scene {
     getGameAudio().stopDragTexture(true);
     getGameAudio().clearResultAmbience();
     this.clearAmbientMotion();
+    this.clearImpactVignette();
     if (this.environmentRoot?.active) this.environmentRoot.destroy(true);
     this.environmentRoot = null;
     this.environmentBackgroundLayer = null;
@@ -537,6 +540,7 @@ export class OpeningScene extends Phaser.Scene {
     this.clearStandardPresenceMotion();
     this.clearCollectionMilestoneMotion();
     this.clearHudMotion();
+    this.clearImpactVignette();
     if (this.chargedAura) this.killContainerTreeTweens(this.chargedAura);
     this.root?.destroy(true);
     this.pouch = null;
@@ -1210,6 +1214,7 @@ export class OpeningScene extends Phaser.Scene {
   }
 
   private requestPresentationFastForward(): boolean {
+    this.clearImpactVignette();
     return this.presentationSkip.request(this.time.now);
   }
 
@@ -2738,7 +2743,7 @@ export class OpeningScene extends Phaser.Scene {
       this.pouch.tab.setX(this.pouch.tabEndX);
     }
 
-    await this.animateTearDetach(recovered);
+    await this.animateTearDetach(recovered, pending.standard.rarity);
     if (this.isSceneShutdown()) return;
 
     if (recovered) {
@@ -2810,7 +2815,105 @@ export class OpeningScene extends Phaser.Scene {
     }
   }
 
-  private async animateTearDetach(recovered: boolean): Promise<void> {
+  private clearImpactVignette(): void {
+    const vignette = this.impactVignette;
+    if (!vignette) return;
+    this.impactVignette = null;
+    this.tweens.killTweensOf(vignette);
+    if (vignette.active) vignette.destroy();
+  }
+
+  // Draw once per reveal, then animate only alpha. Dark edges, never a full-screen
+  // strobe, extra textures, shaders, or presentation RNG.
+  private pulseImpactVignette(rarity: StandardRarity | 'secret'): void {
+    if (!this.root || !this.metrics || this.isSceneShutdown()) return;
+    this.clearImpactVignette();
+    const profile = RARITY_POUCH_IMPACT[rarity];
+    const width = this.metrics.logicalWidth;
+    const vignette = this.add.graphics().setAlpha(0);
+    for (let layer = 0; layer < 12; layer += 1) {
+      const insetX = layer * 15;
+      const insetY = layer * 12;
+      const band = 17;
+      const shade = 0.021 - layer * 0.0011;
+      vignette.fillStyle(0x160b26, shade);
+      vignette.fillRect(insetX, insetY, width - insetX * 2, band);
+      vignette.fillRect(insetX, LOGICAL_HEIGHT - insetY - band, width - insetX * 2, band);
+      vignette.fillRect(insetX, insetY + band, band, LOGICAL_HEIGHT - insetY * 2 - band * 2);
+      vignette.fillRect(width - insetX - band, insetY + band, band, LOGICAL_HEIGHT - insetY * 2 - band * 2);
+    }
+    this.root.add(vignette);
+    this.impactVignette = vignette;
+    this.tweens.add({
+      targets: vignette,
+      alpha: profile.vignetteAlpha,
+      duration: profile.pulseHalfMs,
+      yoyo: true,
+      repeat: profile.vignettePulses - 1,
+      repeatDelay: profile.pulseGapMs,
+      ease: 'Sine.InOut',
+      onComplete: () => {
+        if (this.impactVignette === vignette) this.impactVignette = null;
+        if (vignette.active) vignette.destroy();
+      },
+    });
+  }
+
+  private async animateRarityPouchImpact(rarity: StandardRarity): Promise<void> {
+    const pouch = this.pouch;
+    if (!pouch?.group.active || this.isSceneShutdown()) return;
+    const profile: PouchImpactProfile = RARITY_POUCH_IMPACT[rarity];
+    const group = pouch.group;
+    const baseX = group.x;
+    const baseY = group.y;
+    const baseScaleX = group.scaleX;
+    const baseScaleY = group.scaleY;
+    this.pulseImpactVignette(rarity);
+
+    // A tiny backwards pull, forward kick and damped settle, all on the pouch
+    // itself. Existing rarity-specific item reveal / audio remain unchanged.
+    await this.runSkippableTween({
+      targets: group,
+      x: baseX + profile.joltX,
+      y: baseY + profile.recoilY,
+      scaleX: baseScaleX * profile.recoilScale,
+      scaleY: baseScaleY * profile.recoilScale,
+      duration: profile.recoilMs,
+      ease: 'Cubic.In',
+    });
+    if (this.isSceneShutdown() || !group.active) return;
+    await this.runSkippableTween({
+      targets: group,
+      x: baseX - profile.joltX,
+      y: baseY + profile.reboundY,
+      scaleX: baseScaleX * profile.reboundScale,
+      scaleY: baseScaleY * profile.reboundScale,
+      duration: profile.reboundMs,
+      ease: 'Back.Out',
+    });
+    if (this.isSceneShutdown() || !group.active) return;
+    if (profile.jolts > 1) {
+      await this.runSkippableTween({
+        targets: group,
+        x: baseX + profile.joltX * 0.35,
+        duration: 26,
+        yoyo: true,
+        ease: 'Sine.InOut',
+      });
+      if (this.isSceneShutdown() || !group.active) return;
+    }
+    await this.runSkippableTween({
+      targets: group,
+      x: baseX,
+      y: baseY,
+      scaleX: baseScaleX,
+      scaleY: baseScaleY,
+      duration: profile.settleMs,
+      ease: 'Sine.Out',
+    });
+  }
+
+  private async animateTearDetach(recovered: boolean, rarity: StandardRarity): Promise<void> {
     if (!this.pouch) return;
     const pouch = this.pouch;
     const originalY = pouch.group.y;
@@ -2834,7 +2937,8 @@ export class OpeningScene extends Phaser.Scene {
       ease: 'Sine.InOut',
     });
     if (!recovered && !this.isSceneShutdown()) {
-      await this.waitPresentation(72);
+      await this.animateRarityPouchImpact(rarity);
+      if (!this.isSceneShutdown()) await this.waitPresentation(72);
     }
   }
 
@@ -4396,6 +4500,7 @@ export class OpeningScene extends Phaser.Scene {
       .setStrokeStyle(4, SECRET_PREMIUM_GOLD, 0.76);
 
     getGameAudio().play('secret-reveal');
+    this.pulseImpactVignette('secret');
     const secret = createCollectibleVisual(
       this,
       root,
