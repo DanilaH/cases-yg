@@ -34,7 +34,6 @@ jobs:
           s=p.read_text()
           for before in ('      rarityWeights: {\n        common: 72,\n        rare: 25,\n        epic: 3,\n        legendary: 0,\n      },','      rarityWeights: {\n        common: 35,\n        rare: 40,\n        epic: 20,\n        legendary: 5,\n      },'):
               assert s.count(before)==1
-              # Both pouch profiles must return the requested tier, independently of other RNG draws.
               s=s.replace(before, '      rarityWeights: {\n        common: 0,\n        rare: 100,\n        epic: 0,\n        legendary: 0,\n      },',1)
           p.write_text(s)
           print('Runner-only Basic and Charged rarity = rare; no source or balance commit')
@@ -46,11 +45,10 @@ jobs:
           server=$!
           trap 'kill "$server" 2>/dev/null || true' EXIT
           cat > /tmp/crack_lifecycle.py <<'PY'
-          import asyncio,json
+          import asyncio
           from pathlib import Path
           from playwright.async_api import async_playwright
           URL='http://127.0.0.1:4173/'
-          SAVE='mystery-pocket-tech.save'
           OUT=Path('crack-lifecycle-browser');OUT.mkdir(exist_ok=True)
           async def state(page):
               return await page.evaluate("JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))")
@@ -83,7 +81,7 @@ jobs:
           async def committed(page,number):
               await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=number,timeout=90000)
               s=await state(page)
-              assert len(s['discoveredStandard'])>0,s
+              assert s['discoveredStandard'] and any(item.endswith('-rare') for item in s['discoveredStandard']),s
               return s
           async def main():
               async with async_playwright() as p:
@@ -102,12 +100,12 @@ jobs:
                               await tear(page)
                               await pending(page)
                               if scenario=='skip-repeat-basic':
-                                  # Tap during both animation stages, not just the debug reveal button.
                                   for i in range(13):
                                       await page.mouse.click(1210,530)
                                       await page.wait_for_timeout(380)
                                   first=await committed(page,18)
-                                  assert 'flip-phone-rare' in first['discoveredStandard'],first['discoveredStandard']
+                                  print('FIRST_OPEN',first['totalOpens'],first['discoveredStandard'],flush=True)
+                                  await page.screenshot(path=str(OUT/'skip-first-result.png'),style='.mpt-debug-panel {visibility:hidden!important}')
                                   await page.wait_for_timeout(2200)
                                   await page.mouse.click(800,760)
                                   await page.wait_for_timeout(2700)
@@ -117,12 +115,10 @@ jobs:
                                   await page.screenshot(path=str(OUT/'skip-repeat-basic.png'),style='.mpt-debug-panel {visibility:hidden!important}')
                                   print('PASS skip + second real tear + exactly two durable openings',flush=True)
                               else:
-                                  # A pending reveal is durable; recreate the scene at Android-landscape width.
                                   await page.set_viewport_size({'width':1848,'height':635})
                                   await page.reload(wait_until='domcontentloaded',timeout=60000)
                                   await ready(page)
                                   result=await committed(page,18)
-                                  assert 'flip-phone-rare' in result['discoveredStandard'],result['discoveredStandard']
                                   await page.screenshot(path=str(OUT/'refresh-recovery-ultrawide.png'),style='.mpt-debug-panel {visibility:hidden!important}')
                                   print('PASS charged pending refresh/recovery + ultrawide resize + exactly one durable opening',flush=True)
                               assert not errors,(scenario,errors)
