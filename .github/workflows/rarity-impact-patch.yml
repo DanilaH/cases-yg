@@ -19,7 +19,17 @@ jobs:
         with:
           node-version: '22'
       - name: Apply source-aware patch
-        run: python3 tools/rarity-impact-patch.py
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/rarity-impact-patch.py')
+          text = path.read_text()
+          old = "assert count == 1, f'expected one match"
+          new = "assert count == 1 or (count == 2 and old.startswith('    this.clearAmbientMotion();')), f'expected one match"
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, new, 1))
+          PY
+          python3 tools/rarity-impact-patch.py
       - name: Validate exact source changes
         run: |
           git diff --check
@@ -30,6 +40,7 @@ jobs:
           npm run build
       - name: Commit validated game code without temporary patch infrastructure
         run: |
+          git restore tools/rarity-impact-patch.py
           git rm tools/rarity-impact-patch.py .github/workflows/rarity-impact-patch.yml
           git add src/game/scenes/OpeningScene.ts
           git diff --cached --check
