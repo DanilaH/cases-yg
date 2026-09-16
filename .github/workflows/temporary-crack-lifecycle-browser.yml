@@ -1,0 +1,144 @@
+name: Temporary crack lifecycle browser audit
+on:
+  push:
+    branches: [feat/pouch-crack-dissolve-prototype-20260916]
+    paths: [.github/workflows/temporary-crack-lifecycle-browser.yml]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      VITE_PLATFORM_RUNTIME: mock
+      VITE_DEBUG_PANEL: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install browser and dependencies
+        run: |
+          npm ci
+          python -m pip install playwright==1.55.0
+          python -m playwright install --with-deps chromium
+      - name: Force test-only rarity by recompiling runner checkout (not a commit)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/game/data/balance.ts')
+          s=p.read_text()
+          for before in ('      rarityWeights: {\n        common: 72,\n        rare: 25,\n        epic: 3,\n        legendary: 0,\n      },','      rarityWeights: {\n        common: 35,\n        rare: 40,\n        epic: 20,\n        legendary: 5,\n      },'):
+              assert s.count(before)==1
+              # Both pouch profiles must return the requested tier, independently of other RNG draws.
+              s=s.replace(before, '      rarityWeights: {\n        common: 0,\n        rare: 100,\n        epic: 0,\n        legendary: 0,\n      },',1)
+          p.write_text(s)
+          print('Runner-only Basic and Charged rarity = rare; no source or balance commit')
+          PY
+          npm run build
+      - name: Real input — skip, repeated opening, recovery and ultrawide
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/crack-lifecycle-preview.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          cat > /tmp/crack_lifecycle.py <<'PY'
+          import asyncio,json
+          from pathlib import Path
+          from playwright.async_api import async_playwright
+          URL='http://127.0.0.1:4173/'
+          SAVE='mystery-pocket-tech.save'
+          OUT=Path('crack-lifecycle-browser');OUT.mkdir(exist_ok=True)
+          async def state(page):
+              return await page.evaluate("JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))")
+          async def ready(page):
+              await page.locator('.mpt-debug-panel__meta strong').wait_for(timeout=90000)
+              await page.locator('#startup-preload').wait_for(state='hidden',timeout=90000)
+              await page.wait_for_function("Boolean(localStorage.getItem('mystery-pocket-tech.save'))",timeout=90000)
+          async def setup(page):
+              await page.goto(URL,wait_until='domcontentloaded',timeout=60000)
+              await ready(page)
+              await page.evaluate('''() => {
+                const k='mystery-pocket-tech.save';const s=JSON.parse(localStorage.getItem(k));
+                Object.assign(s,{version:5,chips:450,totalOpens:17,signal:0,
+                  overchargeHundredths:100,activeLootPoolId:'y2k-essentials',pendingReveal:null,
+                  onboarding:{primaryCompleted:true,firstRevealReceipt:null},
+                  discoveredStandard:[],discoveredSecrets:[],stats:{duplicates:0,hiddenPockets:0}});
+                localStorage.setItem(k,JSON.stringify(s));
+              }''')
+              await page.reload(wait_until='domcontentloaded',timeout=60000)
+              await ready(page)
+              await page.wait_for_timeout(3500)
+          async def tear(page):
+              await page.mouse.move(601,226)
+              await page.mouse.down()
+              await page.mouse.move(770,226,steps=9)
+              await page.mouse.move(1003,227,steps=13)
+              await page.mouse.up()
+          async def pending(page):
+              await page.wait_for_function("Boolean(JSON.parse(localStorage.getItem('mystery-pocket-tech.save'))?.pendingReveal)",timeout=20000)
+          async def committed(page,number):
+              await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=number,timeout=90000)
+              s=await state(page)
+              assert len(s['discoveredStandard'])>0,s
+              return s
+          async def main():
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage','--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader'])
+                  try:
+                      for scenario in ('skip-repeat-basic','refresh-resize-charged'):
+                          context=await browser.new_context(viewport={'width':1600,'height':900},locale='ru-RU')
+                          page=await context.new_page(); errors=[]
+                          page.on('pageerror',lambda e: errors.append('page:'+str(e)))
+                          page.on('console',lambda m: errors.append('console:'+m.text) if m.type=='error' else None)
+                          try:
+                              await setup(page)
+                              if scenario=='refresh-resize-charged':
+                                  await page.mouse.click(163,386)
+                                  await page.wait_for_timeout(650)
+                              await tear(page)
+                              await pending(page)
+                              if scenario=='skip-repeat-basic':
+                                  # Tap during both animation stages, not just the debug reveal button.
+                                  for i in range(13):
+                                      await page.mouse.click(1210,530)
+                                      await page.wait_for_timeout(380)
+                                  first=await committed(page,18)
+                                  assert 'flip-phone-rare' in first['discoveredStandard'],first['discoveredStandard']
+                                  await page.wait_for_timeout(2200)
+                                  await page.mouse.click(800,760)
+                                  await page.wait_for_timeout(2700)
+                                  await tear(page)
+                                  second=await committed(page,19)
+                                  assert not second['pendingReveal'] and second['totalOpens']==19,second
+                                  await page.screenshot(path=str(OUT/'skip-repeat-basic.png'),style='.mpt-debug-panel {visibility:hidden!important}')
+                                  print('PASS skip + second real tear + exactly two durable openings',flush=True)
+                              else:
+                                  # A pending reveal is durable; recreate the scene at Android-landscape width.
+                                  await page.set_viewport_size({'width':1848,'height':635})
+                                  await page.reload(wait_until='domcontentloaded',timeout=60000)
+                                  await ready(page)
+                                  result=await committed(page,18)
+                                  assert 'flip-phone-rare' in result['discoveredStandard'],result['discoveredStandard']
+                                  await page.screenshot(path=str(OUT/'refresh-recovery-ultrawide.png'),style='.mpt-debug-panel {visibility:hidden!important}')
+                                  print('PASS charged pending refresh/recovery + ultrawide resize + exactly one durable opening',flush=True)
+                              assert not errors,(scenario,errors)
+                              print('PASS no browser errors',scenario,flush=True)
+                          finally:
+                              await context.close()
+                  finally:
+                      await browser.close()
+          asyncio.run(main())
+          PY
+          python /tmp/crack_lifecycle.py
+          git diff -- src/game/data/balance.ts | head -45
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crack-lifecycle-qa-screenshots
+          path: crack-lifecycle-browser/
+          if-no-files-found: ignore
+          retention-days: 3
