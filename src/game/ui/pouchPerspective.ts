@@ -21,6 +21,7 @@ const FRAGMENT_SHADER = [
   'uniform vec2 texelSize;',
   'uniform float crackProgress;',
   'uniform float crackStrength;',
+  'uniform float crackVariant;',
   'uniform vec3 crackTint;',
   'varying vec2 outTexCoord;',
   '#pragma phaserTemplate(fragmentHeader)',
@@ -70,27 +71,30 @@ const FRAGMENT_SHADER = [
   '        if (crackProgress > 0.001 && pouchMaterial > 0.5)',
   '        {',
   '            // Offset the fracture network to the foil around the central medallion.',
-  '            float veinLeft = abs(uv.x - (0.32 + 0.095 * sin(uv.y * 17.0) + 0.020 * sin(uv.y * 47.0)));',
-  '            float veinRight = abs(uv.x - (0.68 + 0.105 * sin(uv.y * 19.0 + 1.8) + 0.018 * sin(uv.y * 51.0)));',
-  '            float branchLeft = abs(uv.y - (0.57 + 0.60 * (uv.x - 0.32) + 0.018 * sin(uv.x * 43.0)));',
-  '            float branchRight = abs(uv.y - (0.57 - 0.60 * (uv.x - 0.68) + 0.020 * sin(uv.x * 49.0)));',
+  '            float phase = crackVariant * 6.2831853;',
+  '            float veinLeft = abs(uv.x - (0.32 + 0.095 * sin(uv.y * 17.0 + phase) + 0.020 * sin(uv.y * 47.0 - phase * 1.3)));',
+  '            float veinRight = abs(uv.x - (0.68 + 0.105 * sin(uv.y * 19.0 + 1.8 - phase * 0.83) + 0.018 * sin(uv.y * 51.0 + phase)));',
+  '            float branchLeft = abs(uv.y - (0.57 + 0.60 * (uv.x - 0.32) + 0.024 * sin(uv.x * 43.0 + phase)));',
+  '            float branchRight = abs(uv.y - (0.57 - 0.60 * (uv.x - 0.68) + 0.027 * sin(uv.x * 49.0 - phase * 1.17)));',
   '            float crack = min(min(veinLeft, veinRight), min(branchLeft, branchRight));',
   '            float radius = length((uv - vec2(0.5, 0.65)) * vec2(0.9, 1.16));',
   '            float growth = 1.0 - smoothstep(crackProgress * 0.62 - 0.07, crackProgress * 0.62 + 0.05, radius);',
-  '            float noise = fract(sin(dot(floor(uv * vec2(167.0, 191.0)), vec2(12.9898, 78.233))) * 43758.5453);',
+  '            float noise = fract(sin(dot(floor((uv + vec2(crackVariant * 0.37, crackVariant * 0.21)) * vec2(167.0, 191.0)), vec2(12.9898, 78.233))) * 43758.5453);',
   '            float burnSpread = smoothstep(0.45, 1.0, crackProgress);',
   '            float width = 0.0025 + crackProgress * crackProgress * crackStrength * 0.013 + 0.30 * burnSpread * burnSpread;',
   '            float ragged = crack + (noise - 0.5) * 0.007;',
   '            float cover = smoothstep(0.12, 0.19, uv.x) * (1.0 - smoothstep(0.80, 0.88, uv.x));',
   '            cover *= smoothstep(0.31, 0.40, uv.y) * (1.0 - smoothstep(0.87, 0.96, uv.y));',
   '            float material = cover * growth * smoothstep(0.12, 0.65, sampled.a);',
-  '            float burn = (1.0 - smoothstep(width + 0.003, width + 0.025, ragged)) * material;',
-  '            float edge = (1.0 - smoothstep(width + 0.002, width + 0.013, ragged)) * material;',
-  '            float core = (1.0 - smoothstep(width + 0.001, width + 0.004, ragged)) * material;',
-  '            // Charcoal undercut gives gold/cyan lines contrast on bright silver foil.',
-  '            sampled.rgb = mix(sampled.rgb, vec3(0.10, 0.065, 0.13), burn * 0.68 * crackStrength);',
-  '            sampled.rgb += crackTint * (edge * 0.31 + core * 0.62) * crackStrength;',
   '            float hole = (1.0 - smoothstep(width - 0.006, width + 0.002, ragged)) * material;',
+  '            // The saturated lip MUST be outside the transparent hole: drawing',
+  '            // the old colored core inside the hole made every edge look silver.',
+  '            float lip = (smoothstep(width - 0.001, width + 0.006, ragged) - smoothstep(width + 0.022, width + 0.045, ragged)) * material;',
+  '            float aura = (1.0 - smoothstep(width + 0.026, width + 0.085, ragged)) * material;',
+  '            float undercut = (1.0 - smoothstep(width + 0.038, width + 0.058, ragged)) * material;',
+  '            sampled.rgb = mix(sampled.rgb, vec3(0.085, 0.055, 0.11), undercut * 0.76 * crackStrength);',
+  '            sampled.rgb += crackTint * aura * 0.42 * crackStrength;',
+  '            sampled.rgb = mix(sampled.rgb, min(vec3(1.0), crackTint * 1.42 + vec3(0.15)), lip * 0.93 * crackStrength);',
   '            sampled.a *= 1.0 - hole;',
   '        }',
   '        gl_FragColor = sampled;',
@@ -232,6 +236,7 @@ export class PouchPerspectiveController extends Phaser.Filters.Controller {
   public texelSize: [number, number] = [1 / FILTER_BASE_WIDTH, 1 / FILTER_BASE_HEIGHT];
   public crackProgress = 0;
   public crackStrength = 0;
+  public crackVariant = 0;
   public crackTint: [number, number, number] = [1, 0.8, 0.4];
 
   public constructor(camera: Phaser.Cameras.Scene2D.Camera) {
@@ -262,6 +267,7 @@ class FilterPouchPerspective extends Phaser.Renderer.WebGL.RenderNodes.BaseFilte
     this.programManager.setUniform('texelSize', perspective.texelSize);
     this.programManager.setUniform('crackProgress', perspective.crackProgress);
     this.programManager.setUniform('crackStrength', perspective.crackStrength);
+    this.programManager.setUniform('crackVariant', perspective.crackVariant);
     this.programManager.setUniform('crackTint', perspective.crackTint);
   }
 }

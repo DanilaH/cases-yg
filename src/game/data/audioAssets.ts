@@ -17,6 +17,8 @@ export const SFX_CUES = [
   'ui-denied',
   'charged-spend',
   'chip-clack',
+  'signal-launch',
+  'signal-dock',
   'signal-gain',
   'signal-lock',
   'hidden-pocket',
@@ -50,6 +52,9 @@ const SFX_ASSET_PATHS: Readonly<Record<SfxCue, string>> = {
   'ui-denied': 'assets/audio/ui-denied.mp3',
   'charged-spend': 'assets/audio/charged-spend.mp3',
   'chip-clack': 'assets/audio/chip-clack.mp3',
+  // Synthetic transients only: no unreviewed/placeholder MP3 is preloaded.
+  'signal-launch': 'assets/audio/signal-launch.mp3',
+  'signal-dock': 'assets/audio/signal-dock.mp3',
   'signal-gain': 'assets/audio/signal-gain.mp3',
   'signal-lock': 'assets/audio/signal-lock.mp3',
   'hidden-pocket': 'assets/audio/hidden-pocket.mp3',
