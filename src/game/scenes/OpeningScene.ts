@@ -2900,7 +2900,7 @@ export class OpeningScene extends Phaser.Scene {
         scaleX: lateral ? 0.5 : 0.62,
         scaleY: 0.5,
         duration: lateral ? 250 + sequence * 4 : 240 + sequence * 6,
-        delay: (index % 4) * 24,
+        delay: Math.round(profile.crackDurationMs * 0.30) + (index % 4) * 24,
         ease: lateral ? 'Cubic.Out' : 'Quad.In',
         onComplete: () => {
           if (fragment.active) fragment.destroy();
@@ -2920,12 +2920,15 @@ export class OpeningScene extends Phaser.Scene {
       perspective.crackStrength = profile.crackStrength;
       perspective.crackTint = [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
     }
-      const proxy = { progress: 0.12 };
+    const proxy = { progress: 0.12 };
     const syncPreview = (): void => {
       if (perspective) perspective.crackProgress = proxy.progress;
     };
     // Make cracks readable before the foil disappears. This first stage
     // uses part of the existing duration instead of slowing every open.
+    // Register debris before the first skippable tween. A skip can then
+    // destroy it without a later continuation spawning orphan particles.
+    this.spawnCrackDebris(rarity);
     await this.runSkippableTween({
       targets: proxy,
       progress: 0.66,
@@ -2937,7 +2940,6 @@ export class OpeningScene extends Phaser.Scene {
       syncPreview();
     });
     if (this.isSceneShutdown() || !pouch.group.active) return;
-    this.spawnCrackDebris(rarity);
     await this.runSkippableTween({
       targets: proxy,
       progress: 1,
