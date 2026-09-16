@@ -2875,7 +2875,8 @@ export class OpeningScene extends Phaser.Scene {
   // not samples from the RNG that resolves rewards or from Phaser's global RNG.
   private spawnCrackDebris(rarity: StandardRarity): void {
     const pouch = this.pouch;
-    if (!pouch?.group.active) return;
+    const root = this.root;
+    if (!pouch?.group.active || !root) return;
     const profile = RARITY_POUCH_IMPACT[rarity];
     const warm = rarity === 'legendary';
     const color = warm ? 0xffd45a : RARITY_REVEAL_COLORS[rarity];
@@ -2886,15 +2887,15 @@ export class OpeningScene extends Phaser.Scene {
       const side = index % 2 === 0 ? -1 : 1;
       const startX = (sequence - 14) * 5.0;
       const startY = POUCH_PRESENTATION.body.y + ((index * 11) % 21 - 10) * 5.4;
-      const fragment = this.add.ellipse(startX, startY, lateral ? 9 : 4, lateral ? 2.4 : 3.7,
+      const fragment = this.add.ellipse(pouch.group.x + startX, pouch.group.y + startY, lateral ? 9 : 4, lateral ? 2.4 : 3.7,
         lateral && index % 3 === 0 ? 0xfff0a2 : color, lateral ? 0.96 : 0.80);
       fragment.setAngle(lateral ? (side < 0 ? -16 : 16) : (index * 19) % 90);
-      pouch.group.add(fragment);
+      root.add(fragment);
       this.crackDebris.push(fragment);
       this.tweens.add({
         targets: fragment,
-        x: startX + (lateral ? side * (80 + sequence * 3) : (sequence - 14) * 0.85),
-        y: startY + (lateral ? -22 + (index % 5) * 10 : 65 + sequence * 2.3),
+        x: pouch.group.x + startX + (lateral ? side * (80 + sequence * 3) : (sequence - 14) * 0.85),
+        y: pouch.group.y + startY + (lateral ? -22 + (index % 5) * 10 : 65 + sequence * 2.3),
         alpha: 0,
         scaleX: lateral ? 0.5 : 0.62,
         scaleY: 0.5,
@@ -2920,7 +2921,7 @@ export class OpeningScene extends Phaser.Scene {
       perspective.crackTint = [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
     }
     this.spawnCrackDebris(rarity);
-    const proxy = { progress: 0.10 };
+    const proxy = { progress: 0.12 };
     await this.runSkippableTween({
       targets: proxy,
       progress: 1,
@@ -2929,12 +2930,19 @@ export class OpeningScene extends Phaser.Scene {
       onUpdate: () => {
         if (perspective) perspective.crackProgress = proxy.progress;
         else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(1 - proxy.progress * 0.6);
+        // Fade the last intact foil frame before the reward appears, so no
+        // rectangle-shaped rim can survive as a flash around the new item.
+        if (pouch.group.active && proxy.progress > 0.68) {
+          pouch.group.setAlpha(1 - (proxy.progress - 0.68) / 0.32);
+        }
       },
     }, () => {
       if (perspective) perspective.crackProgress = 1;
       else if (pouch.bodyLayer.active) pouch.bodyLayer.setAlpha(0.4);
+      if (pouch.group.active) pouch.group.setAlpha(0);
     });
-    this.clearCrackDebris();
+    // Debris lives on the scene root, not the fading pouch. Its own short
+    // tweens dispose it; skip, rebuild and shutdown still clear everything.
   }
 
   private async animateRarityPouchImpact(rarity: StandardRarity): Promise<void> {
