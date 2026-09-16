@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import { getPlatformRuntime } from '../../app/runtime';
 import { getMessages } from '../../i18n';
+import { getRarityBadge } from '../../i18n/format';
 import { staticTextureKey } from '../data/artAssets';
 import { COLLECTION_FEEL_PRESENTATION } from '../data/presentation';
 import { GAME_LOOT_POOL_IDS, GAME_REGISTRY, type GadgetFamilyDefinition, type GameLootPoolId, type StandardRarity } from '../data/collectibles';
@@ -582,7 +583,7 @@ export class CollectionScene extends Phaser.Scene {
         }
         root.add(
           this.add
-            .text(x, y + 60, messages.rarity[entry.rarity], {
+            .text(x, y + 60, getRarityBadge(getPlatformRuntime().language, entry.rarity), {
               color: entry.owned ? '#efe8f6' : '#7e7089',
               fontFamily: 'system-ui, sans-serif',
               fontSize: '12px',
