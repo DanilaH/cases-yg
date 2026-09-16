@@ -18,16 +18,16 @@ const collection = 'src/game/scenes/CollectionScene.ts';
 replace(opening, "import { getMessages } from '../../i18n';", "import { getMessages } from '../../i18n';\nimport { formatBaseChipReward, formatChipAmount, formatChipGain, formatDuplicateReward, getRarityBadge } from '../../i18n/format';");
 replace(collection, "import { getMessages } from '../../i18n';", "import { getMessages } from '../../i18n';\nimport { getRarityBadge } from '../../i18n/format';");
 
-// Only amount-bearing labels are inflected; the standalone HUD title stays CHIPS.
-replace(opening, '${cost} ${messages.opening.chips}', '${formatChipAmount(cost, getPlatformRuntime().language)}');
+// Patch the nested price template first; the short cost substring occurs inside it.
 replace(opening, '${this.saveState.chips}/${cost} ${messages.opening.chips}', '${this.saveState.chips}/${formatChipAmount(cost, getPlatformRuntime().language)}');
+replace(opening, '${cost} ${messages.opening.chips}', '${formatChipAmount(cost, getPlatformRuntime().language)}');
 
-// Standalone rarity tiers in the result and catalog; the shelf keeps adjectives.
+// Standalone rarity tiers in the result and catalog; shelf adjectives stay intact.
 replace(opening, 'rarity: messages.rarity.secret,', "rarity: getRarityBadge(language, 'secret'),");
 replace(opening, 'rarity: messages.rarity[pending.standard.rarity],', 'rarity: getRarityBadge(language, pending.standard.rarity),');
 replace(collection, 'messages.rarity[entry.rarity]', 'getRarityBadge(getPlatformRuntime().language, entry.rarity)');
 
-// Only presentation copy, not reward arithmetic or durable state.
+// Only presentation copy; reward arithmetic and saved state are not touched.
 replace(opening, '${messages.opening.recycled} +${pending.chips.recycle}', '${formatDuplicateReward(pending.chips.recycle, getPlatformRuntime().language)}', 2);
 replace(opening, '${messages.opening.chips} +${pending.chips.base}', '${formatBaseChipReward(pending.chips.base, getPlatformRuntime().language)}');
 replace(opening, '+${pending.chips.secretBonus} ${messages.opening.chips}', '${formatChipGain(pending.chips.secretBonus, getPlatformRuntime().language)}');
@@ -40,7 +40,7 @@ if (/\+\$\{[^}]+\}\s+\$\{messages\.opening\.chips\}/.test(updated)) {
   throw new Error('Uninflected chip amounts remain in OpeningScene');
 }
 
-// This one-shot patch runner must leave no CI/infrastructure churn in the PR.
+// The runner stages only product files; its own deletions stay out of the PR.
 fs.unlinkSync('.github/workflows/ru-copy-one-shot.yml');
 fs.unlinkSync('scripts/ru-copy-patch.cjs');
-console.log('RU copy patched; temporary runner removed');
+console.log('RU copy patched; temporary runner removed in workspace');
