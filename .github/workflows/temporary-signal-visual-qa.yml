@@ -1,0 +1,61 @@
+name: Temporary Signal fracture visual QA
+on:
+  push:
+    branches: [feat/crack-variation-signal-audio-20260916]
+    paths: [.github/workflows/temporary-signal-visual-qa.yml]
+permissions:
+  contents: read
+jobs:
+  visual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      VITE_PLATFORM_RUNTIME: mock
+      VITE_DEBUG_PANEL: 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install dependencies and Chromium
+        run: |
+          npm ci
+          python -m pip install playwright==1.55.0 pillow
+          python -m playwright install --with-deps chromium
+      - name: Force rare Basic only in runner and compile
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/game/data/balance.ts');s=p.read_text()
+          for before in ('      rarityWeights: {\n        common: 72,\n        rare: 25,\n        epic: 3,\n        legendary: 0,\n      },','      rarityWeights: {\n        common: 35,\n        rare: 40,\n        epic: 20,\n        legendary: 5,\n      },'):
+              assert s.count(before)==1
+              s=s.replace(before,'      rarityWeights: {\n        common: 0,\n        rare: 100,\n        epic: 0,\n        legendary: 0,\n      },',1)
+          p.write_text(s)
+          script=Path('scripts/temporary-signal-visual-qa.py');code=script.read_text()
+          old='                    s = await state(page)\n                    expected = '
+          assert code.count(old)==1
+          code=code.replace(old,'''                    await page.wait_for_function("n => {const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return s && s.totalOpens===n && !s.pendingReveal;}",arg=18,timeout=90000)
+                    s = await state(page)
+                    expected = ''')
+          code=code.replace('1600, 1170','1600, 1350').replace('row * 234','row * 270')
+          script.write_text(code)
+          print('QA runner-only rarity and capture timing prepared; no balance commit')
+          PY
+          npm run build
+      - name: Capture real input and check reward/console
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/signal-feel-visual.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          python scripts/temporary-signal-visual-qa.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signal-feel-crack-visual-qa
+          path: signal-feel-browser-qa/
+          retention-days: 3
+          if-no-files-found: ignore
