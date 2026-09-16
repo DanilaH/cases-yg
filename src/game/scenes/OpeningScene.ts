@@ -2823,7 +2823,7 @@ export class OpeningScene extends Phaser.Scene {
     if (vignette.active) vignette.destroy();
   }
 
-  // Draw once per reveal, then animate only alpha. Dark edges, never a full-screen
+  // Draw once per reveal, then animate only alpha. Stronger feathered EDGES, never a full-screen
   // strobe, extra textures, shaders, or presentation RNG.
   private pulseImpactVignette(rarity: StandardRarity | 'secret'): void {
     if (!this.root || !this.metrics || this.isSceneShutdown()) return;
@@ -2832,10 +2832,10 @@ export class OpeningScene extends Phaser.Scene {
     const width = this.metrics.logicalWidth;
     const vignette = this.add.graphics().setAlpha(0);
     for (let layer = 0; layer < 12; layer += 1) {
-      const insetX = layer * 15;
-      const insetY = layer * 12;
-      const band = 17;
-      const shade = 0.021 - layer * 0.0011;
+      const insetX = layer * 17;
+      const insetY = layer * 11;
+      const band = 22;
+      const shade = 0.063 - layer * 0.0026;
       vignette.fillStyle(0x160b26, shade);
       vignette.fillRect(insetX, insetY, width - insetX * 2, band);
       vignette.fillRect(insetX, LOGICAL_HEIGHT - insetY - band, width - insetX * 2, band);

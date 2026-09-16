@@ -6,7 +6,7 @@ describe('rarity pouch impact', () => {
     const tiers = ['common', 'rare', 'epic', 'legendary'] as const;
     for (const [index, tier] of tiers.entries()) {
       const profile = RARITY_POUCH_IMPACT[tier];
-      expect(profile.vignettePulses).toBeGreaterThanOrEqual(1);
+      expect(profile.vignettePulses).toBe(index + 1);
       expect(profile.vignetteAlpha).toBeLessThanOrEqual(0.85);
       expect(profile.recoilScale).toBeGreaterThanOrEqual(0.93);
       expect(profile.reboundScale).toBeLessThanOrEqual(1.05);
@@ -23,7 +23,7 @@ describe('rarity pouch impact', () => {
 
   it('reserves secret for a second vignette without animating the departed pouch', () => {
     const secret = RARITY_POUCH_IMPACT.secret;
-    expect(secret.vignettePulses).toBe(2);
+    expect(secret.vignettePulses).toBe(3);
     expect(secret.recoilMs).toBe(0);
     expect(secret.reboundMs).toBe(0);
     expect(secret.jolts).toBe(0);
