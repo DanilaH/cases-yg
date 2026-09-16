@@ -33,7 +33,7 @@ import {
   getOpeningChromeSizing,
   getPouchSelectorGeometry,
 } from '../systems/openingChromeLayout';
-import { RARITY_POUCH_IMPACT, type PouchImpactProfile } from '../data/rarityPouchImpact';
+import { RARITY_POUCH_IMPACT, resolveCrackVariant, type PouchImpactProfile } from '../data/rarityPouchImpact';
 import { getRenderPixelRatio } from '../systems/renderDensity';
 import { installSceneTextSharpness } from '../systems/uiSharpness';
 import { computeRewardTrayPlacement } from '../systems/rewardLayout';
@@ -2747,6 +2747,7 @@ export class OpeningScene extends Phaser.Scene {
       this.pouch.tab.setX(this.pouch.tabEndX);
     }
 
+    if (this.pouch.perspective) this.pouch.perspective.crackVariant = resolveCrackVariant(pending.openingNumber);
     await this.animateTearDetach(recovered, pending.standard.rarity);
     if (this.isSceneShutdown()) return;
 
@@ -2873,7 +2874,7 @@ export class OpeningScene extends Phaser.Scene {
 
   // An intentionally bounded burst; fragment paths are deterministic presentation data,
   // not samples from the RNG that resolves rewards or from Phaser's global RNG.
-  private spawnCrackDebris(rarity: StandardRarity): void {
+  private spawnCrackDebris(rarity: StandardRarity, openingNumber: number): void {
     const pouch = this.pouch;
     const root = this.root;
     if (!pouch?.group.active || !root) return;
@@ -2881,14 +2882,15 @@ export class OpeningScene extends Phaser.Scene {
     const warm = rarity === 'legendary';
     const color = warm ? 0xffd45a : RARITY_REVEAL_COLORS[rarity];
     const total = profile.fallingFragments + profile.lateralSparks;
+    const visualSeed = Math.floor(resolveCrackVariant(openingNumber) * 257);
     for (let index = 0; index < total; index += 1) {
       const lateral = index >= profile.fallingFragments;
-      const sequence = (index * 17 + 9) % 29;
-      const side = index % 2 === 0 ? -1 : 1;
+      const sequence = (index * 17 + visualSeed * 11 + 9) % 29;
+      const side = (index + visualSeed) % 2 === 0 ? -1 : 1;
       const startX = (sequence - 14) * 5.0;
-      const startY = POUCH_PRESENTATION.body.y + ((index * 11) % 21 - 10) * 5.4;
-      const fragment = this.add.ellipse(pouch.group.x + startX, pouch.group.y + startY, lateral ? 9 : 4, lateral ? 2.4 : 3.7,
-        lateral && index % 3 === 0 ? 0xfff0a2 : color, lateral ? 0.96 : 0.80);
+      const startY = POUCH_PRESENTATION.body.y + ((index * 11 + visualSeed * 3) % 21 - 10) * 5.4;
+      const fragment = this.add.ellipse(pouch.group.x + startX, pouch.group.y + startY, lateral ? 11 : 5.6, lateral ? 3 : 5,
+        lateral && index % 3 === 0 ? 0xfff0a2 : color, lateral ? 0.98 : 0.94);
       fragment.setAngle(lateral ? (side < 0 ? -16 : 16) : (index * 19) % 90);
       root.add(fragment);
       this.crackDebris.push(fragment);
@@ -2910,7 +2912,7 @@ export class OpeningScene extends Phaser.Scene {
     }
   }
 
-  private async animateCrackDissolve(rarity: StandardRarity): Promise<void> {
+  private async animateCrackDissolve(rarity: StandardRarity, openingNumber: number): Promise<void> {
     const pouch = this.pouch;
     if (!pouch?.group.active || this.isSceneShutdown()) return;
     const profile = RARITY_POUCH_IMPACT[rarity];
@@ -2928,7 +2930,7 @@ export class OpeningScene extends Phaser.Scene {
     // uses part of the existing duration instead of slowing every open.
     // Register debris before the first skippable tween. A skip can then
     // destroy it without a later continuation spawning orphan particles.
-    this.spawnCrackDebris(rarity);
+    this.spawnCrackDebris(rarity, openingNumber);
     await this.runSkippableTween({
       targets: proxy,
       progress: 0.66,
@@ -3814,6 +3816,7 @@ export class OpeningScene extends Phaser.Scene {
       .setStrokeStyle(3, 0x9d7cff, 0.76)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.root.add([ring, discharge]);
+    getGameAudio().play('signal-launch');
     getGameAudio().play('signal-lock');
     this.tweens.add({
       targets: ring,
@@ -3856,6 +3859,7 @@ export class OpeningScene extends Phaser.Scene {
       () => discharge.destroy(),
     );
     if (!this.root || this.isSceneShutdown()) return;
+    getGameAudio().play('signal-dock');
 
     const impact = this.add
       .circle(pouchTarget.x, pouchTarget.y, 16, 0x8df8ff, 0.28)
@@ -3890,6 +3894,8 @@ export class OpeningScene extends Phaser.Scene {
       .circle(origin.x + 17, origin.y + 10, 8, 0x76e9f5, 0.94)
       .setStrokeStyle(2, 0xffffff, 0.58);
     this.root.add(spark);
+    // A separate launch transient makes the projectile audible before its HUD impact.
+    getGameAudio().play('signal-launch');
     let lastTrailAt = Number.NEGATIVE_INFINITY;
     await this.runSkippableTween(
       {
@@ -3937,6 +3943,7 @@ export class OpeningScene extends Phaser.Scene {
         ease: 'Sine.Out',
       });
     }
+    getGameAudio().play('signal-dock');
     getGameAudio().play(pending.signal.lockReached ? 'signal-lock' : 'signal-gain');
   }
 
@@ -3954,6 +3961,7 @@ export class OpeningScene extends Phaser.Scene {
         .circle(origin.x + 26, origin.y + 7, 7, color, 0.96)
         .setStrokeStyle(2, 0xffffff, 0.58);
       this.root.add(fragment);
+      getGameAudio().play('signal-launch');
       getGameAudio().play('signal-gain');
       await this.runSkippableTween(
         {
@@ -3968,6 +3976,7 @@ export class OpeningScene extends Phaser.Scene {
         () => fragment.destroy(),
       );
       if (this.isSceneShutdown()) return;
+      getGameAudio().play('signal-dock');
       this.renderSignalHud(this.root, { ...this.saveState, signal: pending.signal.after, overchargeHundredths: after });
       if (this.signalHudContainer) {
         this.tweens.killTweensOf(this.signalHudContainer);
@@ -4281,7 +4290,7 @@ export class OpeningScene extends Phaser.Scene {
       if (this.isSceneShutdown()) return pouch.group;
     }
 
-    await this.animateCrackDissolve(pending.standard.rarity);
+    await this.animateCrackDissolve(pending.standard.rarity, pending.openingNumber);
     if (this.isSceneShutdown()) return pouch.group;
     this.createRevealBackdrop(fx.backdropAlpha, fx.particleDuration);
     audio.play('reveal-pop');

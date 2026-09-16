@@ -194,7 +194,9 @@ export const getOneShotPitchVariation = (cue: SfxCue): number => {
     cue === 'pouch-select' ||
     cue === 'ui-denied' ||
     cue === 'duplicate' ||
-    cue === 'signal-gain'
+    cue === 'signal-gain' ||
+    cue === 'signal-launch' ||
+    cue === 'signal-dock'
   ) {
     return ONE_SHOT_PITCH_VARIATION.uiAmount;
   }
@@ -417,6 +419,14 @@ export const getAudioCuePresentationDirective = (cue: SfxCue): AudioCuePresentat
     case 'duplicate':
       return {
         duck: { multiplier: 0.78, attackMs: 10, holdMs: 50, releaseMs: 150 },
+      };
+    case 'signal-launch':
+      return {
+        duck: { multiplier: 0.82, attackMs: 8, holdMs: 65, releaseMs: 135 },
+      };
+    case 'signal-dock':
+      return {
+        duck: { multiplier: 0.76, attackMs: 5, holdMs: 65, releaseMs: 155 },
       };
     case 'signal-gain':
       return {
