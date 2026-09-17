@@ -34,7 +34,7 @@ jobs:
           replacement = '''    if (import.meta.env.VITE_CAPTURE_REWARD === 'true') {
                 const mode = window.sessionStorage.getItem('signal.capture.reward');
                 const sequences: Record<string, readonly number[]> = {
-                  'epic-phone': [0.9, 0.99, 0, 0, 0.99],
+                  'epic-phone': [0.99, 0.99, 0, 0, 0.99],
                   legendary: [0.1, 0.99, 0, 0, 0.99],
                   'hidden-pocket': [0.1, 0.1, 0, 0, 0, 0.1],
                 };
@@ -55,6 +55,19 @@ jobs:
           assert script.count(a) == 1 and script.count(b) == 1
           script = script.replace(a, "context.add_init_script(\"(\" + '''(lang) => {")
           script = script.replace(b, "}''' + \")(\" + json.dumps(lang) + \")\")")
+          assert "SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]" in script
+          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 13.5), ('legendary', 13.0)]")
+          assert "':99.0+0,0'" in script
+          script = script.replace("':99.0+0,0'", "':99.0+0,74'")
+          assert "'--window-size=1920,1080'" in script
+          script = script.replace("'--window-size=1920,1080'", "'--window-size=1920,1154'")
+          original_before = "            page.screenshot(path=str(folder / f'{scenario}-before.png'))"
+          replacement_before = """            if scenario == 'legendary':
+                page.mouse.click(185, 400)
+                page.wait_for_timeout(1300)
+            page.screenshot(path=str(folder / f'{scenario}-before.png'))"""
+          assert script.count(original_before) == 1
+          script = script.replace(original_before, replacement_before)
           script_path.write_text(script)
           PY
           python3 -m py_compile scripts/temporary-promo-capture.py
@@ -74,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           export DISPLAY=:99
-          Xvfb :99 -screen 0 1920x1080x24 -ac -nolisten tcp >/tmp/promo-xvfb.log 2>&1 &
+          Xvfb :99 -screen 0 1920x1200x24 -ac -nolisten tcp >/tmp/promo-xvfb.log 2>&1 &
           sleep 2
           xdpyinfo -display :99 >/dev/null
           pulseaudio --start --exit-idle-time=-1 || true
