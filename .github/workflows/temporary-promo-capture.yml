@@ -56,15 +56,19 @@ jobs:
           script = script.replace(a, "context.add_init_script(\"(\" + '''(lang) => {")
           script = script.replace(b, "}''' + \")(\" + json.dumps(lang) + \")\")")
           assert "SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]" in script
-          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 13.5), ('legendary', 13.0)]")
+          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 23.0), ('legendary', 22.0)]")
           assert "':99.0+0,0'" in script
           script = script.replace("':99.0+0,0'", "':99.0+0,74'")
           assert "'--window-size=1920,1080'" in script
           script = script.replace("'--window-size=1920,1080'", "'--window-size=1920,1154'")
           original_before = "            page.screenshot(path=str(folder / f'{scenario}-before.png'))"
-          replacement_before = "            if scenario == 'legendary': page.mouse.click(185, 400); page.wait_for_timeout(1300)\n" + original_before
+          replacement_before = "            if scenario == 'legendary': page.mouse.click(185, 465); page.wait_for_timeout(3000)\n" + original_before
           assert script.count(original_before) == 1
           script = script.replace(original_before, replacement_before)
+          assert 'for i in range(1, 43):' in script
+          script = script.replace('for i in range(1, 43):', 'for i in range(1, 13):')
+          assert '495 * i / 42' in script
+          script = script.replace('495 * i / 42', '495 * i / 12')
           script_path.write_text(script)
           PY
           python3 -m py_compile scripts/temporary-promo-capture.py
