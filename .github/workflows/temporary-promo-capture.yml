@@ -62,10 +62,7 @@ jobs:
           assert "'--window-size=1920,1080'" in script
           script = script.replace("'--window-size=1920,1080'", "'--window-size=1920,1154'")
           original_before = "            page.screenshot(path=str(folder / f'{scenario}-before.png'))"
-          replacement_before = """            if scenario == 'legendary':
-                page.mouse.click(185, 400)
-                page.wait_for_timeout(1300)
-            page.screenshot(path=str(folder / f'{scenario}-before.png'))"""
+          replacement_before = "            if scenario == 'legendary': page.mouse.click(185, 400); page.wait_for_timeout(1300)\n" + original_before
           assert script.count(original_before) == 1
           script = script.replace(original_before, replacement_before)
           script_path.write_text(script)
