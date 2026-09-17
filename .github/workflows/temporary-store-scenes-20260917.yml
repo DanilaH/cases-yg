@@ -1,0 +1,100 @@
+name: Temporary Signal supplementary store scenes
+on:
+  push:
+    branches: [fix/soften-reveal-vignette-20260917]
+    paths: [.github/workflows/temporary-store-scenes-20260917.yml]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: e53a722515377e07a316a57031b8a02e82641660
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+      - run: |
+          python3 -m pip install --user playwright==1.55.0
+          python3 -m playwright install --with-deps chromium
+      - name: Capture real game scenes in both languages and both viewport classes
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory dist > /tmp/store-http.log 2>&1 &
+          cat > /tmp/store_scenes.py <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import json
+          out=Path('captures-scene');out.mkdir(exist_ok=True)
+          records=[]; errors=[]
+          def shot(page,lang,label,device):
+              target=out/lang/device/(label+'.png');target.parent.mkdir(parents=True,exist_ok=True)
+              page.screenshot(path=str(target),style='.mpt-debug-panel { visibility: hidden !important }',timeout=25000)
+              records.append({'file':str(target),'language':page.locator('html').get_attribute('lang'),'label':label,'device':device,'preload':page.locator('#startup-preload').get_attribute('data-state')})
+              print('SHOT',records[-1],flush=True)
+          def ready(page):
+              page.wait_for_function("document.querySelector('#startup-preload')?.dataset.state === 'hidden'",timeout=65000)
+              page.wait_for_timeout(2900)
+          def seed(page):
+              page.locator('.mpt-debug-panel button').filter(has_text='Seed all 8/8 + 2/2').first.evaluate('(node)=>node.click()')
+              page.wait_for_timeout(2000)
+              ready(page)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-webgl'])
+              for lang,locale in [('ru','ru-RU'),('en','en-US')]:
+                  for device,viewport,dpr,mobile in [('desktop',{'width':1920,'height':1080},1,False),('mobile-landscape',{'width':800,'height':450},2,True)]:
+                      ctx=browser.new_context(locale=locale,viewport=viewport,device_scale_factor=dpr,is_mobile=mobile,has_touch=mobile)
+                      ctx.add_init_script(f"sessionStorage.setItem('mystery-pocket-tech.debug-language','{lang}');sessionStorage.setItem('mystery-pocket-tech.debug-panel-collapsed','0');")
+                      page=ctx.new_page()
+                      page.on('pageerror',lambda err: errors.append('pageerror: '+str(err)))
+                      page.on('console',lambda msg: errors.append('console: '+msg.text) if msg.type=='error' else None)
+                      page.goto('http://127.0.0.1:8765/',wait_until='domcontentloaded')
+                      page.wait_for_selector('canvas',timeout=65000)
+                      ready(page)
+                      seed(page)
+                      shot(page,lang,'opening-full',device)
+                      # Tear is a real pointer drag on the live game; only the debug fixture is staged.
+                      scale=viewport['width']/1920
+                      x,y=716*scale,260*scale
+                      if mobile:
+                          page.touchscreen.tap(x,y)
+                      else:
+                          page.mouse.move(x,y);page.mouse.down();page.mouse.move((716+125)*scale,y,steps=9);page.wait_for_timeout(250)
+                          shot(page,lang,'tear-partial',device)
+                          page.mouse.up();page.wait_for_timeout(650)
+                      if mobile:
+                          page.touchscreen.tap(1730*scale,994*scale)
+                      else:
+                          page.mouse.click(1730,994)
+                      page.wait_for_timeout(3000)
+                      shot(page,lang,'collection-shelf',device)
+                      if not mobile:
+                          page.mouse.click(1080,190)
+                          page.wait_for_timeout(1500)
+                          shot(page,lang,'collection-library',device)
+                          page.mouse.click(1275,963)
+                          page.wait_for_timeout(1600)
+                          shot(page,lang,'collection-library-next',device)
+                      ctx.close()
+              browser.close()
+          (out/'manifest.json').write_text(json.dumps({'sourceMainSha':'e53a722515377e07a316a57031b8a02e82641660','runtime':'staging mock/debug fixture, real game rendering','records':records,'errors':errors},indent=2,ensure_ascii=False))
+          print('TOTAL',len(records),'ERRORS',errors[:10],flush=True)
+          assert len(records)>=20
+          assert all(r['language']==r['file'].split('/')[1] for r in records)
+          assert not errors,errors[:10]
+          PY
+          python3 /tmp/store_scenes.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signal-store-current-collection-mobile-scenes
+          path: captures-scene/
+          if-no-files-found: error
+          retention-days: 2
