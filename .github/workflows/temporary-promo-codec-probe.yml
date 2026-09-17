@@ -53,6 +53,7 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/signal-store-promo
           /tmp/signal-store-promo/bin/python -m pip install 'playwright==1.55.0'
+          /tmp/signal-store-promo/bin/python -m playwright install ffmpeg
           brew install ffmpeg
           python3 -m http.server 8765 --directory dist >/tmp/promo-http.log 2>&1 &
           sleep 2
