@@ -70,8 +70,11 @@ jobs:
           replace_once("for i in range(1, 43):", "for i in range(1, 13):")
           replace_once("page.mouse.move(716 + 495 * i / 42, 253 + (i % 4 == 0) * 2)", "page.mouse.move(477 + 330 * i / 12, 169 + (i % 4 == 0) * 2)")
           replace_once("            page.screenshot(path=str(folder / f'{scenario}-before.png'))", "            if scenario == 'legendary': page.mouse.click(123, 310); page.wait_for_timeout(2200)\n            page.screenshot(path=str(folder / f'{scenario}-before.png'))")
+          replace_once("stream['width'] == 1920", "stream['width'] == 1280")
           replace_once("and stream['height'] == 1080 for stream in info['streams']", "and stream['height'] == 720 for stream in info['streams']")
           replace_once("assert float(info['format']['duration']) >= 25, info", "assert float(info['format']['duration']) >= 50, info")
+          replace_once("    with log_path.open('w') as log:", "    page.evaluate(\"\"\"() => { window.__captureRafs = []; const start = performance.now(); const tick = t => { if (t - start < 12000) { window.__captureRafs.push(t); requestAnimationFrame(tick); } }; requestAnimationFrame(tick); }\"\"\")\n    with log_path.open('w') as log:")
+          replace_once("    assert proc.returncode == 0, f'ffmpeg exited {proc.returncode}: {log_path.read_text()}'", "    print('RAF_MEASURE', scenario, page.evaluate(\"\"\"() => { const t = window.__captureRafs || []; return {total:t.length, perSecond:Array.from({length:12}, (_,i) => t.filter(v => v>=t[0]+i*1000 && v<t[0]+(i+1)*1000).length)}; }\"\"\"), flush=True)\n    assert proc.returncode == 0, f'ffmpeg exited {proc.returncode}: {log_path.read_text()}'")
           script_path.write_text(script)
           PY
           python3 -m py_compile scripts/temporary-promo-capture.py
