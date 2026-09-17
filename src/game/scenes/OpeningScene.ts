@@ -2828,12 +2828,13 @@ export class OpeningScene extends Phaser.Scene {
     if (vignette.active) vignette.destroy();
   }
 
-  // Draw once per reveal, then animate only alpha. Stronger feathered EDGES, never a full-screen
-  // strobe, extra textures, shaders, or presentation RNG.
+  // One faint edge breath (no repeated flashes); common needs no screen-wide overlay.
+  // Draw once, animate only alpha, and preserve skip/teardown cleanup.
   private pulseImpactVignette(rarity: StandardRarity | 'secret'): void {
     if (!this.root || !this.metrics || this.isSceneShutdown()) return;
     this.clearImpactVignette();
     const profile = RARITY_POUCH_IMPACT[rarity];
+    if (profile.vignettePulses === 0 || profile.vignetteAlpha <= 0) return;
     const width = this.metrics.logicalWidth;
     const vignette = this.add.graphics().setAlpha(0);
     for (let layer = 0; layer < 12; layer += 1) {
