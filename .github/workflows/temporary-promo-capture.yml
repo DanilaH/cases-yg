@@ -1,0 +1,99 @@
+name: Temporary Signal 2000 promo capture
+
+on:
+  push:
+    branches:
+      - capture/signal-2000-promo-ru-en-20260917
+    paths:
+      - .github/workflows/temporary-promo-capture.yml
+      - scripts/temporary-promo-capture.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Prepare isolated deterministic capture build (never committed)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          random_path = Path('src/game/systems/random.ts')
+          source = random_path.read_text()
+          original = '    return Math.random();'
+          replacement = '''    if (import.meta.env.VITE_CAPTURE_REWARD === 'true') {
+                const mode = window.sessionStorage.getItem('signal.capture.reward');
+                const sequences: Record<string, readonly number[]> = {
+                  'epic-phone': [0.9, 0.99, 0, 0, 0.99],
+                  legendary: [0.1, 0.99, 0, 0, 0.99],
+                  'hidden-pocket': [0.1, 0.1, 0, 0, 0, 0.1],
+                };
+                const sequence = mode ? sequences[mode] : undefined;
+                if (sequence) {
+                  const index = Number(window.sessionStorage.getItem('signal.capture.random-index') ?? '0');
+                  window.sessionStorage.setItem('signal.capture.random-index', String(index + 1));
+                  return sequence[index] ?? 0.99;
+                }
+              }
+              return Math.random();'''
+          assert source.count(original) == 1
+          random_path.write_text(source.replace(original, replacement))
+          script_path = Path('scripts/temporary-promo-capture.py')
+          script = script_path.read_text()
+          a = "context.add_init_script('''(lang) => {"
+          b = "}''', lang)"
+          assert script.count(a) == 1 and script.count(b) == 1
+          script = script.replace(a, "context.add_init_script(\"(\" + '''(lang) => {")
+          script = script.replace(b, "}''' + \")(\" + json.dumps(lang) + \")\")")
+          script_path.write_text(script)
+          PY
+          python3 -m py_compile scripts/temporary-promo-capture.py
+          VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=true VITE_CAPTURE_REWARD=true npm run build
+      - name: Install screen recording and browser dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb pulseaudio ffmpeg x11-utils
+          python3 -m venv /tmp/signal-capture-venv
+          /tmp/signal-capture-venv/bin/pip install playwright==1.55.0
+          /tmp/signal-capture-venv/bin/python -m playwright install --with-deps chromium
+      - name: Record two locale promos with authentic tear and audio
+        shell: bash
+        env:
+          SOURCE_MAIN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 -ac -nolisten tcp >/tmp/promo-xvfb.log 2>&1 &
+          sleep 2
+          xdpyinfo -display :99 >/dev/null
+          pulseaudio --start --exit-idle-time=-1 || true
+          sleep 2
+          pactl info
+          pactl load-module module-null-sink sink_name=promo sink_properties=device.description=promo
+          pactl set-default-sink promo
+          export PULSE_SINK=promo
+          python3 -m http.server 8765 --directory dist >/tmp/promo-http.log 2>&1 &
+          sleep 2
+          curl -fsS http://127.0.0.1:8765/ >/dev/null
+          /tmp/signal-capture-venv/bin/python scripts/temporary-promo-capture.py
+          ffprobe -v error -show_entries stream=codec_type,width,height -of json promo-output/signal-2000-promo-ru.mp4
+          ffprobe -v error -show_entries stream=codec_type,width,height -of json promo-output/signal-2000-promo-en.mp4
+      - name: Upload both MP4s and visual QA frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-2000-promo-ru-en-${{ github.run_id }}
+          path: promo-output/
+          retention-days: 5
+          if-no-files-found: warn
