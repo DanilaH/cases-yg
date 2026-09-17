@@ -48,6 +48,11 @@ jobs:
               return Math.random();'''
           assert source.count(original) == 1
           random_path.write_text(source.replace(original, replacement))
+          # Only the ephemeral build receives guaranteed Secret; repository main and live balance remain untouched.
+          balance_path = Path('src/game/data/balance.ts')
+          balance_source = balance_path.read_text()
+          assert balance_source.count('hiddenPocketChance: 0.015,') == 1
+          balance_path.write_text(balance_source.replace('hiddenPocketChance: 0.015,', 'hiddenPocketChance: 1,'))
           script_path = Path('scripts/temporary-promo-capture.py')
           script = script_path.read_text()
           a = "context.add_init_script('''(lang) => {"
