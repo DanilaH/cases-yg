@@ -1,0 +1,38 @@
+name: Temporary Signal 2000 codec comparison
+on:
+  push:
+    branches: [capture/signal-2000-promo-ru-en-20260917]
+    paths: [.github/workflows/temporary-promo-codec-probe.yml, scripts/temporary-promo-codec-probe.py]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  codec-probe:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=false npm run build
+      - name: Compare actual encoded H264 and VP8 frame counts at two resolutions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/signal-codec-probe
+          /tmp/signal-codec-probe/bin/python -m pip install 'playwright==1.55.0'
+          command -v ffprobe
+          python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
+          sleep 2
+          /tmp/signal-codec-probe/bin/python scripts/temporary-promo-codec-probe.py
+      - name: Upload codec probes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-codec-probe-${{ github.run_id }}
+          path: probe-output/
+          retention-days: 5
+          if-no-files-found: warn
