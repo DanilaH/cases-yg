@@ -23,7 +23,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Prepare isolated deterministic capture build (never committed)
+      - name: Prepare isolated deterministic capture and 720p 60fps recorder
         shell: bash
         run: |
           python3 - <<'PY'
@@ -32,53 +32,51 @@ jobs:
           source = random_path.read_text()
           original = '    return Math.random();'
           replacement = '''    if (import.meta.env.VITE_CAPTURE_REWARD === 'true') {
-                const mode = window.sessionStorage.getItem('signal.capture.reward');
-                const sequences: Record<string, readonly number[]> = {
-                  'epic-phone': [0.99, 0.99, 0, 0, 0.99],
-                  legendary: [0.1, 0.99, 0, 0, 0.99],
-                  'hidden-pocket': [0.1, 0.1, 0, 0, 0.1],
-                };
-                const sequence = mode ? sequences[mode] : undefined;
-                if (sequence) {
-                  const index = Number(window.sessionStorage.getItem('signal.capture.random-index') ?? '0');
-                  window.sessionStorage.setItem('signal.capture.random-index', String(index + 1));
-                  return sequence[index] ?? (mode === 'hidden-pocket' ? 0 : 0.99);
-                }
-              }
-              return Math.random();'''
+            const mode = window.sessionStorage.getItem('signal.capture.reward');
+            const sequences: Record<string, readonly number[]> = {
+              legendary: [0.1, 0.99, 0, 0, 0.99],
+              'hidden-pocket': [0.1, 0.1, 0, 0, 0.1],
+            };
+            const sequence = mode ? sequences[mode] : undefined;
+            if (sequence) {
+              const index = Number(window.sessionStorage.getItem('signal.capture.random-index') ?? '0');
+              window.sessionStorage.setItem('signal.capture.random-index', String(index + 1));
+              return sequence[index] ?? (mode === 'hidden-pocket' ? 0 : 0.99);
+            }
+          }
+          return Math.random();'''
           assert source.count(original) == 1
           random_path.write_text(source.replace(original, replacement))
-          # Only the ephemeral build receives guaranteed Secret; repository main and live balance remain untouched.
           balance_path = Path('src/game/data/balance.ts')
           balance_source = balance_path.read_text()
           assert balance_source.count('hiddenPocketChance: 0.015,') == 1
           balance_path.write_text(balance_source.replace('hiddenPocketChance: 0.015,', 'hiddenPocketChance: 1,'))
           script_path = Path('scripts/temporary-promo-capture.py')
           script = script_path.read_text()
-          a = "context.add_init_script('''(lang) => {"
-          b = "}''', lang)"
-          assert script.count(a) == 1 and script.count(b) == 1
-          script = script.replace(a, "context.add_init_script(\"(\" + '''(lang) => {")
-          script = script.replace(b, "}''' + \")(\" + json.dumps(lang) + \")\")")
-          assert "SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]" in script
-          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 55.0), ('legendary', 22.0)]")
-          assert "':99.0+0,0'" in script
-          script = script.replace("':99.0+0,0'", "':99.0+0,74'")
-          assert "'--window-size=1920,1080'" in script
-          script = script.replace("'--window-size=1920,1080'", "'--window-size=1920,1154'")
-          original_before = "            page.screenshot(path=str(folder / f'{scenario}-before.png'))"
-          replacement_before = "            if scenario == 'legendary': page.mouse.click(185, 465); page.wait_for_timeout(3000)\n" + original_before
-          assert script.count(original_before) == 1
-          script = script.replace(original_before, replacement_before)
-          assert 'for i in range(1, 43):' in script
-          script = script.replace('for i in range(1, 43):', 'for i in range(1, 13):')
-          assert '495 * i / 42' in script
-          script = script.replace('495 * i / 42', '495 * i / 12')
+          def replace_once(old, new):
+              global script
+              assert script.count(old) == 1, f'Expected one capture script occurrence of: {old}'
+              script = script.replace(old, new)
+          replace_once("context.add_init_script('''(lang) => {", "context.add_init_script(\"(\" + '''(lang) => {")
+          replace_once("}''', lang)", "}''' + \")(\" + json.dumps(lang) + \")\")")
+          replace_once("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 43.0), ('legendary', 18.0)]")
+          replace_once("viewport={'width': 1920, 'height': 1080}", "viewport={'width': 1280, 'height': 720}")
+          replace_once("'-framerate', '30'", "'-framerate', '60'")
+          replace_once("'-video_size', '1920x1080'", "'-video_size', '1280x720'")
+          replace_once("':99.0+0,0'", "':99.0+0,74'")
+          replace_once("'-r', '30'", "'-r', '60'")
+          replace_once("'--window-size=1920,1080'", "'--window-size=1280,794'")
+          replace_once("page.mouse.move(716, 253)", "page.mouse.move(477, 169)")
+          replace_once("for i in range(1, 43):", "for i in range(1, 13):")
+          replace_once("page.mouse.move(716 + 495 * i / 42, 253 + (i % 4 == 0) * 2)", "page.mouse.move(477 + 330 * i / 12, 169 + (i % 4 == 0) * 2)")
+          replace_once("            page.screenshot(path=str(folder / f'{scenario}-before.png'))", "            if scenario == 'legendary': page.mouse.click(123, 310); page.wait_for_timeout(2200)\n            page.screenshot(path=str(folder / f'{scenario}-before.png'))")
+          replace_once("and stream['height'] == 1080 for stream in info['streams']", "and stream['height'] == 720 for stream in info['streams']")
+          replace_once("assert float(info['format']['duration']) >= 25, info", "assert float(info['format']['duration']) >= 50, info")
           script_path.write_text(script)
           PY
           python3 -m py_compile scripts/temporary-promo-capture.py
           VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=true VITE_CAPTURE_REWARD=true npm run build
-      - name: Install screen recording and browser dependencies
+      - name: Install recorder and Chromium
         shell: bash
         run: |
           sudo apt-get update -qq
@@ -86,19 +84,18 @@ jobs:
           python3 -m venv /tmp/signal-capture-venv
           /tmp/signal-capture-venv/bin/pip install playwright==1.55.0
           /tmp/signal-capture-venv/bin/python -m playwright install --with-deps chromium
-      - name: Record two locale promos with authentic tear and audio
+      - name: Record both locales with native 720p60 screen capture and game audio
         shell: bash
         env:
           SOURCE_MAIN_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           export DISPLAY=:99
-          Xvfb :99 -screen 0 1920x1200x24 -ac -nolisten tcp >/tmp/promo-xvfb.log 2>&1 &
+          Xvfb :99 -screen 0 1280x900x24 -ac -nolisten tcp >/tmp/promo-xvfb.log 2>&1 &
           sleep 2
           xdpyinfo -display :99 >/dev/null
           pulseaudio --start --exit-idle-time=-1 || true
           sleep 2
-          pactl info
           pactl load-module module-null-sink sink_name=promo sink_properties=device.description=promo
           pactl set-default-sink promo
           export PULSE_SINK=promo
@@ -106,13 +103,15 @@ jobs:
           sleep 2
           curl -fsS http://127.0.0.1:8765/ >/dev/null
           /tmp/signal-capture-venv/bin/python scripts/temporary-promo-capture.py
-          ffprobe -v error -show_entries stream=codec_type,width,height -of json promo-output/signal-2000-promo-ru.mp4
-          ffprobe -v error -show_entries stream=codec_type,width,height -of json promo-output/signal-2000-promo-en.mp4
-      - name: Upload both MP4s and visual QA frames
+          for f in promo-output/signal-2000-promo-ru.mp4 promo-output/signal-2000-promo-en.mp4; do
+            ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate,nb_frames,width,height -of default=noprint_wrappers=1 "$f"
+            ffmpeg -hide_banner -loglevel info -i "$f" -vf mpdecimate -an -f null - 2>&1 | tr '\r' '\n' | grep '^frame=' | tail -1
+          done
+      - name: Upload raw 60fps clips and diagnostic frames
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: signal-2000-promo-ru-en-${{ github.run_id }}
+          name: signal-2000-promo-60fps-${{ github.run_id }}
           path: promo-output/
           retention-days: 5
           if-no-files-found: warn
