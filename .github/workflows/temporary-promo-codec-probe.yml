@@ -30,8 +30,8 @@ jobs:
           original = '    return Math.random();'
           replacement = """    if (import.meta.env.VITE_CAPTURE_REWARD === 'true') {
             const mode = window.sessionStorage.getItem('signal.capture.reward');
-            if (mode === 'legendary-secret') {
-              const sequence = [0.1, 0.99, 0, 0, 0, 0];
+            if (mode?.startsWith('legendary-secret')) {
+              const sequence = [mode === 'legendary-secret-second' ? 0.9 : 0.1, 0.99, 0, 0, 0, 0];
               const index = Number(window.sessionStorage.getItem('signal.capture.random-index') ?? '0');
               window.sessionStorage.setItem('signal.capture.random-index', String(index + 1));
               return sequence[index] ?? 0;
