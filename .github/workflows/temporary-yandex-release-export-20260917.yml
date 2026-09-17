@@ -1,0 +1,46 @@
+name: Temporary Yandex production export 2026-09-17
+on:
+  push:
+    branches: [fix/soften-reveal-vignette-20260917]
+    paths: [.github/workflows/temporary-yandex-release-export-20260917.yml]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: e53a722515377e07a316a57031b8a02e82641660
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Build real-platform release, without debug flags
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: yandex
+          VITE_DEBUG_PANEL: 'false'
+      - name: Verify upload tree
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('dist'); files=[p for p in root.rglob('*') if p.is_file()]
+          assert (root/'index.html').is_file()
+          assert sum(p.name == 'index.html' and p.parent == root for p in files)==1
+          assert all(p.relative_to(root).as_posix().isascii() and not re.search(r'\s', p.relative_to(root).as_posix()) for p in files)
+          size=sum(p.stat().st_size for p in files)
+          assert size<=100_000_000, size
+          js='\n'.join(p.read_text() for p in (root/'assets').glob('*.js'))
+          assert "mpt-debug-panel" not in js, 'debug panel included'
+          assert 'YaGames' in js and 'sdk.js' in js, 'real SDK loader missing'
+          print(f'OK production dist: {len(files)} files, {size} bytes, main=e53a722515377e07a316a57031b8a02e82641660')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signal-2000-yandex-production-20260917
+          path: dist/
+          if-no-files-found: error
+          retention-days: 2
