@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { RARITY_POUCH_IMPACT, resolveCrackVariant } from './rarityPouchImpact';
 
 describe('rarity pouch impact', () => {
-  it('increases pulse count, edge strength, recoil and motion without excessive hold', () => {
+  it('keeps a single faint edge breath, while rarity still increases pouch impact', () => {
     const tiers = ['common', 'rare', 'epic', 'legendary'] as const;
     for (const [index, tier] of tiers.entries()) {
       const profile = RARITY_POUCH_IMPACT[tier];
-      expect(profile.vignettePulses).toBe(index + 1);
-      expect(profile.vignetteAlpha).toBeLessThanOrEqual(0.85);
+      expect(profile.vignettePulses).toBe(index === 0 ? 0 : 1);
+      expect(profile.vignetteAlpha).toBeLessThanOrEqual(0.22);
+      expect(profile.pulseHalfMs * 2).toBeLessThanOrEqual(440);
+      expect(profile.pulseGapMs).toBe(0);
       expect(profile.recoilScale).toBeGreaterThanOrEqual(0.93);
       expect(profile.reboundScale).toBeLessThanOrEqual(1.05);
       expect(profile.joltX).toBeLessThanOrEqual(4);
@@ -51,7 +53,8 @@ describe('rarity pouch impact', () => {
 
   it('reserves secret for a second vignette without animating the departed pouch', () => {
     const secret = RARITY_POUCH_IMPACT.secret;
-    expect(secret.vignettePulses).toBe(3);
+    expect(secret.vignettePulses).toBe(1);
+    expect(secret.vignetteAlpha).toBeLessThanOrEqual(0.22);
     expect(secret.recoilMs).toBe(0);
     expect(secret.reboundMs).toBe(0);
     expect(secret.jolts).toBe(0);
