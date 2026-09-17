@@ -1,15 +1,17 @@
-name: Temporary Signal 2000 codec comparison
+name: Temporary Signal 2000 store promo capture
 on:
   push:
     branches: [capture/signal-2000-promo-ru-en-20260917]
-    paths: [.github/workflows/temporary-promo-codec-probe.yml, scripts/temporary-promo-audio-probe.py]
+    paths:
+      - .github/workflows/temporary-promo-codec-probe.yml
+      - scripts/temporary-promo-audio-probe.py
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  codec-probe:
+  capture:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,39 +19,49 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=false npm run build
-      - name: Record native WebGL frames and game audio in the same browser stream
+      - name: Prepare deterministic legendary plus secret capture build
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          random_path = Path('src/game/systems/random.ts')
+          source = random_path.read_text()
+          original = '    return Math.random();'
+          replacement = """    if (import.meta.env.VITE_CAPTURE_REWARD === 'true') {
+            const mode = window.sessionStorage.getItem('signal.capture.reward');
+            if (mode === 'legendary-secret') {
+              const sequence = [0.1, 0.99, 0, 0, 0, 0];
+              const index = Number(window.sessionStorage.getItem('signal.capture.random-index') ?? '0');
+              window.sessionStorage.setItem('signal.capture.random-index', String(index + 1));
+              return sequence[index] ?? 0;
+            }
+          }
+          return Math.random();"""
+          assert source.count(original) == 1
+          random_path.write_text(source.replace(original, replacement))
+
+          balance_path = Path('src/game/data/balance.ts')
+          balance = balance_path.read_text()
+          assert balance.count('hiddenPocketChance: 0.06,') == 1
+          balance_path.write_text(balance.replace('hiddenPocketChance: 0.06,', 'hiddenPocketChance: 1,'))
+          PY
+          VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=false VITE_CAPTURE_REWARD=true npm run build
+      - name: Capture real Russian gameplay with Metal video and game audio
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m venv /tmp/signal-codec-probe
-          /tmp/signal-codec-probe/bin/python -m pip install 'playwright==1.55.0'
+          python3 -m venv /tmp/signal-store-promo
+          /tmp/signal-store-promo/bin/python -m pip install 'playwright==1.55.0'
           brew install ffmpeg
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('scripts/temporary-promo-audio-probe.py')
-          s=p.read_text()
-          a='window.__signalCaptureAudio=this.createMediaStreamDestination();'
-          b='window.__signalContexts=(window.__signalContexts||0)+1;window.__signalCaptureAudio ||= this.createMediaStreamDestination();'
-          assert s.count(a)==1
-          s=s.replace(a,b)
-          a='original.call(this,mirror);'
-          b='(window.__signalMirrorConnections=(window.__signalMirrorConnections||0)+1,original.call(this,mirror));'
-          assert s.count(a)==1
-          s=s.replace(a,b)
-          a="contextState:window.__signalCaptureAudio?.context.state||'absent',"
-          b="contextState:window.__signalCaptureAudio?.context.state||'absent',contextsCreated:window.__signalContexts||0,mirroredConnections:window.__signalMirrorConnections||0,"
-          assert s.count(a)==1
-          p.write_text(s.replace(a,b))
-          PY
-          python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
+          python3 -m http.server 8765 --directory dist >/tmp/promo-http.log 2>&1 &
           sleep 2
-          /tmp/signal-codec-probe/bin/python scripts/temporary-promo-audio-probe.py
-      - name: Upload codec probes
+          /tmp/signal-store-promo/bin/python scripts/temporary-promo-audio-probe.py
+      - name: Upload store promo and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: signal-codec-probe-${{ github.run_id }}
-          path: probe-output/
-          retention-days: 5
+          name: signal-2000-legendary-secret-promo-${{ github.run_id }}
+          path: promo-output/
+          retention-days: 7
           if-no-files-found: warn
