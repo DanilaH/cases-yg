@@ -25,6 +25,23 @@ jobs:
           python3 -m venv /tmp/signal-codec-probe
           /tmp/signal-codec-probe/bin/python -m pip install 'playwright==1.55.0'
           brew install ffmpeg
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/temporary-promo-audio-probe.py')
+          s=p.read_text()
+          a='window.__signalCaptureAudio=this.createMediaStreamDestination();'
+          b='window.__signalContexts=(window.__signalContexts||0)+1;window.__signalCaptureAudio ||= this.createMediaStreamDestination();'
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          a='original.call(this,mirror);'
+          b='(window.__signalMirrorConnections=(window.__signalMirrorConnections||0)+1,original.call(this,mirror));'
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          a="contextState:window.__signalCaptureAudio?.context.state||'absent',"
+          b="contextState:window.__signalCaptureAudio?.context.state||'absent',contextsCreated:window.__signalContexts||0,mirroredConnections:window.__signalMirrorConnections||0,"
+          assert s.count(a)==1
+          p.write_text(s.replace(a,b))
+          PY
           python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
           sleep 2
           /tmp/signal-codec-probe/bin/python scripts/temporary-promo-audio-probe.py
