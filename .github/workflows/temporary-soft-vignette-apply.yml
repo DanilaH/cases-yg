@@ -1,0 +1,75 @@
+name: Temporary soft vignette apply
+on:
+  push:
+    branches: [fix/soften-reveal-vignette-20260917]
+    paths: [.github/workflows/temporary-soft-vignette-apply.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - name: Make only the reviewed vignette changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/game/data/rarityPouchImpact.ts')
+          s=p.read_text()
+          changes={
+            'vignettePulses: 1, vignetteAlpha: 0.46, pulseHalfMs: 100, pulseGapMs: 0,':'vignettePulses: 0, vignetteAlpha: 0, pulseHalfMs: 160, pulseGapMs: 0,',
+            'vignettePulses: 2, vignetteAlpha: 0.57, pulseHalfMs: 100, pulseGapMs: 36,':'vignettePulses: 1, vignetteAlpha: 0.11, pulseHalfMs: 180, pulseGapMs: 0,',
+            'vignettePulses: 3, vignetteAlpha: 0.69, pulseHalfMs: 94, pulseGapMs: 34,':'vignettePulses: 1, vignetteAlpha: 0.15, pulseHalfMs: 190, pulseGapMs: 0,',
+            'vignettePulses: 4, vignetteAlpha: 0.84, pulseHalfMs: 88, pulseGapMs: 28,':'vignettePulses: 1, vignetteAlpha: 0.19, pulseHalfMs: 200, pulseGapMs: 0,',
+            'vignettePulses: 3, vignetteAlpha: 0.94, pulseHalfMs: 108, pulseGapMs: 46,':'vignettePulses: 1, vignetteAlpha: 0.22, pulseHalfMs: 220, pulseGapMs: 0,',
+          }
+          for before,after in changes.items():
+            assert s.count(before)==1,(p,before,s.count(before))
+            s=s.replace(before,after)
+          p.write_text(s)
+          p=Path('src/game/scenes/OpeningScene.ts');s=p.read_text()
+          before='  // Draw once per reveal, then animate only alpha. Stronger feathered EDGES, never a full-screen\n  // strobe, extra textures, shaders, or presentation RNG.'
+          after='  // One faint edge breath (no repeated flashes); common needs no screen-wide overlay.\n  // Draw once, animate only alpha, and preserve skip/teardown cleanup.'
+          assert s.count(before)==1,(p,'comment')
+          s=s.replace(before,after)
+          before='    this.clearImpactVignette();\n    const profile = RARITY_POUCH_IMPACT[rarity];\n    const width = this.metrics.logicalWidth;'
+          after='    this.clearImpactVignette();\n    const profile = RARITY_POUCH_IMPACT[rarity];\n    if (profile.vignettePulses === 0 || profile.vignetteAlpha <= 0) return;\n    const width = this.metrics.logicalWidth;'
+          assert s.count(before)==1,(p,'guard')
+          s=s.replace(before,after)
+          p.write_text(s)
+          p=Path('src/game/data/rarityPouchImpact.test.ts');s=p.read_text()
+          before="  it('increases pulse count, edge strength, recoil and motion without excessive hold', () => {"
+          after="  it('keeps a single faint edge breath, while rarity still increases pouch impact', () => {"
+          assert s.count(before)==1,(p,'name')
+          s=s.replace(before,after)
+          before='      expect(profile.vignettePulses).toBe(index + 1);\n      expect(profile.vignetteAlpha).toBeLessThanOrEqual(0.85);'
+          after='      expect(profile.vignettePulses).toBe(index === 0 ? 0 : 1);\n      expect(profile.vignetteAlpha).toBeLessThanOrEqual(0.22);\n      expect(profile.pulseHalfMs * 2).toBeLessThanOrEqual(440);\n      expect(profile.pulseGapMs).toBe(0);'
+          assert s.count(before)==1,(p,'expectations')
+          s=s.replace(before,after)
+          before='    expect(secret.vignettePulses).toBe(3);'
+          after='    expect(secret.vignettePulses).toBe(1);\n    expect(secret.vignetteAlpha).toBeLessThanOrEqual(0.22);'
+          assert s.count(before)==1,(p,'secret')
+          s=s.replace(before,after)
+          p.write_text(s)
+          print('Only vignette choreography and expectations changed')
+          PY
+          git diff --check
+          git diff --stat
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Commit production files only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/game/data/rarityPouchImpact.ts src/game/data/rarityPouchImpact.test.ts src/game/scenes/OpeningScene.ts
+          git commit -m 'fix(feel): replace flashing vignette with one faint edge breath'
+          git push origin HEAD:fix/soften-reveal-vignette-20260917
