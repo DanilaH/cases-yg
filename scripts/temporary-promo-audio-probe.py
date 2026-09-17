@@ -174,7 +174,7 @@ if browser_video != BROWSER_VIDEO:
 video_probe = probe(BROWSER_VIDEO)
 audio_probe = probe(AUDIO)
 video_duration = float(video_probe["format"]["duration"])
-audio_duration = float(audio_probe["format"]["duration"])
+audio_duration = stats["elapsedMs"] / 1000
 offset = max(0.0, video_duration - audio_duration)
 duration = min(audio_duration, 24.8)
 
