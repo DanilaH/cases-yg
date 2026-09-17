@@ -36,7 +36,7 @@ jobs:
                 const sequences: Record<string, readonly number[]> = {
                   'epic-phone': [0.99, 0.99, 0, 0, 0.99],
                   legendary: [0.1, 0.99, 0, 0, 0.99],
-                  'hidden-pocket': [0.1, 0.1, 0, 0, 0, 0.1],
+                  'hidden-pocket': [0.1, 0.1, 0, 0, 0.1],
                 };
                 const sequence = mode ? sequences[mode] : undefined;
                 if (sequence) {
@@ -56,7 +56,7 @@ jobs:
           script = script.replace(a, "context.add_init_script(\"(\" + '''(lang) => {")
           script = script.replace(b, "}''' + \")(\" + json.dumps(lang) + \")\")")
           assert "SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]" in script
-          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 23.0), ('legendary', 22.0)]")
+          script = script.replace("SCENARIOS = [('epic-phone', 7.8), ('legendary', 8.4), ('hidden-pocket', 10.0)]", "SCENARIOS = [('hidden-pocket', 55.0), ('legendary', 22.0)]")
           assert "':99.0+0,0'" in script
           script = script.replace("':99.0+0,0'", "':99.0+0,74'")
           assert "'--window-size=1920,1080'" in script
