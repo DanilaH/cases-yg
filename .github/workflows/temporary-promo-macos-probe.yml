@@ -1,0 +1,72 @@
+name: Temporary Signal promo macOS GPU probe
+on:
+  push:
+    branches: [capture/signal-2000-promo-ru-en-20260917]
+    paths: [.github/workflows/temporary-promo-macos-probe.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=false npm run build
+      - name: Record a native canvas stream and measure frame cadence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/signal-gpu-probe
+          /tmp/signal-gpu-probe/bin/python -m pip install 'playwright==1.55.0'
+          mkdir -p probe-output
+          python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
+          sleep 2
+          /tmp/signal-gpu-probe/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          out = Path('probe-output')
+          state = {'version':5,'discoveredStandard':[],'discoveredSecrets':[],'chips':450,'signal':0,'overchargeHundredths':100,'activeLootPoolId':'y2k-essentials','totalOpens':17,'pendingReveal':None,'onboarding':{'primaryCompleted':True,'firstRevealReceipt':None},'muted':False,'stats':{'duplicates':0,'hiddenPockets':0}}
+          diagnostics={'errors':[]}
+          with sync_playwright() as p:
+              browser=p.chromium.launch(channel='chrome',headless=True,args=['--enable-gpu','--ignore-gpu-blocklist','--use-angle=metal','--enable-webgl','--autoplay-policy=no-user-gesture-required','--disable-background-timer-throttling','--disable-renderer-backgrounding'])
+              ctx=browser.new_context(locale='ru-RU',viewport={'width':1280,'height':720},device_scale_factor=1,accept_downloads=True)
+              ctx.add_init_script('(state)=>{localStorage.setItem("mystery-pocket-tech.save",JSON.stringify(state));sessionStorage.setItem("mystery-pocket-tech.debug-language","ru")}',state)
+              page=ctx.new_page()
+              page.on('pageerror',lambda e:diagnostics['errors'].append(str(e)))
+              page.goto('http://127.0.0.1:8765/',wait_until='domcontentloaded',timeout=90000)
+              page.wait_for_function('document.querySelector("#startup-preload")?.dataset.state === "hidden"',timeout=90000)
+              page.wait_for_timeout(1800)
+              diagnostics['graphics']=page.evaluate('''() => {const c=document.querySelector('#game canvas');if(!c)return {error:'no canvas',html:document.querySelector('#game')?.innerHTML.slice(0,150)};const gl=c.getContext('webgl2')||c.getContext('webgl');if(!gl)return {error:'no GL',width:c.width,height:c.height};const d=gl.getExtension('WEBGL_debug_renderer_info');return {width:c.width,height:c.height,renderer:d?gl.getParameter(d.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),vendor:d?gl.getParameter(d.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR),contextType:gl.constructor.name}}''')
+              diagnostics['idle']=page.evaluate('''async()=>{let previous=0;const intervals=[];const start=performance.now();return await new Promise(resolve=>{const f=t=>{if(previous)intervals.push(t-previous);previous=t;if(performance.now()-start<2500)requestAnimationFrame(f);else resolve({frames:intervals.length,elapsedMs:performance.now()-start,over33ms:intervals.filter(v=>v>33).length,maxGapMs:Math.max(...intervals,0)})};requestAnimationFrame(f)})}''')
+              page.screenshot(path=str(out/'before.png'))
+              page.evaluate('''() => {const c=document.querySelector('#game canvas');if(!c)throw Error('No Phaser canvas');if(!c.captureStream)throw Error('No captureStream');const mime=['video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m));if(!mime)throw Error('MediaRecorder does not support webm');window.__videoChunks=[];window.__rec=new MediaRecorder(c.captureStream(60),{mimeType:mime,videoBitsPerSecond:8000000});window.__rec.ondataavailable=e=>{if(e.data.size)window.__videoChunks.push(e.data)};window.__recDone=new Promise((resolve,reject)=>{window.__rec.onerror=e=>reject(e.error);window.__rec.onstop=resolve});window.__frameIntervals=[];window.__phase='record';let previous=0;const sample=t=>{if(window.__phase==='done')return;if(previous)window.__frameIntervals.push(t-previous);previous=t;requestAnimationFrame(sample)};requestAnimationFrame(sample);window.__rec.start(500)}''')
+              page.wait_for_timeout(600)
+              page.mouse.move(477,169)
+              page.mouse.down()
+              page.mouse.move(810,169,steps=40)
+              page.mouse.up()
+              page.wait_for_timeout(3300)
+              with page.expect_download(timeout=60000) as download_info:
+                  diagnostics['record']=page.evaluate('''async()=>{window.__phase='done';window.__rec.stop();await window.__recDone;const blob=new Blob(window.__videoChunks,{type:window.__rec.mimeType});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='macos-canvas-capture.webm';document.body.append(a);a.click();a.remove();return {bytes:blob.size,mime:blob.type,rafFrames:window.__frameIntervals.length,elapsedFromRafMs:window.__frameIntervals.reduce((a,b)=>a+b,0),gapsOver33ms:window.__frameIntervals.filter(v=>v>33).length,maxGapMs:Math.max(...window.__frameIntervals,0)}}''')
+              download_info.value.save_as(str(out/'macos-canvas-capture.webm'))
+              diagnostics['reward']=page.evaluate('''()=>{const s=JSON.parse(localStorage.getItem('mystery-pocket-tech.save'));return {totalOpens:s.totalOpens,pending:!!s.pendingReveal}}''')
+              page.screenshot(path=str(out/'after.png'))
+              browser.close()
+          (out/'diagnostics.json').write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2))
+          print('GPU_PROBE',json.dumps(diagnostics,ensure_ascii=False),flush=True)
+          PY
+      - name: Upload probe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-macos-gpu-canvas-probe-${{ github.run_id }}
+          path: probe-output/
+          if-no-files-found: warn
+          retention-days: 5
