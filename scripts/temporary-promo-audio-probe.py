@@ -80,6 +80,30 @@ with sync_playwright() as p:
     page.add_style_tag(content=".mpt-debug-panel { display:none !important; }")
     page.wait_for_timeout(1800)
 
+    # Warm the complete reveal pipeline in the same WebGL context before recording.
+    # This compiles first-use shaders and allocates reveal/particle resources off-camera.
+    page.mouse.click(92, 233)
+    page.wait_for_timeout(700)
+    page.mouse.move(358, 127)
+    page.mouse.down()
+    page.mouse.move(607, 127, steps=48)
+    page.mouse.up()
+    page.wait_for_function("""() => {
+      const s = JSON.parse(localStorage.getItem('mystery-pocket-tech.save') || '{}');
+      return Boolean(s.pendingReveal);
+    }""", timeout=12000)
+    page.wait_for_timeout(18000)
+    page.mouse.click(480, 500)
+    page.wait_for_function("""() => {
+      const s = JSON.parse(localStorage.getItem('mystery-pocket-tech.save') || '{}');
+      return !s.pendingReveal && s.totalOpens >= 18;
+    }""", timeout=20000)
+    page.wait_for_timeout(3000)
+    page.evaluate("""() => {
+      sessionStorage.setItem('signal.capture.reward', 'legendary-secret-second');
+      sessionStorage.setItem('signal.capture.random-index', '0');
+    }""")
+
     tracks = page.evaluate("""() => ({
       audio: window.__signalCaptureAudio?.stream.getAudioTracks().map(t => ({
         state: t.readyState, enabled: t.enabled
