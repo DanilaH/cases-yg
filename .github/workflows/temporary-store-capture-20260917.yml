@@ -1,0 +1,86 @@
+name: Temporary Signal store capture 2026-09-17
+on:
+  push:
+    branches: [fix/soften-reveal-vignette-20260917]
+    paths: [.github/workflows/temporary-store-capture-20260917.yml]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: e53a722515377e07a316a57031b8a02e82641660
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          package-manager-cache: false
+      - run: npm ci
+      - name: Build staging-only real gameplay renderer for screenshots
+        run: npm run build
+        env:
+          VITE_PLATFORM_RUNTIME: mock
+          VITE_DEBUG_PANEL: 'true'
+      - name: Install browser for actual game captures
+        run: |
+          python3 -m pip install --user playwright==1.55.0
+          python3 -m playwright install --with-deps chromium
+      - name: Capture staged but unaltered game frames
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory dist > /tmp/signal-store-http.log 2>&1 &
+          cat > /tmp/signal_store_capture.py <<'PY'
+          from pathlib import Path
+          import json, traceback
+          from playwright.sync_api import sync_playwright
+          
+          out=Path('captures'); out.mkdir(exist_ok=True)
+          records=[]
+          errors=[]
+          BASE='http://127.0.0.1:8765/'
+          def shot(page, language, label):
+              target=out/language/(label+'.png'); target.parent.mkdir(exist_ok=True)
+              page.screenshot(path=str(target),style='.mpt-debug-panel { visibility: hidden !important; }',animations='disabled',timeout=25000)
+              records.append({'locale':language,'label':label,'file':str(target),'htmlLang':page.locator('html').get_attribute('lang'),'title':page.title(),'preload':page.locator('#startup-preload').get_attribute('data-state'),'save':page.evaluate("JSON.parse(localStorage.getItem('mystery-pocket-tech.save') || '{}')?.pendingReveal?.standard?.rarity || null")})
+              print('CAPTURE',language,label,records[-1]['htmlLang'],records[-1]['save'],flush=True)
+          def stage(page,label):
+              before=page.evaluate('performance.getEntriesByType("navigation").length')
+              button=page.locator('.mpt-debug-panel button').filter(has_text=label).first
+              assert button.count() == 1,label
+              button.evaluate('(node) => node.click()')
+              page.wait_for_timeout(1200)
+              page.wait_for_function("document.querySelector('canvas') !== null && document.querySelector('#startup-preload')?.dataset.state !== 'loading'",timeout=45000)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-webgl'])
+              for language,locale in [('ru','ru-RU'),('en','en-US')]:
+                  context=browser.new_context(locale=locale,viewport={'width':1920,'height':1080},device_scale_factor=1)
+                  context.add_init_script(f"sessionStorage.setItem('mystery-pocket-tech.debug-language','{language}'); sessionStorage.setItem('mystery-pocket-tech.debug-panel-collapsed','0');")
+                  page=context.new_page()
+                  page.on('pageerror',lambda error: errors.append(str(error)))
+                  page.on('console',lambda msg: errors.append(msg.text) if msg.type=='error' else None)
+                  page.goto(BASE,wait_until='domcontentloaded'); page.wait_for_selector('canvas',timeout=60000);page.wait_for_timeout(4500)
+                  shot(page,language,'01-basic-pouch')
+                  stage(page,'Seed all 8/8 + 2/2');page.wait_for_timeout(2100); shot(page,language,'02-full-collection-opening')
+                  for name,button_label in [('rare','Force Rare'),('epic-phone','Force Epic Phone'),('legendary','Force Legendary (Charged)'),('secret','Force Hidden Pocket')]:
+                      stage(page,button_label)
+                      for i,delay in enumerate([700,650,750,1100,1100,1100,1500]):
+                          page.wait_for_timeout(delay)
+                          shot(page,language,f'{name}-{i:02d}')
+                  # Debug panel's seeded saved collection is a fixture, not organically earned.
+                  context.close()
+              browser.close()
+          (out/'capture-manifest.json').write_text(json.dumps({'sourceMainSha':'e53a722515377e07a316a57031b8a02e82641660','runtime':'mock+debug only for screenshot staging','records':records,'errors':errors},indent=2,ensure_ascii=False))
+          print('TOTAL',len(records),'ERRORS',errors[:12],flush=True)
+          assert len(records)>=50
+          assert all(item['htmlLang']==item['locale'] for item in records)
+          assert not errors,errors[:12]
+          PY
+          python3 /tmp/signal_store_capture.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signal-store-current-ru-en-candidates
+          path: captures/
+          if-no-files-found: error
+          retention-days: 2
