@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/signal-codec-probe
           /tmp/signal-codec-probe/bin/python -m pip install 'playwright==1.55.0'
-          command -v ffprobe
+          brew install ffmpeg
           python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
           sleep 2
           /tmp/signal-codec-probe/bin/python scripts/temporary-promo-codec-probe.py
