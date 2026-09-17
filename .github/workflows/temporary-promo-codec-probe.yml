@@ -2,7 +2,7 @@ name: Temporary Signal 2000 codec comparison
 on:
   push:
     branches: [capture/signal-2000-promo-ru-en-20260917]
-    paths: [.github/workflows/temporary-promo-codec-probe.yml, scripts/temporary-promo-manual-frame-probe.py]
+    paths: [.github/workflows/temporary-promo-codec-probe.yml, scripts/temporary-promo-audio-probe.py]
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: VITE_PLATFORM_RUNTIME=mock VITE_DEBUG_PANEL=false npm run build
-      - name: Measure real frames through the complete tear under two capture modes
+      - name: Record native WebGL frames and game audio in the same browser stream
         shell: bash
         run: |
           set -euo pipefail
@@ -27,7 +27,7 @@ jobs:
           brew install ffmpeg
           python3 -m http.server 8765 --directory dist >/tmp/probe-http.log 2>&1 &
           sleep 2
-          /tmp/signal-codec-probe/bin/python scripts/temporary-promo-manual-frame-probe.py
+          /tmp/signal-codec-probe/bin/python scripts/temporary-promo-audio-probe.py
       - name: Upload codec probes
         if: always()
         uses: actions/upload-artifact@v4
