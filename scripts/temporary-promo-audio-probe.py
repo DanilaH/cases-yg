@@ -1,26 +1,20 @@
 """Temporary capture-only Russian store promo. Never merge this script into main."""
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 OUT = Path("promo-output")
 OUT.mkdir(exist_ok=True)
-RAW = OUT / "signal-2000-legendary-secret-ru.webm"
-FINAL = OUT / "signal-2000-legendary-secret-ru.mp4"
+AUDIO = OUT / "game-audio.webm"
+FINAL = OUT / "signal-2000-legendary-secret-ru-smooth.mp4"
 STATE = {
-    "version": 5,
-    "discoveredStandard": [],
-    "discoveredSecrets": [],
-    "chips": 450,
-    "signal": 0,
-    "overchargeHundredths": 100,
-    "activeLootPoolId": "y2k-essentials",
-    "totalOpens": 17,
-    "pendingReveal": None,
+    "version": 5, "discoveredStandard": [], "discoveredSecrets": [], "chips": 450,
+    "signal": 0, "overchargeHundredths": 100, "activeLootPoolId": "y2k-essentials",
+    "totalOpens": 17, "pendingReveal": None,
     "onboarding": {"primaryCompleted": True, "firstRevealReceipt": None},
-    "muted": False,
-    "stats": {"duplicates": 0, "hiddenPockets": 0},
+    "muted": False, "stats": {"duplicates": 0, "hiddenPockets": 0},
 }
 BOOT_SCRIPT = """(() => {
   const Native = window.AudioContext;
@@ -44,7 +38,7 @@ BOOT_SCRIPT = """(() => {
   };
 })()"""
 
-def ffprobe(path):
+def probe(path):
     return json.loads(subprocess.check_output([
         "ffprobe", "-v", "error",
         "-show_entries", "stream=codec_type,codec_name,width,height,avg_frame_rate,nb_frames:format=duration",
@@ -53,8 +47,7 @@ def ffprobe(path):
 
 with sync_playwright() as p:
     browser = p.chromium.launch(
-        channel="chrome",
-        headless=True,
+        channel="chrome", headless=True,
         args=[
             "--enable-gpu", "--ignore-gpu-blocklist", "--use-angle=metal", "--enable-webgl",
             "--disable-frame-rate-limit", "--disable-gpu-vsync",
@@ -63,13 +56,11 @@ with sync_playwright() as p:
         ],
     )
     ctx = browser.new_context(
-        locale="ru-RU",
-        viewport={"width": 960, "height": 540},
-        device_scale_factor=1,
-        accept_downloads=True,
+        locale="ru-RU", viewport={"width": 960, "height": 540}, device_scale_factor=1,
+        accept_downloads=True, record_video_dir=str(OUT), record_video_size={"width": 960, "height": 540},
     )
     ctx.add_init_script(BOOT_SCRIPT)
-    init = (
+    ctx.add_init_script(
         "(() => { const s = " + json.dumps(STATE) + ";"
         "localStorage.setItem('mystery-pocket-tech.save', JSON.stringify(s));"
         "sessionStorage.setItem('mystery-pocket-tech.debug-language', 'ru');"
@@ -77,15 +68,14 @@ with sync_playwright() as p:
         "sessionStorage.setItem('signal.capture.reward', 'legendary-secret');"
         "sessionStorage.setItem('signal.capture.random-index', '0'); })()"
     )
-    ctx.add_init_script(init)
     page = ctx.new_page()
+    video_handle = page.video
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append("console: " + m.text) if m.type == "error" else None)
     page.goto("http://127.0.0.1:8765/", wait_until="domcontentloaded", timeout=90000)
     page.wait_for_function(
-        "document.querySelector('#startup-preload')?.dataset.state === 'hidden'",
-        timeout=90000,
+        "document.querySelector('#startup-preload')?.dataset.state === 'hidden'", timeout=90000
     )
     page.add_style_tag(content=".mpt-debug-panel { display:none !important; }")
     page.wait_for_timeout(1800)
@@ -97,46 +87,37 @@ with sync_playwright() as p:
       contextState: window.__signalCaptureAudio?.context.state || 'absent',
       contextsCreated: window.__signalContexts || 0,
       mirroredConnections: window.__signalMirrorConnections || 0,
-      canRecord: MediaRecorder.isTypeSupported('video/webm;codecs="vp8,opus"')
+      canRecord: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
     })""")
     assert tracks["audio"] and tracks["canRecord"], tracks
 
+    # Only audio is encoded inside the page. Video capture is owned by Playwright,
+    # so reveal shaders/particles do not compete with an in-page video encoder.
     page.evaluate("""() => {
-      const canvas = document.querySelector('#game canvas');
-      if (!canvas) throw Error('No Phaser canvas');
-      const videoTrack = canvas.captureStream(0).getVideoTracks()[0];
-      const stream = new MediaStream([
-        videoTrack,
-        ...window.__signalCaptureAudio.stream.getAudioTracks()
-      ]);
+      const stream = new MediaStream(window.__signalCaptureAudio.stream.getAudioTracks());
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs="vp8,opus"',
-        videoBitsPerSecond: 7000000,
-        audioBitsPerSecond: 160000
+        mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 160000
       });
-      window.__promoChunks = [];
-      recorder.ondataavailable = e => { if (e.data.size) window.__promoChunks.push(e.data); };
-      window.__promoDone = new Promise((resolve, reject) => {
-        recorder.onstop = resolve;
-        recorder.onerror = e => reject(e.error);
+      window.__audioChunks = [];
+      recorder.ondataavailable = e => { if (e.data.size) window.__audioChunks.push(e.data); };
+      window.__audioDone = new Promise((resolve, reject) => {
+        recorder.onstop = resolve; recorder.onerror = e => reject(e.error);
       });
-      window.__promoRecorder = recorder;
-      window.__promoActive = true;
-      window.__promoIntervals = [];
-      window.__promoStarted = performance.now();
+      window.__audioRecorder = recorder;
+      window.__captureStarted = performance.now();
+      window.__rafIntervals = [];
+      window.__rafActive = true;
       let previous = 0;
       const tick = t => {
-        if (!window.__promoActive) return;
-        if (previous) window.__promoIntervals.push(t - previous);
+        if (!window.__rafActive) return;
+        if (previous) window.__rafIntervals.push(t - previous);
         previous = t;
-        videoTrack.requestFrame();
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
       recorder.start(500);
     }""")
 
-    # Establish the scene, select the charged pouch, then perform one real tear.
     page.wait_for_timeout(1000)
     page.mouse.click(92, 233)
     page.wait_for_timeout(900)
@@ -160,42 +141,54 @@ with sync_playwright() as p:
     assert reward["rarity"] == "legendary", reward
     assert reward["secretId"], reward
 
-    # Keep the complete native reveal sequence and a readable result hold.
     page.wait_for_timeout(15500)
     with page.expect_download(timeout=60000) as download:
         stats = page.evaluate("""async () => {
-          window.__promoActive = false;
-          window.__promoRecorder.stop();
-          await window.__promoDone;
-          const blob = new Blob(window.__promoChunks, {type: window.__promoRecorder.mimeType});
+          window.__rafActive = false;
+          window.__audioRecorder.stop();
+          await window.__audioDone;
+          const blob = new Blob(window.__audioChunks, {type: window.__audioRecorder.mimeType});
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = 'signal-2000-legendary-secret-ru.webm';
-          a.click();
-          a.remove();
-          const d = window.__promoIntervals;
+          a.download = 'game-audio.webm';
+          a.click(); a.remove();
+          const d = window.__rafIntervals;
           return {
-            bytes: blob.size,
-            elapsedMs: performance.now() - window.__promoStarted,
+            audioBytes: blob.size,
+            elapsedMs: performance.now() - window.__captureStarted,
             rafFrames: d.length,
             over33ms: d.filter(v => v > 33).length,
-            maxGapMs: Math.max(...d, 0)
+            maxRafGapMs: Math.max(...d, 0)
           };
         }""")
-    download.value.save_as(str(RAW))
-    page.screenshot(path=str(OUT / "final-frame.png"))
+    download.value.save_as(str(AUDIO))
+    page.screenshot(path=str(OUT / "final-frame-smooth.png"))
+    ctx.close()
     browser.close()
+    browser_video = Path(video_handle.path())
+
+BROWSER_VIDEO = OUT / "browser-video.webm"
+if browser_video != BROWSER_VIDEO:
+    shutil.move(str(browser_video), BROWSER_VIDEO)
+
+video_probe = probe(BROWSER_VIDEO)
+audio_probe = probe(AUDIO)
+video_duration = float(video_probe["format"]["duration"])
+audio_duration = float(audio_probe["format"]["duration"])
+offset = max(0.0, video_duration - audio_duration)
+duration = min(audio_duration, 24.8)
 
 subprocess.run([
     "ffmpeg", "-nostdin", "-y", "-hide_banner", "-loglevel", "error",
-    "-i", str(RAW),
-    "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+    "-ss", f"{offset:.6f}", "-i", str(BROWSER_VIDEO), "-i", str(AUDIO),
+    "-t", f"{duration:.6f}", "-map", "0:v:0", "-map", "1:a:0",
+    "-vf", "fps=30", "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
     "-movflags", "+faststart", str(FINAL),
 ], check=True)
-probe = ffprobe(FINAL)
-duration = float(probe["format"]["duration"])
+
+final_probe = probe(FINAL)
+final_duration = float(final_probe["format"]["duration"])
 volume_run = subprocess.run([
     "ffmpeg", "-hide_banner", "-loglevel", "info", "-i", str(FINAL),
     "-af", "volumedetect", "-vn", "-f", "null", "-"
@@ -204,21 +197,21 @@ volume = [
     line.strip() for line in volume_run.stderr.splitlines()
     if "mean_volume" in line or "max_volume" in line
 ]
-video = next(s for s in probe["streams"] if s["codec_type"] == "video")
-assert 15 <= duration <= 25, probe
-assert video["width"] == 960 and video["height"] == 540, probe
-assert any(s["codec_type"] == "audio" for s in probe["streams"]), probe
+video = next(s for s in final_probe["streams"] if s["codec_type"] == "video")
+assert 15 <= final_duration <= 25, final_probe
+assert video["width"] == 960 and video["height"] == 540, final_probe
+assert video["avg_frame_rate"] == "30/1", final_probe
+assert any(s["codec_type"] == "audio" for s in final_probe["streams"]), final_probe
 assert volume and all("-inf" not in line for line in volume), volume
+assert stats["maxRafGapMs"] <= 150, stats
 assert not errors, errors[:10]
+
 report = {
-    "reward": reward,
-    "tracks": tracks,
-    "capture": stats,
-    "probe": probe,
-    "volume": volume,
-    "errors": errors,
+    "reward": reward, "tracks": tracks, "capture": stats,
+    "browserVideo": video_probe, "audio": audio_probe, "final": final_probe,
+    "trimOffset": offset, "volume": volume, "errors": errors,
 }
-(OUT / "capture-report.json").write_text(
+(OUT / "capture-report-smooth.json").write_text(
     json.dumps(report, ensure_ascii=False, indent=2)
 )
-print("FINAL_PROMO", json.dumps(report, ensure_ascii=False), flush=True)
+print("SMOOTH_PROMO", json.dumps(report, ensure_ascii=False), flush=True)
